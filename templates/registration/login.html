@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - P-JARI/SC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-main: #f0f4f9;
+            --text-primary: #1f1f1f;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 1rem;
+            border: 1px solid #dde3ea;
+            border-radius: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .login-input:focus {
+            border-color: #1a73e8;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .login-btn:hover {
+            background-color: #1557b0;
+        }
+    </style>
+</head>
+
+<body class="flex h-screen items-center justify-center">
+
+    <div class="login-container text-center">
+        <h1 class="text-2xl font-medium mb-6">Entrar no P-JARI/SC</h1>
+
+        {% if form.errors %}
+        <p class="text-red-500 text-sm mb-4">Seu usuário e senha não correspondem. Tente novamente.</p>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <input type="text" name="username" class="login-input" placeholder="Usuário" required autofocus>
+            <input type="password" name="password" class="login-input" placeholder="Senha" required>
+
+            <button type="submit" class="login-btn">Fazer Login</button>
+            <input type="hidden" name="next" value="{{ next }}" />
+        </form>
+
+        <p class="text-[10px] text-gray-500 mt-6">
+            ⚠️ ATENÇÃO: a análise e a decisão final constituem responsabilidade pessoal e indelegável do Membro
+            Julgador.
+        </p>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Parecer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f0f4f9;
+        }
+
+        .tox-tinymce {
+            min-height: 800px;
+            border-radius: 0.5rem !important;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+    <div class="max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100">
+        <div class="flex justify-between items-center mb-6 border-b pb-4">
+            <h1 class="text-2xl font-bold text-gray-800">
+                Edição Final -
+                <span class="text-blue-600">{{ parecer.nome_processo }}</span>
+            </h1>
+            <a href="/"
+                class="text-sm px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">Voltar</a>
+        </div>
+
+        <form method="POST" action="{% url 'salvar_parecer' parecer.id %}">
+            {% csrf_token %}
+
+            <textarea id="editor" name="conteudo_final">
+                {{ parecer_gerado|safe }}
+            </textarea>
+
+            <div class="mt-6 flex justify-end gap-4">
+                <a href="/"
+                    class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancelar</a>
+
+                <button type="button" onclick="saveAsPDF()"
+                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Salvar em PDF
+                </button>
+
+                <button type="submit"
+                    class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Finalizar e Salvar Parecer
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        tinymce.init({
+            selector: '#editor',
+            plugins: 'table lists',
+            toolbar: 'blocks | bold italic | bullist numlist | alignleft aligncenter alignright | table | undo redo',
+            menubar: false,
+            statusbar: false,
+            height: 800,
+            content_style: "body { font-family: 'Outfit', sans-serif; line-height: 1.5; font-size: 14px; }"
+        });
+
+        function saveAsPDF() {
+            const editorInstance = tinymce.get('editor');
+            if (!editorInstance) return;
+
+            const htmlContent = editorInstance.getContent();
+
+            // Criar um container limpo apenas para impressão
+            const printElement = document.createElement('div');
+            printElement.innerHTML = htmlContent;
+            printElement.style.padding = '0'; // Tira borda excessiva
+            printElement.style.paddingBottom = '40px'; // Força espaço extra no final para evitar corte do html2canvas
+            printElement.style.fontFamily = 'Arial, sans-serif';
+            printElement.style.fontSize = '12px';
+            printElement.style.lineHeight = '1.5';
+            printElement.style.color = '#000';
+            printElement.style.backgroundColor = '#fff';
+
+
+
+            // Força a quebra de linha em tabelas ou textos longos
+            printElement.style.wordWrap = 'break-word';
+            printElement.style.overflowWrap = 'break-word';
+
+            // Ocultar a UI principal para não conflitar com a captura
+            const mainUI = document.querySelector('.max-w-5xl');
+            if (mainUI) mainUI.style.display = 'none';
+
+            // Adicionar elemento de impressão no corpo
+            document.body.appendChild(printElement);
+
+            const opt = {
+                margin: [15, 15, 15, 15], // Top, Right, Bottom, Left
+                filename: '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    windowWidth: document.body.scrollWidth // Usa a largura da tela ao invés de fixo para não cortar
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+
+            // Gerar PDF e restaurar a tela original
+            html2pdf().set(opt).from(printElement).save().then(() => {
+                document.body.removeChild(printElement);
+                if (mainUI) mainUI.style.display = 'block';
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,189 @@
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planos - P-JARI/SC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-main: #f0f4f9;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-main);
+            color: #1f2937;
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #4285f4, #9b72cb, #d96570);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Genspark pricing style card hover effects */
+        .pricing-card {
+            transition: all 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Simple Header -->
+    <header class="p-6 flex justify-between items-center w-full max-w-7xl mx-auto">
+        <div class="flex items-center gap-2">
+            <!-- Vazio intencionalmente -->
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="/" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition">Voltar ao Chat</a>
+            {% if not request.user.is_authenticated %}
+            <a href="/"
+                class="px-5 py-2 rounded-full bg-gray-900 text-white text-sm font-medium hover:bg-black transition">Entrar</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Pricing Section -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-6 py-12 flex flex-col items-center">
+
+        <div class="text-center max-w-2xl mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold mb-6 gradient-text">Escolha o plano ideal para suas análises</h1>
+            <p class="text-lg text-gray-500">Desbloqueie o poder máximo do julgamento administrativo automatizado com os
+                planos do P-JARI/SC e nunca mais perca horas analisando recursos padrão.</p>
+        </div>
+
+        <!-- Toggle (Visual Only for now) -->
+        <div class="flex items-center bg-gray-200 p-1 rounded-full mb-12">
+            <button
+                class="px-6 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-gray-900 w-full text-center">Mensal</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+
+            <!-- Basic Tier (40 Judgments) -->
+            <div class="pricing-card bg-white rounded-3xl p-8 border border-gray-100 shadow-sm flex flex-col">
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">Básico</h3>
+                    <p class="text-sm text-gray-500 h-10">Para profissionais independentes e fluxos moderados.</p>
+                </div>
+                <div class="mb-8">
+                    <span class="text-5xl font-bold text-gray-900">R$720</span>
+                    <span class="text-gray-500">/mês</span>
+                </div>
+                <a href="{% url 'checkout' %}?plan=basic" target="_blank"
+                    class="w-full block text-center py-3 rounded-xl border-2 border-gray-200 text-gray-800 font-semibold hover:bg-gray-50 transition mb-8">
+                    Assinar Básico
+                </a>
+
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-gray-900 mb-4">Inclui:</p>
+                    <ul class="space-y-3 text-sm text-gray-600">
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-500 min-w-4">✓</span> <span>Até <b>40</b> Pareceres aprofundados por
+                                mês</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-500 min-w-4">✓</span> <span>Acesso a base nacional de leis do
+                                CTB</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-500 min-w-4">✓</span> <span>Exportação de resultados somente em
+                                PDF</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-500 min-w-4">✓</span> <span>Salvamento de histórico em formato de
+                                Rascunho</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Pro Tier (Highlighted & 80 Judgments) -->
+            <div
+                class="pricing-card bg-gray-900 rounded-3xl p-8 shadow-xl flex flex-col relative transform md:scale-105 border border-gray-800 z-10">
+                <div
+                    class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-md">
+                    Mais Eficiente
+                </div>
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-white mb-2">Profissional</h3>
+                    <p class="text-sm text-gray-400 h-10">Para conselheiros e julgadores frequentes.</p>
+                </div>
+                <div class="mb-8">
+                    <span class="text-5xl font-bold text-white">R$1.440</span>
+                    <span class="text-gray-400">/mês</span>
+                </div>
+                <a href="{% url 'checkout' %}?plan=pro" target="_blank"
+                    class="w-full block text-center py-3 rounded-xl bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] text-white font-semibold hover:opacity-90 transition shadow-lg mb-8">
+                    Assinar Profissional
+                </a>
+
+                <div class="flex-1">
+                    <p class="text-sm font-bold text-white mb-4">Tudo do Básico, mais:</p>
+                    <ul class="space-y-3 text-sm text-gray-300">
+                        <li class="flex items-start gap-3">
+                            <span class="text-purple-400 min-w-4">✦</span> <span>Até <b>80</b> Pareceres aprofundados
+                                por
+                                mês</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-purple-400 min-w-4">✦</span> <span>Salvamento ilimitado de Projetos e
+                                Pastas</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-purple-400 min-w-4">✦</span> <span>Acesso total ao banco de dados do
+                                Histórico</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-purple-400 min-w-4">✦</span> <span>Prioridade VIP na fila de processamento
+                                da IA</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- FAQ Section minimal -->
+        <div class="mt-24 w-full max-w-3xl border-t border-gray-200 pt-16">
+            <h3 class="text-2xl font-bold text-center mb-10 text-gray-800">Dúvidas Frequentes</h3>
+
+            <div class="space-y-6">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
+                    <h4 class="font-bold text-gray-900 mb-2">Eu preciso assinar para testar?</h4>
+                    <p class="text-gray-600 text-sm">Não. É possível submeter até 2 processos completos de forma 100%
+                        gratuita utilizando a conta Visitante ou criando sua própria conta. E não exigimos cartão de
+                        crédito prévio.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-50">
+                    <h4 class="font-bold text-gray-900 mb-2">Posso cancelar minha assinatura a qualquer momento?</h4>
+                    <p class="text-gray-600 text-sm">Absolutamente. Nossa plataforma é totalmente flexível. E caso opte
+                        pelo plano Anual e não concorde com a experiência, você tem garantia incondicional de 14 dias
+                        para cancelamento completo e reembolso.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-8 text-center text-sm text-gray-400 mt-10">
+        <p>&copy; 2026 P-JARI/SC. Todos os direitos reservados.</p>
+    </footer>
+
+</body>
+
+</html>
