@@ -1,0 +1,37 @@
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env.bak/
+venv.bak/
+
+# Arquivos de banco de dados
+db.sqlite3
+
+# Arquivos locais e de ambiente
+.env
+.env.local
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Arquivos de mídia e estáticos (opcional, dependendo de como você hospeda)
+media/
+
+# Logs
+*.log
+
+# Cache
+.cache/
+.pytest_cache/
