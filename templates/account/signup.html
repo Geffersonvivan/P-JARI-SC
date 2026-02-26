@@ -1,0 +1,62 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block title %}Criar Conta no P-JARI/SC{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-800 text-center mb-2">Crie sua conta</h2>
+<p class="text-gray-500 text-center text-sm mb-6">Utilize um e-mail válido para receber nossa verificação de acesso.</p>
+<form class="w-full" method="POST" action="{% url 'account_signup' %}">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <div class="mb-4 text-red-500 text-sm text-center font-medium">
+    {{ form.non_field_errors }}
+  </div>
+  {% endif %}
+
+  {% for field in form %}
+  <div class="mb-4 w-full">
+    <label class="block text-gray-700 text-sm font-bold mb-2 capitalize" for="{{ field.id_for_label }}">
+      {{ field.label }}
+    </label>
+    <input
+      class="shadow-sm appearance-none border border-gray-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+      id="{{ field.id_for_label }}" type="{{ field.field.widget.input_type|default:'text' }}"
+      name="{{ field.html_name }}" placeholder="{{ field.label }}" {% if field.field.required %}required{% endif %}>
+
+    {% if field.errors %}
+    <p class="text-red-500 text-xs italic mt-1">{{ field.errors.0 }}</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% if redirect_field_value %}
+  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+  {% endif %}
+
+  <button
+    class="w-full mt-2 bg-gray-900 hover:bg-black text-white font-bold py-3 px-4 rounded-full transition duration-200"
+    type="submit">
+    Cadastrar e Validar
+  </button>
+  <p class="mt-6 text-center text-sm text-gray-600">
+    Já tem conta?
+    <a href="{% url 'account_login' %}" class="text-blue-600 hover:text-blue-800 font-semibold">Faça Login</a>
+  </p>
+
+  <div class="mt-8 flex justify-center">
+    <a href="/"
+      class="flex flex-col items-center justify-center p-3 text-gray-400 hover:text-gray-800 hover:bg-gray-100 rounded-2xl transition duration-300 group"
+      title="Voltar para a Página Inicial">
+      <svg class="w-7 h-7 mb-1 group-hover:-translate-y-1 transition transform" fill="none" stroke="currentColor"
+        viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+        </path>
+      </svg>
+      <span
+        class="text-[10px] font-medium tracking-wide uppercase opacity-0 group-hover:opacity-100 transition-opacity">Início</span>
+    </a>
+  </div>
+</form>
+{% endblock %}

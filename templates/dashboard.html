@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
         /* Cores fixadas conforme o layout definido */
         :root {
@@ -319,46 +320,66 @@
             </div>
         </header>
 
-        <section id="chat-window" class="flex-1 overflow-y-auto p-4 flex flex-col">
-            <div id="home-screen" class="flex-1 flex flex-col items-center justify-center">
-                <div class="content-container text-center mb-12">
-                    <h1
-                        class="text-4xl font-medium mb-8 bg-clip-text text-transparent bg-gradient-to-r from-[#4285f4] via-[#9b72cb] to-[#d96570] leading-[1.3]">
-                        {% if request.user.is_authenticated and request.user.first_name %}
-                        {% with user_name=request.user.first_name %}
-                        Olá {{ user_name }},<br />
-                        {% endwith %}
-                        {% elif request.user.is_authenticated %}
-                        {% with user_name=request.user.username %}
-                        Olá {{ user_name }},<br />
-                        {% endwith %}
-                        {% else %}
-                        Olá Visitante,<br />
-                        {% endif %}
-                        bem-vindo(a) ao P-JARI/SC - Sistema de apoio à decisão administrativa para membros julgadores
-                        JARI Santa Catarina.
-                    </h1>
+        <section id="dashboard-window" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col bg-[#f0f4f9]">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pl-4 pr-4 gap-4">
+                <h1 class="text-3xl font-bold text-gray-800">Meu Desempenho</h1>
+                <div class="flex items-center gap-2">
+                    <label for="mes-filtro" class="text-sm font-medium text-gray-600">Mês de Referência:</label>
+                    <input type="month" id="mes-filtro"
+                        class="px-3 py-2 rounded-xl text-gray-700 font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                        onchange="filtrarMes()">
                 </div>
             </div>
-            <div id="messages-container" class="content-container space-y-6 pb-10"></div>
-        </section>
 
-        <footer class="p-6">
-            <div class="content-container relative">
-                <div class="input-bar flex items-center p-4">
-                    <button class="px-2 text-gray-500 hover:text-black font-light text-2xl">+</button>
-                    <input type="text" id="user-input" placeholder='Digite "Iniciar" para julgar um novo processo'
-                        class="flex-1 bg-transparent border-none outline-none px-4 text-lg">
-                    <div class="flex gap-4 px-2 text-gray-500">
-                        <button id="btn-send" class="hover:text-blue-600">➤</button>
-                    </div>
+            <!-- Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
+                <div
+                    class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Total Julgado</h3>
+                    <div class="text-4xl font-bold text-[#4285f4]">{{ total_julgados }}</div>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">Nesta conta</p>
                 </div>
-                <p class="text-[10px] text-center mt-3 text-gray-500">
-                    ⚠️ ATENÇÃO: a análise e a decisão final constituem responsabilidade pessoal e indelegável do Membro
-                    Julgador.
-                </p>
+
+                <div
+                    class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Tempo Poupado</h3>
+                    <div class="text-4xl font-bold text-[#34a853]">{{ tempo_poupado_horas }}H</div>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">~40 min por processo</p>
+                </div>
+
+                <div
+                    class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Taxa Deferimento</h3>
+                    <div class="text-4xl font-bold text-[#fbbc05]">{{ taxa_deferimento }}%</div>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">{{ deferidos_count }} Def. | {{ indeferidos_count
+                        }} Indef.</p>
+                </div>
+
+                <div
+                    class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Créditos Lidos</h3>
+                    <div class="text-4xl font-bold text-[#9b72cb]">{{ total_julgados }} / 40</div>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">Plano Padrão</p>
+                </div>
             </div>
-        </footer>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-10 px-4">
+                <!-- Line Chart -->
+                <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-6">Produtividade Mensal</h3>
+                    <div id="line-chart"></div>
+                </div>
+
+                <!-- Donut Chart -->
+                <div
+                    class="lg:col-span-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
+                    <h3 class="text-lg font-bold text-gray-800 mb-6">Proporção de Resultado</h3>
+                    <div id="donut-chart" class="flex-1 flex justify-center items-center"></div>
+                </div>
+            </div>
+
+        </section>
     </main>
 
     <!-- Login Modal (Genspark Style) -->
@@ -466,322 +487,123 @@
         function closeLoginModal() {
             document.getElementById('login-modal').classList.add('hidden');
         }
-        const sidebar = document.getElementById('sidebar');
-        const btnOpenSidebar = document.getElementById('btn-open-sidebar');
-        const headerTitle = document.getElementById('header-title');
-        const userInput = document.getElementById('user-input');
-        const messagesContainer = document.getElementById('messages-container');
-        const folderContainer = document.getElementById('folder-container');
-        const homeScreen = document.getElementById('home-screen');
-        const chatWindow = document.getElementById('chat-window');
 
-        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-        function toggleSidebar() {
-            sidebar.classList.toggle('sidebar-hidden');
-            if (sidebar.classList.contains('sidebar-hidden')) {
-                btnOpenSidebar.classList.remove('hidden');
-                headerTitle.classList.remove('hidden');
-            } else {
-                btnOpenSidebar.classList.add('hidden');
-                headerTitle.classList.add('hidden');
+        function filtrarMes() {
+            const valor = document.getElementById('mes-filtro').value;
+            if (valor) {
+                const [ano, mes] = valor.split('-');
+                window.location.href = `?ano=${ano}&mes=${mes}`;
             }
         }
 
-        document.getElementById('btn-parecer').addEventListener('click', async () => {
-            const name = prompt("Digite o nome ou número do processo para este parecer:");
-            if (name && name.trim() !== "") {
-                try {
-                    const response = await fetch('/parecer/create/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken
-                        },
-                        body: JSON.stringify({ nome_processo: name.trim() })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-
-                        if (data.requires_login) {
-                            showLoginModal();
-                            return;
-                        }
-
-                        const id = `folder-${data.id}`;
-                        const div = document.createElement('div');
-                        div.id = id;
-                        div.className = "folder-item group";
-                        div.setAttribute("onclick", `selectFolder('${data.id}', this)`);
-                        div.innerHTML = `
-                            <div class="flex items-center gap-3 truncate w-[60%]">
-                                <span class="text-gray-500 flex-shrink-0">📁</span>
-                                <span class="truncate font-medium">${data.nome_processo}</span>
-                            </div>
-                            <div class="flex items-center justify-end gap-2 flex-1">
-                                <span class="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
-                                <button onclick="deleteFolder(event, '${data.id}')"
-                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-lg transition-opacity flex-shrink-0">×</button>
-                            </div>
-                        `;
-                        const separador = document.getElementById('separador-pastas');
-                        if (separador) {
-                            separador.insertAdjacentElement('afterend', div);
-                        } else {
-                            folderContainer.prepend(div);
-                        }
-                    } else {
-                        alert('Erro ao criar parecer.');
-                    }
-                } catch (error) {
-                    console.error('Erro:', error);
-                    alert('Erro ao criar parecer.');
-                }
+        // Define valor incial do input month
+        document.addEventListener("DOMContentLoaded", function () {
+            const anoSelecionado = '{{ ano_selecionado }}';
+            const mesSelecionado = '{{ mes_selecionado }}'.padStart(2, '0');
+            if (anoSelecionado && mesSelecionado !== '00') {
+                document.getElementById('mes-filtro').value = `${anoSelecionado}-${mesSelecionado}`;
             }
         });
 
-        async function deleteFolder(event, id) {
-            if (event) event.stopPropagation();
-            if (confirm("Deseja mesmo apagar esta pasta e TODOS os seus projetos?")) {
-                try {
-                    const response = await fetch(`/parecer/${id}/delete/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrftoken
-                        }
-                    });
+        const sidebar = document.getElementById('sidebar');
+        const btnOpenSidebar = document.getElementById('btn-open-sidebar');
+        const headerTitle = document.getElementById('header-title');
+        // --- ApexCharts Initialization ---
+        document.addEventListener("DOMContentLoaded", function () {
+            const datas = JSON.parse('{{ grafico_datas|safe }}' || '[]');
+            const totais = JSON.parse('{{ grafico_totais|safe }}' || '[]');
 
-                    if (response.ok) {
-                        window.location.reload();
-                    } else {
-                        alert('Erro ao excluir pasta.');
-                    }
-                } catch (error) {
-                    console.error('Erro:', error);
-                    alert('Erro ao excluir pasta.');
-                }
-            }
-        }
-
-        async function deleteProjeto(event, id, pastaId) {
-            if (event) event.stopPropagation();
-            if (confirm("Deseja mesmo apagar este projeto? Esta ação é irreversível.")) {
-                try {
-                    const response = await fetch(`/projeto/${id}/delete/`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrftoken
-                        }
-                    });
-
-                    if (response.ok) {
-                        window.location.reload();
-                    } else {
-                        alert('Erro ao excluir projeto.');
-                    }
-                } catch (error) {
-                    console.error('Erro:', error);
-                    alert('Erro ao excluir projeto.');
-                }
-            }
-        }
-
-        let currentPastaId = null;
-        let currentParecerId = null;
-
-        function toggleFolder(pastaId) {
-            const container = document.getElementById(`projetos-${pastaId}`);
-            if (container) {
-                container.classList.toggle('hidden');
-            }
-            // Ao clicar na pasta apenas expandimos, mas podemos também invocar selectFolder se quisermos a tela de resumo da pasta
-            selectFolder(pastaId, document.getElementById(`folder-${pastaId}`));
-        }
-
-        function selectFolder(id, element) {
-            currentPastaId = id;
-            currentParecerId = null;
-            document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('bg-[#e2e7ed]'));
-            if (element) element.classList.add('bg-[#e2e7ed]');
-
-            // Limpa chat
-            messagesContainer.innerHTML = '';
-            homeScreen.classList.add('hidden-home');
-
-            // Simula clique de inicialização do bot pro processo
-            const welcomeDiv = document.createElement('div');
-            welcomeDiv.className = "flex justify-start items-start gap-3 mt-4";
-            welcomeDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
-                <div class="text-[#444746] leading-relaxed pt-1">Pasta selecionada. Carregando visão geral...</div>
-            `;
-            messagesContainer.appendChild(welcomeDiv);
-
-            // Fetch histórico/resumo da pasta
-            fetch('/chat/message/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
+            const lineOptions = {
+                series: [{
+                    name: "Pareceres",
+                    data: totais
+                }],
+                chart: {
+                    height: 350,
+                    type: 'area',
+                    toolbar: { show: false },
+                    fontFamily: 'Outfit, sans-serif',
+                    zoom: { enabled: false }
                 },
-                body: JSON.stringify({ message: 'RESUMO', pasta_id: currentPastaId })
-            }).then(response => response.json())
-                .then(data => {
-                    if (data.reply) {
-                        messagesContainer.innerHTML = '';
-                        const rDiv = document.createElement('div');
-                        rDiv.className = "flex justify-start items-start gap-3 mt-4";
-                        rDiv.innerHTML = `
-                          <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
-                          <div class="text-[#444746] leading-relaxed pt-1">${formatMessage(data.reply)}</div>
-                      `;
-                        messagesContainer.appendChild(rDiv);
-                        chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                colors: ['#4285f4'],
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 3 },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.05,
+                        stops: [20, 100]
                     }
-                }).catch(err => console.error(err));
-        }
-
-        function selectProjeto(projetoId, pastaId) {
-            currentPastaId = pastaId;
-            currentParecerId = projetoId;
-            document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('bg-[#e2e7ed]'));
-            const element = document.getElementById(`folder-${pastaId}`);
-            if (element) element.classList.add('bg-[#e2e7ed]');
-
-            // Limpa chat
-            messagesContainer.innerHTML = '';
-            homeScreen.classList.add('hidden-home');
-
-            const welcomeDiv = document.createElement('div');
-            welcomeDiv.className = "flex justify-start items-start gap-3 mt-4";
-            welcomeDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
-                <div class="text-[#444746] leading-relaxed pt-1 animate-pulse">Carregando processo e buscando relatório na base...</div>
-            `;
-            messagesContainer.appendChild(welcomeDiv);
-
-            // Fetch histórico/resumo do PROJETO individual
-            fetch('/chat/message/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
                 },
-                body: JSON.stringify({ message: 'RESUMO_PROJETO', parecer_id: currentParecerId })
-            }).then(response => response.json())
-                .then(data => {
-                    if (data.reply) {
-                        messagesContainer.innerHTML = '';
-                        const rDiv = document.createElement('div');
-                        rDiv.className = "flex justify-start items-start gap-3 mt-4 w-full";
-                        rDiv.innerHTML = `
-                          <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
-                          <div class="text-[#444746] leading-relaxed pt-1 w-full bg-white p-6 rounded shadow-sm border border-gray-100">${formatMessage(data.reply)}</div>
-                      `;
-                        messagesContainer.appendChild(rDiv);
-                        chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
-                    }
-                }).catch(err => console.error(err));
-        }
-
-        function formatMessage(text) {
-            return text
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\n/g, '<br>');
-        }
-
-        async function sendMessage() {
-            const text = userInput.value.trim();
-            if (text === "") return;
-
-            const isIniciar = text.toLowerCase() === 'iniciar';
-
-            if (!currentParecerId && !isIniciar && !currentPastaId) {
-                alert("Por favor, digite 'iniciar' para começar um novo processo ou selecione uma pasta na barra lateral.");
-                return;
-            }
-
-            homeScreen.classList.add('hidden-home');
-
-            const userDiv = document.createElement('div');
-            userDiv.className = "flex justify-end mt-4";
-            userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatMessage(text)}</div>`;
-            messagesContainer.appendChild(userDiv);
-
-            userInput.value = "";
-            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
-
-            const tempId = Date.now();
-            const jariDiv = document.createElement('div');
-            jariDiv.id = `msg-${tempId}`;
-            jariDiv.className = "flex justify-start items-start gap-3 mt-4";
-            jariDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
-                <div class="text-[#444746] leading-relaxed pt-1 animate-pulse">Processando análise técnica para o P-JARI/SC...</div>
-            `;
-            messagesContainer.appendChild(jariDiv);
-            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
-
-            try {
-                const response = await fetch('/chat/message/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
-                    body: JSON.stringify({ message: text, parecer_id: currentParecerId, pasta_id: currentPastaId })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-
-                    if (data.requires_login) {
-                        document.getElementById(`msg-${tempId}`).remove(); // remove pending message
-                        showLoginModal();
-                        return;
-                    }
-
-                    // Se o backend criou um novo processo através do 'iniciar',
-                    // guarda o ID mas NÃO CRIA VISUALMENTE NA BARRA LATERAL AINDA!
-                    if (data.active_parecer_id) {
-                        currentParecerId = data.active_parecer_id;
-                    }
-
-                    document.getElementById(`msg-${tempId}`).innerHTML = `
-                        <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
-                        <div class="text-[#444746] leading-relaxed pt-1">${formatMessage(data.reply)}</div>
-                    `;
-
-                    // Se o processo chegou ao fim (salvo na pasta), mostra Toast e reinicia o layout
-                    if (data.status_fase === 8) {
-                        currentParecerId = null;
-
-                        const toast = document.createElement('div');
-                        toast.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl z-50 transition-opacity duration-500 font-medium flex items-center gap-3';
-                        toast.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Parecer salvo com sucesso na pasta selecionada!</span>';
-                        document.body.appendChild(toast);
-
-                        setTimeout(() => {
-                            toast.style.opacity = '0';
-                            setTimeout(() => window.location.reload(), 500);
-                        }, 2500);
-                    }
-                } else {
-                    document.getElementById(`msg-${tempId}`).innerHTML = `
-                        <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
-                        <div class="text-red-500 leading-relaxed pt-1">Erro ao processar mensagem.</div>
-                    `;
+                xaxis: {
+                    categories: datas,
+                    labels: { style: { colors: '#9ca3af', fontWeight: 500 } },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
+                },
+                yaxis: {
+                    labels: { style: { colors: '#9ca3af', fontWeight: 500 } }
+                },
+                grid: {
+                    borderColor: '#f3f4f6',
+                    strokeDashArray: 4,
                 }
-            } catch (error) {
-                console.error('Erro:', error);
-            }
-            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
-        }
+            };
 
-        document.getElementById('btn-send').addEventListener('click', sendMessage);
-        userInput.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") sendMessage();
+            const lineChart = new ApexCharts(document.querySelector("#line-chart"), lineOptions);
+            lineChart.render();
+
+            const taxaDeferimento = parseInt('{{ taxa_deferimento }}') || 0;
+            const taxaIndeferimento = parseInt('{{ taxa_indeferimento }}') || 0;
+
+            const donutOptions = {
+                series: [taxaDeferimento, taxaIndeferimento],
+                chart: {
+                    type: 'donut',
+                    fontFamily: 'Outfit, sans-serif',
+                    height: 330
+                },
+                labels: ['Deferido', 'Indeferido'],
+                colors: ['#34a853', '#ea4335'],
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '75%',
+                            labels: {
+                                show: true,
+                                name: { show: true, fontSize: '14px', color: '#9ca3af' },
+                                value: {
+                                    show: true,
+                                    fontSize: '32px',
+                                    fontWeight: 700,
+                                    color: '#1f1f1f',
+                                    formatter: function (val) {
+                                        return val + "%"
+                                    }
+                                },
+                                total: {
+                                    show: true,
+                                    showAlways: true,
+                                    label: 'Total Julgado',
+                                    fontSize: '12px',
+                                    color: '#9ca3af',
+                                    formatter: function (w) {
+                                        return '{{ total_julgados }}'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                dataLabels: { enabled: false },
+                legend: { position: 'bottom', markers: { radius: 12 } },
+                stroke: { width: 0 }
+            };
+
+            const donutChart = new ApexCharts(document.querySelector("#donut-chart"), donutOptions);
+            donutChart.render();
         });
 
         // --- Toggle Popover User Menu ---

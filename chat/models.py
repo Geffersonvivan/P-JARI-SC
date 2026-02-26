@@ -81,6 +81,7 @@ class UserProfile(models.Model):
     credits = models.IntegerField(default=0)
     mp_customer_id = models.CharField(max_length=255, blank=True, null=True)
     subscription_status = models.CharField(max_length=50, default='inactive')
+    viu_boas_vindas = models.BooleanField(default=False)
     
     def __str__(self):
         return f"Profile: {self.user.username} - PRO: {self.is_pro}"

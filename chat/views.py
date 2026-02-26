@@ -358,3 +358,122 @@ def mercadopago_webhook(request):
             print("Webhook Error:", e)
             return HttpResponse(status=400)
     return HttpResponse(status=405)
+
+@login_required
+def estatisticas_view(request):
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models.functions import TruncDate
+    import calendar
+    from datetime import date
+    
+    # Pegar mês e ano da requisição ou usar o atual
+    hoje = timezone.localtime(timezone.now()).date()
+    try:
+        mes = int(request.GET.get('mes', hoje.month))
+        ano = int(request.GET.get('ano', hoje.year))
+    except (ValueError, TypeError):
+        mes = hoje.month
+        ano = hoje.year
+        
+    _, ultimo_dia_mes = calendar.monthrange(ano, mes)
+    data_inicio = date(ano, mes, 1)
+    data_fim = date(ano, mes, ultimo_dia_mes)
+    
+    # 1. Total Julgado (is_saved=True)
+    total_julgados = Parecer.objects.filter(
+        user=request.user, 
+        is_saved=True,
+        created_at__year=ano,
+        created_at__month=mes
+    ).count()
+    
+    # 2. Tempo Poupado (cada processo julgado poupa ~40 mins)
+    tempo_poupado_minutos = total_julgados * 40
+    tempo_poupado_horas = tempo_poupado_minutos // 60
+    
+    # 3. Taxa de Deferimento (ParecerFinal vinculados aos Pareceres do usuario)
+    pareceres_finais = ParecerFinal.objects.filter(
+        parecer_referencia__user=request.user,
+        parecer_referencia__created_at__year=ano,
+        parecer_referencia__created_at__month=mes
+    )
+    total_finais = pareceres_finais.count()
+    
+    deferidos = pareceres_finais.filter(status_resultado__icontains='DEFERIDO').exclude(status_resultado__icontains='INDEFERIDO').count()
+    indeferidos = pareceres_finais.filter(status_resultado__icontains='INDEFERIDO').count()
+    
+    if total_finais > 0:
+        taxa_deferimento = int((deferidos / total_finais) * 100)
+        taxa_indeferimento = int((indeferidos / total_finais) * 100)
+    else:
+        taxa_deferimento = 0
+        taxa_indeferimento = 0
+        
+    # 4. Gráfico Temporal (Dias do mês selecionado)
+    pareceres_por_dia = (
+        Parecer.objects.filter(
+            user=request.user, 
+            is_saved=True, 
+            created_at__year=ano,
+            created_at__month=mes
+        )
+        .annotate(data=TruncDate('created_at'))
+        .values('data')
+        .annotate(total=Count('id'))
+        .order_by('data')
+    )
+    
+    datas = []
+    totais_por_dia = []
+    
+    dados_dict = {item['data']: item['total'] for item in pareceres_por_dia}
+    
+    for dia in range(1, ultimo_dia_mes + 1):
+        data_atual = date(ano, mes, dia)
+        datas.append(data_atual.strftime('%d/%m'))
+        totais_por_dia.append(dados_dict.get(data_atual, 0))
+        
+    # Replicar as pastas do menu lateral para manter a interface
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).order_by('-created_at'))
+    
+    pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
+    pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
+        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
+    ).first()
+    
+    pastas = Pasta.objects.filter(user=request.user).exclude(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
+        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
+    ).order_by('-created_at')
+    
+    context = {
+        'total_julgados': total_julgados,
+        'tempo_poupado_horas': tempo_poupado_horas,
+        'taxa_deferimento': taxa_deferimento,
+        'taxa_indeferimento': taxa_indeferimento,
+        'deferidos_count': deferidos,
+        'indeferidos_count': indeferidos,
+        'grafico_datas': json.dumps(datas),
+        'grafico_totais': json.dumps(totais_por_dia),
+        'pasta_outros': pasta_outros,
+        'pastas': pastas,
+        'ano_selecionado': ano,
+        'mes_selecionado': mes,
+    }
+    
+    return render(request, 'dashboard.html', context)
+
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from .models import UserProfile
+
+@login_required
+@require_POST
+def dismiss_onboarding_view(request):
+    try:
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        profile.viu_boas_vindas = True
+        profile.save()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

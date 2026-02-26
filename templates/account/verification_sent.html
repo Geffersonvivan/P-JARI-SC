@@ -1,0 +1,21 @@
+{% extends "account/base.html" %}
+
+{% block title %}Verifique seu E-mail{% endblock %}
+
+{% block content %}
+<div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-4">📧</div>
+<h2 class="text-2xl font-bold text-gray-800 text-center mb-4">Verifique sua Caixa de Entrada</h2>
+<p class="text-gray-600 text-center mb-6">
+    Nós enviamos um link de confirmação para o endereço de e-mail que você cadastrou.
+    Por favor, abra-o para ativar e liberar a sua conta!
+</p>
+<p class="text-xs text-gray-400 text-center mt-2 p-3 bg-gray-50 rounded-lg">
+    Se não encontrar, procure também na aba de Promoções ou na pasta de Lixo Eletrônico (Spam).<br /><br />
+    <b>Nota (Desenvolvedor)</b>: O link foi impresso no terminal que está rodando o servidor. Copie o link lá se estiver
+    testando localmente!
+</p>
+<a href="{% url 'account_login' %}"
+    class="mt-6 w-full text-center border border-gray-300 py-3 rounded-full hover:bg-gray-50 text-gray-700 font-medium transition">
+    Voltar ao Login
+</a>
+{% endblock %}

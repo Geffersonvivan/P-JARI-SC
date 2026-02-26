@@ -12,4 +12,6 @@ urlpatterns = [
     path('planos/', views.planos_view, name='planos'),
     path('checkout/', views.checkout_view, name='checkout'),
     path('webhooks/mercadopago/', views.mercadopago_webhook, name='mercadopago_webhook'),
+    path('estatisticas/', views.estatisticas_view, name='estatisticas'),
+    path('onboarding/dismiss/', views.dismiss_onboarding_view, name='dismiss_onboarding'),
 ]

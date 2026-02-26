@@ -55,7 +55,6 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     # Providers
     'allauth.socialaccount.providers.google',
-    'allauth.socialaccount.providers.microsoft',
 ]
 
 MIDDLEWARE = [
@@ -85,7 +84,11 @@ SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+
+# Envio de e-mail para o terminal (Simulação de envio p/ Dev Local)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 
 # Pular a tela intermediária chata do allauth "sign in via..."
 SOCIALACCOUNT_LOGIN_ON_GET = True

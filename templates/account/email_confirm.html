@@ -1,0 +1,28 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block title %}Confirmar E-mail{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-800 text-center mb-4">Confirmar Endereço de E-mail</h2>
+
+{% if confirmation %}
+<p class="text-gray-600 text-center mb-6">
+    Por favor, confirme que este e-mail <strong>{{ confirmation.email_address.email }}</strong> pertence a você clicando
+    no botão abaixo.
+</p>
+<form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="w-full">
+    {% csrf_token %}
+    <button type="submit"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-full transition duration-200">
+        Confirmar e Entrar
+    </button>
+</form>
+{% else %}
+<p class="text-red-600 text-center mb-6 font-medium">Link de confirmação inválido ou já expirado.</p>
+<a href="{% url 'account_login' %}"
+    class="mt-6 w-full text-center bg-gray-900 border border-gray-300 py-3 rounded-full hover:bg-black text-white font-bold transition inline-block">
+    Ir para Login
+</a>
+{% endif %}
+{% endblock %}
