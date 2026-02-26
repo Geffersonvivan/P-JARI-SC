@@ -104,7 +104,6 @@ mypy_extensions==1.1.0
 networkx==3.6.1
 numpy==2.4.2
 oauthlib==3.3.1
-ocrmac==1.0.1
 omegaconf==2.3.0
 openai==2.16.0
 opencv-python==4.13.0.92
@@ -134,11 +133,6 @@ Pygments==2.19.2
 PyJWT==2.11.0
 pylatexenc==2.10
 PyMuPDF==1.26.7
-pyobjc-core==12.1
-pyobjc-framework-Cocoa==12.1
-pyobjc-framework-CoreML==12.1
-pyobjc-framework-Quartz==12.1
-pyobjc-framework-Vision==12.1
 pyparsing==3.3.2
 pypdf==6.6.2
 pypdfium2==5.3.0
