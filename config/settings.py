@@ -32,6 +32,18 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 allowed_hosts = os.environ.get('ALLOWED_HOSTS')
 ALLOWED_HOSTS = allowed_hosts.split(',') if allowed_hosts else []
 
+csrf_trusted = os.environ.get('CSRF_TRUSTED_ORIGINS')
+if csrf_trusted:
+    CSRF_TRUSTED_ORIGINS = csrf_trusted.split(',')
+else:
+    CSRF_TRUSTED_ORIGINS = []
+
+# Forçar uso do HTTPS para CSRF/Session em ambiente Prod (DEBUG=False)
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 # Mercado Pago Settings
 MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN')
 MERCADOPAGO_PUBLIC_KEY = os.environ.get('MERCADOPAGO_PUBLIC_KEY')
