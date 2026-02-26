@@ -30,13 +30,18 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 allowed_hosts = os.environ.get('ALLOWED_HOSTS')
-ALLOWED_HOSTS = allowed_hosts.split(',') if allowed_hosts else []
+if allowed_hosts:
+    ALLOWED_HOSTS = allowed_hosts.split(',')
+else:
+    # Fallback for Railway if not explicitly set
+    ALLOWED_HOSTS = ['*']
 
 csrf_trusted = os.environ.get('CSRF_TRUSTED_ORIGINS')
 if csrf_trusted:
     CSRF_TRUSTED_ORIGINS = csrf_trusted.split(',')
 else:
-    CSRF_TRUSTED_ORIGINS = []
+    # Allow Railway domains for CSRF by default
+    CSRF_TRUSTED_ORIGINS = ['https://*.railway.app']
 
 # Forçar uso do HTTPS para CSRF/Session em ambiente Prod (DEBUG=False)
 if not DEBUG:
