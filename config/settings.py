@@ -110,6 +110,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # Pular a tela intermediária chata do allauth "sign in via..."
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
+# Permite conectar contas sociais automaticamente a usuários existentes (ex: superuser do Railway)
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
 # Optionally set login redirect to home
 LOGIN_REDIRECT_URL = '/'
 
