@@ -78,7 +78,7 @@ class ParecerFinal(models.Model):
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     is_pro = models.BooleanField(default=False)
-    credits = models.IntegerField(default=0)
+    credits = models.IntegerField(default=2)
     mp_customer_id = models.CharField(max_length=255, blank=True, null=True)
     subscription_status = models.CharField(max_length=50, default='inactive')
     viu_boas_vindas = models.BooleanField(default=False)
