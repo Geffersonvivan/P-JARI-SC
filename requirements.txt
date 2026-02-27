@@ -198,3 +198,4 @@ yarl==1.22.0
 zstandard==0.25.0
 
 psycopg2-binary==2.9.9
+django-anymail[resend]==11.1

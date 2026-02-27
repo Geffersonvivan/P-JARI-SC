@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'anymail',
     'chat',
     
     # Allauth
@@ -108,14 +109,12 @@ if DEBUG:
     # Envio de e-mail para o terminal (Simulação de envio p/ Dev Local)
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    # Envio real via Gmail (Produção)
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 465))
-    EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'True') == 'True'
-    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'pjarisc@gmail.com')
-    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'gvgv@2020X')
-    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+    # Envio real via Resend API (Produção)
+    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
+    ANYMAIL = {
+        'RESEND_API_KEY': os.environ.get('RESEND_API_KEY', 're_SoDWNxXq_GZ57bNdiNcaxsrBv6kFgx921'),
+    }
+    DEFAULT_FROM_EMAIL = 'onboarding@resend.dev'
 
 
 # Pular a tela intermediária chata do allauth "sign in via..."
