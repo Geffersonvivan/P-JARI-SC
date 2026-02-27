@@ -14,5 +14,7 @@ app, _ = SocialApp.objects.get_or_create(provider='google', defaults={'name': 'G
 app.sites.add(site)
 "
 
+python manage.py createsuperuser --noinput || true
+
 echo "Starting gunicorn..."
 exec gunicorn config.wsgi --bind 0.0.0.0:$PORT --log-file -
