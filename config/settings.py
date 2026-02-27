@@ -104,6 +104,7 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+SOCIALACCOUNT_ADAPTER = 'chat.adapters.CustomSocialAccountAdapter'
 
 if DEBUG:
     # Envio de e-mail para o terminal (Simulação de envio p/ Dev Local)
