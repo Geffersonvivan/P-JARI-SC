@@ -345,20 +345,27 @@
 
         <footer class="p-6">
             <div class="content-container relative">
-                <div class="input-bar flex items-center p-4 {% if not request.user.is_authenticated %}opacity-60 cursor-pointer bg-gray-50{% endif %}"
-                    {% if not request.user.is_authenticated %}onclick="showLoginModal()" {% endif %}>
-                    <button class="px-2 text-gray-500 hover:text-black font-light text-2xl" {% if not
-                        request.user.is_authenticated %}disabled{% endif %}>+</button>
-                    <input type="text" id="user-input"
-                        placeholder='{% if request.user.is_authenticated %}Digite "Iniciar" para julgar um novo processo{% else %}Faça login para começar análises{% endif %}'
-                        class="flex-1 bg-transparent border-none outline-none px-4 text-lg {% if not request.user.is_authenticated %}cursor-pointer pointer-events-none{% endif %}"
-                        {% if not request.user.is_authenticated %}readonly{% endif %}>
+                {% if not request.user.is_authenticated %}
+                <div class="input-bar flex items-center p-4 opacity-60 cursor-pointer bg-gray-50"
+                    onclick="showLoginModal()">
+                    <button class="px-2 text-gray-500 hover:text-black font-light text-2xl" disabled>+</button>
+                    <input type="text" id="user-input" placeholder="Faça login para começar análises"
+                        class="flex-1 bg-transparent border-none outline-none px-4 text-lg cursor-pointer pointer-events-none"
+                        readonly>
                     <div class="flex gap-4 px-2 text-gray-500">
-                        <button id="btn-send"
-                            class="hover:text-blue-600 {% if not request.user.is_authenticated %}pointer-events-none{% endif %}"
-                            {% if not request.user.is_authenticated %}disabled{% endif %}>➤</button>
+                        <button id="btn-send" class="hover:text-blue-600 pointer-events-none" disabled>➤</button>
                     </div>
                 </div>
+                {% else %}
+                <div class="input-bar flex items-center p-4">
+                    <button class="px-2 text-gray-500 hover:text-black font-light text-2xl">+</button>
+                    <input type="text" id="user-input" placeholder='Digite "Iniciar" para julgar um novo processo'
+                        class="flex-1 bg-transparent border-none outline-none px-4 text-lg">
+                    <div class="flex gap-4 px-2 text-gray-500">
+                        <button id="btn-send" class="hover:text-blue-600">➤</button>
+                    </div>
+                </div>
+                {% endif %}
                 <p class="text-[10px] text-center mt-3 text-gray-500">
                     ⚠️ ATENÇÃO: a análise e a decisão final constituem responsabilidade pessoal e indelegável do Membro
                     Julgador.
