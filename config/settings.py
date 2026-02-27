@@ -115,6 +115,7 @@ else:
         'RESEND_API_KEY': os.environ.get('RESEND_API_KEY', 're_NU2T3NDX_5GfDsMWjg6qg4sRRvuU6ejE6'),
     }
     DEFAULT_FROM_EMAIL = 'onboarding@resend.dev'
+    SERVER_EMAIL = 'onboarding@resend.dev'
 
 
 # Pular a tela intermediária chata do allauth "sign in via..."
