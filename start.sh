@@ -10,7 +10,12 @@ import os
 from django.contrib.sites.models import Site
 from allauth.socialaccount.models import SocialApp
 from django.conf import settings
-site, _ = Site.objects.get_or_create(id=getattr(settings, 'SITE_ID', 1), defaults={'domain': 'web-production-28e5.up.railway.app', 'name': 'P-JARI SC'})
+
+site, _ = Site.objects.get_or_create(id=getattr(settings, 'SITE_ID', 1))
+site.domain = 'web-production-28e5.up.railway.app'
+site.name = 'P-JARI SC'
+site.save()
+
 client_id = os.environ.get('GOOGLE_CLIENT_ID', 'DUMMY')
 secret = os.environ.get('GOOGLE_CLIENT_SECRET', 'DUMMY')
 app, _ = SocialApp.objects.get_or_create(provider='google', defaults={'name': 'Google Auth', 'client_id': client_id, 'secret': secret})

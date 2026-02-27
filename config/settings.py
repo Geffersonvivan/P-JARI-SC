@@ -45,6 +45,7 @@ else:
 
 # Forçar uso do HTTPS para CSRF/Session em ambiente Prod (DEBUG=False)
 if not DEBUG:
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
@@ -199,16 +200,26 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
         },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'debug.log',
+        },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'WARNING',
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'allauth': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
     },
 }
