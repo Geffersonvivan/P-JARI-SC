@@ -80,74 +80,90 @@
                 class="font-medium text-lg uppercase text-[#444746] hover:text-blue-600 transition">P-JARI/SC</a>
         </div>
 
+        {% if not request.user.is_authenticated %}
+        <button id="btn-parecer" onclick="showLoginModal()"
+            class="flex items-center gap-3 p-4 bg-[#d3e3fd] hover:bg-[#c2d7f7] rounded-2xl text-sm font-medium mb-8 transition shadow-sm opacity-60 text-gray-500">
+            <span class="text-xl">+</span> Parecer
+        </button>
+        {% else %}
         <button id="btn-parecer"
             class="flex items-center gap-3 p-4 bg-[#d3e3fd] hover:bg-[#c2d7f7] rounded-2xl text-sm font-medium mb-8 transition shadow-sm">
             <span class="text-xl">+</span> Parecer
         </button>
+        {% endif %}
 
         <nav id="folder-container" class="flex-1 overflow-y-auto space-y-1">
             <!-- Pasta Fixa: Outros -->
             <div>
-                <div id="folder-{{ pasta_outros.id }}" class="folder-item group"
-                    onclick="toggleFolder('{{ pasta_outros.id }}')">
-                    <div class="flex items-center gap-3 truncate w-[75%]">
-                        <span class="text-blue-500 flex-shrink-0">📁</span>
-                        <span class="truncate font-medium text-blue-800">{{ pasta_outros.nome_pasta }}</span>
-                    </div>
-                    <span
-                        class="bg-blue-100 border border-blue-200 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full ml-auto">
-                        {{ pasta_outros.num_projetos }}
-                    </span>
-                </div>
-                <!-- Projetos da Pasta Outros -->
-                <div id="projetos-{{ pasta_outros.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
-                    {% for p in pasta_outros.projetos.all %}
-                    <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
-                        onclick="selectProjeto('{{ p.id }}', '{{ pasta_outros.id }}')">
-                        <span class="truncate w-32">• {{ p.nome_processo }}</span>
-                        <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
-                            class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
-                    </div>
-                    {% empty %}
-                    <p class="text-xs text-gray-400 italic p-2">Vazia</p>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Linha separadora -->
-            <div id="separador-pastas" class="h-px bg-gray-200 my-2 mx-2"></div>
-
-            {% for pasta in pastas %}
-            <div>
-                <div id="folder-{{ pasta.id }}" class="folder-item group" onclick="toggleFolder('{{ pasta.id }}')">
-                    <div class="flex items-center gap-3 truncate w-[60%]">
-                        <span class="text-gray-500 flex-shrink-0">📁</span>
-                        <span class="truncate font-medium">{{ pasta.nome_pasta }}</span>
-                    </div>
-                    <div class="flex items-center justify-end gap-2 flex-1">
+                {% if not request.user.is_authenticated %}
+                <div id="folder-{{ pasta_outros.id }}" class="folder-item group opacity-60" onclick="showLoginModal()">
+                    {% else %}
+                    <div id="folder-{{ pasta_outros.id }}" class="folder-item group"
+                        onclick="toggleFolder('{{ pasta_outros.id }}')">
+                        {% endif %}
+                        <div class="flex items-center gap-3 truncate w-[75%]">
+                            <span class="text-blue-500 flex-shrink-0">📁</span>
+                            <span class="truncate font-medium text-blue-800">{{ pasta_outros.nome_pasta }}</span>
+                        </div>
                         <span
-                            class="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                            {{ pasta.num_projetos }}
+                            class="bg-blue-100 border border-blue-200 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full ml-auto">
+                            {{ pasta_outros.num_projetos }}
                         </span>
-                        <button onclick="deleteFolder(event, '{{ pasta.id }}')"
-                            class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-lg transition-opacity flex-shrink-0">×</button>
+                    </div>
+                    <!-- Projetos da Pasta Outros -->
+                    <div id="projetos-{{ pasta_outros.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
+                        {% for p in pasta_outros.projetos.all %}
+                        <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
+                            onclick="selectProjeto('{{ p.id }}', '{{ pasta_outros.id }}')">
+                            <span class="truncate w-32">• {{ p.nome_processo }}</span>
+                            <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
+                                class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
+                        </div>
+                        {% empty %}
+                        <p class="text-xs text-gray-400 italic p-2">Vazia</p>
+                        {% endfor %}
                     </div>
                 </div>
-                <!-- Projetos da Pasta -->
-                <div id="projetos-{{ pasta.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
-                    {% for p in pasta.projetos.all %}
-                    <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
-                        onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
-                        <span class="truncate w-32">• {{ p.nome_processo }}</span>
-                        <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
-                            class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
+
+                <!-- Linha separadora -->
+                <div id="separador-pastas" class="h-px bg-gray-200 my-2 mx-2"></div>
+
+                {% for pasta in pastas %}
+                <div>
+                    {% if not request.user.is_authenticated %}
+                    <div id="folder-{{ pasta.id }}" class="folder-item group opacity-60" onclick="showLoginModal()">
+                        {% else %}
+                        <div id="folder-{{ pasta.id }}" class="folder-item group"
+                            onclick="toggleFolder('{{ pasta.id }}')">
+                            {% endif %}
+                            <div class="flex items-center gap-3 truncate w-[60%]">
+                                <span class="text-gray-500 flex-shrink-0">📁</span>
+                                <span class="truncate font-medium">{{ pasta.nome_pasta }}</span>
+                            </div>
+                            <div class="flex items-center justify-end gap-2 flex-1">
+                                <span
+                                    class="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                    {{ pasta.num_projetos }}
+                                </span>
+                                <button onclick="deleteFolder(event, '{{ pasta.id }}')"
+                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-lg transition-opacity flex-shrink-0">×</button>
+                            </div>
+                        </div>
+                        <!-- Projetos da Pasta -->
+                        <div id="projetos-{{ pasta.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
+                            {% for p in pasta.projetos.all %}
+                            <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
+                                onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
+                                <span class="truncate w-32">• {{ p.nome_processo }}</span>
+                                <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
+                                    class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
+                            </div>
+                            {% empty %}
+                            <p class="text-xs text-gray-400 italic p-2">Vazia</p>
+                            {% endfor %}
+                        </div>
                     </div>
-                    {% empty %}
-                    <p class="text-xs text-gray-400 italic p-2">Vazia</p>
                     {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
         </nav>
 
         <div class="mt-auto border-t border-gray-300 pt-4 text-xs text-gray-600 relative">
