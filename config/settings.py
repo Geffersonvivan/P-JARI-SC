@@ -112,7 +112,7 @@ else:
     # Envio real via Resend API (Produção)
     EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
     ANYMAIL = {
-        'RESEND_API_KEY': os.environ.get('RESEND_API_KEY', 're_SoDWNxXq_GZ57bNdiNcaxsrBv6kFgx921'),
+        'RESEND_API_KEY': os.environ.get('RESEND_API_KEY', 're_NU2T3NDX_5GfDsMWjg6qg4sRRvuU6ejE6'),
     }
     DEFAULT_FROM_EMAIL = 'onboarding@resend.dev'
 
