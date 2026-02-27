@@ -101,7 +101,7 @@ SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 # Envio de e-mail para o terminal (Simulação de envio p/ Dev Local)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
