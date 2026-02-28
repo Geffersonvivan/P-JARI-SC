@@ -7,7 +7,28 @@ python manage.py migrate --noinput
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
-python manage.py createsuperuser --noinput || true
+echo "Ensuring superuser exists and password is up to date..."
+python manage.py shell -c "
+import os
+from django.contrib.auth.models import User
+
+# Get superuser variables
+username = os.environ.get('DJANGO_SUPERUSER_USERNAME')
+email = os.environ.get('DJANGO_SUPERUSER_EMAIL')
+password = os.environ.get('DJANGO_SUPERUSER_PASSWORD')
+
+if username and email and password:
+    user, created = User.objects.get_or_create(username=username, defaults={'email': email})
+    user.email = email
+    user.set_password(password)
+    user.is_superuser = True
+    user.is_staff = True
+    user.save()
+    if created:
+        print(f'Superuser {username} created successfully.')
+    else:
+        print(f'Superuser {username} updated successfully.')
+"
 
 echo "Ensuring exact Site and SocialApp configuration..."
 python manage.py shell -c "
