@@ -49,9 +49,34 @@ class JariMath:
         """
         Prescrição Intercorrente (Art. 1º, § 1º, Lei 9.873/99):
         Paralisação do processo por mais de 3 anos (1095 dias).
+        Data inicial: protocolo recurso JARI (Pergunta 5)
+        Data final: julgamento JARI (Pergunta 1)
         """
         dias_diferenca = JariMath.calculate_days_diff(data_protocolo, data_sessao)
         return dias_diferenca > 1095
+
+    @staticmethod
+    def check_decadencia(data_infracao, data_sessao):
+        """
+        Lógica base para decadência (180/360 dias).
+        Como não recebemos a correta data da infração via F1, este método pode 
+        servir de base para o futuro caso coletado estruturadamente, ou delegado
+        para a IA extrair. Atualmente, apenas exemplifica o tempo.
+        """
+        if isinstance(data_infracao, str):
+            data_infracao = datetime.datetime.strptime(data_infracao, "%Y-%m-%d").date()
+        if isinstance(data_sessao, str):
+            data_sessao = datetime.datetime.strptime(data_sessao, "%Y-%m-%d").date()
+        
+        # Limiar de transição Lei 14.071/20 (vigência em 12/04/2021)
+        limiar = datetime.date(2021, 4, 12)
+        
+        if data_infracao < limiar:
+             return False # Pela lei antiga não havia esse prazo unificado de 180/360 no mesmo formato
+        
+        # Simplificação: se for maior que 360 dias da infração a sessão, tem risco de decadência se não notificado
+        dias = JariMath.calculate_days_diff(data_infracao, data_sessao)
+        return dias > 360
 
     @staticmethod
     def check_tempestividade(data_protocolo, prazo_final):

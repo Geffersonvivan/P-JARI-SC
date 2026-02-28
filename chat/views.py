@@ -178,10 +178,30 @@ def chat_message_view(request):
         request.session.create()
     filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
     try:
-        data = json.loads(request.body)
-        message = data.get('message')
-        parecer_id = data.get('parecer_id')
-        pasta_id = data.get('pasta_id')
+        # Se Content-Type for multipart, tratar via POST
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            message = request.POST.get('message')
+            parecer_id = request.POST.get('parecer_id')
+            pasta_id = request.POST.get('pasta_id')
+            
+            # Salva os arquivos e gera a string de caminhos
+            files = []
+            import os
+            from django.core.files.storage import default_storage
+            for key, f in request.FILES.items():
+                if f.name.endswith('.pdf'):
+                    # Salva no media_root/uploads
+                    path = default_storage.save(f'uploads/{f.name}', f)
+                    full_path = os.path.join(settings.MEDIA_ROOT, path)
+                    files.append(full_path)
+            
+            uploaded_files = files
+        else:
+            data = json.loads(request.body)
+            message = data.get('message')
+            parecer_id = data.get('parecer_id')
+            pasta_id = data.get('pasta_id')
+            uploaded_files = []
 
         if message:
             
@@ -203,7 +223,8 @@ def chat_message_view(request):
                 
                 if p.parecer_final:
                     reply += f"{p.parecer_final}\n\n"
-                    reply += f"🛡️ **Nota de Blindagem:** {p.nota_blindagem}\n\n"
+                    if p.dossie_fontes:
+                        reply += f"<details class='mt-4 mb-2 bg-blue-50/50 rounded-xl border border-blue-100/50 overflow-hidden shadow-sm'><summary class='px-4 py-3 bg-white/50 cursor-pointer text-[#444746] font-medium flex items-center gap-2 hover:bg-blue-50/50 transition-colors outline-none'>🔎 FUNDAMENTAÇÃO NORMATIVA - PARECER</summary><div class='p-4 text-sm text-[#444746] leading-relaxed border-t border-blue-100/50 bg-white/30 whitespace-pre-wrap'>{p.dossie_fontes}</div></details>\n\n"
                     # Injects link for the editor
                     reply += f"<a href='/parecer/{p.id}/editor/' class='inline-block my-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm' style='text-decoration:none;'>✏️ Abrir Editor de Parecer Final</a>\n\n"
                 else:
@@ -241,7 +262,7 @@ def chat_message_view(request):
                 from .jari_engine import JariEngine
                 parecer = get_object_or_404(Parecer, id=parecer_id, **filter_kwargs)
                 engine = JariEngine(parecer)
-                reply = engine.process_message(message)
+                reply = engine.process_message(message, uploaded_files)
                 
                 return JsonResponse({
                     'reply': reply,

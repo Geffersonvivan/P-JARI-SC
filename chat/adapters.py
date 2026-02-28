@@ -1,8 +1,21 @@
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.contrib.auth import get_user_model
 from allauth.account.models import EmailAddress
+from django import forms
 
 User = get_user_model()
+
+class CustomSignupForm(forms.Form):
+    first_name = forms.CharField(
+        max_length=50,
+        label='Nome completo Membro Julgador',
+        widget=forms.TextInput(attrs={'placeholder': 'Seu nome completo'})
+    )
+
+    def signup(self, request, user):
+        user.first_name = self.cleaned_data['first_name']
+        user.save()
+        return user
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     def pre_social_login(self, request, sociallogin):

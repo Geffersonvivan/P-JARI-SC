@@ -200,7 +200,7 @@
                             {{ request.user.first_name|default:request.user.username }}
                         </span>
                         <span class="text-sm text-gray-300 font-medium truncate">
-                            {{ request.user.email|default:"usuario@email.com" }}
+                            {{ request.user.last_name|default:"" }}
                         </span>
                     </div>
                 </div>
@@ -227,9 +227,9 @@
                         <span class="font-bold text-[16px] text-[#b8a5fc] tracking-tight">Créditos:
                             <span class="text-white ml-2">
                                 {% if request.user.is_authenticated %}
-                                {{ total_julgados }}/40
+                                {{ total_julgados }}/{{ request.user.profile.credits|stringformat:"02d" }}
                                 {% else %}
-                                0
+                                0/00
                                 {% endif %}
                             </span>
                         </span>
@@ -352,7 +352,7 @@
             </div>
 
             <!-- Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
                     <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Total Julgado</h3>
@@ -363,16 +363,22 @@
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
                     <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Tempo Poupado</h3>
-                    <div class="text-4xl font-bold text-[#34a853]">{{ tempo_poupado_horas }}H</div>
+                    <div class="text-4xl font-bold text-[#fbbc05]">{{ tempo_poupado_horas }}H</div>
                     <p class="text-xs text-gray-400 mt-2 font-medium">~40 min por processo</p>
                 </div>
 
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
                     <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Taxa Deferimento</h3>
-                    <div class="text-4xl font-bold text-[#fbbc05]">{{ taxa_deferimento }}%</div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">{{ deferidos_count }} Def. | {{ indeferidos_count
-                        }} Indef.</p>
+                    <div class="text-4xl font-bold text-[#34a853]">{{ taxa_deferimento }}%</div>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">{{ deferidos_count }} Deferido(s)</p>
+                </div>
+
+                <div
+                    class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Taxa Indeferimento</h3>
+                    <div class="text-4xl font-bold text-[#ea4335]">{{ taxa_indeferimento }}%</div>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">{{ indeferidos_count }} Indeferido(s)</p>
                 </div>
 
                 <div
