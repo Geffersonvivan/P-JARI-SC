@@ -32,11 +32,27 @@
         .sidebar {
             background-color: var(--bg-sidebar);
             border-right: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+            transition: margin 0.3s ease, transform 0.3s ease;
         }
 
-        .sidebar-hidden {
-            margin-left: -256px;
+        @media (min-width: 768px) {
+            .sidebar-hidden {
+                margin-left: -256px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .sidebar {
+                position: absolute;
+                z-index: 50;
+                height: 100%;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+                box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+            }
         }
 
         .input-bar {
@@ -72,7 +88,11 @@
     </style>
 </head>
 
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden relative">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()"
+        class="fixed inset-0 bg-black/40 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
     <aside id="sidebar" class="sidebar w-64 flex flex-col p-4 flex-shrink-0 border-r border-[#dde3ea]">
         <div class="flex items-center gap-2 mb-8 p-2">
@@ -311,9 +331,9 @@
         <header class="p-4 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <button id="btn-open-sidebar" onclick="toggleSidebar()"
-                    class="p-2 hover:bg-gray-200 rounded-full hidden">☰</button>
+                    class="p-2 hover:bg-gray-200 rounded-full md:hidden">☰</button>
                 <a href="/" id="header-title"
-                    class="text-lg font-medium hidden hover:text-blue-600 transition">P-JARI/SC</a>
+                    class="text-lg font-medium md:hidden hover:text-blue-600 transition">P-JARI/SC</a>
             </div>
             <div class="flex items-center gap-4">
                 <!-- Vazio, deixado intencional para manter o flex layout se necessário no futuro -->
@@ -508,6 +528,28 @@
         const sidebar = document.getElementById('sidebar');
         const btnOpenSidebar = document.getElementById('btn-open-sidebar');
         const headerTitle = document.getElementById('header-title');
+
+        function toggleSidebar() {
+            const overlay = document.getElementById('sidebar-overlay');
+            if (window.innerWidth < 768) {
+                sidebar.classList.toggle('mobile-open');
+                if (sidebar.classList.contains('mobile-open')) {
+                    overlay.classList.remove('hidden');
+                } else {
+                    overlay.classList.add('hidden');
+                }
+            } else {
+                sidebar.classList.toggle('sidebar-hidden');
+                if (sidebar.classList.contains('sidebar-hidden')) {
+                    btnOpenSidebar.classList.remove('md:hidden');
+                    headerTitle.classList.remove('md:hidden');
+                } else {
+                    btnOpenSidebar.classList.add('md:hidden');
+                    headerTitle.classList.add('md:hidden');
+                }
+            }
+        }
+
         // --- ApexCharts Initialization ---
         document.addEventListener("DOMContentLoaded", function () {
             const datas = JSON.parse('{{ grafico_datas|safe }}' || '[]');
