@@ -38,4 +38,4 @@ app.sites.add(site1, site2)
 "
 
 echo "Starting gunicorn..."
-exec gunicorn config.wsgi --bind 0.0.0.0:$PORT --log-file -
+exec gunicorn config.wsgi --bind 0.0.0.0:$PORT --timeout 120 --log-file -
