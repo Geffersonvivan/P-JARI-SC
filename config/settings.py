@@ -40,8 +40,8 @@ csrf_trusted = os.environ.get('CSRF_TRUSTED_ORIGINS')
 if csrf_trusted:
     CSRF_TRUSTED_ORIGINS = csrf_trusted.split(',')
 else:
-    # Allow Railway domains for CSRF by default
-    CSRF_TRUSTED_ORIGINS = ['https://*.railway.app']
+    # Allow Railway and custom domains for CSRF by default
+    CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://pjarisc.com.br', 'https://www.pjarisc.com.br']
 
 # Forçar uso do HTTPS para CSRF/Session em ambiente Prod (DEBUG=False)
 if not DEBUG:
@@ -49,6 +49,9 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # Permitir sessão através do root e do www
+    SESSION_COOKIE_DOMAIN = '.pjarisc.com.br'
+    CSRF_COOKIE_DOMAIN = '.pjarisc.com.br'
 
 # Mercado Pago Settings
 MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN')
@@ -100,9 +103,8 @@ AUTHENTICATION_BACKENDS = [
 SITE_ID = 1
 
 # Allauth settings
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 SOCIALACCOUNT_ADAPTER = 'chat.adapters.CustomSocialAccountAdapter'
 
