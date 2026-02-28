@@ -52,7 +52,9 @@ if not DEBUG:
     # Permitir sessão através do root e do www
     SESSION_COOKIE_DOMAIN = '.pjarisc.com.br'
     CSRF_COOKIE_DOMAIN = '.pjarisc.com.br'
-
+    # Fix for social logins cross-origin validation
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+    
 # Mercado Pago Settings
 MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN')
 MERCADOPAGO_PUBLIC_KEY = os.environ.get('MERCADOPAGO_PUBLIC_KEY')
