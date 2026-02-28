@@ -113,10 +113,10 @@ else:
     # Envio real via Resend API (Produção)
     EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
     ANYMAIL = {
-        'RESEND_API_KEY': os.environ.get('RESEND_API_KEY', 're_NU2T3NDX_5GfDsMWjg6qg4sRRvuU6ejE6'),
+        'RESEND_API_KEY': os.environ.get('RESEND_API_KEY', ''),
     }
-    DEFAULT_FROM_EMAIL = 'no-reply@jariia.com.br'
-    SERVER_EMAIL = 'no-reply@jariia.com.br'
+    DEFAULT_FROM_EMAIL = 'validacao@pjarisc.com.br'
+    SERVER_EMAIL = 'validacao@pjarisc.com.br'
 
 
 # Pular a tela intermediária chata do allauth "sign in via..."
