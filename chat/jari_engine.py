@@ -334,8 +334,15 @@ class JariEngine:
         
         tese = self.parecer.tese or ""
         
-        vertex_result = vertex.search_documents(tese)
-        perplexity_result = perplexity.search_tese(tese)
+        # OTIMIZAÇÃO: Chamadas paralelas para diminuir o tempo de espera do usuário
+        import concurrent.futures
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future_vertex = executor.submit(vertex.search_documents, tese)
+            future_perplexity = executor.submit(perplexity.search_tese, tese)
+            
+            vertex_result = future_vertex.result()
+            perplexity_result = future_perplexity.result()
         
         # Análise prévia da tese
         analise_resultado = gemini.analyze_tese(self.parecer, tese, perplexity_result, vertex_result)
@@ -358,13 +365,24 @@ class JariEngine:
         
         tese = self.parecer.tese or "MÉRITO PREJUDICADO."
         
-        # Pode reaproveitar a busca ou rodar de novo (por simplicidade do LLM, deixamos simular ou repetir)
         if "PREJUDICADO" in tese:
             vertex_result = "Não aplicável."
             perplexity_result = "Não aplicável por ausência de mérito."
         else:
-            vertex_result = self.parecer.vertex_result or vertex.search_documents(tese)
-            perplexity_result = self.parecer.perplexity_result or perplexity.search_tese(tese)
+            # OTIMIZAÇÃO: Executa ambas as inteligências pendentes ao mesmo tempo
+            import concurrent.futures
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                v_future = None
+                p_future = None
+                
+                if not self.parecer.vertex_result:
+                    v_future = executor.submit(vertex.search_documents, tese)
+                if not self.parecer.perplexity_result:
+                    p_future = executor.submit(perplexity.search_tese, tese)
+                
+                vertex_result = v_future.result() if v_future else self.parecer.vertex_result
+                perplexity_result = p_future.result() if p_future else self.parecer.perplexity_result
             
         # Fase 5: Geração de Parecer Textual (Gemini) Formatado
         parecer_text = gemini.validate_and_generate_parecer(self.parecer, tese, perplexity_result, vertex_result)
