@@ -175,8 +175,14 @@
                             <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                                 onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
                                 <span class="truncate w-32">• {{ p.nome_processo }}</span>
-                                <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
-                                    class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
+                                <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
+                                    onclick="event.stopPropagation()">
+                                    <button onclick="openMoveModal('{{ p.id }}', '{{ pasta.id }}')"
+                                        class="text-blue-400 hover:text-blue-600 font-bold transition"
+                                        title="Mover Parecer">📁</button>
+                                    <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
+                                        class="text-red-400 hover:text-red-600 font-bold transition">×</button>
+                                </div>
                             </div>
                             {% empty %}
                             <p class="text-xs text-gray-400 italic p-2">Vazia</p>
@@ -466,6 +472,32 @@
                 Ao continuar, você concorda com nossos <br /><a href="#" class="underline hover:text-gray-600">Termos de
                     Serviço</a> e <a href="#" class="underline hover:text-gray-600">Política de Privacidade</a>.
             </p>
+        </div>
+    </div>
+    </div>
+
+    <!-- Move Parecer Modal -->
+    <div id="move-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" onclick="closeMoveModal()"></div>
+        <div class="relative bg-white rounded-2xl w-full max-w-sm p-6 shadow-xl flex flex-col">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Mover Parecer</h2>
+            <p class="text-sm text-gray-500 mb-4">Selecione para qual pasta deseja mover este parecer:</p>
+
+            <input type="hidden" id="move-parecer-id">
+
+            <select id="move-pasta-select"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-6 outline-none focus:border-blue-500 bg-gray-50 text-gray-700">
+                {% for p in pastas %}
+                <option value="{{ p.id }}">📁 {{ p.nome_pasta }}</option>
+                {% endfor %}
+            </select>
+
+            <div class="flex justify-end gap-3 w-full">
+                <button onclick="closeMoveModal()"
+                    class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition font-medium">Cancelar</button>
+                <button onclick="submitMoveParecer()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">Mover</button>
+            </div>
         </div>
     </div>
 
@@ -954,6 +986,55 @@
                 }
             }
         });
+
+        // --- Move Parecer Functions ---
+        function openMoveModal(parecerId, currentPastaId) {
+            document.getElementById('move-parecer-id').value = parecerId;
+            const select = document.getElementById('move-pasta-select');
+
+            // Seleciona a pasta atual por padrão no dropdown
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === currentPastaId) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+
+            document.getElementById('move-modal').classList.remove('hidden');
+        }
+
+        function closeMoveModal() {
+            document.getElementById('move-modal').classList.add('hidden');
+            document.getElementById('move-parecer-id').value = '';
+        }
+
+        async function submitMoveParecer() {
+            const parecerId = document.getElementById('move-parecer-id').value;
+            const novaPastaId = document.getElementById('move-pasta-select').value;
+
+            if (!parecerId || !novaPastaId) return;
+
+            try {
+                const response = await fetch(`/parecer/${parecerId}/mover/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ nova_pasta_id: novaPastaId })
+                });
+
+                if (response.ok) {
+                    closeMoveModal();
+                    // Reload to update sidebar
+                    window.location.reload();
+                } else {
+                    alert('Erro ao mover o parecer.');
+                }
+            } catch (error) {
+                console.error("Erro na movimentação: ", error);
+            }
+        }
     </script>
 </body>
 

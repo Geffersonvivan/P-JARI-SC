@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.home_view, name='home'),
     path('parecer/create/', views.create_parecer_view, name='create_parecer'),
     path('parecer/<int:id>/delete/', views.delete_parecer_view, name='delete_parecer'),
+    path('parecer/<int:id>/mover/', views.mover_parecer_view, name='mover_parecer'),
     path('projeto/<int:id>/delete/', views.delete_projeto_view, name='delete_projeto'),
     path('chat/message/', views.chat_message_view, name='chat_message'),
     path('parecer/<int:id>/editor/', views.editar_parecer_view, name='editar_parecer'),

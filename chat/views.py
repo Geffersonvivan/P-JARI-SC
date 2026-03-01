@@ -192,6 +192,29 @@ def delete_projeto_view(request, id):
     return JsonResponse({'success': True})
 
 @require_POST
+def mover_parecer_view(request, id):
+    if not request.session.session_key:
+        request.session.create()
+    filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+
+    projeto = get_object_or_404(Parecer, id=id, **filter_kwargs)
+    
+    try:
+        data = json.loads(request.body)
+        nova_pasta_id = data.get('nova_pasta_id')
+        
+        if not nova_pasta_id:
+            return JsonResponse({'error': 'Nova pasta não especificada.'}, status=400)
+            
+        nova_pasta = get_object_or_404(Pasta, id=nova_pasta_id, **filter_kwargs)
+        projeto.pasta = nova_pasta
+        projeto.save()
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@require_POST
 def chat_message_view(request):
     if not request.session.session_key:
         request.session.create()
