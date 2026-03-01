@@ -136,13 +136,13 @@
                         <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                             onclick="selectProjeto('{{ p.id }}', '{{ pasta_outros.id }}')">
                             <span class="truncate w-32">• {{ p.nome_processo }}</span>
-                            <div class="flex gap-2">
-                                <button onclick="openMoveModal(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
-                                    class="opacity-0 group-hover:opacity-100 text-blue-400 hover:text-blue-600 font-bold transition"
-                                    title="Mover de pasta">📁</button>
+                            <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
+                                onclick="event.stopPropagation()">
+                                <button onclick="openMoveModal('{{ p.id }}', '{{ pasta_outros.id }}')"
+                                    class="text-blue-400 hover:text-blue-600 font-bold transition"
+                                    title="Mover Parecer">📁</button>
                                 <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
-                                    class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition"
-                                    title="Excluir">×</button>
+                                    class="text-red-400 hover:text-red-600 font-bold transition">×</button>
                             </div>
                         </div>
                         {% empty %}
