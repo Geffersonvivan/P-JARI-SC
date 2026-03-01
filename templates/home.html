@@ -850,7 +850,8 @@
                 .replace(/\n/g, '<br>');
         }
 
-        async function sendMessage() {
+        async function sendMessage(e) {
+            if (e) e.preventDefault();
             {% if not request.user.is_authenticated %}
             showLoginModal();
             return;
