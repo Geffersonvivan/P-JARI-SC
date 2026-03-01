@@ -108,6 +108,8 @@ def editar_parecer_view(request, id):
             # Converter markdown para HTML
             texto_html = texto_gerado_pela_ia.replace('\n', '<br>')
             texto_html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', texto_html)
+            # Remove MD links [Texto](URL) mantendo apenas o Texto visível para o PDF impresso
+            texto_html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'\1', texto_html)
             
             # Para o TinyMCE, um bloco flex ou div simples com text-align center é totalmente respeitado nativamente
             rodape_centralizado = f"""
