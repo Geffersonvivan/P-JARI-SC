@@ -76,11 +76,16 @@ def editar_parecer_view(request, id):
             import re
             
             # Use explicit image attributes and wrap it
-            if config.logo:
+            from django.core.files.storage import default_storage
+            from django.contrib.staticfiles.storage import staticfiles_storage
+            
+            if config.logo and default_storage.exists(config.logo.name):
                 logo_absolute_url = request.build_absolute_uri(config.logo.url)
                 logo_html = f"<img src='{logo_absolute_url}' width='110' style='width: 110px; max-width: 110px; height: auto;'>"
             else:
-                logo_html = ""
+                static_url = staticfiles_storage.url('img/DETRAN.png')
+                logo_absolute_url = request.build_absolute_uri(static_url)
+                logo_html = f"<img src='{logo_absolute_url}' width='110' style='width: 110px; max-width: 110px; height: auto;'>"
             
             tit = config.titulo_cabecalho.replace('\n', '<br>') if config.titulo_cabecalho else ""
             sub = config.subtitulo_cabecalho.replace('\n', '<br>') if config.subtitulo_cabecalho else ""
