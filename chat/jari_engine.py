@@ -327,6 +327,7 @@ class JariEngine:
     def analise_tese_fase_4(self):
         """Dispara a checagem cruzada Perplexity + Vertex e avalia a tese via Gemini (Acolhida/Não Acolhida)."""
         from chat.integrations import PerplexityClient, GeminiClient, VertexAIClient
+        from chat.models import PjariCacheConfig, PjariCacheEntry
         
         perplexity = PerplexityClient()
         gemini = GeminiClient()
@@ -334,15 +335,55 @@ class JariEngine:
         
         tese = self.parecer.tese or ""
         
-        # OTIMIZAÇÃO: Chamadas paralelas para diminuir o tempo de espera do usuário
-        import concurrent.futures
+        # PJARI-CACHE Logic
+        cache_config, _ = PjariCacheConfig.objects.get_or_create(id=1)
+        vertex_result = None
+        perplexity_result = None
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            future_vertex = executor.submit(vertex.search_documents, tese)
-            future_perplexity = executor.submit(perplexity.search_tese, tese)
+        if cache_config.is_active:
+            cache_config.total_requests += 1
             
-            vertex_result = future_vertex.result()
-            perplexity_result = future_perplexity.result()
+            # 1. Gera o núcleo da tese usando Gemini Flash em < 1 segundo
+            nucleo = gemini.get_cache_key_from_tese(tese)
+            
+            # Aqui um sistema completo extrairia o artigo penal do PDF, mas como simplificação,
+            # usaremos o 'nucleo' (ex: "afericao inmetro") como chave de cache por enquanto.
+            chave = f"tese_{nucleo}"
+            
+            # 2. Busca no banco de cache
+            cache_entry = PjariCacheEntry.objects.filter(cache_key=chave).first()
+            if cache_entry:
+                vertex_result = cache_entry.vertex_result
+                perplexity_result = cache_entry.perplexity_result
+                
+                # Atualiza métricas
+                cache_entry.hit_count += 1
+                cache_entry.save()
+                cache_config.total_hits += 1
+            
+            cache_config.save()
+            
+        # Se não há cache (Miss ou Desativado), busca externo
+        if not vertex_result or not perplexity_result:
+            import concurrent.futures
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                v_future = executor.submit(vertex.search_documents, tese)
+                p_future = executor.submit(perplexity.search_tese, tese)
+                
+                vertex_result = v_future.result()
+                perplexity_result = p_future.result()
+                
+            # Salva o novo resultado no cache para o próximo
+            if cache_config.is_active and "erro" not in chave.lower():
+                try:
+                    PjariCacheEntry.objects.create(
+                        cache_key=chave,
+                        vertex_result=vertex_result,
+                        perplexity_result=perplexity_result
+                    )
+                except Exception as e:
+                    print(f"Erro ao salvar no PJARI-CACHE: {e}")
         
         # Análise prévia da tese
         analise_resultado = gemini.analyze_tese(self.parecer, tese, perplexity_result, vertex_result)

@@ -91,6 +91,41 @@ class ParecerFinal(models.Model):
         nome = self.parecer_referencia.nome_processo if self.parecer_referencia else "Avulso"
         return f"Parecer Final: {nome} - {self.status_resultado}"
 
+class PjariCacheConfig(models.Model):
+    is_active = models.BooleanField(default=True, verbose_name="Ativar PJARI-CACHE", help_text="Se desativado, o sistema sempre fará buscas externas na Fase 4 e 5.")
+    total_requests = models.IntegerField(default=0, verbose_name="Total de Consultas")
+    total_hits = models.IntegerField(default=0, verbose_name="Total de Hits (Acertos no Cache)")
+
+    class Meta:
+        verbose_name = "PJARI-CACHE: Configuração e Métricas"
+        verbose_name_plural = "PJARI-CACHE: Configurações"
+
+    def __str__(self):
+        return f"Status do Cache: {'Ativo' if self.is_active else 'Inativo'}"
+
+    @property
+    def hit_rate(self):
+        if self.total_requests == 0:
+            return "0.00%"
+        return f"{(self.total_hits / self.total_requests) * 100:.2f}%"
+
+
+class PjariCacheEntry(models.Model):
+    cache_key = models.CharField(max_length=255, unique=True, verbose_name="Chave de Cache (Artigo + Núcleo)")
+    vertex_result = models.TextField(verbose_name="Resultado Vertex (Fundamentação)")
+    perplexity_result = models.TextField(verbose_name="Resultado Perplexity (Jurisprudência)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    hit_count = models.IntegerField(default=0, verbose_name="Vezes Utilizadas")
+
+    class Meta:
+        verbose_name = "PJARI-CACHE: Memória Armazenada"
+        verbose_name_plural = "PJARI-CACHE: Memórias Armazenadas"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.cache_key} (Usos: {self.hit_count})"
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     is_pro = models.BooleanField(default=False)

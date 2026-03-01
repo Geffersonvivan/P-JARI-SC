@@ -192,6 +192,30 @@ class GeminiClient:
         except Exception as e:
             return f"Erro ao refinar tese via LLM: {str(e)}"
 
+    def get_cache_key_from_tese(self, tese):
+        """Usa o Gemini Flash para extrair o núcleo da tese em até 3 palavras."""
+        if not self.client:
+            return "simulacao"
+            
+        system_instruction = (
+            "Sua única tarefa é extrair a palavra-chave central ou o 'núcleo' do argumento jurídico abaixo. "
+            "Retorne APENAS essa palavra-chave (máximo 3 palavras). Sem pontos, sem explicações. "
+            "Exemplos de saída: 'Aferição Inmetro', 'Sinalização R-19', 'Nulidade Citação', 'Mérito Prejudicado'."
+        )
+        
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[tese],
+                config={'system_instruction': system_instruction, 'temperature': 0.1}
+            )
+            # Limpa qualquer formatação extra e converte para minúsculo para padronizar a chave
+            key = response.text.strip().lower().replace('"', '').replace("'", "")
+            return key
+        except Exception as e:
+            print(f"Erro ao gerar cache key: {e}")
+            return "erro_chave"
+
     def analyze_tese(self, parecer_obj, tese, perplexity_result, vertex_result):
         if not self.client:
              return "Simulação: Resultar em: Conclusão: acolhida/não acolhida. (acolhida)"
