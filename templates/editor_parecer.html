@@ -78,9 +78,24 @@
                         <h3 class="font-bold text-blue-900 leading-tight">FUNDAMENTAÇÃO NORMATIVA - PARECER</h3>
                     </div>
                 </div>
-                <div class="text-sm text-blue-800 space-y-3 leading-relaxed whitespace-pre-wrap doc-links-container">
+                <div class="text-sm text-blue-800 space-y-3 leading-relaxed whitespace-pre-wrap doc-links-container"
+                    id="dossieText">
                     {{ parecer.dossie_fontes|safe }}
                 </div>
+
+                <script>
+                    // Converte links [Texto](URL) gerados pelo LLM em âncoras clicáveis HTML no painel lateral
+                    document.addEventListener("DOMContentLoaded", function () {
+                        const dossieContainer = document.getElementById('dossieText');
+                        if (dossieContainer) {
+                            let text = dossieContainer.innerHTML;
+                            // Regex para achar links Markdown: [texto](url)
+                            const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+                            text = text.replace(markdownLinkRegex, '<a href="$2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer">$1</a>');
+                            dossieContainer.innerHTML = text;
+                        }
+                    });
+                </script>
             </div>
         </div>
         {% endif %}
