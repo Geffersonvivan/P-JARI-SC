@@ -630,35 +630,32 @@
                 labels: ['Deferidos', 'Indeferidos'],
                 chart: {
                     type: 'donut',
+                    height: 320,
                     fontFamily: 'Outfit, sans-serif',
-                    height: 330
                 },
-                labels: ['Deferido', 'Indeferido'],
-                colors: ['#34a853', '#ea4335'],
+                colors: isDonutEmpty ? ['#e5e7eb', '#e5e7eb'] : ['#34a853', '#ea4335'],
                 plotOptions: {
                     pie: {
                         donut: {
-                            size: '75%',
+                            size: '70%',
                             labels: {
                                 show: true,
                                 name: { show: true, fontSize: '14px', color: '#9ca3af' },
                                 value: {
                                     show: true,
-                                    fontSize: '32px',
-                                    fontWeight: 700,
+                                    fontSize: '24px',
+                                    fontWeight: 'bold',
                                     color: '#1f1f1f',
                                     formatter: function (val) {
-                                        return val + "%"
+                                        return isDonutEmpty ? 0 : val
                                     }
                                 },
                                 total: {
                                     show: true,
-                                    showAlways: true,
-                                    label: 'Total Julgado',
-                                    fontSize: '12px',
-                                    color: '#9ca3af',
+                                    label: 'Total',
+                                    color: '#6b7280',
                                     formatter: function (w) {
-                                        return '{{ total_julgados }}'
+                                        return isDonutEmpty ? 0 : w.globals.seriesTotals.reduce((a, b) => { return a + b }, 0)
                                     }
                                 }
                             }
@@ -666,12 +663,57 @@
                     }
                 },
                 dataLabels: { enabled: false },
-                legend: { position: 'bottom', markers: { radius: 12 } },
-                stroke: { width: 0 }
+                stroke: { width: 0 },
+                legend: { show: true, position: 'bottom' },
+                tooltip: {
+                    enabled: !isDonutEmpty,
+                    y: { formatter: function (val) { return val + " Autos" } }
+                }
             };
-
             const donutChart = new ApexCharts(document.querySelector("#donut-chart"), donutOptions);
             donutChart.render();
+
+            // --- Word Cloud Initialization ---
+            const nuvemDados = JSON.parse('{{ nuvem_dados|safe }}' || '[]');
+
+            if (nuvemDados.length > 0) {
+                // Descobrir a maior repetição para rebalancear a matemática do tamanho da fonte
+                let maxFreq = 1;
+                nuvemDados.forEach(item => {
+                    if (item[1] > maxFreq) maxFreq = item[1];
+                });
+
+                WordCloud(document.getElementById('teses-cloud'), {
+                    list: nuvemDados,
+                    fontFamily: 'Outfit, sans-serif',
+                    weightFactor: function (size) {
+                        // Se só 1 caso existir, definir tamanho 24 fixo para não sumir do mapa
+                        if (maxFreq === 1) return 24;
+
+                        // Escala proporcional garantindo tamanho mínimo (20px) e máximo (60px)
+                        let percent = size / maxFreq;
+                        let fontScale = (percent * 40) + 20;
+                        return fontScale;
+                    },
+                    color: function () {
+                        // Cores variadas do P-JARI (Azul, Roxo, Verde Escuro, Cinza Escuro)
+                        const cores = ['#4285f4', '#8363ff', '#34a853', '#1f1f1f', '#444746', '#fbbc05'];
+                        return cores[Math.floor(Math.random() * cores.length)];
+                    },
+                    rotateRatio: 0.2, // Rotação menor para ficar mais legível juridicamente
+                    rotationSteps: 2,
+                    backgroundColor: 'transparent',
+                    drawOutOfBound: false,
+                    shrinkToFit: true
+                });
+            } else {
+                // Desenhar um mini placeholder de tela em branco
+                const ctx = document.getElementById('teses-cloud').getContext('2d');
+                ctx.font = '16px Outfit';
+                ctx.fillStyle = '#9ca3af';
+                ctx.textAlign = 'center';
+                ctx.fillText('Nenhuma tese suficiente julgada neste mês', 450, 150);
+            }
         });
 
         // --- Toggle Popover User Menu ---
