@@ -54,16 +54,33 @@ def editar_parecer_view(request, id):
         
         if config:
             from django.template import Template, Context
-            rodape_texto = config.rodape_indeferido if "INDEFERID" in texto_gerado_pela_ia.upper() else config.rodape_deferido
+            is_indeferido = "INDEFERID" in texto_gerado_pela_ia.upper()
+            rodape_texto = config.rodape_indeferido if is_indeferido else config.rodape_deferido
+            
+            # Auto-corrigir tags mal formadas deixadas pelo usuário como {{. }} ou vazias
+            palavra_resultado = "INDEFERIDO" if is_indeferido else "DEFERIDO"
+            rodape_texto = rodape_texto.replace('{{. }}', palavra_resultado).replace('{{.}}', palavra_resultado)
+            rodape_texto = rodape_texto.replace('{{ }}', palavra_resultado).replace('{{}}', palavra_resultado)
             
             nome_usuario = request.user.get_full_name() or request.user.username if request.user.is_authenticated else "Visitante"
             rodape_template = Template(rodape_texto)
-            rodape_escolhido = rodape_template.render(Context({'nome_membro': nome_usuario}))
+            rodape_escolhido = rodape_template.render(Context({
+                'nome_membro': nome_usuario,
+                'deferido': palavra_resultado,
+                'indeferido': palavra_resultado,
+                'DEFERIDO': palavra_resultado,
+                'INDEFERIDO': palavra_resultado,
+                'resultado': palavra_resultado
+            }))
             
             import re
             
             # Use explicit image attributes and wrap it
-            logo_html = f"<img src='{config.logo.url}' width='110' style='width: 110px; max-width: 110px; height: auto;'>" if config.logo else ""
+            if config.logo:
+                logo_absolute_url = request.build_absolute_uri(config.logo.url)
+                logo_html = f"<img src='{logo_absolute_url}' width='110' style='width: 110px; max-width: 110px; height: auto;'>"
+            else:
+                logo_html = ""
             
             tit = config.titulo_cabecalho.replace('\n', '<br>') if config.titulo_cabecalho else ""
             sub = config.subtitulo_cabecalho.replace('\n', '<br>') if config.subtitulo_cabecalho else ""
