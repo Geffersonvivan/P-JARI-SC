@@ -64,20 +64,20 @@ class GeminiClient:
             "🔎 **LEVANTAMENTO COMPLETO DE TODAS AS DATAS (extraídas documentalmente)**\n\n"
             "📍 **FASE INFRAÇÃO / AUTUAÇÃO**\n"
             "**1. Data da Infração:** [Data] às [Hora]\n"
-            "📄 [Nome do Doc/Página]\n"
+            "📄 [Nome do Documento Oficial]\n"
             "**2. Data Postagem Notificação Autuação:** [Data]\n"
-            "📄 [Nome do Doc/Página]\n"
+            "📄 [Nome do Documento Oficial]\n"
             "*(...e assim por diante para todas as datas dessa fase)*\n\n"
             "📍 **FASE PROCESSO DE SUSPENSÃO**\n"
             "**8. Portaria Instauração PSDD:** [Data]\n"
-            "📄 [Nome do Doc/Página]\n"
+            "📄 [Nome do Documento Oficial]\n"
             "*(...continuando a numeração contínua para as demais datas dessa fase)*\n\n"
             "📍 **FASE RECURSAL JARI**\n"
             "**12. Protocolo Recurso JARI:** [Data]\n"
-            "📄 [Nome do Doc/Página]\n"
+            "📄 [Nome do Documento Oficial]\n"
             "**13. Data Sessão Julgamento JARI:** [Data]\n"
             "📌 Informação Pergunta 1\n\n"
-            "REGRAS DE FORMATAÇÃO: Use negrito para o nome do evento. Coloque o ícone 📄 e o nome do arquivo/documento (ou página) NA LINHA DE BAIXO de cada evento. Mantenha a numeração 1,2,3... contínua entre as fases. Não invente datas ausentes, escreva 'Data não localizada' se não achar."
+            "REGRAS DE FORMATAÇÃO: Use negrito para o nome do evento. Coloque o ícone 📄 e o nome do arquivo/documento NA LINHA DE BAIXO de cada evento. Mantenha a numeração 1,2,3... contínua entre as fases. Não invente datas ausentes, escreva 'Data não localizada' se não achar. É EXPRESSAMENTE PROIBIDO incluir números de páginas das quais a informação foi retirada."
         )
         
         prompt_text = (
@@ -309,6 +309,7 @@ class GeminiClient:
             "  A) VERBOS SEMPRE NO PASSADO: Em toda a redação, conjugue os verbos sempre no passado, narrando os fatos ocorridos (ex: 'ocorreu', 'o recorrente alegou', 'foi expedida', 'restou configurado'). Nunca use o presente (evite 'ocorre', 'alega', 'é expedida').\n"
             "  B) PALAVRAS PROIBIDAS: JAMAIS escreva as palavras 'Vertex', 'Autuação', 'consolidado', 'Perplexity' ou 'Gemini', nem como referência. Aja como um humano.\n"
             "  C) LINKS CLICÁVEIS (MARKDOWN): Use sempre a sintaxe [Nome da Lei](http://link.com) em vez de jogar o texto cru na tela. Caso não tenha, não invente.\n"
+            "  D) SEM NÚMERO DE PÁGINAS: É expressamente proibido citar ou fazer referência a números de páginas na redação (ex: JAMAIS escreva 'Página 3', 'Página 9', '(Página 8)', etc). Aponte apenas o nome do documento oficial ou os fatos.\n"
             "***DOSSIE_END***"
         )
         
