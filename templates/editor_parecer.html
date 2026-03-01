@@ -142,6 +142,13 @@
             printElement.style.wordWrap = 'break-word';
             printElement.style.overflowWrap = 'break-word';
 
+            // Previne que o html2canvas corte o conteúdo no meio da linha
+            const avoidBreakElements = printElement.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, tr, blockquote');
+            avoidBreakElements.forEach(el => {
+                el.style.pageBreakInside = 'avoid';
+                el.style.breakInside = 'avoid-page';
+            });
+
             // Ocultar a UI principal para não conflitar com a captura
             const mainUI = document.querySelector('.max-w-5xl');
             if (mainUI) mainUI.style.display = 'none';
