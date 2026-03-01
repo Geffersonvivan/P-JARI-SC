@@ -332,10 +332,23 @@ class GeminiClient:
             "com 1., 2., 3., 4., 5. conforme a regra atualizada das fases do relatório e utilizando todo o histórico em memória."
         )
 
+        contents = [prompt]
+        
+        # Anexar os PDFs no prompt se existirem para que a IA possa extrair "Interessado" da Autuação
+        if parecer_obj.autuacao_pdf_path and os.path.exists(parecer_obj.autuacao_pdf_path) and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
+            file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
+            if file_autuacao:
+                contents.insert(0, file_autuacao)
+                
+        if parecer_obj.consolidado_pdf_path and os.path.exists(parecer_obj.consolidado_pdf_path) and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
+            file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
+            if file_consolidado:
+                contents.insert(0, file_consolidado)
+
         try:
             response = self.client.models.generate_content(
                 model='gemini-2.5-flash',
-                contents=prompt,
+                contents=contents,
                 config={'system_instruction': system_instruction}
             )
             return response.text
