@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
     <style>
         /* Cores fixadas conforme o layout definido */
         :root {
@@ -390,18 +391,33 @@
             </div>
 
             <!-- Charts -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-10 px-4">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-4 px-4">
                 <!-- Line Chart -->
-                <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <div
+                    class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
                     <h3 class="text-lg font-bold text-gray-800 mb-6">Produtividade Mensal</h3>
-                    <div id="line-chart"></div>
+                    <div id="line-chart" class="flex-1 w-full"></div>
                 </div>
 
                 <!-- Donut Chart -->
                 <div
                     class="lg:col-span-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
                     <h3 class="text-lg font-bold text-gray-800 mb-6">Proporção de Resultado</h3>
-                    <div id="donut-chart" class="flex-1 flex justify-center items-center"></div>
+                    <div id="donut-chart" class="flex-1 flex justify-center items-center w-full"></div>
+                </div>
+            </div>
+
+            <!-- Word Cloud (Nuvem de Teses) -->
+            <div class="grid grid-cols-1 w-full max-w-7xl mx-auto pb-10 px-4">
+                <div
+                    class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 w-full flex flex-col items-center">
+                    <div class="w-full text-center">
+                        <h3 class="text-2xl font-bold text-gray-800">Nuvem de Teses Recorrentes</h3>
+                        <p class="text-sm text-gray-500 mb-6">Termos mais citados nas teses de defesa julgadas no mês
+                        </p>
+                    </div>
+                    <!-- O tamanho do Canvas precisa ser fixo ou responsível no CSS, WordCloud pede sizes exatos -->
+                    <canvas id="teses-cloud" width="900" height="300" class="max-w-full"></canvas>
                 </div>
             </div>
 
@@ -599,15 +615,19 @@
                     strokeDashArray: 4,
                 }
             };
-
-            const lineChart = new ApexCharts(document.querySelector("#line-chart"), lineOptions);
+            var lineChart = new ApexCharts(document.querySelector("#line-chart"), lineOptions);
             lineChart.render();
 
-            const taxaDeferimento = parseInt('{{ taxa_deferimento }}') || 0;
-            const taxaIndeferimento = parseInt('{{ taxa_indeferimento }}') || 0;
+            // --- Donut Chart Initialization ---
+            const donutSeriesRaw = JSON.parse('{{ donut_series|safe }}' || '[0, 0]');
+            const donutSeries = [parseInt(donutSeriesRaw[0]) || 0, parseInt(donutSeriesRaw[1]) || 0];
+
+            // Se ambos são 0, evitar erro de blank chart
+            const isDonutEmpty = donutSeries[0] === 0 && donutSeries[1] === 0;
 
             const donutOptions = {
-                series: [taxaDeferimento, taxaIndeferimento],
+                series: isDonutEmpty ? [1, 1] : donutSeries,
+                labels: ['Deferidos', 'Indeferidos'],
                 chart: {
                     type: 'donut',
                     fontFamily: 'Outfit, sans-serif',

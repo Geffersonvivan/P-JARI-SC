@@ -485,6 +485,9 @@ def estatisticas_view(request):
     deferidos = pareceres_finais.filter(status_resultado__icontains='DEFERIDO').exclude(status_resultado__icontains='INDEFERIDO').count()
     indeferidos = pareceres_finais.filter(status_resultado__icontains='INDEFERIDO').count()
     
+    # Adicionando contagem limpa pro grafico Donut
+    donut_series = [deferidos, indeferidos]
+    
     if total_finais > 0:
         taxa_deferimento = int((deferidos / total_finais) * 100)
         taxa_indeferimento = int((indeferidos / total_finais) * 100)
@@ -516,6 +519,34 @@ def estatisticas_view(request):
         datas.append(data_atual.strftime('%d/%m'))
         totais_por_dia.append(dados_dict.get(data_atual, 0))
         
+    # 5. Nuvem de Palavras (Extraindo de Parecer.tese)
+    pareceres_mes = Parecer.objects.filter(
+        user=request.user, 
+        is_saved=True, 
+        created_at__year=ano,
+        created_at__month=mes
+    ).exclude(tese__isnull=True).exclude(tese__exact='')
+    
+    import re
+    from collections import Counter
+    stopwords = {'a', 'o', 'e', 'é', 'do', 'da', 'de', 'para', 'com', 'sem', 'em', 'no', 'na', 
+                 'dos', 'das', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'por', 'pelo', 'pela',
+                 'que', 'se', 'ao', 'aos', 'ou'}
+    todas_palavras = []
+    for p in pareceres_mes:
+        if p.tese:
+            # limpar pontos e formatar
+            texto_limpo = re.sub(r'[^\w\s]', '', p.tese.lower())
+            palavras = texto_limpo.split()
+            palavras_filtradas = [w for w in palavras if len(w) > 3 and w not in stopwords]
+            todas_palavras.extend(palavras_filtradas)
+    
+    contagem_palavras = Counter(todas_palavras)
+    # Pegar as 50 palavras mais comuns
+    top_palavras = contagem_palavras.most_common(50)
+    # Formato pro JS: [['palavra', frequencia], ...]
+    nuvem_dados = [[item[0], item[1]] for item in top_palavras]
+    
     # Replicar as pastas do menu lateral para manter a interface
     projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).order_by('-created_at'))
     
@@ -535,6 +566,8 @@ def estatisticas_view(request):
         'taxa_indeferimento': taxa_indeferimento,
         'deferidos_count': deferidos,
         'indeferidos_count': indeferidos,
+        'donut_series': json.dumps(donut_series),
+        'nuvem_dados': json.dumps(nuvem_dados),
         'grafico_datas': json.dumps(datas),
         'grafico_totais': json.dumps(totais_por_dia),
         'pasta_outros': pasta_outros,
