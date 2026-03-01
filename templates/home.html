@@ -831,6 +831,7 @@
         function formatMessage(text) {
             return text
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-all sm:break-words font-semibold inline-block max-w-full" rel="noopener noreferrer">$1</a>')
                 .replace(/\n/g, '<br>');
         }
 
