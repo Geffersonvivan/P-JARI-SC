@@ -370,12 +370,26 @@ class JariEngine:
         parecer_text = gemini.validate_and_generate_parecer(self.parecer, tese, perplexity_result, vertex_result)
         
         # Extrair a Fundamentação Normativa (Dossiê) se existir
+        # Usa regex pois o LLM às vezes perde os *** e escreve apenas DOSSIE_START
+        import re
         dossie = ""
-        if "***DOSSIE_START***" in parecer_text and "***DOSSIE_END***" in parecer_text:
-            partes = parecer_text.split("***DOSSIE_START***")
-            texto_principal = partes[0].strip()
-            dossie_bruto = partes[1].split("***DOSSIE_END***")[0].strip()
+        match_start = re.search(r'\*?\*?\*?DOSSIE_START\*?\*?\*?', parecer_text)
+        match_end = re.search(r'\*?\*?\*?DOSSIE_END\*?\*?\*?', parecer_text)
+        
+        if match_start and match_end:
+            start_idx = match_start.start()
+            end_idx = match_end.end()
             
+            # O dossiê é tudo que está entre START e END (incluindo as tags, opcionalmente, mas aqui pegamos só o bloco)
+            dossie_bruto = parecer_text[match_start.end():match_end.start()].strip()
+            
+            # O texto principal do parecer é tudo ANTES do DOSSIE_START
+            texto_principal = parecer_text[:start_idx].strip()
+            
+            # Remove marcadores Markdown indesejados (como "---") que o LLM gosta de colocar antes do DOSSIE_START
+            if texto_principal.endswith("---"):
+                texto_principal = texto_principal[:-3].strip()
+                
             parecer_text = texto_principal
             dossie = dossie_bruto
             
