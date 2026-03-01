@@ -108,7 +108,7 @@ SITE_ID = 1
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['first_name*', 'email*', 'password1*', 'password2*']
 ACCOUNT_SIGNUP_FORM_CLASS = 'chat.adapters.CustomSignupForm'
-ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 SOCIALACCOUNT_ADAPTER = 'chat.adapters.CustomSocialAccountAdapter'
 
 if DEBUG:
