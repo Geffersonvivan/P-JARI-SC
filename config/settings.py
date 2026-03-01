@@ -127,9 +127,10 @@ else:
 # Pular a tela intermediária chata do allauth "sign in via..."
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
-# Permite conectar contas sociais automaticamente a usuários existentes (ex: superuser do Railway)
+# Permite conectar direto e não exige verificação dupla para quem loga com redes sociais
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 
 # Optionally set login redirect to home
 LOGIN_REDIRECT_URL = '/'
