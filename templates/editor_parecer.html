@@ -130,9 +130,9 @@
             printElement.innerHTML = htmlContent;
             printElement.style.padding = '0'; // Tira borda excessiva
             printElement.style.paddingBottom = '40px'; // Força espaço extra no final para evitar corte do html2canvas
-            printElement.style.fontFamily = 'Arial, sans-serif';
-            printElement.style.fontSize = '12px';
-            printElement.style.lineHeight = '1.5';
+            printElement.style.fontFamily = 'Arial, Helvetica, sans-serif';
+            printElement.style.fontSize = '13px';
+            printElement.style.lineHeight = '1.6'; // Linhas mais espaçadas ajudam a biblioteca a não fatiar palavras ao meio
             printElement.style.color = '#000';
             printElement.style.backgroundColor = '#fff';
 
@@ -142,11 +142,14 @@
             printElement.style.wordWrap = 'break-word';
             printElement.style.overflowWrap = 'break-word';
 
-            // Previne que o html2canvas corte o conteúdo no meio da linha
+            // Previne que o html2canvas corte o conteúdo no meio da linha e adiciona padding bottom
             const avoidBreakElements = printElement.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, tr, blockquote');
             avoidBreakElements.forEach(el => {
                 el.style.pageBreakInside = 'avoid';
                 el.style.breakInside = 'avoid-page';
+                el.style.marginBottom = '10px'; // Garante uma fronteira clara para o clipper do html2canvas cortar
+                el.style.paddingTop = '2px';
+                el.style.paddingBottom = '2px';
             });
 
             // Ocultar a UI principal para não conflitar com a captura
@@ -170,11 +173,12 @@
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    scrollY: 0, // Resolve problema de PDF cortando conteúdo no topo dependendo do scroll
-                    windowWidth: document.body.scrollWidth
+                    scrollY: 0,
+                    windowWidth: document.body.scrollWidth,
+                    letterRendering: true, // Melhora a renderização de fontes
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                pagebreak: { mode: ['avoid-all', 'css'] } // Evita quebrar ao meio de qualquer elemento de bloco
             };
 
             // Gerar PDF e restaurar a tela original
