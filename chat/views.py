@@ -267,7 +267,9 @@ def chat_message_view(request):
                     reply += f"{p.parecer_final}\n\n"
                     if p.dossie_fontes:
                         import re
-                        parsed_dossie = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-all sm:break-words font-semibold inline-block max-w-full" rel="noopener noreferrer">\1</a>', p.dossie_fontes)
+                        parsed_dossie = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer">\1</a>', p.dossie_fontes)
+                        # Remove markdown boldings and links from interfering with next regex
+                        parsed_dossie = re.sub(r'(?<!href="|href=\')\b(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])', r'<a href="\1" target="_blank" class="text-blue-500 hover:text-blue-700 underline truncate inline-block max-w-[250px] align-bottom" title="\1" rel="noopener noreferrer">Acessar Link</a>', parsed_dossie)
                         reply += f"<details class='mt-4 mb-2 bg-blue-50/50 rounded-xl border border-blue-100/50 overflow-hidden shadow-sm'><summary class='px-4 py-3 bg-white/50 cursor-pointer text-[#444746] font-medium flex items-center gap-2 hover:bg-blue-50/50 transition-colors outline-none'>🔎 FUNDAMENTAÇÃO NORMATIVA - PARECER</summary><div class='p-4 text-sm text-[#444746] leading-relaxed border-t border-blue-100/50 bg-white/30 whitespace-pre-wrap'>{parsed_dossie}</div></details>\n\n"
                     # Injects link for the editor
                     reply += f"<a href='/parecer/{p.id}/editor/' class='inline-block my-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm' style='text-decoration:none;'>✏️ Abrir Editor de Parecer Final</a>\n\n"
