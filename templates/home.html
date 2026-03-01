@@ -663,7 +663,10 @@
                             showLoginModal();
                             return;
                         }
-
+                        if (data.requires_plan) {
+                            window.location.href = '/planos/';
+                            return;
+                        }
                         const id = `folder-${data.id}`;
                         const div = document.createElement('div');
                         div.id = id;
@@ -928,8 +931,12 @@
                     const data = await response.json();
 
                     if (data.requires_login) {
-                        document.getElementById(`msg-${tempId}`).remove(); // remove pending message
                         showLoginModal();
+                        document.getElementById(`msg-${tempId}`).remove();
+                        return;
+                    }
+                    if (data.requires_plan) {
+                        window.location.href = '/planos/';
                         return;
                     }
 

@@ -160,6 +160,10 @@ def create_parecer_view(request):
         count = Parecer.objects.filter(user__isnull=True, session_key=request.session.session_key).count()
         if count >= 2:
             return JsonResponse({'requires_login': True})
+    else:
+        # Usuário autenticado: Verifica limite de créditos
+        if request.user.profile.used_credits >= request.user.profile.credits:
+            return JsonResponse({'requires_plan': True})
 
     try:
         data = json.loads(request.body)
@@ -288,6 +292,10 @@ def chat_message_view(request):
                     count = Parecer.objects.filter(user__isnull=True, session_key=request.session.session_key).count()
                     if count >= 2:
                         return JsonResponse({'requires_login': True})
+                else:
+                    # Usuário autenticado: Verifica limite de créditos
+                    if request.user.profile.used_credits >= request.user.profile.credits:
+                        return JsonResponse({'requires_plan': True})
 
                 from datetime import datetime
                 nome_temporario = f"Processo {datetime.now().strftime('%d/%m %H:%M')}"
