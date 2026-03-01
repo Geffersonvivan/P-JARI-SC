@@ -128,18 +128,25 @@
             // Adicionar elemento de impressão no corpo
             document.body.appendChild(printElement);
 
+            // Limpa CSS global indesejado vindo do rodapé que quebra a margem no PDF
+            const styleTags = printElement.querySelectorAll('style');
+            styleTags.forEach(style => {
+                style.innerHTML = style.innerHTML.replace(/body\s*\{[^}]*\}/gi, '');
+            });
+
             const opt = {
-                margin: [15, 15, 15, 15], // Top, Right, Bottom, Left
+                margin: [20, 15, 20, 15], // Top, Right, Bottom, Left
                 filename: '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: {
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    windowWidth: document.body.scrollWidth // Usa a largura da tela ao invés de fixo para não cortar
+                    scrollY: 0, // Resolve problema de PDF cortando conteúdo no topo dependendo do scroll
+                    windowWidth: document.body.scrollWidth
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             // Gerar PDF e restaurar a tela original
