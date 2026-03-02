@@ -364,12 +364,16 @@ def checkout_view(request):
         if plan_type == 'basic':
             item_title = "P-JARI/SC Básico (40 Pareceres)"
             item_price = 720.00
+        elif plan_type == 'extra':
+            item_title = "P-JARI/SC 1 Crédito Extra"
+            item_price = 20.00
         else:
             item_title = "P-JARI/SC Profissional (80 Pareceres)"
             item_price = 1440.00
 
         # Inicializar o SDK do Mercado Pago
-        sdk = mercadopago.SDK(getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', 'APP_USR-TEST-000000'))
+        access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', None) or 'APP_USR-TEST-000000'
+        sdk = mercadopago.SDK(access_token)
         
         # Criar preferência de pagamento
         preference_data = {
