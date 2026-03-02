@@ -379,32 +379,23 @@ def checkout_view(request):
         sdk = mercadopago.SDK(access_token)
         
         # O PA_UNAUTHORIZED request bloqueia a geração dependendo de quem pede
-        # Se você usar seu Production Token (APP_USR-) tentando mascarar um teste
-        # sem dados críveis de comprador, a política antifraude bloqueia na origem.
+        # Ao usar o Production Token (APP_USR-) para validar, qualquer dado Payer 
+        # que conflitar minimamente com a conta do titular de destino é bloqueada.
+        # Vamos gerar a Preference genérica.
         preference_data = {
             "items": [
                 {
                     "title": item_title,
-                    "description": "Créditos para análise automatizada P-JARI/SC",
+                    "description": "Créditos de sistema",
                     "quantity": 1,
                     "currency_id": "BRL",
                     "unit_price": float(item_price)
                 }
             ],
-            "payer": {
-                # Evita que o Mercado Pago cruze o seu email de dono da conta com o email do comprador em PRD
-                "email": request.user.email if (request.user.email and request.user.email != 'geffersonvivan@192.168.19.163' and 'gefferson' not in request.user.email.lower()) else "visitante_pjari@gmail.com"
-            },
             "back_urls": {
                 "success": request.build_absolute_uri("/planos/?success=1"),
                 "failure": request.build_absolute_uri("/planos/?failure=1"),
                 "pending": request.build_absolute_uri("/planos/?pending=1")
-            },
-            "payment_methods": {
-                "excluded_payment_types": [
-                    {"id": "ticket"} # Desabilita boleto p/ liberação imediata
-                ],
-                "installments": 12
             },
             "external_reference": str(request.user.id),
         }
