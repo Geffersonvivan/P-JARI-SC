@@ -385,9 +385,11 @@ def checkout_view(request):
                     "unit_price": item_price
                 }
             ],
+            # Payer configuration has been removed to avoid 'UNAUTHORIZED_RESULT_FROM_POLICIES'
+            # (Test accounts hardcodings triggers MP anti-fraud policies)
             "payer": {
                 "name": request.user.first_name or request.user.username,
-                "email": "test_buyer_12@testuser.com"
+                "email": request.user.email if getattr(request.user, 'email', None) else ""
             },
             "back_urls": {
                 "success": request.build_absolute_uri("/planos/?success=1"),
