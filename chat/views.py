@@ -236,16 +236,17 @@ def chat_message_view(request):
             parecer_id = request.POST.get('parecer_id')
             pasta_id = request.POST.get('pasta_id')
             
-            # Salva os arquivos e gera a string de caminhos
+            # Salva os arquivos e gera a string de caminhos usando o storage backend
             files = []
-            import os
             from django.core.files.storage import default_storage
+            import os
             for key, f in request.FILES.items():
                 if f.name.endswith('.pdf'):
-                    # Salva no media_root/uploads
-                    path = default_storage.save(f'uploads/{f.name}', f)
-                    full_path = os.path.join(settings.MEDIA_ROOT, path)
-                    files.append(full_path)
+                    # O Django Storage cuida de salvar no Local ou no Google Cloud
+                    base_name = os.path.basename(f.name)
+                    path = default_storage.save(f'uploads/{base_name}', f)
+                    # Adiciona a URL do arquivo ou o nome no storage para referência futura
+                    files.append(path)
             
             uploaded_files = files
         else:

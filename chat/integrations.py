@@ -44,14 +44,33 @@ class GeminiClient:
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
 
     def upload_file(self, file_path):
-        if not self.client or not os.path.exists(file_path):
+        if not self.client or not file_path:
             return None
+            
+        import tempfile
+        from django.core.files.storage import default_storage
+        
+        # If it's a simulated or local absolute path bypassing Storage
+        if isinstance(file_path, str) and "upload_simulado" in file_path:
+            return None
+            
         try:
-            # Upload the file to Gemini
-            gemini_file = self.client.files.upload(file=file_path)
+            # Baixa do Google Cloud Storage ou do disco local via Django Storage para um arquivo temporário
+            with default_storage.open(file_path, 'rb') as f_in:
+                # O Gemini precisa de um caminho físico em disco, então criamos um temp local
+                fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+                with os.fdopen(fd, 'wb') as f_out:
+                    f_out.write(f_in.read())
+            
+            # Faz o upload físico pro ecossistema do Gemini
+            gemini_file = self.client.files.upload(file=temp_path)
+            
+            # Limpa o arquivo temporário local agora que o Gemini já comeu
+            os.remove(temp_path)
+            
             return gemini_file
         except Exception as e:
-            print(f"Erro ao subir arquivo pro Gemini: {e}")
+            print(f"Erro ao subir arquivo pro Gemini a partir do Storage: {e}")
             return None
 
     def generate_admissibility_report(self, parecer_obj):
@@ -134,12 +153,12 @@ class GeminiClient:
         
         contents = [prompt_text]
         
-        if parecer_obj.autuacao_pdf_path and os.path.exists(parecer_obj.autuacao_pdf_path) and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
+        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
             file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
             if file_autuacao:
                 contents.insert(0, file_autuacao)
                 
-        if parecer_obj.consolidado_pdf_path and os.path.exists(parecer_obj.consolidado_pdf_path) and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
+        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
             file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
             if file_consolidado:
                 contents.insert(0, file_consolidado)
@@ -172,12 +191,12 @@ class GeminiClient:
         
         contents = [prompt_text]
         
-        if parecer_obj.autuacao_pdf_path and os.path.exists(parecer_obj.autuacao_pdf_path) and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
+        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
             file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
             if file_autuacao:
                 contents.insert(0, file_autuacao)
                 
-        if parecer_obj.consolidado_pdf_path and os.path.exists(parecer_obj.consolidado_pdf_path) and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
+        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
             file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
             if file_consolidado:
                 contents.insert(0, file_consolidado)
@@ -242,12 +261,12 @@ class GeminiClient:
         contents = [prompt_text]
         
         # Anexar os PDFs no prompt se existirem
-        if parecer_obj.autuacao_pdf_path and os.path.exists(parecer_obj.autuacao_pdf_path) and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
+        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
             file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
             if file_autuacao:
                 contents.insert(0, file_autuacao)
                 
-        if parecer_obj.consolidado_pdf_path and os.path.exists(parecer_obj.consolidado_pdf_path) and "upload_simulado" not in parecer_obj.consolidado_pdf_path:
+        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path:
             file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
             if file_consolidado:
                 contents.insert(0, file_consolidado)
@@ -361,12 +380,12 @@ class GeminiClient:
         contents = [prompt]
         
         # Anexar os PDFs no prompt se existirem para que a IA possa extrair "Interessado" da Autuação
-        if parecer_obj.autuacao_pdf_path and os.path.exists(parecer_obj.autuacao_pdf_path) and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
+        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
             file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
             if file_autuacao:
                 contents.insert(0, file_autuacao)
                 
-        if parecer_obj.consolidado_pdf_path and os.path.exists(parecer_obj.consolidado_pdf_path) and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
+        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
             file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
             if file_consolidado:
                 contents.insert(0, file_consolidado)

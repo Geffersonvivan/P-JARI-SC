@@ -456,25 +456,25 @@ class JariEngine:
         self.parecer.dossie_fontes = dossie
         
         # OTIMIZAÇÃO DE BANCO DE DADOS E DISCO:
-        # Após a conclusão da geração do Parecer, os arquivos não são mais necessários
-        import os
+        # Após a conclusão da geração do Parecer, as cópias não são mais necessárias
+        from django.core.files.storage import default_storage
         
         # Deleta Autuacao se existir e nao for simulada
         if self.parecer.autuacao_pdf_path and "upload_simulado" not in self.parecer.autuacao_pdf_path:
-            if os.path.exists(self.parecer.autuacao_pdf_path):
-                try:
-                    os.remove(self.parecer.autuacao_pdf_path)
-                except Exception as e:
-                    print(f"Erro ao deletar autuação PDF: {e}")
+            try:
+                if default_storage.exists(self.parecer.autuacao_pdf_path):
+                    default_storage.delete(self.parecer.autuacao_pdf_path)
+            except Exception as e:
+                print(f"Erro ao deletar autuação PDF do storage: {e}")
             self.parecer.autuacao_pdf_path = None
             
         # Deleta Consolidado se existir, nao for repetido, e nao for simulada
         if self.parecer.consolidado_pdf_path and "upload_simulado" not in self.parecer.consolidado_pdf_path:
-            if os.path.exists(self.parecer.consolidado_pdf_path):
-                try:
-                    os.remove(self.parecer.consolidado_pdf_path)
-                except Exception as e:
-                    print(f"Erro ao deletar consolidado PDF: {e}")
+            try:
+                if default_storage.exists(self.parecer.consolidado_pdf_path):
+                    default_storage.delete(self.parecer.consolidado_pdf_path)
+            except Exception as e:
+                print(f"Erro ao deletar consolidado PDF do storage: {e}")
             self.parecer.consolidado_pdf_path = None
 
         # Avança para Fase 7 de salvar em pasta

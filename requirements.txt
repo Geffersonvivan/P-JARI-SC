@@ -199,3 +199,5 @@ zstandard==0.25.0
 
 psycopg2-binary==2.9.9
 django-anymail[resend]==11.1
+django-storages==1.14.6
+google-cloud-storage==3.9.0

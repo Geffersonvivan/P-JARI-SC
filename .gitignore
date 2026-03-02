@@ -21,3 +21,6 @@ google-credentials.json
 
 
 git_up.md
+
+# Google Cloud Credentials (Secret)
+gcp-credentials.json*

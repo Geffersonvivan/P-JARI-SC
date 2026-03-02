@@ -206,8 +206,32 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Google Cloud Storage Configuration
+USE_GCS = os.environ.get('USE_GCS', 'True') == 'True'
+
+if USE_GCS:
+    GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', 'pjari-midias')
+    # Point this to the local JSON file in development, or set via Docker/Railway volume in Prod
+    GS_CREDENTIALS_FILE = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', str(BASE_DIR / 'gcp-credentials.json.json'))
+    
+    # Check if the JSON file actually exists locally for development fallbacks
+    if os.path.exists(GS_CREDENTIALS_FILE) or 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+        if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GS_CREDENTIALS_FILE
+            
+        DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+        # Não precisamos de GCS para static files por enquanto (WhiteNoise já faz isso bem)
+        # STATICFILES_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+        MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+    else:
+        # Fallback to local if credentials aren't found
+        DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+        MEDIA_URL = '/media/'
+        MEDIA_ROOT = BASE_DIR / 'media'
+else:
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/'
