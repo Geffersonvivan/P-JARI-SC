@@ -371,26 +371,42 @@ def checkout_view(request):
             item_title = "P-JARI/SC Profissional (80 Pareceres)"
             item_price = 1440.00
 
-        # Inicializar o SDK do Mercado Pago
-        access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', None) or 'APP_USR-TEST-000000'
+        # Recupera o token de produção do env
+        access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', None)
+        if not access_token:
+            return HttpResponse("Erro: MERCADOPAGO_ACCESS_TOKEN não está configurado no servidor.", status=500)
+            
         sdk = mercadopago.SDK(access_token)
         
-        # Criar preferência de pagamento
+        # O PA_UNAUTHORIZED request bloqueia a geração dependendo de quem pede
+        # Se você usar seu Production Token (APP_USR-) tentando mascarar um teste
+        # sem dados críveis de comprador, a política antifraude bloqueia na origem.
         preference_data = {
             "items": [
                 {
                     "title": item_title,
+                    "description": "Créditos para análise automatizada P-JARI/SC",
                     "quantity": 1,
                     "currency_id": "BRL",
-                    "unit_price": item_price
+                    "unit_price": float(item_price)
                 }
             ],
+            "payer": {
+                # Evita que o Mercado Pago cruze o seu email de dono da conta com o email do comprador em PRD
+                "email": request.user.email if (request.user.email and request.user.email != 'geffersonvivan@192.168.19.163' and 'gefferson' not in request.user.email.lower()) else "visitante_pjari@gmail.com"
+            },
             "back_urls": {
                 "success": request.build_absolute_uri("/planos/?success=1"),
                 "failure": request.build_absolute_uri("/planos/?failure=1"),
                 "pending": request.build_absolute_uri("/planos/?pending=1")
             },
-            "external_reference": str(request.user.id), # Passa o ID do usuário para identificar no webhook
+            "payment_methods": {
+                "excluded_payment_types": [
+                    {"id": "ticket"} # Desabilita boleto p/ liberação imediata
+                ],
+                "installments": 12
+            },
+            "external_reference": str(request.user.id),
         }
         
         preference_response = sdk.preference().create(preference_data)
