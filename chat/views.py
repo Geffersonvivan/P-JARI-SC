@@ -385,18 +385,11 @@ def checkout_view(request):
                     "unit_price": item_price
                 }
             ],
-            # Payer configuration has been removed to avoid 'UNAUTHORIZED_RESULT_FROM_POLICIES'
-            # (Test accounts hardcodings triggers MP anti-fraud policies)
-            "payer": {
-                "name": request.user.first_name or request.user.username,
-                "email": request.user.email if getattr(request.user, 'email', None) else ""
-            },
             "back_urls": {
                 "success": request.build_absolute_uri("/planos/?success=1"),
                 "failure": request.build_absolute_uri("/planos/?failure=1"),
                 "pending": request.build_absolute_uri("/planos/?pending=1")
             },
-            # "auto_return": "approved", # Removido temporariamente pois exige HTTPS no back_url.
             "external_reference": str(request.user.id), # Passa o ID do usuário para identificar no webhook
         }
         
@@ -426,7 +419,8 @@ def mercadopago_webhook(request):
             # Se for uma notificação de pagamento
             if action == 'payment.created' or type_ == 'payment':
                 payment_id = data.get('id')
-                sdk = mercadopago.SDK(getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', 'APP_USR-TEST-000000'))
+                access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', None) or 'APP_USR-TEST-000000'
+                sdk = mercadopago.SDK(access_token)
                 payment_info = sdk.payment().get(payment_id)
                 payment = payment_info.get("response", {})
                 
@@ -435,12 +429,38 @@ def mercadopago_webhook(request):
                     user_id = payment.get("external_reference")
                     if user_id:
                         user = User.objects.get(id=user_id)
-                        # Atualiza o perfil "PRO" garantindo acesso ilimitado
-                        user.profile.is_pro = True
-                        user.profile.credits += 40
-                        user.profile.subscription_status = "active"
+                        # Descobrir qual o plano comprado baseado pelo valor na notificação para creditar corretamente
+                        trans_amount = payment.get("transaction_amount", 0)
+                        
+                        if trans_amount == 20.00:
+                            user.profile.credits += 1
+                        elif trans_amount == 720.00:
+                            user.profile.credits += 40
+                            user.profile.is_pro = True
+                            user.profile.subscription_status = "active"
+                        elif trans_amount == 1440.00:
+                            user.profile.credits += 80
+                            user.profile.is_pro = True
+                            user.profile.subscription_status = "active"
+                        else:
+                            # Caso padrão (se valor for diferente por algum desconto)
+                            user.profile.credits += 40
+                            user.profile.is_pro = True
+                            
                         user.profile.save()
-                        print(f"Usuário {user.username} promovido a PRO com sucesso!")
+                        print(f"Usuário {user.username} - Pagamento processado: {trans_amount}")
+                        
+                        # Disparar Email de notificação da compra para o Admin
+                        from django.core.mail import send_mail
+                        nome_cliente = user.get_full_name() or user.username
+                        email_cliente = user.email or 'N/A'
+                        send_mail(
+                            subject=f'✅ Nova Venda Confirmada: {nome_cliente}',
+                            message=f'Sucesso! Um pagamento de R$ {trans_amount} foi aprovado no Mercado Pago e os créditos foram liberados.\n\nDetalhes do Cliente:\nNome: {nome_cliente}\nEmail: {email_cliente}\nID do Pagamento: {payment_id}',
+                            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br'),
+                            recipient_list=['planos@pjarisc.com.br'],
+                            fail_silently=True,
+                        )
                         
             return HttpResponse(status=200)
         except Exception as e:
