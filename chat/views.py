@@ -458,7 +458,7 @@ def mercadopago_webhook(request):
                             subject=f'✅ Nova Venda Confirmada: {nome_cliente}',
                             message=f'Sucesso! Um pagamento de R$ {trans_amount} foi aprovado no Mercado Pago e os créditos foram liberados.\n\nDetalhes do Cliente:\nNome: {nome_cliente}\nEmail: {email_cliente}\nID do Pagamento: {payment_id}',
                             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br'),
-                            recipient_list=['planos@pjarisc.com.br'],
+                            recipient_list=['geffersonvivan@gmail.com'],
                             fail_silently=True,
                         )
                         
