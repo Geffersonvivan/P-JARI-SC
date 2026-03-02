@@ -58,5 +58,5 @@ app.save()
 app.sites.add(site1, site2)
 "
 
-echo "Starting gunicorn..."
-exec gunicorn config.wsgi --bind 0.0.0.0:$PORT --timeout 120 --log-file -
+echo "Starting gunicorn com workers e threads para SaaS..."
+exec gunicorn config.wsgi --bind 0.0.0.0:$PORT --workers 3 --threads 4 --timeout 120 --log-file -
