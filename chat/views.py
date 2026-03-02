@@ -397,13 +397,6 @@ def checkout_view(request):
                 "failure": request.build_absolute_uri("/planos/?failure=1"),
                 "pending": request.build_absolute_uri("/planos/?pending=1")
             },
-            "payment_methods": {
-                "excluded_payment_types": [
-                    {"id": "ticket"}, # Desabilita boletos bancários (demoram 3 dias p/ compensar)
-                    {"id": "atm"} # Desabilita pagamento em lotérica
-                ],
-                "installments": 12 
-            },
             "external_reference": str(request.user.id),
         }
         
