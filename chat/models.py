@@ -43,6 +43,12 @@ class Parecer(models.Model):
     autuacao_pdf_path = models.CharField(max_length=500, blank=True, null=True)
     consolidado_pdf_path = models.CharField(max_length=500, blank=True, null=True)
     
+    # Flags Booleanas Calculadas (Regras de Ouro - Fase 3 do Motor)
+    is_tempestivo = models.BooleanField(null=True, blank=True)
+    has_prescricao_punitiva = models.BooleanField(null=True, blank=True)
+    has_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
+    has_decadencia = models.BooleanField(null=True, blank=True)
+    
     # Textos gerados pelas IAs nas Fases 3 a 6
     admissibilidade_texto = models.TextField(blank=True, null=True)
     tese = models.TextField(blank=True, null=True)
@@ -52,6 +58,11 @@ class Parecer(models.Model):
     parecer_final = models.TextField(blank=True, null=True)
     dossie_fontes = models.TextField(blank=True, null=True)
     nota_blindagem = models.TextField(blank=True, null=True)
+    tabela_datas_sensiveis = models.TextField(blank=True, null=True)
+    
+    # Fase 6 - Auditoria e Blindagem
+    blindagem_score = models.IntegerField(null=True, blank=True)
+    blindagem_detalhes = models.TextField(blank=True, null=True)
     
     # Meta dados
     created_at = models.DateTimeField(auto_now_add=True)

@@ -19,8 +19,9 @@ class JariMath:
     @staticmethod
     def calculate_days_diff(start_date, end_date):
         """
-        Calcula a diferença em dias corridos,
-        excluindo o primeiro dia e incluindo o último.
+        Calcula a diferença em dias corridos.
+        Conforme roteiro: "Excluir o dia inicial e incluir o dia final na contagem."
+        Matematicamente, (data_final - data_inicial).days já faz exatamente isso.
         """
         if isinstance(start_date, str):
             start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
@@ -31,59 +32,96 @@ class JariMath:
         return delta.days
 
     @staticmethod
-    def check_prescription_punitiva(data_infracao, data_sessao):
+    def check_prescription_punitiva(data_infracao, data_sessao, marcos_interruptivos=None):
         """
-        Prescrição Punitiva (Art. 1º, Lei 9.873/99):
-        Ação punitiva prescreve em 5 anos (>= 1825 dias, ou 1826 se bissexto).
+        Prescrição Punitiva (Lei 9.873/99): 5 anos (1825 dias corridos).
+        Roteiro: A cada ato interruptivo válido, reiniciar integralmente a contagem.
         """
-        dias_diferenca = JariMath.calculate_days_diff(data_infracao, data_sessao)
+        # Se não enviou marcos interruptivos processados, calcula direto a diferença bruta
+        # Mas o ideal na F3 é pegar a data do último marco interruptivo.
+        ultimo_marco = data_infracao
+        if marcos_interruptivos and len(marcos_interruptivos) > 0:
+            # Assume que os marcos vêm ordenados ou pega o mais recente válido
+            ultimo_marco = max(marcos_interruptivos)
+            
+        dias_diferenca = JariMath.calculate_days_diff(ultimo_marco, data_sessao)
         
-        # Lógica simplificada: aproximação de 5 anos considerando os bissextos.
-        anos_bissextos = JariMath.count_leap_years(data_infracao.year, data_sessao.year)
-        limite_dias = (5 * 365) + anos_bissextos
-        
-        return dias_diferenca >= limite_dias
+        # Pela regra direta P-JARI/SC: "Se o intervalo for superior a 1825 dias -> Prescrição"
+        return dias_diferenca > 1825
 
     @staticmethod
     def check_prescription_intercorrente(data_protocolo, data_sessao):
         """
-        Prescrição Intercorrente (Art. 1º, § 1º, Lei 9.873/99):
-        Paralisação do processo por mais de 3 anos (1095 dias).
-        Data inicial: protocolo recurso JARI (Pergunta 5)
-        Data final: julgamento JARI (Pergunta 1)
+        Prescrição Intercorrente (Lei 9.873/99): 3 anos (1095 dias corridos).
+        Datas obrigatórias exclusivas: Protocolo JARI (F1/P5) e Sessão (F1/P1).
+        Regra de contagem: Excluir dia inicial, incluir final. Se > 1095 -> Prescrito.
         """
         dias_diferenca = JariMath.calculate_days_diff(data_protocolo, data_sessao)
         return dias_diferenca > 1095
 
     @staticmethod
-    def check_decadencia(data_infracao, data_sessao):
+    def check_decadencia(data_infracao, data_expedicao_autuacao, data_decisao_final=None):
         """
-        Lógica base para decadência (180/360 dias).
-        Como não recebemos a correta data da infração via F1, este método pode 
-        servir de base para o futuro caso coletado estruturadamente, ou delegado
-        para a IA extrair. Atualmente, apenas exemplifica o tempo.
+        Decadência CTB (Roteiro Fase 3 - P1):
+        Classificação temporal obrigatória.
         """
         if isinstance(data_infracao, str):
             data_infracao = datetime.datetime.strptime(data_infracao, "%Y-%m-%d").date()
-        if isinstance(data_sessao, str):
-            data_sessao = datetime.datetime.strptime(data_sessao, "%Y-%m-%d").date()
+        if isinstance(data_expedicao_autuacao, str):
+            data_expedicao_autuacao = datetime.datetime.strptime(data_expedicao_autuacao, "%Y-%m-%d").date()
+            
+        if data_decisao_final and isinstance(data_decisao_final, str):
+            data_decisao_final = datetime.datetime.strptime(data_decisao_final, "%Y-%m-%d").date()
+
+        # Marcos legais de transição CTB
+        LIMIAR_1_ANTIGA = datetime.date(2021, 4, 12)
+        LIMIAR_2_TRANSICAO = datetime.date(2021, 10, 22)
         
-        # Limiar de transição Lei 14.071/20 (vigência em 12/04/2021)
-        limiar = datetime.date(2021, 4, 12)
-        
-        if data_infracao < limiar:
-             return False # Pela lei antiga não havia esse prazo unificado de 180/360 no mesmo formato
-        
-        # Simplificação: se for maior que 360 dias da infração a sessão, tem risco de decadência se não notificado
-        dias = JariMath.calculate_days_diff(data_infracao, data_sessao)
-        return dias > 360
+        dias_infracao_notificacao = JariMath.calculate_days_diff(data_infracao, data_expedicao_autuacao)
+
+        # C) Infrações posteriores a 22/10/2021
+        if data_infracao > LIMIAR_2_TRANSICAO:
+            # Infração -> Notificação (180 dias)
+            if dias_infracao_notificacao > 180:
+                return True
+            # Infração -> Decisão Final (360 dias)
+            if data_decisao_final:
+                dias_infracao_decisao = JariMath.calculate_days_diff(data_infracao, data_decisao_final)
+                if dias_infracao_decisao > 360:
+                    return True
+            return False
+            
+        # B) Infrações entre 12/04/2021 e 22/10/2021
+        elif data_infracao >= LIMIAR_1_ANTIGA and data_infracao <= LIMIAR_2_TRANSICAO:
+            # Infração -> Notificação (180 dias)
+            if dias_infracao_notificacao > 180:
+                return True
+            # Infração -> Conclusão do processo (360 dias)
+            if data_decisao_final:
+                dias_infracao_conclusao = JariMath.calculate_days_diff(data_infracao, data_decisao_final)
+                if dias_infracao_conclusao > 360:
+                    return True
+            return False
+            
+        # A) Infrações anteriores a 12/04/2021
+        else:
+            # Aplicar norma antiga CTB art. 281, parágrafo único, II. (Normalmente 30 dias).
+            # Para fins do Roteiro, se ultrapassar o limite expresso (que o sistema assumirá 30 dias
+            # salvo exceção Sistêmica específica), cai aqui. Assumimos 30:
+            if dias_infracao_notificacao > 30:
+                return True
+            return False
 
     @staticmethod
     def check_tempestividade(data_protocolo, prazo_final):
-        """Verifica se o protocolo ocorreu dentro do prazo."""
+        """
+        Tempestividade (CTB ART. 285)
+        Se protocolo for posterior a limite -> Intempestivo
+        """
         if isinstance(data_protocolo, str):
             data_protocolo = datetime.datetime.strptime(data_protocolo, "%Y-%m-%d").date()
         if isinstance(prazo_final, str):
             prazo_final = datetime.datetime.strptime(prazo_final, "%Y-%m-%d").date()
             
+        # Retorna True se é Tempestivo
         return data_protocolo <= prazo_final
