@@ -55,7 +55,12 @@ def editar_parecer_view(request, id):
         if config:
             from django.template import Template, Context
             is_indeferido = "INDEFERID" in texto_gerado_pela_ia.upper()
-            rodape_texto = config.rodape_indeferido if is_indeferido else config.rodape_deferido
+            _rodape_indef = getattr(config, 'rodape_indeferido', '') or ""
+            _rodape_def = getattr(config, 'rodape_deferido', '') or ""
+            rodape_texto = _rodape_indef if is_indeferido else _rodape_def
+            
+            # Limpa Nonetypes e Nulls antes das manipulações massivas
+            if not isinstance(rodape_texto, str): rodape_texto = ""
             
             # Auto-corrigir tags mal formadas deixadas pelo usuário como {{. }} ou vazias
             palavra_resultado = "INDEFERIDO" if is_indeferido else "DEFERIDO"
