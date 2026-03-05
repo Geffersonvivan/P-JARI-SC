@@ -35,7 +35,8 @@ class JariEngine:
         elif fase == 2:
             return (
                 f"{self.parecer.tabela_datas_sensiveis}\n\n"
-                f"Confirme **'ok'** ou indique a **divergência** antes de prosseguir para a Fase 3 (P1 – Tempestividade, Prescrição e Decadência)."
+                f"Confirme **'ok'** ou indique a **divergência** antes de prosseguir para a Fase 3 (Tempestividade, Prescrições e Decadência).\n\n"
+                f"Ao finalizar a Fase 02, Usando os dados extraídos da fase 2, calcule a fase 3."
             )
         elif fase == 3:
             return "Processando Prazos e Admissibilidade... (Simulando loading)"
@@ -134,6 +135,7 @@ class JariEngine:
                         
                 self.parecer.autuacao_pdf_path = file_autuacao
                 self.parecer.consolidado_pdf_path = file_consolidado
+                self.parecer.status_fase = 2
                 self.parecer.save()
                 return self.run_phase_2()
             
@@ -142,6 +144,7 @@ class JariEngine:
                 if self.parecer.data_sessao and self.parecer.paginas_defesa:
                     self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
                     self.parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
+                    self.parecer.status_fase = 2
                     self.parecer.save()
                     return self.run_phase_2()
 
