@@ -131,7 +131,7 @@ class GeminiClient:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-1.5-pro', # Alterado para PRO pois o FLASH pode criar Markdown defeituoso e quebrar o motor RegExp
+                model='gemini-2.5-pro', # Alterado para 2.5 PRO pois o GenAI SDK removeu alias do 1.5 e o Flash quebra Markdown
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
@@ -297,7 +297,7 @@ class GeminiClient:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-1.5-pro', # Modelo PRO restaurado para máxima análise de mérito (Rigidez vs Flexibilidade Flash)
+                model='gemini-2.5-pro', # Modelo 2.5 PRO para máxima análise de mérito (Rigidez absoluta)
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
