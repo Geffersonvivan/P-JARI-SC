@@ -351,7 +351,7 @@ class GeminiClient:
         
         prompt = (
             f"---- RESUMO GERAL DO FATO (FASE 2) ----\n"
-            f"{parecer_obj.resumo_processo_texto or 'Vazio.'}\n\n"
+            f"{getattr(parecer_obj, 'tabela_datas_sensiveis', '') or 'Vazio.'}\n\n"
             f"---- MATEMÁTICA TEMPORAL E ADMISSIBILIDADE (FASE 3) ----\n"
             f"{parecer_obj.admissibilidade_texto}\n\n"
             f"---- CONCLUSÃO DAS TESES (FASE 4) ----\n"
