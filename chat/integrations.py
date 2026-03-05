@@ -17,7 +17,7 @@ class PerplexityClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": "Você é um assessor jurídico especialista no JARI de Santa Catarina. Sua pesquisa deve obrigatoriamente priorizar sites com domínios .gov.br ou .sc.gov.br. Relacione apenas resoluções do CONTRAN, CETRAN-SC, MBFT e CTB aplicáveis ao caso."
+                    "content": "Você é um assessor jurídico especialista no JARI de Santa Catarina. Sua pesquisa deve obrigatoriamente priorizar sites com domínios .gov.br ou .sc.gov.br. Relacione apenas resoluções do CONTRAN, CETRAN-SC, MBFT e CTB aplicáveis ao caso. Para toda lei citada, pesquise o LINK OFICIAL DA WEB dela e devolva no formato Markdown clicável, ex: [Código de Trânsito Brasileiro, Art. 12](http://www.planalto.gov.br/...)"
                 },
                 {
                     "role": "user",
@@ -325,7 +325,7 @@ class GeminiClient:
             "Verificação de notificações e respeito ao contraditório + explicação normativa (art. 5º, LV, CF/88).\n\n"
             "Esta é a fundamentação.\n\n"
             "***DOSSIE_START***\n"
-            "[Cite apenas o embasamento normativo/leis em bullets se houver]\n"
+            "[Cite apenas as leis e fundamentos em bullets (Exemplo: * [Constituição Federal](https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm) ) pesquisando sempre que possível o link na WEB para a lei no formato Markdown padrão.]\n"
             "***DOSSIE_END***"
         )
         
