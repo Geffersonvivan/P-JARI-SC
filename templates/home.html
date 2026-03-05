@@ -987,13 +987,29 @@
                         }, 2500);
                     }
                 } else {
+                    let errorMessage = "Erro ao processar mensagem.";
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorData.trace || errorMessage;
+                        console.error("Backend Error:", errorData);
+                    } catch (e) {
+                        try {
+                            const errorText = await response.text();
+                            console.error("Backend HTML Error:", errorText);
+                        } catch (e2) { }
+                    }
+
                     document.getElementById(`msg-${tempId}`).innerHTML = `
                         <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
-                        <div class="text-red-500 leading-relaxed pt-1">Erro ao processar mensagem.</div>
+                        <div class="text-red-500 leading-relaxed pt-1 w-full overflow-x-auto"><pre class="text-xs font-mono whitespace-pre-wrap">${errorMessage}</pre></div>
                     `;
                 }
             } catch (error) {
-                console.error('Erro:', error);
+                console.error('Erro de Rede Exceção:', error);
+                document.getElementById(`msg-${tempId}`).innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
+                    <div class="text-red-500 leading-relaxed pt-1 w-full overflow-x-auto"><pre class="text-xs font-mono whitespace-pre-wrap">${error}</pre></div>
+                `;
             }
             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
         }
