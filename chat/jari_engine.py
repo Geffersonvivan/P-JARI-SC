@@ -35,8 +35,7 @@ class JariEngine:
         elif fase == 2:
             return (
                 f"{self.parecer.tabela_datas_sensiveis}\n\n"
-                f"Confirme **'ok'** ou indique a **divergência** antes de prosseguir para a Fase 3 (Tempestividade, Prescrições e Decadência).\n\n"
-                f"Ao finalizar a Fase 02, Usando os dados extraídos da fase 2, calcule a fase 3."
+                f"Confirme **'ok'** ou indique a **divergência** antes de prosseguir para a Fase 3 (Tempestividade, Prescrições e Decadência)."
             )
         elif fase == 3:
             return "Processando Prazos e Admissibilidade... (Simulando loading)"
