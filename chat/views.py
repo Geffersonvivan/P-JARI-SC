@@ -287,8 +287,9 @@ def chat_message_view(request):
                         # Remove markdown boldings and links from interfering with next regex
                         parsed_dossie = re.sub(r'(?<!href="|href=\')\b(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])', r'<a href="\1" target="_blank" class="text-blue-500 hover:text-blue-700 underline truncate inline-block max-w-[250px] align-bottom" title="\1" rel="noopener noreferrer">Acessar Link</a>', parsed_dossie)
                         reply += f"<details class='mt-4 mb-2 bg-blue-50/50 rounded-xl border border-blue-100/50 overflow-hidden shadow-sm'><summary class='px-4 py-3 bg-white/50 cursor-pointer text-[#444746] font-medium flex items-center gap-2 hover:bg-blue-50/50 transition-colors outline-none'>🔎 FUNDAMENTAÇÃO NORMATIVA - PARECER</summary><div class='p-4 text-sm text-[#444746] leading-relaxed border-t border-blue-100/50 bg-white/30 whitespace-pre-wrap'>{parsed_dossie}</div></details>\n\n"
-                    # Injects link for the editor
-                    reply += f"<a href='/parecer/{p.id}/editor/' class='inline-block my-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm' style='text-decoration:none;'>✏️ Abrir Editor de Parecer Final</a>\n\n"
+                    
+                    # Injects link for the editor isolated from paragraph tags so marked skips stripping CSS
+                    reply += f"\n\n<div style='margin-top: 20px;'><a href='/parecer/{p.id}/editor/' style='display:inline-block; padding:8px 16px; background-color:#2563eb; color:white; border-radius:8px; text-decoration:none; font-weight:600;'>✏️ Abrir Editor de Parecer Final</a></div>\n\n"
                 else:
                     reply += "*(Sem parecer gerado)*\n\n"
                 return JsonResponse({'reply': reply})
