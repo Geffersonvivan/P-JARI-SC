@@ -85,11 +85,15 @@ class GeminiClient:
             "3. Se falhar em achar uma fase essencial (Notificação de Autuação, Penalidade, Julgamento JARI/CETRAN), escreva EXATAMENTE: 'NÃO LOCALIZADO - [nome da fase] (Doc/Pág)'. E destaque como ALERTA no final do resumo.\n"
             "4. Organize cronologicamente. Indique obrigatoriamente '(Doc/Pág)' no fim de cada linha.\n"
             "5. Se houver mais de uma data para um evento, liste TODAS com alerta de 'POSSÍVEL Data (1)', 'POSSÍVEL Data (2)'.\n"
-            "6. A sua resposta DEVE conter DUAS partes principais:\n\n"
+            "6. A sua resposta DEVE conter DUAS partes principais formatadas ESTRITAMENTE como tabelas Markdown:\n\n"
             "--- RESUMO GERAL DO PROCESSO ---\n"
-            "[Data] - [Descritivo] - ([Doc/Pág])\n\n"
+            "| Data | Evento Histórico e Localização |\n"
+            "|---|---|\n"
+            "| [Data] | [Descritivo] ([Doc/Pág]) |\n\n"
             "--- TABELA DE DATAS SENSÍVEIS ---\n"
-            "[Tipo de data] - [Data] - [Descritivo] - ([Doc/Pág])\n"
+            "| Data | Tipo de Data e Informação |\n"
+            "|---|---|\n"
+            "| [Data] | [Tipo de data] - [Descritivo] ([Doc/Pág]) |\n"
             "NOTA: A Tabela Sensível servirá de insumo pra checagem de prazos."
         )
         
