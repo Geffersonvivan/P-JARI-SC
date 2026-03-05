@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         /* Cores fixadas conforme o layout definido */
         :root {
@@ -155,48 +156,50 @@
                 <!-- Linha separadora -->
                 <div id="separador-pastas" class="h-px bg-gray-200 my-2 mx-2"></div>
 
-                {% for pasta in pastas %}
-                <div>
-                    {% if not request.user.is_authenticated %}
-                    <div id="folder-{{ pasta.id }}" class="folder-item group opacity-60" onclick="showLoginModal()">
-                        {% else %}
-                        <div id="folder-{{ pasta.id }}" class="folder-item group"
-                            onclick="toggleFolder('{{ pasta.id }}')">
-                            {% endif %}
-                            <div class="flex items-center gap-3 truncate w-[60%]">
-                                <span class="text-gray-500 flex-shrink-0">📁</span>
-                                <span class="truncate font-medium">{{ pasta.nome_pasta }}</span>
-                            </div>
-                            <div class="flex items-center justify-end gap-2 flex-1">
-                                <span
-                                    class="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                    {{ pasta.num_projetos }}
-                                </span>
-                                <button onclick="deleteFolder(event, '{{ pasta.id }}')"
-                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-lg transition-opacity flex-shrink-0">×</button>
-                            </div>
-                        </div>
-                        <!-- Projetos da Pasta -->
-                        <div id="projetos-{{ pasta.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
-                            {% for p in pasta.projetos.all %}
-                            <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
-                                onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
-                                <span class="truncate w-32">• {{ p.nome_processo }}</span>
-                                <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
-                                    onclick="event.stopPropagation()">
-                                    <button onclick="openMoveModal('{{ p.id }}', '{{ pasta.id }}')"
-                                        class="text-blue-400 hover:text-blue-600 font-bold transition"
-                                        title="Mover Parecer">📁</button>
-                                    <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
-                                        class="text-red-400 hover:text-red-600 font-bold transition">×</button>
+                <div id="sortable-folders" class="space-y-1">
+                    {% for pasta in pastas %}
+                    <div data-id="{{ pasta.id }}" class="sortable-item">
+                        {% if not request.user.is_authenticated %}
+                        <div id="folder-{{ pasta.id }}" class="folder-item group opacity-60" onclick="showLoginModal()">
+                            {% else %}
+                            <div id="folder-{{ pasta.id }}" class="folder-item group"
+                                onclick="toggleFolder('{{ pasta.id }}')">
+                                {% endif %}
+                                <div class="flex items-center gap-3 truncate w-[60%]">
+                                    <span class="text-gray-500 flex-shrink-0">📁</span>
+                                    <span class="truncate font-medium">{{ pasta.nome_pasta }}</span>
+                                </div>
+                                <div class="flex items-center justify-end gap-2 flex-1">
+                                    <span
+                                        class="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                        {{ pasta.num_projetos }}
+                                    </span>
+                                    <button onclick="deleteFolder(event, '{{ pasta.id }}')"
+                                        class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-lg transition-opacity flex-shrink-0">×</button>
                                 </div>
                             </div>
-                            {% empty %}
-                            <p class="text-xs text-gray-400 italic p-2">Vazia</p>
-                            {% endfor %}
+                            <!-- Projetos da Pasta -->
+                            <div id="projetos-{{ pasta.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
+                                {% for p in pasta.projetos.all %}
+                                <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
+                                    onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
+                                    <span class="truncate w-32">• {{ p.nome_processo }}</span>
+                                    <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
+                                        onclick="event.stopPropagation()">
+                                        <button onclick="openMoveModal('{{ p.id }}', '{{ pasta.id }}')"
+                                            class="text-blue-400 hover:text-blue-600 font-bold transition"
+                                            title="Mover Parecer">📁</button>
+                                        <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
+                                            class="text-red-400 hover:text-red-600 font-bold transition">×</button>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <p class="text-xs text-gray-400 italic p-2">Vazia</p>
+                                {% endfor %}
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
         </nav>
 
         <div class="mt-auto border-t border-gray-300 pt-4 text-xs text-gray-600 relative">
@@ -1073,6 +1076,45 @@
                 console.error("Erro na movimentação: ", error);
             }
         }
+
+        // --- Drag and Drop Folders (SortableJS) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const el = document.getElementById('sortable-folders');
+            if (el) {
+                new Sortable(el, {
+                    animation: 150,
+                    ghostClass: 'bg-blue-50', // Efeito na pasta sendo movida
+                    handle: '.folder-item', // Apenas a barra da pasta é arrastável (não os projetos dentro)
+                    onEnd: function () {
+                        // Captura a nova ordem assim que o usuário solta o botão do mouse
+                        const order = [];
+                        document.querySelectorAll('#sortable-folders > .sortable-item').forEach((item, index) => {
+                            order.push({
+                                id: item.getAttribute('data-id'),
+                                posicao: index + 1 // A ordem visual vira o número salvado no Banco (1, 2, 3...)
+                            });
+                        });
+
+                        // Envia para o Backend salvar silenciosamente
+                        fetch('/api/reorder-folders/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrftoken
+                            },
+                            body: JSON.stringify({ order: order })
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status !== 'success') {
+                                    console.error('Erro ao salvar a ordem das pastas:', data.message);
+                                }
+                            })
+                            .catch(err => console.error('Erro de requisição:', err));
+                    }
+                });
+            }
+        });
     </script>
 </body>
 

@@ -30,7 +30,7 @@ def home_view(request):
     
     pastas = Pasta.objects.filter(**filter_kwargs).exclude(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
         num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
-    ).order_by('-created_at')
+    ).order_by('posicao', '-created_at')
     
     # Calcula o total de pareceres finalizados pelo usuário logado
     total_julgados = Parecer.objects.filter(**filter_kwargs, is_saved=True).count()
@@ -652,3 +652,21 @@ def dismiss_onboarding_view(request):
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+@require_POST
+def reorder_folders_view(request):
+    try:
+        data = json.loads(request.body)
+        order_list = data.get('order', [])
+        
+        for item in order_list:
+            pasta_id = int(item.get('id', 0))
+            posicao = int(item.get('posicao', 0))
+            
+            if pasta_id > 0:
+                Pasta.objects.filter(id=pasta_id, user=request.user).update(posicao=posicao)
+                
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

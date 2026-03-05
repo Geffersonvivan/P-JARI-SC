@@ -15,4 +15,5 @@ urlpatterns = [
     path('webhooks/mercadopago/', views.mercadopago_webhook, name='mercadopago_webhook'),
     path('estatisticas/', views.estatisticas_view, name='estatisticas'),
     path('onboarding/dismiss/', views.dismiss_onboarding_view, name='dismiss_onboarding'),
+    path('api/reorder-folders/', views.reorder_folders_view, name='reorder_folders'),
 ]

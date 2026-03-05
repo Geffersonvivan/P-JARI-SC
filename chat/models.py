@@ -6,6 +6,7 @@ class Pasta(models.Model):
     session_key = models.CharField(max_length=40, null=True, blank=True)
     nome_pasta = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    posicao = models.IntegerField(default=0)
 
     def __str__(self):
         nome_usuario = self.user.username if self.user else "Anon"
