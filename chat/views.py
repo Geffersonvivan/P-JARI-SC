@@ -87,8 +87,10 @@ def editar_parecer_view(request, id):
                 logo_absolute_url = request.build_absolute_uri(static_url)
                 logo_html = f"<img src='{logo_absolute_url}' width='110' style='width: 110px; max-width: 110px; height: auto;'>"
             
-            tit = config.titulo_cabecalho.replace('\n', '<br>') if config.titulo_cabecalho else ""
-            sub = config.subtitulo_cabecalho.replace('\n', '<br>') if config.subtitulo_cabecalho else ""
+            tit_raw = getattr(config, 'titulo_cabecalho', '') or ""
+            sub_raw = getattr(config, 'subtitulo_cabecalho', '') or ""
+            tit = tit_raw.replace('\n', '<br>') if tit_raw else ""
+            sub = sub_raw.replace('\n', '<br>') if sub_raw else ""
             
             cabecalho_html = f"""
                 <div style="text-align: center; width: 100%; margin-bottom: 50px;">
@@ -289,7 +291,7 @@ def chat_message_view(request):
                         reply += f"<details class='mt-4 mb-2 bg-blue-50/50 rounded-xl border border-blue-100/50 overflow-hidden shadow-sm'><summary class='px-4 py-3 bg-white/50 cursor-pointer text-[#444746] font-medium flex items-center gap-2 hover:bg-blue-50/50 transition-colors outline-none'>🔎 FUNDAMENTAÇÃO NORMATIVA - PARECER</summary><div class='p-4 text-sm text-[#444746] leading-relaxed border-t border-blue-100/50 bg-white/30 whitespace-pre-wrap'>{parsed_dossie}</div></details>\n\n"
                     
                     # Injects link for the editor isolated from paragraph tags so marked skips stripping CSS
-                    reply += f"\n\n<div style='margin-top: 20px;'><a href='/parecer/{p.id}/editor/' style='display:inline-block; padding:8px 16px; background-color:#2563eb; color:white; border-radius:8px; text-decoration:none; font-weight:600;'>✏️ Abrir Editor de Parecer Final</a></div>\n\n"
+                    reply += f"\n\n<div style='margin-top: 20px;'><a href='/parecer/{p.id}/editor/' style='display:inline-block; padding:8px 16px; background-color:#2563eb !important; border-radius:8px; text-decoration:none !important; font-weight:600;'><span style='color:#ffffff !important; font-size:14px;'>✏️ Abrir Editor de Parecer Final</span></a></div>\n\n"
                 else:
                     reply += "*(Sem parecer gerado)*\n\n"
                 return JsonResponse({'reply': reply})
