@@ -344,8 +344,14 @@ def chat_message_view(request):
         return JsonResponse({'error': 'Mensagem inválida'}, status=400)
     except Exception as e:
         import traceback
+        trace = traceback.format_exc()
+        try:
+            with open('debug_jari.txt', 'a') as f:
+                f.write(f"ERRO CHAT: {str(e)}\n\n{trace}\n\n")
+        except:
+            pass
         traceback.print_exc()
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({'error': str(e), 'trace': trace}, status=500)
 
 def planos_view(request):
     if not request.session.session_key:

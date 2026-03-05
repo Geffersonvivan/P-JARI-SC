@@ -109,12 +109,58 @@ class JariEngine:
             if val.lower() == 'corrigir':
                 pass # Ignorar comando especial
                 
+            # 1. Verifica PRIORITARIAMENTE se são os PDFs/comando ok da última etapa (Etapa 7)
+            # Para evitar que o 'ok' caia numa variável anterior que acidentalmente esteja vazia (ex: data_protocolo)
+            if uploaded_files and len(uploaded_files) > 0:
+                file_autuacao = uploaded_files[0]
+                file_consolidado = uploaded_files[0]
+                if len(uploaded_files) > 1:
+                    f1, f2 = uploaded_files[0], uploaded_files[1]
+                    f1_lower = f1.lower()
+                    f2_lower = f2.lower()
+                    
+                    if any(term in f1_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
+                        file_consolidado = f1; file_autuacao = f2
+                    elif any(term in f2_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
+                        file_consolidado = f2; file_autuacao = f1
+                    elif any(term in f1_lower for term in ["autua", "ait", "termo"]):
+                        file_autuacao = f1; file_consolidado = f2
+                    elif any(term in f2_lower for term in ["autua", "ait", "termo"]):
+                        file_autuacao = f2; file_consolidado = f1
+                    else:
+                        try:
+                            from django.core.files.storage import default_storage
+                            size1 = default_storage.size(f1) if default_storage.exists(f1) else 0
+                            size2 = default_storage.size(f2) if default_storage.exists(f2) else 0
+                        except Exception:
+                            size1, size2 = 0, 0
+                        if size1 > size2:
+                            file_consolidado = f1; file_autuacao = f2
+                        else:
+                            file_consolidado = f2; file_autuacao = f1
+                        
+                self.parecer.autuacao_pdf_path = file_autuacao
+                self.parecer.consolidado_pdf_path = file_consolidado
+                self.parecer.status_fase = 2
+                self.parecer.save()
+                return self.get_current_prompt()
+            
+            elif val.lower() == 'ok':
+                # Só processa "ok" se ele já tiver pelo menos os campos anteriores e for a Etapa 7
+                if self.parecer.data_sessao and self.parecer.paginas_defesa:
+                    self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
+                    self.parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
+                    self.parecer.status_fase = 2
+                    self.parecer.save()
+                    return self.get_current_prompt()
+
+            # 2. Se não for Upload, segue a esteira normal de dados sequenciais
             if not self.parecer.data_sessao:
                 try:
                     import datetime
                     self.parecer.data_sessao = datetime.datetime.strptime(val, "%d/%m/%Y").date()
                 except Exception:
-                    return f"❌ Erro ao ler a data. O formato deve ser DD/MM/AAAA. Ex: 15/05/2024. Tente novamente."
+                    return f"❌ Erro ao ler a data {val}. O formato deve ser DD/MM/AAAA. Ex: 15/05/2024. Tente novamente."
             elif not self.parecer.pa:
                 self.parecer.pa = val
             elif not self.parecer.sgpe:
@@ -124,71 +170,17 @@ class JariEngine:
                     import datetime
                     self.parecer.prazo_final = datetime.datetime.strptime(val, "%d/%m/%Y").date()
                 except Exception:
-                    return f"❌ Erro ao ler a data. O formato deve ser DD/MM/AAAA. Ex: 15/05/2024. Tente novamente."
+                    return f"❌ Erro ao ler a data de prazo {val}. O formato deve ser DD/MM/AAAA."
             elif not self.parecer.data_protocolo:
                 try:
                     import datetime
                     self.parecer.data_protocolo = datetime.datetime.strptime(val, "%d/%m/%Y").date()
                 except Exception:
-                    return f"❌ Erro ao ler a data. O formato deve ser DD/MM/AAAA. Ex: 15/05/2024. Tente novamente."
+                    return f"❌ Erro ao ler a data de protocolo {val}. O formato deve ser DD/MM/AAAA."
             elif not self.parecer.paginas_defesa:
                 self.parecer.paginas_defesa = val
             elif not self.parecer.autuacao_pdf_path:
-                if uploaded_files and len(uploaded_files) > 0:
-                    # Envio com arquivo detectado
-                    file_autuacao = uploaded_files[0]
-                    file_consolidado = uploaded_files[0]
-                    
-                    if len(uploaded_files) > 1:
-                        f1, f2 = uploaded_files[0], uploaded_files[1]
-                        f1_lower = f1.lower()
-                        f2_lower = f2.lower()
-                        
-                        if any(term in f1_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
-                            file_consolidado = f1
-                            file_autuacao = f2
-                        elif any(term in f2_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
-                            file_consolidado = f2
-                            file_autuacao = f1
-                        elif any(term in f1_lower for term in ["autua", "ait", "termo"]):
-                            file_autuacao = f1
-                            file_consolidado = f2
-                        elif any(term in f2_lower for term in ["autua", "ait", "termo"]):
-                            file_autuacao = f2
-                            file_consolidado = f1
-                        else:
-                            try:
-                                from django.core.files.storage import default_storage
-                                size1 = default_storage.size(f1) if default_storage.exists(f1) else 0
-                                size2 = default_storage.size(f2) if default_storage.exists(f2) else 0
-                            except Exception:
-                                size1, size2 = 0, 0
-                                
-                            if size1 > size2:
-                                file_consolidado = f1
-                                file_autuacao = f2
-                            else:
-                                file_consolidado = f2
-                                file_autuacao = f1
-                            
-                    self.parecer.autuacao_pdf_path = file_autuacao
-                    self.parecer.consolidado_pdf_path = file_consolidado
-                    
-                    self.parecer.status_fase = 2
-                    self.parecer.save()
-                    return self.get_current_prompt()
-                
-                elif val.lower() == 'ok' or val == '':
-                    # Gefferson enviou 'ok' sem arrastar o arquivo via FrontEnd na mesma requisição
-                    # Como ele pode ter testado e o backend falhou no split form, nós permitimos avançar se achar 'ok'
-                    # Assumimos nomes falsos simulados pra não travar o processo na JARI
-                    self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
-                    self.parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
-                    self.parecer.status_fase = 2
-                    self.parecer.save()
-                    return self.get_current_prompt()
-                else:
-                    return "❌ Por favor, os arquivos são essenciais para avançarmos. Anexe-os e digite 'ok'."
+                return "❌ Por favor, os arquivos são essenciais para avançarmos. Anexe-os e digite 'ok'."
             
             self.parecer.save()
             return self.get_current_prompt()
