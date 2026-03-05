@@ -326,7 +326,9 @@ class JariEngine:
         self.parecer.is_tempestivo = JariMath.check_tempestividade(self.parecer.data_protocolo, self.parecer.prazo_final)
         self.parecer.has_prescricao_punitiva = JariMath.check_prescription_punitiva(data_infracao, self.parecer.data_sessao, datas_processadas)
         self.parecer.has_prescricao_intercorrente = JariMath.check_prescription_intercorrente(self.parecer.data_protocolo, self.parecer.data_sessao)
-        self.parecer.has_decadencia = JariMath.check_decadencia(data_infracao, data_notificacao_autuacao, None)
+        
+        decadencia_bool, relatorio_decadencia = JariMath.check_decadencia(data_infracao, data_notificacao_autuacao, None)
+        self.parecer.has_decadencia = decadencia_bool
         
         # 4. Texto visual para o usuário confirmando
         status_temp = "SIM" if self.parecer.is_tempestivo else "NÃO"
@@ -338,10 +340,11 @@ class JariEngine:
             f"**INÍCIO FASE 3: VERIFICAÇÃO DE PRAZOS E PRESCRIÇÕES OBRIGATÓRIAS**\n\n"
             f"{texto_tabela}\n\n"
             f"--- ⚖️ **CÁLCULOS TÉCNICOS EFETUADOS (JARI MATH)** ---\n"
-            f"- Tempestivo: {status_temp}\n"
-            f"- Prescrição Punitiva (>= 5 anos): {status_pun}\n"
-            f"- Prescrição Intercorrente (> 3 anos): {status_inter}\n"
-            f"- Decadência: {status_dec}\n\n"
+            f"- **Tempestivo**: {status_temp}\n"
+            f"- **Prescrição Punitiva (>= 5 anos)**: {status_pun}\n"
+            f"- **Prescrição Intercorrente (> 3 anos)**: {status_inter}\n"
+            f"- **Decadência**: {status_dec}\n"
+            f"**[TRAVA JARI - EVIDÊNCIAS DA DECADÊNCIA APLICADA]**\n{relatorio_decadencia}\n\n"
         )
         
         self.parecer.admissibilidade_texto = texto_status

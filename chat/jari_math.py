@@ -63,7 +63,8 @@ class JariMath:
     def check_decadencia(data_infracao, data_expedicao_autuacao, data_decisao_final=None):
         """
         Decadência CTB (Roteiro Fase 3 - P1):
-        Classificação temporal obrigatória.
+        Evidencia: Faixa Temporal, Regra Aplicada e Incidência COVID.
+        Retorno: Tuple (True/False para decadência, String_Relatorio)
         """
         if isinstance(data_infracao, str):
             data_infracao = datetime.datetime.strptime(data_infracao, "%Y-%m-%d").date()
@@ -76,41 +77,82 @@ class JariMath:
         # Marcos legais de transição CTB
         LIMIAR_1_ANTIGA = datetime.date(2021, 4, 12)
         LIMIAR_2_TRANSICAO = datetime.date(2021, 10, 22)
+        FIM_COVID_SUSPENSAO = datetime.date(2020, 11, 30)
         
         dias_infracao_notificacao = JariMath.calculate_days_diff(data_infracao, data_expedicao_autuacao)
+        desconto_covid = 0
+        incidencia_covid_texto = "Não aplicável."
+
+        if data_infracao <= FIM_COVID_SUSPENSAO:
+            desconto_covid = 256
+            dias_infracao_notificacao = max(0, dias_infracao_notificacao - desconto_covid)
+            incidencia_covid_texto = "Sim (Res. 782/CONTRAN gerou desconto de -256 dias ao cômputo)."
+
+        faixa_temporal = ""
+        regra_aplicada = ""
+        decadencia_encontrada = False
+        detalhe_calculo = ""
 
         # C) Infrações posteriores a 22/10/2021
         if data_infracao > LIMIAR_2_TRANSICAO:
+            faixa_temporal = "Após 22/10/2021"
+            regra_aplicada = "180 dias Notificação / 360 dias Conclusão"
+            
             # Infração -> Notificação (180 dias)
             if dias_infracao_notificacao > 180:
-                return True
+                decadencia_encontrada = True
+                detalhe_calculo = f"Notificação excedeu 180 dias ({dias_infracao_notificacao} dias contabilizados)."
             # Infração -> Decisão Final (360 dias)
-            if data_decisao_final:
-                dias_infracao_decisao = JariMath.calculate_days_diff(data_infracao, data_decisao_final)
+            elif data_decisao_final:
+                dias_infracao_decisao = max(0, JariMath.calculate_days_diff(data_infracao, data_decisao_final) - desconto_covid)
                 if dias_infracao_decisao > 360:
-                    return True
-            return False
+                    decadencia_encontrada = True
+                    detalhe_calculo = f"Decisão Final excedeu 360 dias ({dias_infracao_decisao} dias contabilizados)."
+                else:
+                    detalhe_calculo = f"Dentro do limite de 360 dias ({dias_infracao_decisao} dias transcorridos)."
+            else:
+                detalhe_calculo = f"Dentro do limite de 180 dias para notificação ({dias_infracao_notificacao} dias transcorridos)."
             
         # B) Infrações entre 12/04/2021 e 22/10/2021
         elif data_infracao >= LIMIAR_1_ANTIGA and data_infracao <= LIMIAR_2_TRANSICAO:
+            faixa_temporal = "De 12/04/2021 a 22/10/2021"
+            regra_aplicada = "180 dias Notificação / 360 dias Decisão Final"
+            
             # Infração -> Notificação (180 dias)
             if dias_infracao_notificacao > 180:
-                return True
+                decadencia_encontrada = True
+                detalhe_calculo = f"Notificação excedeu 180 dias ({dias_infracao_notificacao} dias contabilizados)."
             # Infração -> Conclusão do processo (360 dias)
-            if data_decisao_final:
-                dias_infracao_conclusao = JariMath.calculate_days_diff(data_infracao, data_decisao_final)
+            elif data_decisao_final:
+                dias_infracao_conclusao = max(0, JariMath.calculate_days_diff(data_infracao, data_decisao_final) - desconto_covid)
                 if dias_infracao_conclusao > 360:
-                    return True
-            return False
+                    decadencia_encontrada = True
+                    detalhe_calculo = f"Decisão Final excedeu 360 dias ({dias_infracao_conclusao} dias contabilizados)."
+                else:
+                    detalhe_calculo = f"Dentro do limite de 360 dias ({dias_infracao_conclusao} dias transcorridos)."
+            else:
+                detalhe_calculo = f"Dentro do limite de 180 dias para notificação ({dias_infracao_notificacao} dias transcorridos)."
             
         # A) Infrações anteriores a 12/04/2021
         else:
-            # Aplicar norma antiga CTB art. 281, parágrafo único, II. (Normalmente 30 dias).
-            # Para fins do Roteiro, se ultrapassar o limite expresso (que o sistema assumirá 30 dias
-            # salvo exceção Sistêmica específica), cai aqui. Assumimos 30:
+            faixa_temporal = "Antes 12/04/2021"
+            regra_aplicada = "Lei 9.873 / Art. 281 CTB (Limiar 30 dias para notificação)"
+            
             if dias_infracao_notificacao > 30:
-                return True
-            return False
+                decadencia_encontrada = True
+                detalhe_calculo = f"Notificação excedeu 30 dias ({dias_infracao_notificacao} dias contabilizados pós-descontos)."
+            else:
+                detalhe_calculo = f"Dentro do limite de 30 dias para notificação ({dias_infracao_notificacao} dias transcorridos)."
+
+        relatorio_decadencia = (
+            f"  - **Data da Infração**: {data_infracao.strftime('%d/%m/%Y')}\n"
+            f"  - **Faixa Temporal Identificada**: {faixa_temporal}\n"
+            f"  - **Regra Aplicada**: {regra_aplicada}\n"
+            f"  - **Incidência COVID (Res. 782)**: {incidencia_covid_texto}\n"
+            f"  - **Detalhe do Cálculo**: {detalhe_calculo}"
+        )
+
+        return (decadencia_encontrada, relatorio_decadencia)
 
     @staticmethod
     def check_tempestividade(data_protocolo, prazo_final):
