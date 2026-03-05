@@ -100,8 +100,7 @@ class GeminiClient:
             f"3. SGPE: {parecer_obj.sgpe}\n"
             f"4. Prazo Final: {parecer_obj.prazo_final}\n"
             f"5. Protocolo: {parecer_obj.data_protocolo}\n\n"
-            "Leia os PDFs em anexo. Faça duas varreduras integrais. Ao final, se nenhuma outra "
-            "data foi omitida, escreva: 'Varredura confirmada. Nenhuma nova data localizada além das já listadas.' "
+            "Leia os PDFs em anexo com urgência. Escreva EXATAMENTE 'Varredura confirmada. Nenhuma nova data localizada além das já listadas.' "
             "Exiba a Linha do Tempo cronológica e a Tabela de Datas Sensíveis. "
             "Não aplique sentenças jurídicas de prescrição, apenas EXTRAIA as datas brutas exatas dos documentos."
         )
@@ -121,7 +120,7 @@ class GeminiClient:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.5-pro', # Usando PRO para melhor leitura de documentos complexos
+                model='gemini-2.5-flash', # Mudado de PRO para FLASH para otimização radical de tempo na web
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
@@ -271,7 +270,7 @@ class GeminiClient:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.5-pro',
+                model='gemini-2.5-flash', # Mudado de PRO para FLASH para agilidade na análise das provas
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
