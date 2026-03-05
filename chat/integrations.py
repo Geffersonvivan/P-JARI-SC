@@ -243,22 +243,34 @@ class GeminiClient:
             return "erro_chave"
 
     def analyze_tese(self, parecer_obj, tese, perplexity_result, vertex_result):
+        # Verifica Prejudicialidade Externa (Prescrição, Decadência, Intempestividade)
+        adm_text = parecer_obj.admissibilidade_texto or ""
+        is_prejudicado = (
+            "Prescrição Punitiva: SIM" in adm_text or
+            "Prescrição Intercorrente: SIM" in adm_text or
+            "Decadência: SIM" in adm_text or
+            "Tempestivo: NÃO" in adm_text
+        )
+        if is_prejudicado:
+            return "Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal."
+            
         if not self.client:
              return "Simulação: Resultar em: Conclusão: acolhida/não acolhida. (acolhida)"
              
         system_instruction = (
             "Você é o Assessor P-JARI/SC (Fase 4 Avançada). As regras OBRIGATÓRIAS SÃO:\n"
-            "1. Para cada tese extraída, você transcreverá uma síntese.\n"
-            "2. Confrontará a alegação com a prova nos autos (Auto de Infração e Documentos PDF).\n"
-            "3. Fundamentará com a norma (Inventário Normativo/Jurisprudência).\n"
-            "4. Se a tese for 'não jurídica' (ex: apelo emocional), retorne 'Não acolhida por ausência de fundamento normativo'.\n"
-            "5. Ao final de cada tese, decrete OBRIGATORIAMENTE uma das duas literais strings: 'Conclusão: Acolhida.' ou 'Conclusão: Não acolhida.'\n"
-            "Jamais use outras palavras como 'negada', 'procedente', etc."
+            "1. Para cada tese extraída, você transcreverá uma síntese objetiva.\n"
+            "2. Se a tese for meramente emocional ('peço compreensão...', 'preciso trabalhar...'), classifique como 'tese não jurídica' e trate como 'não acolhida por ausência de fundamento normativo'.\n"
+            "3. Confrontará a alegação com a prova nos autos.\n"
+            "4. Fundamentará de forma robusta com a norma (Inventário Normativo/Jurisprudência), indicando hierarquia.\n"
+            "5. Jamais crie teses não alegadas, não presuma argumentos implícitos nem complete lacunas defensivas. Não agrupe teses distintas.\n"
+            "6. Ao final de cada tese, decrete OBRIGATORIAMENTE uma das duas literais strings: 'Conclusão: Acolhida.' ou 'Conclusão: Não acolhida.'\n"
         )
         
         prompt_text = (
             f"Processo: {parecer_obj.pa} | SGPE: {parecer_obj.sgpe}\n"
             f"Teses Listadas: {tese}\n\n"
+            f"Defesa Recursal: Documento 'consolidado'\n\n"
             f"Inventário Normativo RAG (VERTEX): {vertex_result}\n"
             f"Jurisprudência (PERPLEXITY): {perplexity_result}\n\n"
             "Prossiga com a Análise das Teses confrontando a documentação, usando EXCLUSIVAMENTE o "
@@ -307,13 +319,13 @@ class GeminiClient:
         system_instruction = (
             "Você é o Assessor P-JARI/SC (Fase 5 - PARECER PROTOCOLO DEFINITIVO).\n"
             "REGRAS DE OURO (IMUTÁVEIS):\n"
-            "1. NÃO INOVE: Não crie tese, não crie fato, não crie fundamento (Seja 100% restrito ao RAG e PDFs).\n"
-            "2. DEVERÁ citar expressamente e hierarquizada a norma (CF, CTB, Lei, CONTRAN, Parecer CETRAN).\n"
-            "3. SINTAXE PROIBIDA: Texto sem emojis, sem referência a comandos sistêmicos ou IAs.\n"
-            "4. COMPATIBILIDADE: Se Fase 3 detectou Prescrição/Decadência, o Resultado Obrigatório deve ser DEFERIDO, "
-            "e a seção Teses Defensivas deve conter exclusivamente 'Teses defensivas prejudicadas em razão da extinção da pretensão punitiva'.\n"
-            "5. Se Intempestivo sem prescrição: 'INDEFERIDO'.\n\n"
-            "GERAR O PARECER BRUTO E INTEGRAL EXATAMENTE NESTE MODELO:\n\n"
+            "1. NÃO INOVE: Não crie tese, não crie fato, não crie fundamento probatório não comprovado. Seja 100% restrito ao RAG e aos relatórios recebidos.\n"
+            "2. CITAÇÃO NORMATIVA: Baseie-se expressamente nas normas fornecidas.\n"
+            "3. PROSA FLUIDA: Redija em parágrafos contínuos, com a coesão lapidar de um Juiz. Converta dados numéricos em explicações naturais (Ex: 'O intervalo foi de X dias, não superando o prazo legal'). Evite letreiros engessados e subtópicos em demasia na argumentação.\n"
+            "4. SINTAXE PROIBIDA: Texto sem emojis, sem comandos sistêmicos ou que revelem sua natureza de IA.\n"
+            "5. COMPATIBILIDADE LEAL: Se a Admissibilidade ditar Prescrição/Decadência, o Resultado Obrigatório deve ser DEFERIDO, "
+            "e a seção de Teses Defensivas conter exclusivamente a declaração de prejudicialidade. Se Intempestivo sem extinção, INDEFERIDO.\n\n"
+            "GERAR O PARECER SEGUINDO ESTA ESTRUTURA DIRETA:\n\n"
             "PARECER JARI\n"
             "PROCESSO: [PA]\n"
             "SGPE: [SGPE]\n"
@@ -322,41 +334,37 @@ class GeminiClient:
             "DATA SESSÃO: [DD/MM/AAAA]\n"
             "RESULTADO: [DEFERIDO ou INDEFERIDO]\n\n"
             "EMENTA\n"
-            "[SÍNTESE MAIÚSCULA - infração + tese(s) + admissibilidade + transcrição + resultado]\n\n"
+            "Texto em maiúsculo, objetivo, contendo: infração + tese(s) + admissibilidade + prescrição/decadência + resultado.\n\n"
             "RELATÓRIO\n"
-            "Este é o relatório.\n\n"
+            "Narre a gênese do processo baseando-se no Resumo Geral (fato, local e o ato de interposição recursal). Este é o relatório.\n\n"
             "FUNDAMENTAÇÃO JURÍDICA\n"
             "ADMISSIBILIDADE\n"
-            "Conclusão expressa: [tempestivo/intempestivo] + explicação normativa.\n\n"
-            "TESES DEFENSIVAS\n"
-            "[Prejudicadas ou Análise Isolada]\n\n"
+            "Tempestividade concluída em texto discursivo com explicação normativa.\n"
             "PRESCRIÇÃO E DECADÊNCIA\n"
-            "3.1 Prescrição punitiva\n[Linha Tempo + Explicação + Conclusão]\n"
-            "3.2 Prescrição intercorrente\n[Intervalo + Explicação + Conclusão]\n"
-            "3.3 Decadência\n[Explicação Normativa + Conclusão]\n\n"
-            "MATERIALIDADE\n[Explicação Normativa]\n\n"
-            "GARANTIAS PROCESSUAIS\n"
-            "Verificação de notificações e respeito ao contraditório + explicação normativa (art. 5º, LV, CF/88).\n\n"
-            "Esta é a fundamentação.\n\n"
-            "***DOSSIE_START***\n"
-            "[Cite apenas as leis e fundamentos em bullets (Exemplo: * [Constituição Federal](https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm) ) pesquisando sempre que possível o link na WEB para a lei no formato Markdown padrão.]\n"
-            "***DOSSIE_END***"
+            "Justifique com clareza em texto coeso, agrupando os prazos computados pelo motor matemático (punitiva, intercorrente e decadência).\n"
+            "TESES DEFENSIVAS\n"
+            "Se prejudicadas pela extinção punitiva, declare a prejudicialidade. Se vivas, afaste-as ou acolha-as demonstrando choque normativo de forma direta e incisiva, sem subtítulos excessivos para cada uma.\n"
+            "MATERIALIDADE E GARANTIAS PROCESSUAIS\n"
+            "Desfecho das garantias de defesa.\n\n"
+            "Esta é a fundamentação.\n"
         )
         
         prompt = (
-            f"---- HISTÓRICO MATEMÁTICO GERADO (FASE 3 - SOBERANIA DO CÓDIGO) ----\n"
+            f"---- RESUMO GERAL DO FATO (FASE 2) ----\n"
+            f"{parecer_obj.resumo_processo_texto or 'Vazio.'}\n\n"
+            f"---- MATEMÁTICA TEMPORAL E ADMISSIBILIDADE (FASE 3) ----\n"
             f"{parecer_obj.admissibilidade_texto}\n\n"
-            f"---- CONCLUSÃO TESE (FASE 4) ----\n"
+            f"---- CONCLUSÃO DAS TESES (FASE 4) ----\n"
             f"{parecer_obj.analise_tese_texto}\n"
             f"Tese(s): {tese}\n\n"
-            f"DADOS GERAIS:\n"
+            f"DADOS DE CABEÇALHO:\n"
             f"PA: {parecer_obj.pa}\n"
             f"SGPE: {parecer_obj.sgpe}\n"
-            f"Recorrente Manual: {parecer_obj.recorrente}\n"
+            f"Recorrente: {parecer_obj.recorrente}\n"
             f"Data Sessão: {parecer_obj.data_sessao}\n\n"
             f"INVENTÁRIO NORMATIVO: {vertex_result}\n\n"
-            f"JURISPRUDÊNCIA: {perplexity_result}\n\n"
-            f"Crie o Parecer Final seguindo a formatação e as Regras de Ouro. O resultado de deferido/indeferido MANDA no conteúdo do texto."
+            f"JURISPRUDÊNCIA SUBSIDIÁRIA: {perplexity_result}\n\n"
+            f"Crie o Parecer englobando as seções listadas, transformando a carga calculada numa obra narrativa fluida de Magistrado."
         )
 
         contents = [prompt]
@@ -390,6 +398,46 @@ class GeminiClient:
         except Exception as e:
             return f"Erro ao acessar Gemini: {str(e)}.\nFalha ao gerar parecer via LLM."
 
+    def audit_parecer(self, parecer_obj):
+        if not self.client:
+            return "✅ Simulação: Conformidade integral. (Score calculado pelo JariMath)"
+            
+        system_instruction = (
+            "Você é o Auditor Corregedor do P-JARI/SC (Fase 6 - AUDITORIA).\n"
+            "Sua única função é realizar um checklist sobre o Parecer Final submetido, cruzando a compatibilidade narrativa do Relator com a tabela matemática anterior.\n\n"
+            "Classifique de forma estrita cada um dos blocos abaixo como '✅ Conforme' ou '❌ Inconsistente' seguido de uma breve linha de justificativa:\n"
+            "1. Identificação processual (PA, SGPE, Nome)\n"
+            "2. Conformidade das datas (infração, julgamento)\n"
+            "3. Tempestividade narrativa\n"
+            "4. Prescrição punitiva aplicada\n"
+            "5. Prescrição intercorrente\n"
+            "6. Decadência\n"
+            "7. Análise correta das teses (Se cabível)\n"
+            "8. Compatibilidade lógica entre fundamentação e RESULTADO (Criticamente importante)\n"
+            "9. Citação normativa presente\n"
+            "10. Ausência de inovação (Sem invencionices textuais)\n"
+        )
+        
+        prompt = (
+            f"--- MATEMÁTICA OBRIGATÓRIA (Soberania Python) ---\n"
+            f"Tempestivo: {'SIM' if parecer_obj.is_tempestivo else 'NÃO'}\n"
+            f"Prescrição Punitiva: {'SIM' if parecer_obj.has_prescricao_punitiva else 'NÃO'}\n"
+            f"Intercorrente: {'SIM' if parecer_obj.has_prescricao_intercorrente else 'NÃO'}\n"
+            f"Decadência: {'SIM' if parecer_obj.has_decadencia else 'NÃO'}\n\n"
+            f"--- PARECER REDIGIDO PELA FASE 5 (O ALVO DA AUDITORIA) ---\n"
+            f"{parecer_obj.parecer_final}\n\n"
+            f"Execute o Checklist e devolva APENAS as 10 linhas avaliadas."
+        )
+
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[prompt],
+                config={'system_instruction': system_instruction, 'temperature': 0.1}
+            )
+            return response.text
+        except Exception as e:
+            return f"⚠️ Auditoria Qualitativa offline. Resultado puramente matemático operando."
 
 class VertexAIClient:
     def __init__(self):

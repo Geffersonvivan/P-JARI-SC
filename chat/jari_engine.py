@@ -582,13 +582,19 @@ class JariEngine:
         self.parecer.status_fase = 7
         self.parecer.save()
         
+        from chat.integrations import GeminiClient
+        gemini = GeminiClient()
+        checklist_texto = gemini.audit_parecer(self.parecer)
+        
         report = f"**Fase 6: Auditoria Final (Índice de Blindagem)**\n\n"
         report += f"📊 Seu PARECER está **{int(indice)}%** blindado contra anulações.\n\n"
         
         if indice != 100:
-            report += f"⚠️ **Itens com inconsistência:**\n{self.parecer.blindagem_detalhes}\n\n"
+            report += f"⚠️ **Inconsistências Matemáticas Críticas:**\n{self.parecer.blindagem_detalhes}\n\n"
         else:
-            report += f"🟢 **Conformidade integral. (10 itens validados)**\n\n"
+            report += f"🟢 **Conformidade Matemática Integral.**\n\n"
+            
+        report += f"---\n\n**O OLHAR DO CORREGEDOR (IA AUDITORA):**\n\n{checklist_texto}\n\n"
             
         report += f"---\n{self.get_current_prompt()}" # Vai chamar a F7 da Pasta
         
