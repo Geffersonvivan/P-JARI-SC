@@ -31,7 +31,11 @@ class PDFExtractor:
             with default_storage.open(file_path, 'rb') as f_in:
                 fd, temp_path = tempfile.mkstemp(suffix=".pdf")
                 with os.fdopen(fd, 'wb') as f_out:
-                    f_out.write(f_in.read())
+                    if hasattr(f_in, 'chunks'):
+                        for chunk in f_in.chunks():
+                            f_out.write(chunk)
+                    else:
+                        f_out.write(f_in.read())
             
             # Padrões Regex (Cobrindo diversos formatos de data solicitados)
             # - DD/MM/AAAA ou DD/MM/AA
@@ -46,32 +50,30 @@ class PDFExtractor:
             regex_combined = re.compile('|'.join(paterns))
             
             # Abre o PDF e lê página por página
-            doc = fitz.open(temp_path)
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                text = page.get_text("text")
-                
-                # Para ter o contexto exato da linha em que a data aparece
-                lines = text.split('\n')
-                for line in lines:
-                    line_clean = line.strip()
-                    if not line_clean:
-                        continue
-                        
-                    matches = regex_combined.findall(line_clean)
-                    for match_group in matches:
-                        # findall com multiplos padroes retorna tuplas marcando o grupo que deu hit
-                        data_encontrada = next((m for m in match_group if m), None)
-                        if data_encontrada:
-                             resultados.append({
-                                 "data_bruta": data_encontrada,
-                                 "contexto": line_clean[:150], # Limita o tamanho do contexto
-                                 "documento": doc_type,
-                                 "pagina": page_num + 1 # 1-indexed
-                             })
-                             
-            doc.close()
-            
+            with fitz.open(temp_path) as doc:
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    # Retira blocos de imagens grandes para economizar RAM do worker gunicorn
+                    text = page.get_text("text")
+                    # Para ter o contexto exato da linha em que a data aparece
+                    lines = text.split('\n')
+                    for line in lines:
+                        line_clean = line.strip()
+                        if not line_clean:
+                            continue
+                            
+                        matches = regex_combined.findall(line_clean)
+                        for match_group in matches:
+                            # findall com multiplos padroes retorna tuplas marcando o grupo que deu hit
+                            data_encontrada = next((m for m in match_group if m), None)
+                            if data_encontrada:
+                                 resultados.append({
+                                     "data_bruta": data_encontrada,
+                                     "contexto": line_clean[:150], # Limita o tamanho do contexto
+                                     "documento": doc_type,
+                                     "pagina": page_num + 1 # 1-indexed
+                                 })
+
         except Exception as e:
             print(f"Erro na extração de texto do {doc_type}: {e}")
             
