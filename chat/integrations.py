@@ -131,7 +131,7 @@ class GeminiClient:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash', # Mudado de PRO para FLASH para otimização radical de tempo na web
+                model='gemini-1.5-pro', # Alterado para PRO pois o FLASH pode criar Markdown defeituoso e quebrar o motor RegExp
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
