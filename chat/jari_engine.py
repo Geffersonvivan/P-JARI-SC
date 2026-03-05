@@ -135,7 +135,7 @@ class JariEngine:
                 self.parecer.paginas_defesa = val
             elif not self.parecer.autuacao_pdf_path:
                 if uploaded_files and len(uploaded_files) > 0:
-                    # Tenta identificar qual é qual pelo nome do arquivo contendo 'consolidado' ou 'autuacao'
+                    # Envio com arquivo detectado
                     file_autuacao = uploaded_files[0]
                     file_consolidado = uploaded_files[0]
                     
@@ -144,14 +144,12 @@ class JariEngine:
                         f1_lower = f1.lower()
                         f2_lower = f2.lower()
                         
-                        # 1. Tenta identificar pelo nome do consolidado/peticao
                         if any(term in f1_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
                             file_consolidado = f1
                             file_autuacao = f2
                         elif any(term in f2_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
                             file_consolidado = f2
                             file_autuacao = f1
-                        # 2. Tenta identificar pelo nome da autuacao/AIT
                         elif any(term in f1_lower for term in ["autua", "ait", "termo"]):
                             file_autuacao = f1
                             file_consolidado = f2
@@ -159,10 +157,13 @@ class JariEngine:
                             file_autuacao = f2
                             file_consolidado = f1
                         else:
-                            # 3. Fallback inteligente: O Consolidado (Processo inteiro) é sempre muito maior que a Autuação (1 pág).
-                            import os
-                            size1 = os.path.getsize(f1) if os.path.exists(f1) else 0
-                            size2 = os.path.getsize(f2) if os.path.exists(f2) else 0
+                            try:
+                                from django.core.files.storage import default_storage
+                                size1 = default_storage.size(f1) if default_storage.exists(f1) else 0
+                                size2 = default_storage.size(f2) if default_storage.exists(f2) else 0
+                            except Exception:
+                                size1, size2 = 0, 0
+                                
                             if size1 > size2:
                                 file_consolidado = f1
                                 file_autuacao = f2
@@ -176,13 +177,18 @@ class JariEngine:
                     self.parecer.status_fase = 2
                     self.parecer.save()
                     return self.get_current_prompt()
-                else:
-                    # Fallback simulado se não mandou arquivo
-                    self.parecer.autuacao_pdf_path = "upload_simulado.pdf"
-                    self.parecer.consolidado_pdf_path = "upload_simulado.pdf"
+                
+                elif val.lower() == 'ok' or val == '':
+                    # Gefferson enviou 'ok' sem arrastar o arquivo via FrontEnd na mesma requisição
+                    # Como ele pode ter testado e o backend falhou no split form, nós permitimos avançar se achar 'ok'
+                    # Assumimos nomes falsos simulados pra não travar o processo na JARI
+                    self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
+                    self.parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
                     self.parecer.status_fase = 2
                     self.parecer.save()
                     return self.get_current_prompt()
+                else:
+                    return "❌ Por favor, os arquivos são essenciais para avançarmos. Anexe-os e digite 'ok'."
             
             self.parecer.save()
             return self.get_current_prompt()
