@@ -127,6 +127,9 @@ else:
 # Pular a tela intermediária chata do allauth "sign in via..."
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
+# Permitir logout com cliques simples em Links e Views cacheadas sem necessitar forms POST + CSRF ativo.
+ACCOUNT_LOGOUT_ON_GET = True
+
 # Permite conectar direto e não exige verificação dupla para quem loga com redes sociais
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
