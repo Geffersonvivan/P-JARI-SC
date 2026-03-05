@@ -286,10 +286,13 @@ def chat_message_view(request):
             elif message.strip() == 'RESUMO_PROJETO' and parecer_id:
                 p = get_object_or_404(Parecer, id=parecer_id, is_saved=True, **filter_kwargs)
                 sgpe_text = p.sgpe if p.sgpe else p.nome_processo
-                data_julgamento = p.updated_at.strftime("%d/%m/%Y") if p.updated_at else ""
-                hora_julgamento = p.updated_at.strftime("%H:%M") if p.updated_at else ""
                 
-                reply = f"**O motor identificou a seleção do projeto Parecer ({sgpe_text}) julgado na data {data_julgamento}, as {hora_julgamento} horas.**\n\n"
+                from django.utils import timezone
+                data_local = timezone.localtime(p.updated_at) if p.updated_at else None
+                data_julgamento = data_local.strftime("%d/%m/%Y") if data_local else ""
+                hora_julgamento = data_local.strftime("%H:%M") if data_local else ""
+                
+                reply = f"**O motor identificou a seleção do projeto Parecer ({sgpe_text}) julgado na data {data_julgamento}, às {hora_julgamento} horas.**\n\n"
                 reply += f"--- \n"
                 
                 if p.parecer_final:
