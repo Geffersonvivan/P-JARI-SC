@@ -111,15 +111,23 @@ class GeminiClient:
         contents = [prompt_text]
         
         # Anexar os PDFs no prompt se existirem
-        if parecer_obj.autuacao_pdf_path and os.path.exists(parecer_obj.autuacao_pdf_path) and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
-            file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
-            if file_autuacao:
-                contents.insert(0, file_autuacao)
+        from django.core.files.storage import default_storage
+        
+        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
+            try:
+                if default_storage.exists(parecer_obj.autuacao_pdf_path):
+                    file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
+                    if file_autuacao:
+                        contents.insert(0, file_autuacao)
+            except Exception: pass
                 
-        if parecer_obj.consolidado_pdf_path and os.path.exists(parecer_obj.consolidado_pdf_path) and "upload_simulado" not in parecer_obj.consolidado_pdf_path:
-            file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
-            if file_consolidado:
-                contents.insert(0, file_consolidado)
+        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path:
+            try:
+                if default_storage.exists(parecer_obj.consolidado_pdf_path):
+                    file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
+                    if file_consolidado:
+                        contents.insert(0, file_consolidado)
+            except Exception: pass
 
         try:
             response = self.client.models.generate_content(
@@ -261,15 +269,18 @@ class GeminiClient:
         contents = [prompt_text]
         
         # Anexar os PDFs no prompt se existirem
+        from django.core.files.storage import default_storage
         if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
-            file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
-            if file_autuacao:
-                contents.insert(0, file_autuacao)
+            if default_storage.exists(parecer_obj.autuacao_pdf_path):
+                file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
+                if file_autuacao:
+                    contents.insert(0, file_autuacao)
                 
         if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path:
-            file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
-            if file_consolidado:
-                contents.insert(0, file_consolidado)
+            if default_storage.exists(parecer_obj.consolidado_pdf_path):
+                file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
+                if file_consolidado:
+                    contents.insert(0, file_consolidado)
 
         try:
             response = self.client.models.generate_content(
@@ -351,15 +362,23 @@ class GeminiClient:
         contents = [prompt]
         
         # Anexar os PDFs no prompt se existirem para que a IA possa extrair "Interessado" da Autuação
+        from django.core.files.storage import default_storage
+        
         if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
-            file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
-            if file_autuacao:
-                contents.insert(0, file_autuacao)
+            try:
+                if default_storage.exists(parecer_obj.autuacao_pdf_path):
+                    file_autuacao = self.upload_file(parecer_obj.autuacao_pdf_path)
+                    if file_autuacao:
+                        contents.insert(0, file_autuacao)
+            except Exception: pass
                 
         if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
-            file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
-            if file_consolidado:
-                contents.insert(0, file_consolidado)
+            try:
+                if default_storage.exists(parecer_obj.consolidado_pdf_path):
+                    file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
+                    if file_consolidado:
+                        contents.insert(0, file_consolidado)
+            except Exception: pass
 
         try:
             response = self.client.models.generate_content(
