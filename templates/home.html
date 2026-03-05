@@ -258,7 +258,11 @@
                         <span class="font-bold text-[16px] text-[#b8a5fc] tracking-tight">Créditos:
                             <span class="text-white ml-2">
                                 {% if request.user.is_authenticated %}
+                                {% if request.user.profile.is_pro %}
+                                <span class="text-green-400 font-extrabold" title="Acesso Vitalício">∞ Ilimitado</span>
+                                {% else %}
                                 {{ total_julgados }}/{{ request.user.profile.credits|stringformat:"02d" }}
+                                {% endif %}
                                 {% else %}
                                 0/00
                                 {% endif %}

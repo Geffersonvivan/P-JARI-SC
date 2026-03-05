@@ -173,9 +173,9 @@ def create_parecer_view(request):
         if count >= 2:
             return JsonResponse({'requires_login': True})
     else:
-        # Usuário autenticado: Verifica limite de créditos
+        # Usuário autenticado: Verifica limite de créditos (Ignora se for Vitalício Is Pro)
         total_usos = Parecer.objects.filter(user=request.user, is_saved=True).count()
-        if total_usos >= request.user.profile.credits:
+        if total_usos >= request.user.profile.credits and not request.user.profile.is_pro:
             return JsonResponse({'requires_plan': True})
 
     try:
@@ -308,9 +308,9 @@ def chat_message_view(request):
                     if count >= 2:
                         return JsonResponse({'requires_login': True})
                 else:
-                    # Usuário autenticado: Verifica limite de créditos
+                    # Usuário autenticado: Verifica limite de créditos (Ignora se for Vitalício Is Pro)
                     total_usos = Parecer.objects.filter(user=request.user, is_saved=True).count()
-                    if total_usos >= request.user.profile.credits:
+                    if total_usos >= request.user.profile.credits and not request.user.profile.is_pro:
                         return JsonResponse({'requires_plan': True})
 
                 from datetime import datetime
