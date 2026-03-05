@@ -73,44 +73,49 @@ class GeminiClient:
             print(f"Erro ao subir arquivo pro Gemini a partir do Storage: {e}")
             return None
 
-    def generate_admissibility_report(self, parecer_obj):
+    def generate_phase2_report(self, parecer_obj, contexto_textual_datas):
         if not self.client:
              return "Simulação: Admissibilidade checada. Tempestivo. Prescrições Afastadas."
              
         system_instruction = (
-            "Você é o Assessor P-JARI/SC. Analise os documentos fornecidos ('Autuação' e 'Consolidado') "
-            "e retorne OBRIGATORIAMENTE um Resumo Geral documentado com base nestas REGRAS DE OURO:\n"
-            "1. Liste TODAS as datas identificáveis nos formatos usuais (DD/MM/AAAA, etc) em Ordem Cronológica.\n"
-            "2. NÃO invente datas ausentes e NÃO complete lacunas.\n"
-            "3. Se falhar em achar uma fase essencial (Notificação, Julgamento), escreva na linha: 'NÃO LOCALIZADO - [nome da fase]'.\n"
-            "4. Se houver mais de uma data para um evento, crie múltiplas linhas de tabela alertando 'POSSÍVEL Data (1)', 'POSSÍVEL Data (2)'.\n"
-            "5. A sua resposta DEVE conter DUAS partes principais formatadas ESTRITAMENTE como TABELAS (com barras verticais e separadores `|---|---|`):\n\n"
-            "--- RESUMO GERAL DO PROCESSO ---\n"
-            "| Data | Evento Histórico e Localização |\n"
-            "|---|---|\n"
-            "| [Data] | [Descritivo Cronológico] ([Doc/Pág]) |\n\n"
-            "--- TABELA DE DATAS SENSÍVEIS ---\n"
-            "| Data | Tipo de Data e Informação |\n"
-            "|---|---|\n"
-            "| [Data] | [Tipo de data] - [Descritivo] ([Doc/Pág]) |\n"
-            "NOTA: As duas listagens acima DEVEM nascer como Tabelas Markdowns válidas. Não produza listas em texto puro."
+            "SYSTEM P-JARI - FASE 2 (DIR - INTEGRIDADE/REGULARIDADE)\n"
+            "Sua função é organizar as datas essenciais do processo, garantindo base objetiva para análise de prazos na Fase 3.\n\n"
+            "REGRAS DE CLASSIFICAÇÃO:\n"
+            "1. Utilize o Bloco A (Informado pelo Julgador) SEMPRE, ainda que não haja documento equivalente.\n"
+            "2. Utilize o Bloco B (Extraído do PDF via Python em anexo).\n"
+            "3. Se houver mais de uma data para o mesmo evento, liste TODAS numerando como POSSÍVEL (1), (2), sem escolher 'a verdadeira'.\n"
+            "4. Se não encontrar um tipo essencial (Ex: Notificação, Julgamento), escreva 'NÃO LOCALIZADO - [tipo]'.\n"
+            "5. NUNCA declare 'erro', 'nulidade' ou 'conflito' na Fase 2, apenas anote na observação 'Divergente; julgador deve avaliar na Fase 3'.\n\n"
+            "SAÍDA OBRIGATÓRIA (Use estritamente Markdown tables válidas com `|`):\n"
+            "A saída deve começar com a frase: 'Varredura confirmada. Nenhuma nova data localizada além das já listadas.'\n\n"
+            "#### 1. Linha do Tempo Mínima\n"
+            "| Data | Tipo | Descritivo | Origem | Observações |\n"
+            "|---|---|---|---|---|\n"
+            "| DD/MM/AAAA | [TIPO] | [Descritivo] | [Doc/Pág] ou [Pergunta] | [Ex: Confirmado, POSSÍVEL (1), NÃO LOCALIZADO] |\n\n"
+            "#### 2. Tabela de Datas Sensíveis para Prazos\n"
+            "| Tipo | Data | Descritivo | Origem | Observações |\n"
+            "|---|---|---|---|---|\n"
+            "| [TIPO ÚNICO] | DD/MM/AAAA | [Descritivo] | [Doc/Pág] | [Alertas/OK] |\n\n"
+            "#### 3. Alertas para a Fase 3\n"
+            "Liste em bullets os tipos de datas NÃO LOCALIZADAS, Múltiplas Versões, ou Divergências visíveis.\n\n"
+            "Escreva a documentação descritiva de forma fria e neutra."
         )
         
         prompt_text = (
-            f"Fase 1 Input:\n"
-            f"1. Sessão: {parecer_obj.data_sessao}\n"
+            f"=== BLOCO A (EXTERNO - Informações da Fase 1) ===\n"
+            f"1. Sessão JARI: {parecer_obj.data_sessao or 'NÃO INFORMADO'}\n"
             f"2. PA: {parecer_obj.pa}\n"
             f"3. SGPE: {parecer_obj.sgpe}\n"
-            f"4. Prazo Final: {parecer_obj.prazo_final}\n"
-            f"5. Protocolo: {parecer_obj.data_protocolo}\n\n"
-            "Leia os PDFs em anexo com urgência. Escreva EXATAMENTE 'Varredura confirmada. Nenhuma nova data localizada além das já listadas.' "
-            "Exiba a Linha do Tempo cronológica e a Tabela de Datas Sensíveis. "
-            "Não aplique sentenças jurídicas de prescrição, apenas EXTRAIA as datas brutas exatas dos documentos."
+            f"4. Prazo Final Recurso: {parecer_obj.prazo_final or 'NÃO INFORMADO'}\n"
+            f"5. Protocolo Recurso: {parecer_obj.data_protocolo or 'NÃO INFORMADO'}\n\n"
+            f"=== BLOCO B (Extração Bruta dos Documentos via Python) ===\n"
+            f"{contexto_textual_datas}\n\n"
+            "Cruze as origens. Dê prioridade a não omitir nada. Monte a Linha do Tempo, a Tabela de Datas Sensíveis e os Alertas."
         )
         
         contents = [prompt_text]
         
-        # Anexar os PDFs no prompt se existirem
+        # Anexar os PDFs no prompt se existirem para referências contextuais mais finas que a regex possa ter perdido
         from django.core.files.storage import default_storage
         
         if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
@@ -124,20 +129,22 @@ class GeminiClient:
         if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path:
             try:
                 if default_storage.exists(parecer_obj.consolidado_pdf_path):
-                    file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
-                    if file_consolidado:
-                        contents.insert(0, file_consolidado)
+                    pass # Já anexamos um ou é o msmo arquivo para poupar token se o extrator pegou. No entanto, o Gemini 1.5 PRO guenta.
+                    if parecer_obj.autuacao_pdf_path != parecer_obj.consolidado_pdf_path:
+                        file_consolidado = self.upload_file(parecer_obj.consolidado_pdf_path)
+                        if file_consolidado:
+                            contents.insert(0, file_consolidado)
             except Exception: pass
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.5-pro', # Alterado para 2.5 PRO pois o GenAI SDK removeu alias do 1.5 e o Flash quebra Markdown
+                model='gemini-2.5-pro',
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
             return response.text
         except Exception as e:
-            return f"Erro ao acessar Gemini na Fase 3: {str(e)}.\n"
+            return f"Erro ao acessar Gemini na Fase 2: {str(e)}.\n"
 
     def extract_tese(self, parecer_obj):
         if not self.client:

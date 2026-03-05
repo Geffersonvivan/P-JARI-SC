@@ -34,15 +34,8 @@ class JariEngine:
 
         elif fase == 2:
             return (
-                f"**Fase 2: Diretriz de Integridade**\n\n"
-                f"Confirme se os dados abaixo coincidem **EXATAMENTE** com os documentos originais:\n"
-                f"- Data da Sessão: {self.parecer.data_sessao.strftime('%d/%m/%Y') if self.parecer.data_sessao else ''}\n"
-                f"- PA: {self.parecer.pa}\n"
-                f"- SGPE: {self.parecer.sgpe}\n"
-                f"- Prazo Final: {self.parecer.prazo_final.strftime('%d/%m/%Y') if self.parecer.prazo_final else ''}\n"
-                f"- Data do Protocolo: {self.parecer.data_protocolo.strftime('%d/%m/%Y') if self.parecer.data_protocolo else ''}\n"
-                f"- Páginas da Defesa: {self.parecer.paginas_defesa}\n\n"
-                f"Responda apenas com **'ok'** para aprovar, ou **'corrigir'** para voltar à Fase 1."
+                f"{self.parecer.tabela_datas_sensiveis}\n\n"
+                f"Confirme **'ok'** ou indique a **divergência** antes de prosseguir para a Fase 3 (P1 – Tempestividade, Prescrição e Decadência)."
             )
         elif fase == 3:
             return "Processando Prazos e Admissibilidade... (Simulando loading)"
@@ -141,18 +134,16 @@ class JariEngine:
                         
                 self.parecer.autuacao_pdf_path = file_autuacao
                 self.parecer.consolidado_pdf_path = file_consolidado
-                self.parecer.status_fase = 2
                 self.parecer.save()
-                return self.get_current_prompt()
+                return self.run_phase_2()
             
             elif val.lower() == 'ok':
                 # Só processa "ok" se ele já tiver pelo menos os campos anteriores e for a Etapa 7
                 if self.parecer.data_sessao and self.parecer.paginas_defesa:
                     self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
                     self.parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
-                    self.parecer.status_fase = 2
                     self.parecer.save()
-                    return self.get_current_prompt()
+                    return self.run_phase_2()
 
             # 2. Se não for Upload, segue a esteira normal de dados sequenciais
             if not self.parecer.data_sessao:
@@ -283,23 +274,57 @@ class JariEngine:
 
         return "Processo encontra-se finalizado."
 
+    def run_phase_2(self):
+        """Nova Fase 2: Extração Autônoma de Datas e Validação LLM"""
+        from chat.integrations import GeminiClient
+        from chat.pdf_extractor import PDFExtractor
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        gemini = GeminiClient()
+        
+        # 1. Extração local de Texto e Datas com PyMuPDF
+        datas_autuacao = []
+        datas_consolidado = []
+        
+        # Tenta extrair a autuação se houver e não for simulada
+        if self.parecer.autuacao_pdf_path and "upload_simulado" not in self.parecer.autuacao_pdf_path:
+            datas_autuacao = PDFExtractor.extract_dates_from_pdf(self.parecer.autuacao_pdf_path, "Autuação")
+            
+        # Tenta extrair o consolidado se houver e não for simulado
+        if self.parecer.consolidado_pdf_path and "upload_simulado" not in self.parecer.consolidado_pdf_path:
+            # Se forem o mesmo arquivo, pode ser bom evitar extração dupla, mas pro MVP mantemos igual
+            if self.parecer.autuacao_pdf_path != self.parecer.consolidado_pdf_path:
+                datas_consolidado = PDFExtractor.extract_dates_from_pdf(self.parecer.consolidado_pdf_path, "Consolidado")
+            else:
+                 datas_consolidado = [] # Não extrai duplicado
+                 
+        # Formata o texto pro prompt do LLM
+        contexto_textual_datas = PDFExtractor.format_extraction_for_llm(datas_autuacao, datas_consolidado)
+        
+        # 2. Chama o LLM para cruzar as respostas do Bloco A com o texto do Bloco B
+        texto_tabela = gemini.generate_phase2_report(self.parecer, contexto_textual_datas)
+        
+        self.parecer.tabela_datas_sensiveis = texto_tabela
+        self.parecer.save()
+        
+        # Volta pro loop aguardando a pessoa dar 'ok' na tabela
+        return self.get_current_prompt()
+
     def run_phase_3(self):
         """
-        Fase 2 (Extração LLM) -> Fase 3 (Cálculos Matemáticos Puros).
-        O LLM lê os PDFs (Fase 2 do Roteiro) e gera a linha do tempo.
-        Em seguida, o Python (Fase 3 do Roteiro) extrai as datas dessa tabela com RegEx
+        Fase 3 (Cálculos Matemáticos Puros).
+        Avisa Fase 2 já extraiu a tabela.
+        Em seguida, o Python extrai as datas dessa tabela com RegEx
         e usa o JariMath para assinalar no DB Tempestividade/Presc/Decadência.
         """
-        from chat.integrations import GeminiClient
-        gemini = GeminiClient()
         import re
         import datetime
         
-        # 1. LLM extrai as datas brutas dos PDFs
-        texto_tabela = gemini.generate_admissibility_report(self.parecer)
-        self.parecer.tabela_datas_sensiveis = texto_tabela
+        # O F2 já preencheu a tabela_datas_sensiveis
+        texto_tabela = self.parecer.tabela_datas_sensiveis or ""
         
-        # 2. Parseamento de datas via RegEx na Tabela F2 (Busca formato DD/MM/AAAA)
+        # Parseamento de datas via RegEx na Tabela F2 (Busca formato DD/MM/AAAA)
         # O prompt do F2 exige o formato exato "Data da Infração: 10/01/2020", etc.
         datas_encontradas = re.findall(r'(\d{2}/\d{2}/\d{4})', texto_tabela)
         datas_processadas = []
@@ -338,8 +363,7 @@ class JariEngine:
         
         texto_status = (
             f"**INÍCIO FASE 3: VERIFICAÇÃO DE PRAZOS E PRESCRIÇÕES OBRIGATÓRIAS**\n\n"
-            f"{texto_tabela}\n\n"
-            f"--- ⚖️ **CÁLCULOS TÉCNICOS EFETUADOS (JARI MATH)** ---\n"
+            f"--- ⚖️ **CÁLCULOS TÉCNICOS EFETUADOS NA FASE 3 DO ROTEIRO** ---\n"
             f"- **Tempestivo**: {status_temp}\n"
             f"- **Prescrição Punitiva (>= 5 anos)**: {status_pun}\n"
             f"- **Prescrição Intercorrente (> 3 anos)**: {status_inter}\n"
