@@ -79,27 +79,7 @@
                     </div>
                 </div>
                 <div class="text-sm text-blue-800 space-y-3 leading-relaxed whitespace-pre-wrap doc-links-container"
-                    id="dossieText">{{ parecer.dossie_fontes|safe }}</div>
-
-                <script>
-                    // Converte links [Texto](URL) e links URL puros http:// gerados pelo LLM em âncoras clicáveis HTML
-                    document.addEventListener("DOMContentLoaded", function () {
-                        const dossieContainer = document.getElementById('dossieText');
-                        if (dossieContainer) {
-                            let text = dossieContainer.innerHTML;
-                            // 1. Regex para achar links Markdown: [texto](url)
-                            const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-                            text = text.replace(markdownLinkRegex, '<a href="$2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer">$1</a>');
-
-                            // 2. Regex para achar links puros "http://..." ou "https://..." que não estejam dentro de um atributo href="(...)"
-                            // Primeiro quebramos as strings normais para prevenir quebrar links HTML já convertidos
-                            const urlRegex = /(?<!href="|href=')\b(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
-                            text = text.replace(urlRegex, '<a href="$1" target="_blank" class="text-blue-500 hover:text-blue-700 underline truncate inline-block max-w-[250px] align-bottom" title="$1" rel="noopener noreferrer">Acessar Link</a>');
-
-                            dossieContainer.innerHTML = text;
-                        }
-                    });
-                </script>
+                    id="dossieText">{{ parecer.dossie_fontes_html|safe }}</div>
             </div>
         </div>
         {% endif %}
