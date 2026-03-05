@@ -264,7 +264,8 @@ class GeminiClient:
             "3. Confrontará a alegação com a prova nos autos.\n"
             "4. Fundamentará de forma robusta com a norma (Inventário Normativo/Jurisprudência), indicando hierarquia.\n"
             "5. Jamais crie teses não alegadas, não presuma argumentos implícitos nem complete lacunas defensivas. Não agrupe teses distintas.\n"
-            "6. Ao final de cada tese, decrete OBRIGATORIAMENTE uma das duas literais strings: 'Conclusão: Acolhida.' ou 'Conclusão: Não acolhida.'\n"
+            "6. PRESUNÇÃO DE LEGITIMIDADE E VERACIDADE: Na ausência de prova material irrefutável anexada pela defesa, a palavra e o preenchimento do Agente Público/Estado prevalecem ABSOLUTAMENTE. Alegações de falha no equipamento, bocal ou conduta sem o devido respaldo probatório SÃO CONSIDERADAS FRACAS E DEVEM SER NÃO ACOLHIDAS.\n"
+            "7. Ao final de cada tese, decrete OBRIGATORIAMENTE uma das duas literais strings: 'Conclusão: Acolhida.' ou 'Conclusão: Não acolhida.'\n"
         )
         
         prompt_text = (
@@ -296,7 +297,7 @@ class GeminiClient:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash', # Mudado de PRO para FLASH para agilidade na análise das provas
+                model='gemini-1.5-pro', # Modelo PRO restaurado para máxima análise de mérito (Rigidez vs Flexibilidade Flash)
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
