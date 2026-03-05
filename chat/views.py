@@ -118,7 +118,8 @@ def editar_parecer_view(request, id):
             """
             
             # Converter markdown para HTML
-            texto_html = texto_gerado_pela_ia.replace('\n', '<br>')
+            paragrafos_raw = texto_gerado_pela_ia.split('\n\n')
+            texto_html = "".join([f"<p>{p.strip().replace('\n', '<br>')}</p>" for p in paragrafos_raw if p.strip()])
             texto_html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', texto_html)
             
             # Formatar dossiê se existir na View do Editor para passar pro PDF
@@ -139,7 +140,8 @@ def editar_parecer_view(request, id):
             
             parecer_gerado = f"{cabecalho_html}<div class='corpo'>{texto_html}</div>{rodape_centralizado}"
         else:
-            parecer_gerado = texto_gerado_pela_ia.replace('\n', '<br>')
+            paragrafos_raw = texto_gerado_pela_ia.split('\n\n')
+            parecer_gerado = "".join([f"<p>{p.strip().replace('\n', '<br>')}</p>" for p in paragrafos_raw if p.strip()])
 
     return render(request, 'editor_parecer.html', {
         'parecer': parecer,
