@@ -211,23 +211,42 @@ USE_GCS = os.environ.get('USE_GCS', 'True') == 'True'
 
 if USE_GCS:
     GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', 'pjari-midias')
-    # Point this to the local JSON file in development, or set via Docker/Railway volume in Prod
-    GS_CREDENTIALS_FILE = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', str(BASE_DIR / 'gcp-credentials.json.json'))
+    google_creds_env = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')
     
-    # Check if the JSON file actually exists locally for development fallbacks
-    if os.path.exists(GS_CREDENTIALS_FILE) or 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
-        if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GS_CREDENTIALS_FILE
+    # Se a variável de ambiente contiver o JSON inteiro em vez de um caminho de arquivo (como no Railway)
+    if google_creds_env.strip().startswith('{'):
+        import json
+        from google.oauth2 import service_account
+        
+        try:
+            creds_info = json.loads(google_creds_env)
+            GS_CREDENTIALS = service_account.Credentials.from_service_account_info(creds_info)
+            DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+            MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
             
-        DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
-        # Não precisamos de GCS para static files por enquanto (WhiteNoise já faz isso bem)
-        # STATICFILES_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
-        MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+            # Limpa a variável para evitar que o SDK padrão do Google tente usá-la como caminho de arquivo
+            if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+                del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+        except Exception as e:
+            DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+            MEDIA_URL = '/media/'
+            MEDIA_ROOT = BASE_DIR / 'media'
+            
     else:
-        # Fallback to local if credentials aren't found
-        DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-        MEDIA_URL = '/media/'
-        MEDIA_ROOT = BASE_DIR / 'media'
+        # Modo fallback caso seja o nome do arquivo passando pelo SO (Local)
+        GS_CREDENTIALS_FILE = google_creds_env or str(BASE_DIR / 'gcp-credentials.json')
+        
+        if os.path.exists(GS_CREDENTIALS_FILE):
+            if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GS_CREDENTIALS_FILE
+                
+            DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+            MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+        else:
+            # Fallback to local if credentials aren't found
+            DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+            MEDIA_URL = '/media/'
+            MEDIA_ROOT = BASE_DIR / 'media'
 else:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     MEDIA_URL = '/media/'
