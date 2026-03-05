@@ -346,7 +346,10 @@ class GeminiClient:
             "Se prejudicadas pela extinção punitiva, declare a prejudicialidade. Se vivas, afaste-as ou acolha-as demonstrando choque normativo de forma direta e incisiva, sem subtítulos excessivos para cada uma.\n"
             "MATERIALIDADE E GARANTIAS PROCESSUAIS\n"
             "Desfecho das garantias de defesa.\n\n"
-            "Esta é a fundamentação.\n"
+            "Esta é a fundamentação.\n\n"
+            "***DOSSIE_START***\n"
+            "[Cite apenas as leis e fundamentos em bullets (Exemplo: * [Constituição Federal](https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm) ) pesquisando sempre que possível o link na WEB para a lei no formato Markdown padrão.]\n"
+            "***DOSSIE_END***"
         )
         
         prompt = (
