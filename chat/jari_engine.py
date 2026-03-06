@@ -632,15 +632,15 @@ class JariEngine:
         gemini = GeminiClient()
         checklist_texto = gemini.audit_parecer(self.parecer)
         
-        report = f"**Fase 6: Auditoria Final (Índice de Blindagem)**\n\n"
-        report += f"📊 Seu PARECER está **{int(indice)}%** blindado contra anulações.\n\n"
+        report = f"### 🛡️ Auditoria Final de Conformidade\n\n"
+        report += f"**Índice de Blindagem JariMath:** {int(indice)}%\n\n"
         
         if indice != 100:
-            report += f"⚠️ **Inconsistências Matemáticas Críticas:**\n{self.parecer.blindagem_detalhes}\n\n"
+            report += f"⚠️ **Inconsistências Críticas (JariMath):**\n{self.parecer.blindagem_detalhes}\n\n"
         else:
             report += f"🟢 **Conformidade Matemática Integral.**\n\n"
             
-        report += f"---\n\n**O OLHAR DO CORREGEDOR (IA AUDITORA):**\n\n{checklist_texto}\n\n"
+        report += f"---\n\n{checklist_texto}\n\n"
             
         report += f"---\n{self.get_current_prompt()}" # Vai chamar a F7 da Pasta
         
