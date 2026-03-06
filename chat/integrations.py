@@ -274,10 +274,10 @@ class GeminiClient:
             "   - Tese X – Alternativa (a) – Acolhimento: Explicar, em texto corrido, a linha de raciocínio que levaria ao ACOLHIMENTO da tese. Indicar dispositivos, resoluções e premissas fáticas que sustentam isso.\n"
             "   - Tese X – Alternativa (b) – Não acolhimento: Explicar, em texto corrido, a linha de raciocínio que levaria ao NÃO ACOLHIMENTO. Indicar dispositivos legais que sustentam a manutenção do auto, considerando ausência de provas e presunção de legitimidade.\n"
             "4. PROIBIDO: Não concluir 'Acolhida' ou 'Não acolhida', não criar teses novas, não presuma argumento implícito, não agrupe teses.\n"
-            "5. QUADRO-RESUMO: Ao final das análises de todas as teses, você DEVE apresentar um quadro-resumo para o julgador exatamente neste formato:\n"
-            "   Tese 1: opções possíveis – \"1 a\" (acolher) ou \"1 b\" (não acolher)\n"
-            "   Tese 2: opções possíveis – \"2 a\" (acolher) ou \"2 b\" (não acolher)\n"
-            "   [E assim sucessivamente para as demais teses]\n"
+            "5. MENÚ INTERATIVO DE DECISÃO: Ao final das análises de todas as teses, você DEVE gerar tags de sistema para que o site desenhe botões na tela. A tag obrigatória para cada tese tem o formato exato: [DECISAO_TESE_X] (onde X é o número da tese).\n"
+            "Exemplo Exato e Obrigatório (sem aspas):\n"
+            "[DECISAO_TESE_1]\n"
+            "[DECISAO_TESE_2]\n"
         )
         
         prompt_text = (
@@ -287,8 +287,7 @@ class GeminiClient:
             f"RAG Inventário Normativo Google (VERTEX): {vertex_result}\n"
             f"Pesquisa Auxiliar (PERPLEXITY): {perplexity_result}\n\n"
             "Exponha as alternativas (a) e (b) justificadas para cada tese isoladamente.\n"
-            "Ao final, após exibir o quadro-resumo, instrua o julgador terminando o texto OBRIGATORIAMENTE com esta exata mensagem:\n\n"
-            "**Informe, obrigatoriamente, a opção escolhida para cada tese, no formato:**\n1 a\n2 a\n3 b\n\nA decisão final (deferimento ou indeferimento) será definida exclusivamente com base nas suas escolhas."
+            "Ao final, liste as tags [DECISAO_TESE_X] para todas as teses analisadas (uma por linha). Após as tags, escreva apenas a legenda: 'Por favor, clique nos botões acima para selecionar sua decisão. Em seguida, confirme para emitir o Parecer'."
         )
         
         contents = [prompt_text]
