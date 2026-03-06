@@ -185,25 +185,17 @@
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = editorInstance.getContent();
 
+            let rawHtml = editorInstance.getContent();
+
             // Gerar MHTML multipart container para o MS Word aceitar a imagem embargada
             const images = tempDiv.querySelectorAll('img');
             let mhtmlBottom = "\n";
             for (let i = 0; i < images.length; i++) {
                 let img = images[i];
+                let originalSrc = img.src;
 
-                // Força as dimensões reais renderizadas como atributos fixos no HTML, 
-                // pois o MS Word ignora CSS e distorce imagens sem W/H definidos.
-                const originalImg = editorInstance.dom.select('img')[i];
-                if (originalImg) {
-                    img.width = originalImg.clientWidth || originalImg.width || 150;
-                    img.height = originalImg.clientHeight || originalImg.height || 100;
-                    // Limpa o style inline para não conflitar
-                    img.style.width = "";
-                    img.style.height = "";
-                    img.style.aspectRatio = "";
-                }
                 try {
-                    const response = await fetch(img.src);
+                    const response = await fetch(originalSrc);
                     const blob = await response.blob();
                     const reader = new FileReader();
                     const base64data = await new Promise((resolve) => {
@@ -219,7 +211,11 @@
                         let rawData = b64Match[2];
                         let contentId = "image_" + i + ".png"; // fake ID
 
-                        img.src = "cid:" + contentId; // Substitui o html src pela Content-ID local do MHTML
+                        // Substitui de forma bruta no HTML Final a URL pela Content-ID local do MHTML
+                        // E FORÇA a tag a ter width e height cravados para o Word respeitar a proporção
+                        const searchString = `src="${originalSrc}"`;
+                        const replaceString = `src="cid:${contentId}" width="150" height="85" style="width:150px; height:85px;"`;
+                        rawHtml = rawHtml.replace(searchString, replaceString);
 
                         // Acrescenta os bytes da imagem ao arquivo final
                         mhtmlBottom += "--NEXT.PART\n";
@@ -233,7 +229,7 @@
                 }
             }
 
-            const htmlContent = tempDiv.innerHTML;
+            const htmlContent = rawHtml;
 
             // Monta o arquivo .mht final compatível 100% com Suítes Office
             let mhtmlHeader = "MIME-Version: 1.0\n";
