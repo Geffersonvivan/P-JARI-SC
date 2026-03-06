@@ -287,7 +287,7 @@ class GeminiClient:
             f"RAG Inventário Normativo Google (VERTEX): {vertex_result}\n"
             f"Pesquisa Auxiliar (PERPLEXITY): {perplexity_result}\n\n"
             "Exponha as alternativas (a) e (b) justificadas para cada tese isoladamente.\n"
-            "Ao final, liste as tags [DECISAO_TESE_X] para todas as teses analisadas (uma por linha). Após as tags, escreva apenas a legenda: 'Por favor, clique nos botões acima para selecionar sua decisão. Em seguida, confirme para emitir o Parecer'."
+            "Ao final, liste as tags [DECISAO_TESE_X] para todas as teses analisadas (uma por linha)."
         )
         
         contents = [prompt_text]
