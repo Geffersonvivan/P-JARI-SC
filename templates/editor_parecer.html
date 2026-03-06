@@ -9,7 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://unpkg.com/html-to-docx@1.8.0/dist/html-to-docx.min.js"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -183,56 +182,85 @@
             const editorInstance = tinymce.get('editor');
             if (!editorInstance) return;
 
-            // Busca botão e mostra loading
             const btn = document.querySelector('button[onclick="openExportModal(\'word\')"]');
             if (btn) btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Gerando...';
 
             try {
-                // Prepara HTML temporário com css inline básico para a conversão
-                const htmlContent = `
-                    <!DOCTYPE html>
-                    <html lang="pt-BR">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>Parecer</title>
-                        <style>
-                            body { font-family: 'Outfit', Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #1f1f1f; }
-                            table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
-                            th, td { border: 1px solid #dde3ea; padding: 8px; text-align: left; }
-                            th { background-color: #eff3f9; }
-                            img { max-width: 100%; height: auto; }
-                        </style>
-                    </head>
-                    <body>
-                        ${editorInstance.getContent()}
-                    </body>
-                    </html>
-                `;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = editorInstance.getContent();
 
-                // Configurações do html-to-docx
-                const options = {
-                    orientation: 'portrait',
-                    margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 }, // 1 inch = 1440 twips
-                    title: 'Parecer JARI',
-                };
+                let mhtmlBottom = "\n";
+                const images = tempDiv.querySelectorAll('img');
 
-                // html-to-docx lida nativamente com imagens, baixando-as e embutindo no ZIP Docx real
-                const blob = await htmlToDocx(htmlContent, null, options);
+                for (let i = 0; i < images.length; i++) {
+                    let img = images[i];
+                    let originalSrc = img.src;
 
-                // Dispara o download
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.docx';
+                    try {
+                        const response = await fetch(originalSrc);
+                        const blob = await response.blob();
+                        const reader = new FileReader();
+                        const base64data = await new Promise((resolve) => {
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+
+                        let b64Match = base64data.match(/^data:(image\/[^;]+);base64,(.+)$/);
+                        if (b64Match && b64Match.length > 2) {
+                            let contentType = b64Match[1];
+                            let rawData = b64Match[2];
+                            let contentId = "image_" + i + "@jari.sc";
+
+                            // Força dimensões fixas no HTML p/ o Word não esticar
+                            img.setAttribute('src', 'cid:' + contentId);
+                            img.setAttribute('width', '150');
+                            img.setAttribute('height', '85');
+                            img.style.width = '150px';
+                            img.style.height = '85px';
+
+                            mhtmlBottom += "--NEXT.PART\n";
+                            mhtmlBottom += "Content-Location: " + contentId + "\n";
+                            mhtmlBottom += "Content-Transfer-Encoding: base64\n";
+                            mhtmlBottom += "Content-Type: " + contentType + "\n\n";
+                            mhtmlBottom += rawData + "\n\n";
+                        }
+                    } catch (e) {
+                        console.error('Erro de conversão base64', e);
+                    }
+                }
+
+                // Cria o cabeçalho MHTML rigorosamente no padrão Microsoft
+                let mhtmlHeader = "MIME-Version: 1.0\n";
+                mhtmlHeader += "Content-Type: multipart/related; boundary=\"NEXT.PART\"\n\n";
+                mhtmlHeader += "--NEXT.PART\n";
+                mhtmlHeader += "Content-Type: text/html; charset=\"utf-8\"\n\n";
+                mhtmlHeader += "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+                    "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+                    "xmlns='http://www.w3.org/TR/REC-html40'>" +
+                    "<head><meta charset='utf-8'><title>Parecer</title>" +
+                    "<style>body{font-family:'Outfit',Arial,sans-serif;font-size:14px;line-height:1.5;color:#1f1f1f;}</style>" +
+                    "</head><body>" + tempDiv.innerHTML + "</body></html>\n\n";
+
+                const sourceMHTML = mhtmlHeader + mhtmlBottom + "--NEXT.PART--";
+
+                // Dispara o download como .doc (MIME Type de Word)
+                const blob = new Blob(['\ufeff', sourceMHTML], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
                 document.body.appendChild(link);
+                link.href = url;
+                link.download = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.doc';
                 link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
+
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 100);
 
             } catch (error) {
                 console.error("Erro ao gerar DOCX:", error);
                 alert("Ocorreu um erro ao gerar o arquivo Word. Detalhes no console.");
             } finally {
-                // Restaura botão
                 if (btn) btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Salvar em .DOCX';
             }
         }
