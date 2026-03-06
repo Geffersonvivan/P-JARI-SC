@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.3.1/html-docx.min.js"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -47,7 +48,18 @@
                     <a href="/"
                         class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancelar</a>
 
-                    <button type="button" onclick="openPdfModal()"
+                    <!-- NEW WORD EXPORT BUTTON -->
+                    <button type="button" onclick="openExportModal('word')"
+                        class="px-6 py-2 bg-blue-100 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-200 font-medium transition flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        Salvar em .DOCX
+                    </button>
+
+                    <button type="button" onclick="openExportModal('pdf')"
                         class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -86,8 +98,8 @@
 
     </div>
 
-    <!-- Modal de Atenção para PDF -->
-    <div id="pdfModal"
+    <!-- Modal de Atenção para Exportação -->
+    <div id="exportModal"
         class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center backdrop-blur-sm transition-opacity">
         <div
             class="relative mx-auto p-6 border w-full max-w-md shadow-xl rounded-2xl bg-white transform transition-all">
@@ -108,11 +120,11 @@
                 </div>
 
                 <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button type="button" onclick="closePdfModal()"
+                    <button type="button" onclick="closeExportModal()"
                         class="px-4 py-3 bg-gray-100 text-gray-700 text-sm font-bold rounded-lg w-full shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors">
                         Cancelar
                     </button>
-                    <button type="button" onclick="confirmPdfDownload()"
+                    <button type="button" onclick="confirmExportDownload()"
                         class="px-4 py-3 bg-blue-600 text-white text-sm font-bold rounded-lg w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors flex items-center justify-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -126,17 +138,25 @@
     </div>
 
     <script>
-        function openPdfModal() {
-            document.getElementById('pdfModal').classList.remove('hidden');
+        let pendingExportAction = null;
+
+        function openExportModal(actionType) {
+            pendingExportAction = actionType;
+            document.getElementById('exportModal').classList.remove('hidden');
         }
 
-        function closePdfModal() {
-            document.getElementById('pdfModal').classList.add('hidden');
+        function closeExportModal() {
+            pendingExportAction = null;
+            document.getElementById('exportModal').classList.add('hidden');
         }
 
-        function confirmPdfDownload() {
-            closePdfModal();
-            saveAsPDF();
+        function confirmExportDownload() {
+            closeExportModal();
+            if (pendingExportAction === 'pdf') {
+                saveAsPDF();
+            } else if (pendingExportAction === 'word') {
+                saveAsWord();
+            }
         }
 
         tinymce.init({
@@ -157,6 +177,28 @@
                 });
             }
         });
+
+        function saveAsWord() {
+            const editorInstance = tinymce.get('editor');
+            if (!editorInstance) return;
+
+            const htmlContent = editorInstance.getContent();
+
+            // Montamos um HTML base padrão aceito pela conversão de Word do html-docx
+            var content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Parecer</title></head><body>${htmlContent}</body></html>`;
+
+            // Chama a biblioteca externa htmlDocx para converter
+            var converted = htmlDocx.asBlob(content, { orientation: 'portrait' });
+
+            // Usa abordagem nativa de download criar Blob e link fantasma
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(converted);
+            link.download = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.docx';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         function saveAsPDF() {
             const editorInstance = tinymce.get('editor');
