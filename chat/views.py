@@ -122,6 +122,10 @@ def editar_parecer_view(request, id):
             texto_html = "".join([f"<p>{p.strip().replace('\n', '<br>')}</p>" for p in paragrafos_raw if p.strip()])
             texto_html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', texto_html)
             
+            # Converter links no texto do parecer
+            texto_html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer">\1</a>', texto_html)
+            texto_html = re.sub(r'(?<!href="|href=\')\b(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])', r'<a href="\1" target="_blank" class="text-blue-500 hover:text-blue-700 underline truncate inline-block max-w-[250px] align-bottom" title="\1" rel="noopener noreferrer">\1</a>', texto_html)
+            
             # Formatar dossiê se existir na View do Editor para passar pro PDF
             dossie_html = parecer.dossie_fontes or ""
             if dossie_html:
