@@ -567,7 +567,7 @@ def estatisticas_view(request):
         is_saved=True,
         created_at__year=ano,
         created_at__month=mes
-    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
+    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='').prefetch_related('pareceres_finais')
     
     total_finais = pareceres_base.count()
     deferidos = 0
@@ -760,7 +760,7 @@ def estatisticas_gerais_view(request):
         is_saved=True,
         created_at__year=ano,
         created_at__month=mes
-    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
+    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='').prefetch_related('pareceres_finais')
     
     total_finais = pareceres_base.count()
     deferidos = 0
