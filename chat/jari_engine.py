@@ -218,7 +218,7 @@ class JariEngine:
                     
                     self.parecer.tese = f"MÉRITO PREJUDICADO ({' / '.join(motivo)})."
                     self.parecer.save()
-                    return "\n⚠️ **Mérito Prejudicado**. A inteligência constatou impedimentos de admissibilidade ou ordem pública. O Parecer Final será gerado agora obrigatoriamente sem análise das teses de defesa.\n\n" + self.run_llm_phases()
+                    return "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n" + self.run_llm_phases()
                 else:
                     return self.run_phase_4_extraction()
             else:

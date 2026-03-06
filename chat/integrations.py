@@ -152,17 +152,17 @@ class GeminiClient:
              
         system_instruction = (
             "Você é o Assessor Jurídico P-JARI/SC. Sua tarefa é ler EXCLUSIVAMENTE a Defesa "
-            "Recursal indicada nas páginas. Siga a regra FASE 4 - TESES:\n"
-            "1. Identifique cada tese explicitamente apresentada sem inferência.\n"
-            "2. Liste as teses separadamente (não agrupe).\n"
-            "3. Proibido: Criar tese não alegada, presumir argumento implícito, completar lacuna.\n"
-            "4. Se a tese não tiver fundo jurídico (emoção, apelo pessoal), classifique-a expressamente como 'Tese não jurídica'."
+            "Recursal indicada nas páginas. Siga a regra FASE 4 - EXTRAÇÃO DE TESES:\n"
+            "a) Identificar cada tese explicitamente apresentada, sem inferência.\n"
+            "b) Listar as teses separadamente (não agrupar).\n"
+            "c) Se a tese não tiver fundo jurídico (emoção, 'peço compreensão', etc.), classifique-a expressamente como 'Tese não jurídica' e trate como 'não acolhida por ausência de fundamento normativo'.\n"
+            "d) Proibido: Criar tese não alegada, presumir argumento implícito, completar lacuna defensiva."
         )
         
         prompt_text = (
             f"Localize a defesa nas páginas indicadas: {parecer_obj.paginas_defesa}.\n\n"
             "Liste AS TESES jurídicas apresentadas de forma isolada e em tópicos (bullet points). "
-            "Apenas descreva o que foi pedido. Reforçando: não gere respostas, julgamentos ou mérito agora, apenas a LISTAGEM e classificação das teses alegadas no Recurso."
+            "Apenas descreva o que foi pedido, detalhando cada ponto separadamente. Reforçando: não gere respostas, julgamentos ou mérito agora, apenas a LISTAGEM e classificação das teses alegadas no Recurso."
         )
         
         contents = [prompt_text]
@@ -266,24 +266,30 @@ class GeminiClient:
              
         system_instruction = (
             "Você é o Assessor P-JARI/SC (Fase 4 Avançada). As regras OBRIGATÓRIAS SÃO:\n"
-            "1. Para cada tese extraída, você transcreverá uma síntese objetiva.\n"
-            "2. Se a tese for meramente emocional ('peço compreensão...', 'preciso trabalhar...'), classifique como 'tese não jurídica' e trate como 'não acolhida por ausência de fundamento normativo'.\n"
-            "3. Confrontará a alegação com a prova nos autos.\n"
-            "4. Fundamentará de forma robusta com a norma (Inventário Normativo/Jurisprudência), indicando hierarquia.\n"
-            "5. Jamais crie teses não alegadas, não presuma argumentos implícitos nem complete lacunas defensivas. Não agrupe teses distintas.\n"
-            "6. PRESUNÇÃO DE LEGITIMIDADE E VERACIDADE: Na ausência de prova material irrefutável anexada pela defesa, a palavra e o preenchimento do Agente Público/Estado prevalecem ABSOLUTAMENTE. Alegações de falha no equipamento, bocal ou conduta sem o devido respaldo probatório SÃO CONSIDERADAS FRACAS E DEVEM SER NÃO ACOLHIDAS.\n"
-            "7. Ao final de cada tese, decrete OBRIGATORIAMENTE uma das duas literais strings: 'Conclusão: Acolhida.' ou 'Conclusão: Não acolhida.'\n"
+            "1. Para cada tese apresentada, transcreva uma síntese objetiva da alegação.\n"
+            "2. PRESUNÇÃO DE LEGITIMIDADE DOS ATOS ADMINISTRATIVOS: Na dúvida, prevalece o relato do agente de trânsito e documentos oficiais (AIT, notificações, portarias). Contudo, SEMPRE VERIFIQUE:\n"
+            "   (a) Falhas formais graves visíveis nos autos (AIT em branco, falta de laudos obrigatórios). Ex: acolhimento contra Inmetro depende de prova *robusta* ou erro material grave do agente.\n"
+            "   (b) Se a defesa anexou prova documental *concreta e idônea* (fotos evidentes, vídeos, certidões).\n"
+            "3. Confronto com as Provas (para cada tese):\n"
+            "   - Se não houver prova cabal em contrário nem falha formal: registrar que prevalece o relato do agente (documentação oficial).\n"
+            "   - Se houver prova idônea ou falha formal: justificar o acolhimento da tese, sobrepujando a presunção.\n"
+            "4. Só classifique 'não acolhida por falta de prova' após constatar que *não há qualquer documento robusto que a sustente* e *os autos não revelam falha formal*.\n"
+            "5. FUNDAMENTAÇÃO E RAG: Fundamente o mérito de forma robusta e cite a hierarquia normativa exclusivamente baseada no 'RAG Inventário Normativo', usando Perplexity apenas subsidiariamente. NÃO CRIE NORMAS INEXISTENTES.\n"
+            "6. PROIBIÇÕES ABSOLUTAS: Não crie tese não alegada, não presuma argumento, não complete lacuna defensiva, e **não agrupe teses distintas**.\n"
+            "7. Ao final de CADA TESE analisada, você deve OBRIGATORIAMENTE escrever e pular de linha:\n"
+            "   'Conclusão: Acolhida.'\n"
+            "   ou\n"
+            "   'Conclusão: Não acolhida.'\n"
         )
         
         prompt_text = (
             f"Processo: {parecer_obj.pa} | SGPE: {parecer_obj.sgpe}\n"
             f"Teses Listadas: {tese}\n\n"
-            f"Defesa Recursal: Documento 'consolidado'\n\n"
-            f"Inventário Normativo RAG (VERTEX): {vertex_result}\n"
-            f"Jurisprudência (PERPLEXITY): {perplexity_result}\n\n"
-            "Prossiga com a Análise das Teses confrontando a documentação, usando EXCLUSIVAMENTE o "
-            "inventário normativo ou perplexity. Para cada tese julgada, inclua 'Conclusão: Acolhida.' "
-            "ou 'Conclusão: Não acolhida.' ao final."
+            f"Documentos Anexos: Documento 'consolidado' + 'autuação'\n\n"
+            f"RAG Inventário Normativo Google (VERTEX): {vertex_result}\n"
+            f"Pesquisa Auxiliar (PERPLEXITY): {perplexity_result}\n\n"
+            "Prossiga com a Análise das Teses isoladamente. Aplique a REGRA DA PRESUNÇÃO DE LEGITIMIDADE avaliando se há provas/falhas formais no AIT. Termine obrigatoriamente a fundamentação de cada tese com 'Conclusão: Acolhida.' ou 'Conclusão: Não acolhida.'. Ao final de tudo o julgamento do mérito, pule algumas linhas e escreva a exata string:\n\n"
+            "Confirme 'ok' ou indique divergência."
         )
         
         contents = [prompt_text]
