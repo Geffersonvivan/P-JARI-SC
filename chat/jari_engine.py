@@ -26,7 +26,7 @@ class JariEngine:
             elif not self.parecer.data_protocolo:
                 return prefix + "5. Por favor, informe a **Data do protocolo do recurso JARI** (DD/MM/AAAA):"
             elif not self.parecer.paginas_defesa:
-                return prefix + "6. Por favor, informe as **Páginas da defesa Recurso JARI** (ex: pág. 15 até pág 24):"
+                return prefix + "6. Por favor, informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
             elif not self.parecer.autuacao_pdf_path:
                 return prefix + "7. Por favor, faça o upload dos arquivos **'Autuação' e 'Consolidado'** juntos e digite ok:"
             
