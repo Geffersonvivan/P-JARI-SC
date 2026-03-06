@@ -141,12 +141,21 @@
 
         tinymce.init({
             selector: '#editor',
-            plugins: 'table lists',
-            toolbar: 'blocks | bold italic | bullist numlist | alignleft aligncenter alignright | table | undo redo',
+            plugins: 'table lists link',
+            toolbar: 'blocks | bold italic | bullist numlist | alignleft aligncenter alignright | table | link | undo redo',
+            default_link_target: '_blank',
             menubar: false,
             statusbar: false,
             height: 800,
-            content_style: "body { font-family: 'Outfit', sans-serif; line-height: 1.5; font-size: 14px; }"
+            content_style: "body { font-family: 'Outfit', sans-serif; line-height: 1.5; font-size: 14px; }",
+            setup: function (editor) {
+                editor.on('BeforeSetContent', function (e) {
+                    // Força links injetados a terem target="_blank"
+                    if (e.content) {
+                        e.content = e.content.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
+                    }
+                });
+            }
         });
 
         function saveAsPDF() {

@@ -852,6 +852,13 @@
         }
 
         function formatMessage(text) {
+            // Configurar marked para abrir links em nova aba
+            const renderer = new marked.Renderer();
+            renderer.link = function (href, title, text) {
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer" ${title ? `title="${title}"` : ''}>${text}</a>`;
+            };
+            marked.setOptions({ renderer: renderer });
+
             // Usa a biblioteca marked para converter Markdown em HTML real
             const rawHtml = marked.parse(text);
 
