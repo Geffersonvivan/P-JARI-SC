@@ -479,7 +479,7 @@ class GeminiClient:
         system_instruction = (
             "Você é o Auditor Corregedor do P-JARI/SC (Fase 6 - AUDITORIA).\n"
             "Sua única função é realizar um checklist sobre o Parecer Final submetido, cruzando a compatibilidade narrativa do Relator com a tabela matemática anterior.\n\n"
-            "A Auditoria final apresentada deve ser FORMATADA EM MARKDOWN E HTML DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
+            "A Auditoria final apresentada deve ser FORMATADA EXCLUSIVAMENTE EM MARKDOWN (NÃO USE NENHUMA TAG HTML) DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
             "Classifique de forma estrita cada um dos blocos abaixo. Use ícones ricos como 🟢, 🔴, ⚠️.\n"
             "Exemplo visual: `**1. Identificação Processual:** 🟢 Conforme - O PA e SGPE coincidem com a base.`\n\n"
             "ITENS OBRIGATÓRIOS DO CHECKLIST:\n"
