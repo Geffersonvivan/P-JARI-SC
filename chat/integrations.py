@@ -8,7 +8,7 @@ class PerplexityClient:
         self.api_key = os.environ.get('PERPLEXITY_API_KEY')
         self.url = "https://api.perplexity.ai/chat/completions"
 
-    def search_tese(self, tese):
+    def search_tese(self, parecer_obj, tese):
         if not self.api_key:
             return "Simulação (Perplexity): Tese pesquisada. A tese é favorável segundo jurisprudência recente (REsp 123.456)."
             
@@ -34,6 +34,21 @@ class PerplexityClient:
             response = requests.post(self.url, json=payload, headers=headers)
             response.raise_for_status()
             data = response.json()
+            
+            try:
+                if parecer_obj:
+                    from .models import AiRequestLog
+                    AiRequestLog.objects.create(
+                        parecer_referencia=parecer_obj,
+                        user=parecer_obj.user,
+                        provider='Perplexity',
+                        fase='Pesquisa Base (Jurisprudência)',
+                        input_tokens=data.get('usage', {}).get('prompt_tokens', 0),
+                        output_tokens=data.get('usage', {}).get('completion_tokens', 0)
+                    )
+            except Exception as log_e:
+                print(f"Erro ao logar tokens Perplexity: {log_e}")
+                
             return data["choices"][0]["message"]["content"]
         except Exception as e:
             return f"Erro ao acessar Perplexity: {str(e)}.\nSimulação ativada: Jurisprudência encontrada favorável a tese."
@@ -42,6 +57,23 @@ class GeminiClient:
     def __init__(self):
         self.api_key = os.environ.get('GEMINI_API_KEY')
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
+
+    def _log_tokens(self, parecer_obj, response, fase_nome):
+        if not parecer_obj or not response: return
+        try:
+            from .models import AiRequestLog
+            usage = getattr(response, 'usage_metadata', None)
+            if usage:
+                AiRequestLog.objects.create(
+                    parecer_referencia=parecer_obj,
+                    user=parecer_obj.user,
+                    provider='Gemini',
+                    fase=fase_nome,
+                    input_tokens=getattr(usage, 'prompt_token_count', 0),
+                    output_tokens=getattr(usage, 'candidates_token_count', 0)
+                )
+        except Exception as e:
+            print(f"Erro ao logar tokens Gemini: {e}")
 
     def upload_file(self, file_path):
         if not self.client or not file_path:
@@ -142,6 +174,7 @@ class GeminiClient:
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
+            self._log_tokens(parecer_obj, response, 'Fase 2 (DIR)')
             return response.text
         except Exception as e:
             return f"Erro ao acessar Gemini na Fase 2: {str(e)}.\n"
@@ -183,6 +216,7 @@ class GeminiClient:
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
+            self._log_tokens(parecer_obj, response, 'Fase 4 (Extração)')
             return response.text.strip()
         except Exception as e:
             return f"Erro ao extrair tese via LLM: {str(e)}"
@@ -221,6 +255,7 @@ class GeminiClient:
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
+            self._log_tokens(parecer_obj, response, 'Fase 4 (Refinamento)')
             return response.text.strip()
         except Exception as e:
             return f"Erro ao refinar tese via LLM: {str(e)}"
@@ -312,6 +347,7 @@ class GeminiClient:
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
+            self._log_tokens(parecer_obj, response, 'Fase 4 (Análise Mérito)')
             return response.text
         except Exception as e:
             return f"Erro ao acessar Gemini na Fase 4: {str(e)}.\n"
@@ -431,6 +467,7 @@ class GeminiClient:
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
+            self._log_tokens(parecer_obj, response, 'Fase 5 (Parecer)')
             return response.text
         except Exception as e:
             return f"Erro ao acessar Gemini: {str(e)}.\nFalha ao gerar parecer via LLM."
@@ -472,6 +509,7 @@ class GeminiClient:
                 contents=[prompt],
                 config={'system_instruction': system_instruction, 'temperature': 0.1}
             )
+            self._log_tokens(parecer_obj, response, 'Fase 6 (Auditoria)')
             return response.text
         except Exception as e:
             return f"⚠️ Auditoria Qualitativa offline. Resultado puramente matemático operando."
@@ -482,7 +520,7 @@ class VertexAIClient:
         self.location = os.environ.get('VERTEX_LOCATION', 'global')
         self.data_store_id = os.environ.get('VERTEX_DATA_STORE_ID')
 
-    def search_documents(self, query, top_k=5):
+    def search_documents(self, parecer_obj, query, top_k=5):
         if not self.project_id or not self.data_store_id:
             return "Simulação (Vertex AI): Motor de busca interno não configurado. Adicione os IDs no .env."
 
@@ -502,6 +540,20 @@ class VertexAIClient:
             )
             
             response = client.search(request)
+            
+            try:
+                if parecer_obj:
+                    from .models import AiRequestLog
+                    AiRequestLog.objects.create(
+                        parecer_referencia=parecer_obj,
+                        user=parecer_obj.user,
+                        provider='Vertex AI (Search)',
+                        fase='Pesquisa Base (RAG)',
+                        input_tokens=0,
+                        output_tokens=1
+                    )
+            except Exception:
+                pass
             
             resultados = []
             for result in response.results:

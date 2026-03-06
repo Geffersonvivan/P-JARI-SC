@@ -466,8 +466,8 @@ class JariEngine:
             import concurrent.futures
             
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                v_future = executor.submit(vertex.search_documents, tese)
-                p_future = executor.submit(perplexity.search_tese, tese)
+                v_future = executor.submit(vertex.search_documents, self.parecer, tese)
+                p_future = executor.submit(perplexity.search_tese, self.parecer, tese)
                 
                 vertex_result = v_future.result()
                 perplexity_result = p_future.result()
@@ -516,9 +516,9 @@ class JariEngine:
                 p_future = None
                 
                 if not self.parecer.vertex_result:
-                    v_future = executor.submit(vertex.search_documents, tese)
+                    v_future = executor.submit(vertex.search_documents, self.parecer, tese)
                 if not self.parecer.perplexity_result:
-                    p_future = executor.submit(perplexity.search_tese, tese)
+                    p_future = executor.submit(perplexity.search_tese, self.parecer, tese)
                 
                 vertex_result = v_future.result() if v_future else self.parecer.vertex_result
                 perplexity_result = p_future.result() if p_future else self.parecer.perplexity_result

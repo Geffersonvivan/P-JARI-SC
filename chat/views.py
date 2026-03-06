@@ -721,3 +721,130 @@ def reorder_folders_view(request):
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+@login_required
+def estatisticas_gerais_view(request):
+    if not getattr(request.user.profile, 'can_view_global_stats', False) and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Acesso Negado. Você não tem permissão para visualizar estatísticas globais.")
+        
+    from django.utils import timezone
+    from datetime import timedelta
+    from django.db.models.functions import TruncDate
+    import calendar
+    from datetime import date
+    from .models import Parecer, ParecerFinal, AiRequestLog
+    
+    hoje = timezone.localtime(timezone.now()).date()
+    try:
+        mes = int(request.GET.get('mes', hoje.month))
+        ano = int(request.GET.get('ano', hoje.year))
+    except (ValueError, TypeError):
+        mes = hoje.month
+        ano = hoje.year
+        
+    _, ultimo_dia_mes = calendar.monthrange(ano, mes)
+    
+    # 1. Total Julgado Global
+    total_julgados_global = Parecer.objects.filter(
+        is_saved=True,
+        created_at__year=ano,
+        created_at__month=mes
+    ).count()
+    
+    tempo_poupado_horas = (total_julgados_global * 40) // 60
+    total_usuarios_ativos = Parecer.objects.filter(is_saved=True, created_at__year=ano, created_at__month=mes).values('user').distinct().count()
+    
+    # 2. Taxa Deferimento Global
+    pareceres_base = Parecer.objects.filter(
+        is_saved=True,
+        created_at__year=ano,
+        created_at__month=mes
+    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
+    
+    total_finais = pareceres_base.count()
+    deferidos = 0
+    indeferidos = 0
+    
+    for p in pareceres_base:
+        final_db = p.pareceres_finais.last()
+        texto_analise = final_db.conteudo_html if final_db else p.parecer_final
+        if texto_analise and "INDEFERID" in texto_analise.upper():
+            indeferidos += 1
+        else:
+            deferidos += 1
+            
+    donut_series = [deferidos, indeferidos]
+    taxa_deferimento = int((deferidos / total_finais) * 100) if total_finais > 0 else 0
+    taxa_indeferimento = int((indeferidos / total_finais) * 100) if total_finais > 0 else 0
+    
+    # 3. Gráfico Temporal (Linha)
+    pareceres_por_dia = (
+        Parecer.objects.filter(
+            is_saved=True, 
+            created_at__year=ano,
+            created_at__month=mes
+        )
+        .annotate(data=TruncDate('created_at'))
+        .values('data')
+        .annotate(total=Count('id'))
+        .order_by('data')
+    )
+    
+    datas = []
+    totais_por_dia = []
+    dados_dict = {item['data']: item['total'] for item in pareceres_por_dia}
+    for dia in range(1, ultimo_dia_mes + 1):
+        data_atual = date(ano, mes, dia)
+        datas.append(data_atual.strftime('%d/%m'))
+        totais_por_dia.append(dados_dict.get(data_atual, 0))
+        
+    # 4. Uso de API (Custos e Tokens)
+    from django.db.models import Sum
+    logs = AiRequestLog.objects.filter(data_requisicao__year=ano, data_requisicao__month=mes)
+    
+    tokens_gemini = logs.filter(provider__icontains='Gemini').aggregate(
+        in_t=Sum('input_tokens'), out_t=Sum('output_tokens')
+    )
+    tokens_perplexity = logs.filter(provider__icontains='Perplexity').aggregate(
+        in_t=Sum('input_tokens'), out_t=Sum('output_tokens')
+    )
+    consultas_vertex = logs.filter(provider__icontains='Vertex').count()
+    
+    custo_gemini = (tokens_gemini['in_t'] or 0) * (0.075 / 1000000) + (tokens_gemini['out_t'] or 0) * (0.30 / 1000000)
+    custo_perplexity = (consultas_vertex * 0.005) + ((tokens_perplexity['in_t'] or 0) + (tokens_perplexity['out_t'] or 0)) * (1.00 / 1000000)
+    
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).order_by('-created_at'))
+    pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
+    pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
+        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
+    ).first()
+    pastas = Pasta.objects.filter(user=request.user).exclude(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
+        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
+    ).order_by('-created_at')
+    
+    context = {
+        'total_julgados': total_julgados_global,
+        'tempo_poupado_horas': tempo_poupado_horas,
+        'taxa_deferimento': taxa_deferimento,
+        'taxa_indeferimento': taxa_indeferimento,
+        'deferidos_count': deferidos,
+        'indeferidos_count': indeferidos,
+        'total_usuarios_ativos': total_usuarios_ativos,
+        'donut_series': json.dumps(donut_series),
+        'grafico_datas': json.dumps(datas),
+        'grafico_totais': json.dumps(totais_por_dia),
+        'pasta_outros': pasta_outros,
+        'pastas': pastas,
+        'ano_selecionado': ano,
+        'mes_selecionado': mes,
+        'tokens_gemini_in': f"{(tokens_gemini['in_t'] or 0):,}".replace(',','.'),
+        'tokens_gemini_out': f"{(tokens_gemini['out_t'] or 0):,}".replace(',','.'),
+        'tokens_perplexity_in': f"{(tokens_perplexity['in_t'] or 0):,}".replace(',','.'),
+        'tokens_perplexity_out': f"{(tokens_perplexity['out_t'] or 0):,}".replace(',','.'),
+        'consultas_vertex': consultas_vertex,
+        'custo_gemini': f"US$ {custo_gemini:.4f}",
+        'custo_perplexity': f"US$ {custo_perplexity:.4f}",
+    }
+    
+    return render(request, 'dashboard_global.html', context)

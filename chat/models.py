@@ -138,6 +138,19 @@ class PjariCacheEntry(models.Model):
         return f"{self.cache_key} (Usos: {self.hit_count})"
 
 
+class AiRequestLog(models.Model):
+    parecer_referencia = models.ForeignKey(Parecer, on_delete=models.CASCADE, related_name='ai_logs', null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ai_logs')
+    provider = models.CharField(max_length=50) # Gemini, Perplexity, Vertex
+    fase = models.CharField(max_length=50, blank=True, null=True)
+    input_tokens = models.IntegerField(default=0)
+    output_tokens = models.IntegerField(default=0)
+    data_requisicao = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        nome_usuario = self.user.username if self.user else "Anon"
+        return f"{self.provider} - Fase {self.fase} - User: {nome_usuario}"
+        
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     is_pro = models.BooleanField(default=False)
@@ -145,6 +158,7 @@ class UserProfile(models.Model):
     mp_customer_id = models.CharField(max_length=255, blank=True, null=True)
     subscription_status = models.CharField(max_length=50, default='inactive')
     viu_boas_vindas = models.BooleanField(default=False)
+    can_view_global_stats = models.BooleanField(default=False, verbose_name="Ver Painel Global")
     
     def __str__(self):
         return f"Profile: {self.user.username} - PRO: {self.is_pro}"
