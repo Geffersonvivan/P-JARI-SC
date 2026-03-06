@@ -273,11 +273,11 @@ class GeminiClient:
             "3. Com base exclusiva nas normas do RAG e Perplexity, gere OBRIGATORIAMENTE DOIS BLOCOS para cada tese:\n"
             "   - Tese X – Alternativa (a) – Acolhimento: Explicar, em texto corrido, a linha de raciocínio que levaria ao ACOLHIMENTO da tese. Indicar dispositivos, resoluções e premissas fáticas que sustentam isso.\n"
             "   - Tese X – Alternativa (b) – Não acolhimento: Explicar, em texto corrido, a linha de raciocínio que levaria ao NÃO ACOLHIMENTO. Indicar dispositivos legais que sustentam a manutenção do auto, considerando ausência de provas e presunção de legitimidade.\n"
+            "   - IMEDIATAMENTE após terminar o texto da Alternativa (B) para uma tese, pule uma linha e insira OBRIGATORIAMENTE a tag exata: [DECISAO_TESE_X] (onde X é o número da tese).\n"
             "4. PROIBIDO: Não concluir 'Acolhida' ou 'Não acolhida', não criar teses novas, não presuma argumento implícito, não agrupe teses.\n"
-            "5. MENÚ INTERATIVO DE DECISÃO: Ao final das análises de todas as teses, você DEVE gerar tags de sistema para que o site desenhe botões na tela. A tag obrigatória para cada tese tem o formato exato: [DECISAO_TESE_X] (onde X é o número da tese).\n"
-            "Exemplo Exato e Obrigatório (sem aspas):\n"
-            "[DECISAO_TESE_1]\n"
-            "[DECISAO_TESE_2]\n"
+            "5. MENÚ INTERATIVO DE DECISÃO: Não agrupe as tags no final do texto. Cada tag deve aparecer logo abaixo da sua respectiva tese. Exemplo visual final de uma tese:\n"
+            "   Tese 1 - Alternativa (b) - Não acolhimento: [texto da defesa]\n"
+            "   [DECISAO_TESE_1]\n"
         )
         
         prompt_text = (
