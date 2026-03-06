@@ -360,7 +360,7 @@ def chat_message_view(request):
                     if tipo == "PREJUDICIALIDADE":
                         msg = "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto...*"
                     else:
-                        msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O JARI enviará um aviso visual quando o Parecer for concluído...*"
+                        msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O P-JARI irá disponibilizar o Parecer logo abaixo quando for concluído...*"
                         
                     return JsonResponse({
                         'reply': msg,
