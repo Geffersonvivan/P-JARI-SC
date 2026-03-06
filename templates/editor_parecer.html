@@ -178,11 +178,33 @@
             }
         });
 
-        function saveAsWord() {
+        async function saveAsWord() {
             const editorInstance = tinymce.get('editor');
             if (!editorInstance) return;
 
-            const htmlContent = editorInstance.getContent();
+            // Transforma o conteúdo em DOM para manipulação
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = editorInstance.getContent();
+
+            // MS Word bloqueia URLs externas por padrão de segurança
+            // Vamos converter todas as imagens nativamente para Base64 antes de exportar
+            const images = tempDiv.querySelectorAll('img');
+            for (let img of images) {
+                try {
+                    const response = await fetch(img.src);
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    const base64data = await new Promise((resolve) => {
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.readAsDataURL(blob);
+                    });
+                    img.src = base64data;
+                } catch (e) {
+                    console.error('Erro ao converter imagem para base64 no Word Export:', e);
+                }
+            }
+
+            const htmlContent = tempDiv.innerHTML;
 
             // Cabeçalho obrigatório do Microsoft Word para abrir HTML como documento editável nativo
             var header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
