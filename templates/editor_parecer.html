@@ -211,12 +211,20 @@
                             let rawData = b64Match[2];
                             let contentId = "image_" + i + "@jari.sc";
 
-                            // Força dimensões fixas no HTML p/ o Word não esticar
+                            // Busca a proporção original real da imagem renderizada no editor da tela do usuário
+                            let w = 150, h = 85;
+                            const origNode = editorInstance.dom.select('img')[i];
+                            if (origNode) {
+                                w = origNode.clientWidth || origNode.naturalWidth || origNode.width || 150;
+                                h = origNode.clientHeight || origNode.naturalHeight || origNode.height || 85;
+                            }
+
+                            // Força dimensões exatas no HTML p/ o Word não esticar
                             img.setAttribute('src', 'cid:' + contentId);
-                            img.setAttribute('width', '150');
-                            img.setAttribute('height', '85');
-                            img.style.width = '150px';
-                            img.style.height = '85px';
+                            img.setAttribute('width', w);
+                            img.setAttribute('height', h);
+                            img.style.width = w + 'px';
+                            img.style.height = h + 'px';
 
                             mhtmlBottom += "--NEXT.PART\n";
                             mhtmlBottom += "Content-Location: " + contentId + "\n";
