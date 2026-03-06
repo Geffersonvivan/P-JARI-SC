@@ -151,10 +151,11 @@
         }
 
         function confirmExportDownload() {
+            const action = pendingExportAction;
             closeExportModal();
-            if (pendingExportAction === 'pdf') {
+            if (action === 'pdf') {
                 saveAsPDF();
-            } else if (pendingExportAction === 'word') {
+            } else if (action === 'word') {
                 saveAsWord();
             }
         }
