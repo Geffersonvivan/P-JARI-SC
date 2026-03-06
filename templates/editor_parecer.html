@@ -190,6 +190,18 @@
             let mhtmlBottom = "\n";
             for (let i = 0; i < images.length; i++) {
                 let img = images[i];
+
+                // Força as dimensões reais renderizadas como atributos fixos no HTML, 
+                // pois o MS Word ignora CSS e distorce imagens sem W/H definidos.
+                const originalImg = editorInstance.dom.select('img')[i];
+                if (originalImg) {
+                    img.width = originalImg.clientWidth || originalImg.width || 150;
+                    img.height = originalImg.clientHeight || originalImg.height || 100;
+                    // Limpa o style inline para não conflitar
+                    img.style.width = "";
+                    img.style.height = "";
+                    img.style.aspectRatio = "";
+                }
                 try {
                     const response = await fetch(img.src);
                     const blob = await response.blob();
