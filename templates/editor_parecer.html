@@ -182,14 +182,14 @@
             const editorInstance = tinymce.get('editor');
             if (!editorInstance) return;
 
-            // Transforma o conteúdo em DOM para manipulação
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = editorInstance.getContent();
 
-            // MS Word bloqueia URLs externas por padrão de segurança
-            // Vamos converter todas as imagens nativamente para Base64 antes de exportar
+            // Gerar MHTML multipart container para o MS Word aceitar a imagem embargada
             const images = tempDiv.querySelectorAll('img');
-            for (let img of images) {
+            let mhtmlBottom = "\n";
+            for (let i = 0; i < images.length; i++) {
+                let img = images[i];
                 try {
                     const response = await fetch(img.src);
                     const blob = await response.blob();
@@ -198,30 +198,46 @@
                         reader.onloadend = () => resolve(reader.result);
                         reader.readAsDataURL(blob);
                     });
-                    img.src = base64data;
+
+                    // Extrai a base crua sem a tag "data:image/..."
+                    let uri = base64data;
+                    let b64Match = uri.match(/^data:(image\/[^;]+);base64,(.+)$/);
+                    if (b64Match && b64Match.length > 2) {
+                        let contentType = b64Match[1];
+                        let rawData = b64Match[2];
+                        let contentId = "image_" + i + ".png"; // fake ID
+
+                        img.src = "cid:" + contentId; // Substitui o html src pela Content-ID local do MHTML
+
+                        // Acrescenta os bytes da imagem ao arquivo final
+                        mhtmlBottom += "--NEXT.PART\n";
+                        mhtmlBottom += "Content-Location: " + contentId + "\n";
+                        mhtmlBottom += "Content-Transfer-Encoding: base64\n";
+                        mhtmlBottom += "Content-Type: " + contentType + "\n\n";
+                        mhtmlBottom += rawData + "\n\n";
+                    }
                 } catch (e) {
-                    console.error('Erro ao converter imagem para base64 no Word Export:', e);
+                    console.error('Erro de conversão base64', e);
                 }
             }
 
             const htmlContent = tempDiv.innerHTML;
 
-            // Cabeçalho obrigatório do Microsoft Word para abrir HTML como documento editável nativo
-            var header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+            // Monta o arquivo .mht final compatível 100% com Suítes Office
+            let mhtmlHeader = "MIME-Version: 1.0\n";
+            mhtmlHeader += "Content-Type: multipart/related; boundary=\"NEXT.PART\"\n\n";
+            mhtmlHeader += "--NEXT.PART\n";
+            mhtmlHeader += "Content-Type: text/html; charset=\"utf-8\"\n\n";
+            mhtmlHeader += "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
                 "xmlns:w='urn:schemas-microsoft-com:office:word' " +
                 "xmlns='http://www.w3.org/TR/REC-html40'>" +
-                "<head><meta charset='utf-8'><title>Export HTML to Word</title></head><body>";
+                "<head><meta charset='utf-8'><title>Parecer</title></head><body>" + htmlContent + "</body></html>\n\n";
 
-            var footer = "</body></html>";
+            const sourceMHTML = mhtmlHeader + mhtmlBottom + "--NEXT.PART--";
 
-            // Monta o arquivo concatenado
-            var sourceHTML = header + htmlContent + footer;
+            const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceMHTML);
 
-            // Converte num Blob legível pelas suítes Office
-            var source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
-
-            // Cria um link fantasma e baixa
-            var link = document.createElement("a");
+            const link = document.createElement("a");
             document.body.appendChild(link);
             link.href = source;
             link.download = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.doc';
