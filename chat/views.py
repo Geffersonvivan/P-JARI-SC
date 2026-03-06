@@ -352,6 +352,23 @@ def chat_message_view(request):
                 engine = JariEngine(parecer)
                 reply = engine.process_message(message, uploaded_files)
                 
+                if reply.startswith("CELERY_TASK_ID:"):
+                    parts = reply.split(":")
+                    task_id = parts[1]
+                    tipo = parts[2]
+                    
+                    if tipo == "PREJUDICIALIDADE":
+                        msg = "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto...*"
+                    else:
+                        msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O JARI enviará um aviso visual quando o Parecer for concluído...*"
+                        
+                    return JsonResponse({
+                        'reply': msg,
+                        'status_fase': parecer.status_fase,
+                        'task_id': task_id,
+                        'is_processing': True
+                    })
+                
                 return JsonResponse({
                     'reply': reply,
                     'status_fase': parecer.status_fase
@@ -372,6 +389,34 @@ def chat_message_view(request):
             pass
         traceback.print_exc()
         return JsonResponse({'error': str(e), 'trace': trace}, status=500)
+
+def check_task_status_view(request, task_id):
+    """View endpoint para o frontend perguntar (poll) a cada x segundos se a tarefa pesada de IA no Celery acabou."""
+    from celery.result import AsyncResult
+    task = AsyncResult(task_id)
+    
+    if task.state == 'SUCCESS':
+        parecer_id = request.GET.get('parecer_id')
+        if parecer_id:
+            from .models import Parecer
+            try:
+                p = Parecer.objects.get(id=parecer_id)
+                reply = (
+                    f"**Fase 5: Parecer Técnico Gerado com Sucesso!**\n\n"
+                    f"{p.parecer_final}\n\n"
+                    f"---\n\n"
+                    f"**DIGITE ok para auditoria final em tela (Fase 6).**"
+                )
+                return JsonResponse({'status': 'SUCCESS', 'reply': reply, 'status_fase': p.status_fase})
+            except Exception as e:
+                return JsonResponse({'status': 'FAILURE', 'error': f"Parecer não encontrado. {e}"})
+                
+        return JsonResponse({'status': 'SUCCESS', 'reply': "Tarefa concluída, mas Parecer ID não fornecido.", 'status_fase': 6})
+        
+    elif task.state == 'FAILURE':
+        return JsonResponse({'status': 'FAILURE', 'error': str(task.info)})
+        
+    return JsonResponse({'status': 'PROCESSING'})
 
 def planos_view(request):
     if not request.session.session_key:

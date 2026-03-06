@@ -217,7 +217,10 @@ class JariEngine:
                     
                     self.parecer.tese = f"MÉRITO PREJUDICADO ({' / '.join(motivo)})."
                     self.parecer.save()
-                    return "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n" + self.run_llm_phases()
+                    
+                    from chat.tasks import gerar_parecer_task
+                    task = gerar_parecer_task.delay(self.parecer.id)
+                    return f"CELERY_TASK_ID:{task.id}:PREJUDICIALIDADE"
                 else:
                     return self.run_phase_4_extraction()
             else:
@@ -252,7 +255,10 @@ class JariEngine:
             
             self.parecer.status_fase = 5
             self.parecer.save()
-            return self.run_llm_phases()
+            
+            from chat.tasks import gerar_parecer_task
+            task = gerar_parecer_task.delay(self.parecer.id)
+            return f"CELERY_TASK_ID:{task.id}:MERITO"
         
         elif fase == 6:
             if message.lower().strip() == 'ok':
@@ -262,7 +268,9 @@ class JariEngine:
 
         elif fase == 5:
             # Acionado caso seja intempestivo e tenha pulado a fase 4
-            return self.run_llm_phases()
+            from chat.tasks import gerar_parecer_task
+            task = gerar_parecer_task.delay(self.parecer.id)
+            return f"CELERY_TASK_ID:{task.id}:DIRETO"
 
         elif fase == 7:
             from .models import Pasta
