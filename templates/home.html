@@ -854,8 +854,13 @@
         function formatMessage(text) {
             // Configurar marked para abrir links em nova aba
             const renderer = new marked.Renderer();
-            renderer.link = function (href, title, text) {
-                return `<a href="${href}" target="_blank" rel="noopener noreferrer" ${title ? `title="${title}"` : ''}>${text}</a>`;
+            renderer.link = function (token) {
+                // Suporte para versões antigas do marked (< v13) e novas (v13+)
+                const href = typeof token === 'string' ? arguments[0] : token.href;
+                const title = typeof token === 'string' ? arguments[1] : token.title;
+                const text = typeof token === 'string' ? arguments[2] : token.text;
+
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline" ${title ? `title="${title}"` : ''}>${text}</a>`;
             };
             marked.setOptions({ renderer: renderer });
 
