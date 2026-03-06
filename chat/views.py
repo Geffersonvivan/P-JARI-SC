@@ -812,7 +812,8 @@ def estatisticas_gerais_view(request):
     consultas_vertex = logs.filter(provider__icontains='Vertex').count()
     
     custo_gemini = (tokens_gemini['in_t'] or 0) * (0.075 / 1000000) + (tokens_gemini['out_t'] or 0) * (0.30 / 1000000)
-    custo_perplexity = (consultas_vertex * 0.005) + ((tokens_perplexity['in_t'] or 0) + (tokens_perplexity['out_t'] or 0)) * (1.00 / 1000000)
+    custo_perplexity = ((tokens_perplexity['in_t'] or 0) + (tokens_perplexity['out_t'] or 0)) * (1.00 / 1000000)
+    custo_vertex = consultas_vertex * 0.005
     
     projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).order_by('-created_at'))
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
@@ -845,6 +846,7 @@ def estatisticas_gerais_view(request):
         'consultas_vertex': consultas_vertex,
         'custo_gemini': f"US$ {custo_gemini:.4f}",
         'custo_perplexity': f"US$ {custo_perplexity:.4f}",
+        'custo_vertex': f"US$ {custo_vertex:.4f}",
     }
     
     return render(request, 'dashboard_global.html', context)
