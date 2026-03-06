@@ -188,7 +188,7 @@ class GeminiClient:
             "Recursal indicada nas páginas. Siga a regra FASE 4 - EXTRAÇÃO DE TESES:\n"
             "a) Identificar cada tese explicitamente apresentada, sem inferência.\n"
             "b) Listar as teses separadamente (não agrupar).\n"
-            "c) Se a tese não tiver fundo jurídico (emoção, 'peço compreensão', etc.), classifique-a expressamente como 'Tese não jurídica' e trate como 'não acolhida por ausência de fundamento normativo'.\n"
+            "c) Sua tarefa NÃO é listar exaustivamente todas as teses, mas identificar apenas os principais GRUPOS de teses relevantes para o julgamento. Limite-se a, no máximo, 5 a 8 grupos de teses por processo, contemplando todas as teses, priorizando especialmente aquelas que podem impactar diretamente o resultado (nulidades relevantes, prescrição e mérito central), ainda que existam outras alegações secundárias no texto.\n"
             "d) Proibido: Criar tese não alegada, presumir argumento implícito, completar lacuna defensiva."
         )
         
@@ -396,8 +396,7 @@ class GeminiClient:
             "PRESCRIÇÃO E DECADÊNCIA\n\n"
             "3.1 Prescrição punitiva\n"
             "Infração: XXX\n"
-            "Instauração do processo administrativo: XXX\n"
-            "Outras datas importantes: XXX\n\n"
+            "Instauração do processo administrativo: XXX\n\n"
             "O intervalo entre os marcos é (inferior, igual, superior) ao prazo de cinco anos previsto na Lei nº 9.873/1999 para prescrição da pretensão punitiva da Administração.\n\n"
             "+ explicação normativa (2 linhas)\n\n"
             "+ Conclusão: configurada / não configurada.\n\n"
