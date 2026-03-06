@@ -251,12 +251,11 @@ class GeminiClient:
 
     def analyze_tese(self, parecer_obj, tese, perplexity_result, vertex_result):
         # Verifica Prejudicialidade Externa (Prescrição, Decadência, Intempestividade)
-        adm_text = parecer_obj.admissibilidade_texto or ""
         is_prejudicado = (
-            "Prescrição Punitiva: SIM" in adm_text or
-            "Prescrição Intercorrente: SIM" in adm_text or
-            "Decadência: SIM" in adm_text or
-            "Tempestivo: NÃO" in adm_text
+            parecer_obj.has_prescricao_punitiva or
+            parecer_obj.has_prescricao_intercorrente or
+            parecer_obj.has_decadencia or
+            parecer_obj.is_tempestivo is False
         )
         if is_prejudicado:
             return "Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal."
