@@ -55,8 +55,7 @@ class JariEngine:
         elif fase == 41: # Aguardando OK Tese
             return (
                 f"**Fase 4: Conclusão Prévia das Teses**\n\n"
-                f"{self.parecer.analise_tese_texto}\n\n"
-                f"Responda apenas com **'ok'** para aprovar a conclusão prévia e gerar o Parecer Técnico final."
+                f"{self.parecer.analise_tese_texto}"
             )
         elif fase == 5:
             return "Gerando Parecer Técnico Final em Bloco Único... (Aguarde...)"
