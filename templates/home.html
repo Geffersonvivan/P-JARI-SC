@@ -652,7 +652,7 @@
             return;
             {% endif %}
 
-            const name = prompt("Digite o nome ou número do processo para este parecer:");
+            const name = prompt("Digite o nome ou número para esta pasta:");
             if (name && name.trim() !== "") {
                 try {
                     const response = await fetch('/parecer/create/', {
