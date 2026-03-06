@@ -389,8 +389,20 @@
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
                     <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Créditos Lidos</h3>
-                    <div class="text-4xl font-bold text-[#9b72cb]">{{ total_julgados }} / 40</div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">Plano Padrão</p>
+                    <div class="text-4xl font-bold text-[#9b72cb]">
+                        {% if is_pro %}
+                        ∞
+                        {% else %}
+                        {{ total_usos_global }} / {{ creditos_usuario }}
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 font-medium">
+                        {% if is_pro %}
+                        Plano Ilimitado
+                        {% else %}
+                        Plano Padrão
+                        {% endif %}
+                    </p>
                 </div>
             </div>
 

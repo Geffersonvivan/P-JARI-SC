@@ -561,16 +561,28 @@ def estatisticas_view(request):
     tempo_poupado_minutos = total_julgados * 40
     tempo_poupado_horas = tempo_poupado_minutos // 60
     
-    # 3. Taxa de Deferimento (ParecerFinal vinculados aos Pareceres do usuario)
-    pareceres_finais = ParecerFinal.objects.filter(
-        parecer_referencia__user=request.user,
-        parecer_referencia__created_at__year=ano,
-        parecer_referencia__created_at__month=mes
-    )
-    total_finais = pareceres_finais.count()
+    # 3. Taxa de Deferimento e Indeferimento
+    pareceres_base = Parecer.objects.filter(
+        user=request.user,
+        is_saved=True,
+        created_at__year=ano,
+        created_at__month=mes
+    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
     
-    deferidos = pareceres_finais.filter(status_resultado__icontains='DEFERIDO').exclude(status_resultado__icontains='INDEFERIDO').count()
-    indeferidos = pareceres_finais.filter(status_resultado__icontains='INDEFERIDO').count()
+    total_finais = pareceres_base.count()
+    deferidos = 0
+    indeferidos = 0
+    
+    for p in pareceres_base:
+        # Se tem parecer final editado e salvo, usa ele
+        final_db = p.pareceres_finais.last()
+        texto_analise = final_db.conteudo_html if final_db else p.parecer_final
+        
+        # O default do JariEngine é escrever "...RESULTADO: INDEFERIDO..." e afins
+        if texto_analise and "INDEFERID" in texto_analise.upper():
+            indeferidos += 1
+        else:
+            deferidos += 1
     
     # Adicionando contagem limpa pro grafico Donut
     donut_series = [deferidos, indeferidos]
@@ -646,6 +658,15 @@ def estatisticas_view(request):
         num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
     ).order_by('-created_at')
     
+    # --- Créditos Variáveis ---
+    total_usos_global = Parecer.objects.filter(user=request.user, is_saved=True).count()
+    try:
+        creditos_usuario = request.user.profile.credits
+        is_pro = request.user.profile.is_pro
+    except Exception:
+        creditos_usuario = 0
+        is_pro = False
+        
     context = {
         'total_julgados': total_julgados,
         'tempo_poupado_horas': tempo_poupado_horas,
@@ -661,6 +682,9 @@ def estatisticas_view(request):
         'pastas': pastas,
         'ano_selecionado': ano,
         'mes_selecionado': mes,
+        'total_usos_global': total_usos_global,
+        'creditos_usuario': creditos_usuario,
+        'is_pro': is_pro,
     }
     
     return render(request, 'dashboard.html', context)
