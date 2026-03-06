@@ -264,21 +264,20 @@ class GeminiClient:
              return "Simulação: Resultar em: Conclusão: acolhida/não acolhida. (acolhida)"
              
         system_instruction = (
-            "Você é o Assessor P-JARI/SC (Fase 4 Avançada). As regras OBRIGATÓRIAS SÃO:\n"
-            "1. Para cada tese apresentada, transcreva uma síntese objetiva da alegação.\n"
-            "2. PRESUNÇÃO DE LEGITIMIDADE DOS ATOS ADMINISTRATIVOS: Na dúvida, prevalece o relato do agente de trânsito e documentos oficiais (AIT, notificações, portarias). Contudo, SEMPRE VERIFIQUE:\n"
-            "   (a) Falhas formais graves visíveis nos autos (AIT em branco, falta de laudos obrigatórios). Ex: acolhimento contra Inmetro depende de prova *robusta* ou erro material grave do agente.\n"
-            "   (b) Se a defesa anexou prova documental *concreta e idônea* (fotos evidentes, vídeos, certidões).\n"
-            "3. Confronto com as Provas (para cada tese):\n"
-            "   - Se não houver prova cabal em contrário nem falha formal: registrar que prevalece o relato do agente (documentação oficial).\n"
-            "   - Se houver prova idônea ou falha formal: justificar o acolhimento da tese, sobrepujando a presunção.\n"
-            "4. Só classifique 'não acolhida por falta de prova' após constatar que *não há qualquer documento robusto que a sustente* e *os autos não revelam falha formal*.\n"
-            "5. FUNDAMENTAÇÃO E RAG: Fundamente o mérito de forma robusta e cite a hierarquia normativa exclusivamente baseada no 'RAG Inventário Normativo', usando Perplexity apenas subsidiariamente. NÃO CRIE NORMAS INEXISTENTES.\n"
-            "6. PROIBIÇÕES ABSOLUTAS: Não crie tese não alegada, não presuma argumento, não complete lacuna defensiva, e **não agrupe teses distintas**.\n"
-            "7. Ao final de CADA TESE analisada, você deve OBRIGATORIAMENTE escrever e pular de linha:\n"
-            "   'Conclusão: Acolhida.'\n"
-            "   ou\n"
-            "   'Conclusão: Não acolhida.'\n"
+            "Você é o Assessor P-JARI/SC (Fase 4 Avançada - Consultiva). As regras OBRIGATÓRIAS SÃO:\n"
+            "1. PRESUNÇÃO DE LEGITIMIDADE DOS ATOS ADMINISTRATIVOS: Na dúvida, prevalece o relato do agente de trânsito e os documentos oficiais constantes do processo (AIT, notificações, portarias, despachos, relatórios). Contudo, essa presunção é relativa. Sempre verifique as provas.\n"
+            "   (a) Falhas formais graves visíveis nos autos ou prova documental *concreta e idônea* (fotos evidentes, vídeos, certidões).\n"
+            "2. Para cada tese identificada (Tese 1, Tese 2, Tese 3, ...), proceder assim, SEM decidir pelo julgador:\n"
+            "   - Transcrever síntese objetiva da alegação.\n"
+            "   - Confrontar com a prova constante no AIT e processo.\n"
+            "3. Com base exclusiva nas normas do RAG e Perplexity, gere OBRIGATORIAMENTE DOIS BLOCOS para cada tese:\n"
+            "   - Tese X – Alternativa (a) – Acolhimento: Explicar, em texto corrido, a linha de raciocínio que levaria ao ACOLHIMENTO da tese. Indicar dispositivos, resoluções e premissas fáticas que sustentam isso.\n"
+            "   - Tese X – Alternativa (b) – Não acolhimento: Explicar, em texto corrido, a linha de raciocínio que levaria ao NÃO ACOLHIMENTO. Indicar dispositivos legais que sustentam a manutenção do auto, considerando ausência de provas e presunção de legitimidade.\n"
+            "4. PROIBIDO: Não concluir 'Acolhida' ou 'Não acolhida', não criar teses novas, não presuma argumento implícito, não agrupe teses.\n"
+            "5. QUADRO-RESUMO: Ao final das análises de todas as teses, você DEVE apresentar um quadro-resumo para o julgador exatamente neste formato:\n"
+            "   Tese 1: opções possíveis – \"1 a\" (acolher) ou \"1 b\" (não acolher)\n"
+            "   Tese 2: opções possíveis – \"2 a\" (acolher) ou \"2 b\" (não acolher)\n"
+            "   [E assim sucessivamente para as demais teses]\n"
         )
         
         prompt_text = (
@@ -287,8 +286,9 @@ class GeminiClient:
             f"Documentos Anexos: Documento 'consolidado' + 'autuação'\n\n"
             f"RAG Inventário Normativo Google (VERTEX): {vertex_result}\n"
             f"Pesquisa Auxiliar (PERPLEXITY): {perplexity_result}\n\n"
-            "Prossiga com a Análise das Teses isoladamente. Aplique a REGRA DA PRESUNÇÃO DE LEGITIMIDADE avaliando se há provas/falhas formais no AIT. Termine obrigatoriamente a fundamentação de cada tese com 'Conclusão: Acolhida.' ou 'Conclusão: Não acolhida.'. Ao final de tudo o julgamento do mérito, pule algumas linhas e escreva a exata string:\n\n"
-            "Confirme 'ok' ou indique divergência."
+            "Exponha as alternativas (a) e (b) justificadas para cada tese isoladamente.\n"
+            "Ao final, após exibir o quadro-resumo, instrua o julgador terminando o texto OBRIGATORIAMENTE com esta exata mensagem:\n\n"
+            "**Informe, obrigatoriamente, a opção escolhida para cada tese, no formato:**\n1 a\n2 a\n3 b\n\nA decisão final (deferimento ou indeferimento) será definida exclusivamente com base nas suas escolhas."
         )
         
         contents = [prompt_text]
@@ -337,7 +337,8 @@ class GeminiClient:
             "3. PROSA FLUIDA: Redija em parágrafos contínuos, com a coesão lapidar de um Juiz. Converta dados numéricos em explicações naturais (Ex: 'O intervalo foi de X dias, não superando o prazo legal'). Evite letreiros engessados e subtópicos em demasia na argumentação.\n"
             "4. SINTAXE PROIBIDA: Texto sem emojis, sem comandos sistêmicos ou que revelem sua natureza de IA.\n"
             "5. COMPATIBILIDADE LEAL: Se a Admissibilidade ditar Prescrição/Decadência, o Resultado Obrigatório deve ser DEFERIDO, "
-            "e a seção de Teses Defensivas conter exclusivamente a declaração de prejudicialidade. Se Intempestivo sem extinção, INDEFERIDO.\n\n"
+            "e a seção de Teses Defensivas conter exclusivamente a declaração de prejudicialidade. Se Intempestivo sem extinção, INDEFERIDO.\n"
+            "6. ACATAMENTO OBRIGATÓRIO (MÉRITO): Na seção de 'Teses Defensivas', você DEVE ler as escolhas absolutas feitas pelo julgador e EXCLUIR as argumentações descartadas por ele. TRANSCREVA e incorpore ao Parecer APENAS o raciocínio da Alternativa exigida pelo Magistrado (A ou B), sem questioná-la. Seu papel é apenas consolidar a redação final da decisão escolhida.\n\n"
             "GERAR O PARECER SEGUINDO ESTA ESTRUTURA DIRETA:\n\n"
             "PARECER JARI\n"
             "PROCESSO: [PA]\n"

@@ -230,12 +230,30 @@ class JariEngine:
             return self.analise_tese_fase_4()
             
         elif fase == 41:
-            if message.lower().strip() == 'ok':
-                self.parecer.status_fase = 5
-                self.parecer.save()
-                return self.run_llm_phases()
-            else:
-                return "Responda 'ok' para prosseguir."
+            escolhas = message.lower().strip()
+            
+            if not escolhas:
+                return "Por favor, informe a opção escolhida para cada tese (Ex: 1 a, 2 b)."
+                
+            if "a" not in escolhas and "b" not in escolhas:
+                return "Não identifiquei as opções 'a' ou 'b' na sua resposta. Digite no formato: 1 a, 2 b"
+            
+            resultado_marcado = "DEFERIDO" if "a" in escolhas else "INDEFERIDO"
+            
+            # Anexar as escolhas do julgador à tese para municiar a Fase 5
+            self.parecer.analise_tese_texto += (
+                f"\n\n--- DECISÕES ABSOLUTAS DO JULGADOR ---\n"
+                f"Escolhas informadas: {escolhas}\n"
+                f"RESULTADO EXIGIDO NESTE PARECER: {resultado_marcado}\n"
+                f"DIRETRIZ FASE 5: Você DEVE acatar as alternativas escolhidas ("
+                f"se o julgador escolheu 'a', transcreva a linha de raciocínio da Alternativa A de acolhimento; "
+                f"se escolheu 'b', transcreva a Alternativa B de não acolhimento). "
+                f"Ignore a alternativa descartada. O resultado final deve ser {resultado_marcado}."
+            )
+            
+            self.parecer.status_fase = 5
+            self.parecer.save()
+            return self.run_llm_phases()
         
         elif fase == 6:
             if message.lower().strip() == 'ok':
