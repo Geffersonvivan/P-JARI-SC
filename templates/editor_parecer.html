@@ -9,7 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.3.1/html-docx.min.js"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -185,18 +184,25 @@
 
             const htmlContent = editorInstance.getContent();
 
-            // Montamos um HTML base padrão aceito pela conversão de Word do html-docx
-            var content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Parecer</title></head><body>${htmlContent}</body></html>`;
+            // Cabeçalho obrigatório do Microsoft Word para abrir HTML como documento editável nativo
+            var header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+                "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+                "xmlns='http://www.w3.org/TR/REC-html40'>" +
+                "<head><meta charset='utf-8'><title>Export HTML to Word</title></head><body>";
 
-            // Chama a biblioteca externa htmlDocx para converter
-            var converted = htmlDocx.asBlob(content, { orientation: 'portrait' });
+            var footer = "</body></html>";
 
-            // Usa abordagem nativa de download criar Blob e link fantasma
-            var link = document.createElement('a');
-            link.href = URL.createObjectURL(converted);
-            link.download = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.docx';
-            link.style.display = 'none';
+            // Monta o arquivo concatenado
+            var sourceHTML = header + htmlContent + footer;
+
+            // Converte num Blob legível pelas suítes Office
+            var source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+
+            // Cria um link fantasma e baixa
+            var link = document.createElement("a");
             document.body.appendChild(link);
+            link.href = source;
+            link.download = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.doc';
             link.click();
             document.body.removeChild(link);
         }
