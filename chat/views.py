@@ -290,15 +290,8 @@ def chat_message_view(request):
             # Novo bloco para buscar O RESUMO DE APENAS UM ÚNICO PROJETO ESPECÍFICO
             elif message.strip() == 'RESUMO_PROJETO' and parecer_id:
                 p = get_object_or_404(Parecer, id=parecer_id, is_saved=True, **filter_kwargs)
-                sgpe_text = p.sgpe if p.sgpe else p.nome_processo
                 
-                from django.utils import timezone
-                data_local = timezone.localtime(p.updated_at) if p.updated_at else None
-                data_julgamento = data_local.strftime("%d/%m/%Y") if data_local else ""
-                hora_julgamento = data_local.strftime("%H:%M") if data_local else ""
-                
-                reply = f"**O motor identificou a seleção do projeto Parecer ({sgpe_text}) julgado na data {data_julgamento}, às {hora_julgamento} horas.**\n\n"
-                reply += f"--- \n"
+                reply = ""
                 
                 if p.parecer_final:
                     reply += f"{p.parecer_final}\n\n"
