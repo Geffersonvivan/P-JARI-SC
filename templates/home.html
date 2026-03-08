@@ -183,7 +183,11 @@
                                 {% for p in pasta.projetos.all %}
                                 <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                                     onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
-                                    <span class="truncate w-32">• {{ p.nome_processo }}</span>
+                                    <span class="truncate w-32"
+                                        title="Parecer {{ p.recorrente|default:'' }} {% if p.sgpe or p.pa %}({{ p.sgpe|default:p.pa }}){% else %}{{ p.nome_processo }}{% endif %}">
+                                        • Parecer {{ p.recorrente|default:'' }} {% if p.sgpe or p.pa %}({{
+                                        p.sgpe|default:p.pa }}){% else %}{{ p.nome_processo }}{% endif %}
+                                    </span>
                                     <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
                                         onclick="event.stopPropagation()">
                                         <button onclick="openMoveModal('{{ p.id }}', '{{ pasta.id }}')"
