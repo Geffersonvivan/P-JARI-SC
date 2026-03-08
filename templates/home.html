@@ -391,17 +391,25 @@
         <section id="chat-window" class="flex-1 overflow-y-auto p-4 flex flex-col">
             <div id="home-screen" class="flex-1 flex flex-col items-center justify-center">
                 <div class="content-container text-center mb-12">
-                    <h1 class="text-2xl font-light mb-6 text-gray-500 leading-[1.4]">
+                    <h1 class="text-2xl font-light mb-8 text-gray-500 leading-[1.4]">
                         Seja bem-vindo(a) ao P‑JARI/SC<br />
                         Sistema de apoio técnico aos Membros Julgadores da<br />
                         Junta Administrativa de Recursos de Infrações (JARI) de Santa Catarina
                     </h1>
+                    <button id="btn-iniciar-processo"
+                        class="bg-[#e4f0fc] text-blue-600 px-8 py-3 rounded-full hover:bg-blue-200 focus:outline-none transition font-medium text-lg shadow-sm flex items-center justify-center gap-3 mx-auto"
+                        onclick="iniciarNovoProcesso()">
+                        Iniciar Processo
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" />
+                        </svg>
+                    </button>
                 </div>
             </div>
             <div id="messages-container" class="content-container space-y-6 pb-10"></div>
         </section>
 
-        <footer class="p-6 pb-[5vh]">
+        <footer id="chat-footer" class="p-6 pb-[5vh] hidden-home">
             <div class="content-container relative">
                 {% if not request.user.is_authenticated %}
                 <div class="input-bar flex items-center p-4 opacity-60 cursor-pointer bg-gray-50"
@@ -588,6 +596,21 @@
         function closeLoginModal() {
             document.getElementById('login-modal').classList.add('hidden');
         }
+
+        function iniciarNovoProcesso() {
+            {% if not request.user.is_authenticated %}
+            showLoginModal();
+            return;
+            {% endif %}
+
+            const footer = document.getElementById('chat-footer');
+            if (footer) footer.classList.remove('hidden-home');
+
+            // Simular o envio da palavra "Iniciar"
+            userInput.value = "Iniciar";
+            sendMessage();
+        }
+
         const sidebar = document.getElementById('sidebar');
         const btnOpenSidebar = document.getElementById('btn-open-sidebar');
         const headerTitle = document.getElementById('header-title');
@@ -787,6 +810,7 @@
             // Limpa chat
             messagesContainer.innerHTML = '';
             homeScreen.classList.add('hidden-home');
+            document.getElementById('chat-footer').classList.remove('hidden-home');
 
             // Simula clique de inicialização do bot pro processo
             const welcomeDiv = document.createElement('div');
@@ -831,6 +855,7 @@
             // Limpa chat
             messagesContainer.innerHTML = '';
             homeScreen.classList.add('hidden-home');
+            document.getElementById('chat-footer').classList.remove('hidden-home');
 
             const welcomeDiv = document.createElement('div');
             welcomeDiv.className = "flex justify-start items-start gap-3 mt-4";
@@ -1008,6 +1033,7 @@
             userInput.placeholder = "Mensagem ou comando...";
 
             homeScreen.classList.add('hidden-home');
+            document.getElementById('chat-footer').classList.remove('hidden-home');
 
             const userDiv = document.createElement('div');
             userDiv.className = "flex justify-end mt-4";
