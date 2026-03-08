@@ -185,8 +185,12 @@
                                     onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
                                     <span class="truncate w-32"
                                         title="Parecer {{ p.recorrente|default:'' }} {% if p.sgpe or p.pa %}({{ p.sgpe|default:p.pa }}){% else %}{{ p.nome_processo }}{% endif %}">
-                                        • Parecer {{ p.recorrente|default:'' }} {% if p.sgpe or p.pa %}({{
-                                        p.sgpe|default:p.pa }}){% else %}{{ p.nome_processo }}{% endif %}
+                                        • Parecer {{ p.recorrente|default:'' }}
+                                        {% if p.sgpe or p.pa %}
+                                        ({{ p.sgpe|default:p.pa }})
+                                        {% else %}
+                                        {{ p.nome_processo }}
+                                        {% endif %}
                                     </span>
                                     <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
                                         onclick="event.stopPropagation()">
