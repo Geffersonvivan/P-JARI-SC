@@ -330,7 +330,6 @@ def chat_message_view(request):
                     parecer = Parecer.objects.create(user=request.user, nome_processo=nome_temporario, is_saved=False)
                 else:
                     parecer = Parecer.objects.create(session_key=request.session.session_key, nome_processo=nome_temporario, is_saved=False)
-                parecer_id = parecer.id
                 
                 from .jari_engine import JariEngine
                 engine = JariEngine(parecer)
