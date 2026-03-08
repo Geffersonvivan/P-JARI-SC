@@ -528,13 +528,17 @@
             <p class="text-sm text-gray-500 mb-4">Selecione para qual pasta deseja mover este parecer:</p>
 
             <input type="hidden" id="move-parecer-id">
+            <input type="hidden" id="move-pasta-select">
 
-            <select id="move-pasta-select"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-6 outline-none focus:border-blue-500 bg-gray-50 text-gray-700">
+            <div class="max-h-60 overflow-y-auto mb-6 pr-2 space-y-2 custom-scrollbar" id="move-pasta-list">
                 {% for p in pastas %}
-                <option value="{{ p.id }}">📁 {{ p.nome_pasta }}</option>
+                <div data-pasta-id="{{ p.id }}" onclick="selectMovePasta('{{ p.id }}', this)"
+                    class="pasta-option cursor-pointer flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all select-none">
+                    <div class="text-xl">📁</div>
+                    <div class="font-medium text-gray-700">{{ p.nome_pasta }}</div>
+                </div>
                 {% endfor %}
-            </select>
+            </div>
 
             <div class="flex justify-end gap-3 w-full">
                 <button onclick="closeMoveModal()"
@@ -1214,17 +1218,34 @@
         // --- Move Parecer Functions ---
         function openMoveModal(parecerId, currentPastaId) {
             document.getElementById('move-parecer-id').value = parecerId;
-            const select = document.getElementById('move-pasta-select');
+            document.getElementById('move-pasta-select').value = currentPastaId;
 
-            // Seleciona a pasta atual por padrão no dropdown
-            for (let i = 0; i < select.options.length; i++) {
-                if (select.options[i].value === currentPastaId) {
-                    select.selectedIndex = i;
-                    break;
+            document.querySelectorAll('.pasta-option').forEach(el => {
+                el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
+                el.classList.add('border-gray-200');
+
+                if (el.getAttribute('data-pasta-id') === currentPastaId) {
+                    el.classList.remove('border-gray-200');
+                    el.classList.add('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
                 }
-            }
+            });
 
             document.getElementById('move-modal').classList.remove('hidden');
+
+            const selectedItem = document.querySelector(`.pasta-option[data-pasta-id="${currentPastaId}"]`);
+            if (selectedItem) {
+                setTimeout(() => selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+            }
+        }
+
+        function selectMovePasta(pastaId, element) {
+            document.getElementById('move-pasta-select').value = pastaId;
+            document.querySelectorAll('.pasta-option').forEach(el => {
+                el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
+                el.classList.add('border-gray-200');
+            });
+            element.classList.remove('border-gray-200');
+            element.classList.add('border-blue-500', 'bg-blue-50', 'ring-2', 'ring-blue-200');
         }
 
         function closeMoveModal() {
