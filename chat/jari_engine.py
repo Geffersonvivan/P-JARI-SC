@@ -218,7 +218,8 @@ class JariEngine:
                     
                     from chat.tasks import gerar_parecer_task
                     task = gerar_parecer_task.delay(self.parecer.id)
-                    return f"CELERY_TASK_ID:{task.id}:PREJUDICIALIDADE"
+                    import json
+                    return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
                 else:
                     return self.run_phase_4_extraction()
             else:
@@ -256,7 +257,8 @@ class JariEngine:
             
             from chat.tasks import gerar_parecer_task
             task = gerar_parecer_task.delay(self.parecer.id)
-            return f"CELERY_TASK_ID:{task.id}:MERITO"
+            import json
+            return json.dumps({"status": "celery", "task_id": task.id, "type": "MERITO"})
         
         elif fase == 6:
             if message.lower().strip() == 'ok':
@@ -268,7 +270,8 @@ class JariEngine:
             # Acionado caso seja intempestivo e tenha pulado a fase 4
             from chat.tasks import gerar_parecer_task
             task = gerar_parecer_task.delay(self.parecer.id)
-            return f"CELERY_TASK_ID:{task.id}:DIRETO"
+            import json
+            return json.dumps({"status": "celery", "task_id": task.id, "type": "DIRETO"})
 
         elif fase == 7:
             from .models import Pasta

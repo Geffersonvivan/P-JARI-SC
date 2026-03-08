@@ -26,12 +26,13 @@ class TestJariMath(TestCase):
 
     def test_decadencia_antiga(self):
         # A) Antes de 12/04/2021 (Somente avalia 30 dias de Autuação)
-        data_inf = datetime.date(2020, 1, 1)
-        data_aut_ok = datetime.date(2020, 1, 31) # 30 dias
-        data_aut_ruim = datetime.date(2020, 2, 1) # 31 dias
+        # Usando 01/01/2021 para não cair no desconto Covid (<= 30/11/2020)
+        data_inf = datetime.date(2021, 1, 1)
+        data_aut_ok = datetime.date(2021, 1, 31) # 30 dias
+        data_aut_ruim = datetime.date(2021, 2, 1) # 31 dias
         
-        self.assertFalse(JariMath.check_decadencia(data_inf, data_aut_ok))
-        self.assertTrue(JariMath.check_decadencia(data_inf, data_aut_ruim))
+        self.assertFalse(JariMath.check_decadencia(data_inf, data_aut_ok)[0])
+        self.assertTrue(JariMath.check_decadencia(data_inf, data_aut_ruim)[0])
 
     def test_decadencia_transicao(self):
         # B) Entre 12/04/21 e 22/10/21 (180 autuação, 360 final)
@@ -40,7 +41,7 @@ class TestJariMath(TestCase):
         data_dec_ok = datetime.date(2022, 1, 1) # < 360
         data_dec_ruim = datetime.date(2023, 1, 1) # > 360
         
-        self.assertFalse(JariMath.check_decadencia(data_inf, data_aut_ok, data_dec_ok))
-        self.assertTrue(JariMath.check_decadencia(data_inf, data_aut_ok, data_dec_ruim))
+        self.assertFalse(JariMath.check_decadencia(data_inf, data_aut_ok, data_dec_ok)[0])
+        self.assertTrue(JariMath.check_decadencia(data_inf, data_aut_ok, data_dec_ruim)[0])
 
 print("Script de Teste Criado.")

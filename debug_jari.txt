@@ -46,3 +46,367 @@ Traceback (most recent call last):
 django.http.response.Http404: No Parecer matches the given query.
 
 
+ERRO CHAT: 
+Retry limit exceeded while trying to reconnect to the Celery redis result store backend. The Celery application must be restarted.
+
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 855, in connect_check_health
+    sock = self.retry.call_with_retry(
+        lambda: self._connect(), lambda error: self.disconnect(error)
+    )
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/retry.py", line 116, in call_with_retry
+    return do()
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 856, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1306, in _connect
+    raise err
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1290, in _connect
+    sock.connect(socket_address)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+ConnectionRefusedError: [Errno 61] Connection refused
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 130, in reconnect_on_error
+    yield
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 180, in _consume_from
+    self._pubsub.subscribe(key)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 1090, in subscribe
+    ret_val = self.execute_command("SUBSCRIBE", *new_channels.keys())
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 914, in execute_command
+    self.connection = self.connection_pool.get_connection()
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/utils.py", line 196, in wrapper
+    return func(*args, **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 2603, in get_connection
+    connection.connect()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 846, in connect
+    self.connect_check_health(check_health=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 863, in connect_check_health
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 855, in connect_check_health
+    sock = self.retry.call_with_retry(
+        lambda: self._connect(), lambda error: self.disconnect(error)
+    )
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/retry.py", line 116, in call_with_retry
+    return do()
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 856, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1306, in _connect
+    raise err
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1290, in _connect
+    sock.connect(socket_address)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+ConnectionRefusedError: [Errno 61] Connection refused
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 133, in reconnect_on_error
+    self._ensure(self._reconnect_pubsub, ())
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 428, in ensure
+    return retry_over_time(
+        fun, self.connection_errors, args, {},
+        partial(self.on_connection_error, max_retries),
+        **retry_policy)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/kombu/utils/functional.py", line 318, in retry_over_time
+    return fun(*args, **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 109, in _reconnect_pubsub
+    metas = self.backend.client.mget(self.subscribed_to)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/commands/core.py", line 2091, in mget
+    return self.execute_command("MGET", *args, **options)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 657, in execute_command
+    return self._execute_command(*args, **options)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 663, in _execute_command
+    conn = self.connection or pool.get_connection()
+                              ~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/utils.py", line 196, in wrapper
+    return func(*args, **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 2603, in get_connection
+    connection.connect()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 846, in connect
+    self.connect_check_health(check_health=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 863, in connect_check_health
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/chat/views.py", line 359, in chat_message_view
+    reply = engine.process_message(message, uploaded_files)
+  File "/Volumes/D/P-Jari/chat/jari_engine.py", line 258, in process_message
+    task = gerar_parecer_task.delay(self.parecer.id)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/app/task.py", line 444, in delay
+    return self.apply_async(args, kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/app/task.py", line 608, in apply_async
+    return app.send_task(
+           ~~~~~~~~~~~~~^
+        self.name, args, kwargs, task_id=task_id, producer=producer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        **options
+        ^^^^^^^^^
+    )
+    ^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/app/base.py", line 946, in send_task
+    self.backend.on_task_call(P, task_id)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 417, in on_task_call
+    self.result_consumer.consume_from(task_id)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 172, in consume_from
+    return self.start(task_id)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 150, in start
+    self._consume_from(initial_task_id)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 179, in _consume_from
+    with self.reconnect_on_error():
+         ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 136, in reconnect_on_error
+    raise RuntimeError(E_RETRY_LIMIT_EXCEEDED) from e
+RuntimeError: 
+Retry limit exceeded while trying to reconnect to the Celery redis result store backend. The Celery application must be restarted.
+
+
+
+ERRO CHAT: 
+Retry limit exceeded while trying to reconnect to the Celery redis result store backend. The Celery application must be restarted.
+
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 855, in connect_check_health
+    sock = self.retry.call_with_retry(
+        lambda: self._connect(), lambda error: self.disconnect(error)
+    )
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/retry.py", line 116, in call_with_retry
+    return do()
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 856, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1306, in _connect
+    raise err
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1290, in _connect
+    sock.connect(socket_address)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+ConnectionRefusedError: [Errno 61] Connection refused
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 130, in reconnect_on_error
+    yield
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 180, in _consume_from
+    self._pubsub.subscribe(key)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 1090, in subscribe
+    ret_val = self.execute_command("SUBSCRIBE", *new_channels.keys())
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 914, in execute_command
+    self.connection = self.connection_pool.get_connection()
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/utils.py", line 196, in wrapper
+    return func(*args, **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 2603, in get_connection
+    connection.connect()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 846, in connect
+    self.connect_check_health(check_health=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 863, in connect_check_health
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 855, in connect_check_health
+    sock = self.retry.call_with_retry(
+        lambda: self._connect(), lambda error: self.disconnect(error)
+    )
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/retry.py", line 116, in call_with_retry
+    return do()
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 856, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1306, in _connect
+    raise err
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 1290, in _connect
+    sock.connect(socket_address)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+ConnectionRefusedError: [Errno 61] Connection refused
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 133, in reconnect_on_error
+    self._ensure(self._reconnect_pubsub, ())
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 428, in ensure
+    return retry_over_time(
+        fun, self.connection_errors, args, {},
+        partial(self.on_connection_error, max_retries),
+        **retry_policy)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/kombu/utils/functional.py", line 318, in retry_over_time
+    return fun(*args, **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 109, in _reconnect_pubsub
+    metas = self.backend.client.mget(self.subscribed_to)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/commands/core.py", line 2091, in mget
+    return self.execute_command("MGET", *args, **options)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 657, in execute_command
+    return self._execute_command(*args, **options)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/client.py", line 663, in _execute_command
+    conn = self.connection or pool.get_connection()
+                              ~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/utils.py", line 196, in wrapper
+    return func(*args, **kwargs)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 2603, in get_connection
+    connection.connect()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 846, in connect
+    self.connect_check_health(check_health=True)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/redis/connection.py", line 863, in connect_check_health
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 61 connecting to localhost:6379. Connection refused.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/chat/views.py", line 359, in chat_message_view
+    reply = engine.process_message(message, uploaded_files)
+  File "/Volumes/D/P-Jari/chat/jari_engine.py", line 270, in process_message
+    task = gerar_parecer_task.delay(self.parecer.id)
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/app/task.py", line 444, in delay
+    return self.apply_async(args, kwargs)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/app/task.py", line 608, in apply_async
+    return app.send_task(
+           ~~~~~~~~~~~~~^
+        self.name, args, kwargs, task_id=task_id, producer=producer,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        **options
+        ^^^^^^^^^
+    )
+    ^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/app/base.py", line 946, in send_task
+    self.backend.on_task_call(P, task_id)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 417, in on_task_call
+    self.result_consumer.consume_from(task_id)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 172, in consume_from
+    return self.start(task_id)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 150, in start
+    self._consume_from(initial_task_id)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 179, in _consume_from
+    with self.reconnect_on_error():
+         ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/site-packages/celery/backends/redis.py", line 136, in reconnect_on_error
+    raise RuntimeError(E_RETRY_LIMIT_EXCEEDED) from e
+RuntimeError: 
+Retry limit exceeded while trying to reconnect to the Celery redis result store backend. The Celery application must be restarted.
+
+
+
+ERRO CHAT: No Parecer matches the given query.
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/db/models/query.py", line 639, in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+chat.models.Parecer.DoesNotExist: Parecer matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/chat/views.py", line 350, in chat_message_view
+    parecer = get_object_or_404(Parecer, id=parecer_id, **filter_kwargs)
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+        "No %s matches the given query." % queryset.model._meta.object_name
+    )
+django.http.response.Http404: No Parecer matches the given query.
+
+
+ERRO CHAT: No Parecer matches the given query.
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/db/models/query.py", line 639, in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+chat.models.Parecer.DoesNotExist: Parecer matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/chat/views.py", line 350, in chat_message_view
+    parecer = get_object_or_404(Parecer, id=parecer_id, **filter_kwargs)
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+        "No %s matches the given query." % queryset.model._meta.object_name
+    )
+django.http.response.Http404: No Parecer matches the given query.
+
+
+ERRO CHAT: No Parecer matches the given query.
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/db/models/query.py", line 639, in get
+    raise self.model.DoesNotExist(
+        "%s matching query does not exist." % self.model._meta.object_name
+    )
+chat.models.Parecer.DoesNotExist: Parecer matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Volumes/D/P-Jari/chat/views.py", line 350, in chat_message_view
+    parecer = get_object_or_404(Parecer, id=parecer_id, **filter_kwargs)
+  File "/Volumes/D/P-Jari/venv/lib/python3.14/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+        "No %s matches the given query." % queryset.model._meta.object_name
+    )
+django.http.response.Http404: No Parecer matches the given query.
+
+

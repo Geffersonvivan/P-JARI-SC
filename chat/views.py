@@ -118,19 +118,17 @@ def editar_parecer_view(request, id):
             """
             
             # Converter markdown para HTML
-            paragrafos_raw = texto_gerado_pela_ia.split('\n\n')
-            texto_html = "".join([f"<p>{p.strip().replace('\n', '<br>')}</p>" for p in paragrafos_raw if p.strip()])
-            texto_html = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', texto_html)
+            import markdown
+            texto_html = markdown.markdown(texto_gerado_pela_ia, extensions=['nl2br', 'sane_lists', 'tables'])
             
             # Converter links no texto do parecer
-            texto_html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer">\1</a>', texto_html)
-            texto_html = re.sub(r'(?<!href="|href=\')\b(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])', r'<a href="\1" target="_blank" class="text-blue-500 hover:text-blue-700 underline truncate inline-block max-w-[250px] align-bottom" title="\1" rel="noopener noreferrer">\1</a>', texto_html)
+            texto_html = re.sub(r'<a ', r'<a target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer" ', texto_html)
             
             # Formatar dossiê se existir na View do Editor para passar pro PDF
             dossie_html = parecer.dossie_fontes or ""
             if dossie_html:
-                dossie_html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer">\1</a>', dossie_html)
-                dossie_html = re.sub(r'(?<!href="|href=\')\b(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])', r'<a href="\1" target="_blank" class="text-blue-500 hover:text-blue-700 underline truncate inline-block max-w-[250px] align-bottom" title="\1" rel="noopener noreferrer">Acessar Link</a>', dossie_html)
+                dossie_html = markdown.markdown(dossie_html, extensions=['nl2br', 'sane_lists', 'tables'])
+                dossie_html = re.sub(r'<a ', r'<a target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer" ', dossie_html)
                 parecer.dossie_fontes_html = dossie_html
             
             # Para o TinyMCE, um bloco flex ou div simples com text-align center é totalmente respeitado nativamente
@@ -144,8 +142,8 @@ def editar_parecer_view(request, id):
             
             parecer_gerado = f"{cabecalho_html}<div class='corpo'>{texto_html}</div>{rodape_centralizado}"
         else:
-            paragrafos_raw = texto_gerado_pela_ia.split('\n\n')
-            parecer_gerado = "".join([f"<p>{p.strip().replace('\n', '<br>')}</p>" for p in paragrafos_raw if p.strip()])
+            import markdown
+            parecer_gerado = markdown.markdown(texto_gerado_pela_ia, extensions=['nl2br', 'sane_lists', 'tables'])
 
     return render(request, 'editor_parecer.html', {
         'parecer': parecer,
@@ -351,22 +349,26 @@ def chat_message_view(request):
                 engine = JariEngine(parecer)
                 reply = engine.process_message(message, uploaded_files)
                 
-                if reply.startswith("CELERY_TASK_ID:"):
-                    parts = reply.split(":")
-                    task_id = parts[1]
-                    tipo = parts[2]
-                    
-                    if tipo == "PREJUDICIALIDADE":
-                        msg = "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto...*"
-                    else:
-                        msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O P-JARI irá disponibilizar o Parecer logo abaixo quando for concluído...*"
+                if reply.startswith('{"status": "celery"'):
+                    import json
+                    try:
+                        data_celery = json.loads(reply)
+                        task_id = data_celery.get("task_id")
+                        tipo = data_celery.get("type", "NORMAL")
                         
-                    return JsonResponse({
-                        'reply': msg,
-                        'status_fase': parecer.status_fase,
-                        'task_id': task_id,
-                        'is_processing': True
-                    })
+                        if tipo == "PREJUDICIALIDADE":
+                            msg = "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto...*"
+                        else:
+                            msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O P-JARI irá disponibilizar o Parecer logo abaixo quando for concluído...*"
+                            
+                        return JsonResponse({
+                            'reply': msg,
+                            'status_fase': parecer.status_fase,
+                            'task_id': task_id,
+                            'is_processing': True
+                        })
+                    except Exception:
+                        pass
                 
                 return JsonResponse({
                     'reply': reply,
@@ -380,13 +382,10 @@ def chat_message_view(request):
         return JsonResponse({'error': 'Mensagem inválida'}, status=400)
     except Exception as e:
         import traceback
+        import logging
+        logger = logging.getLogger(__name__)
         trace = traceback.format_exc()
-        try:
-            with open('debug_jari.txt', 'a') as f:
-                f.write(f"ERRO CHAT: {str(e)}\n\n{trace}\n\n")
-        except:
-            pass
-        traceback.print_exc()
+        logger.error(f"ERRO CHAT: {str(e)}\n\n{trace}")
         return JsonResponse({'error': str(e), 'trace': trace}, status=500)
 
 def check_task_status_view(request, task_id):
@@ -532,39 +531,38 @@ def mercadopago_webhook(request):
                 if payment.get("status") == "approved":
                     user_id = payment.get("external_reference")
                     if user_id:
-                        user = User.objects.get(id=user_id)
-                        # Descobrir qual o plano comprado baseado pelo valor na notificação para creditar corretamente
-                        trans_amount = payment.get("transaction_amount", 0)
-                        
-                        if trans_amount == 20.00:
-                            user.profile.credits += 1
-                        elif trans_amount == 720.00:
-                            user.profile.credits += 40
-                            user.profile.is_pro = True
-                            user.profile.subscription_status = "active"
-                        elif trans_amount == 1440.00:
-                            user.profile.credits += 80
-                            user.profile.is_pro = True
-                            user.profile.subscription_status = "active"
-                        else:
-                            # Caso padrão (se valor for diferente por algum desconto)
-                            user.profile.credits += 40
-                            user.profile.is_pro = True
+                        from django.db import transaction
+                        with transaction.atomic():
+                            user = User.objects.select_for_update().get(id=user_id)
+                            # Descobrir qual o plano comprado baseado pelo valor na notificação para creditar corretamente
+                            trans_amount = payment.get("transaction_amount", 0)
                             
-                        user.profile.save()
-                        print(f"Usuário {user.username} - Pagamento processado: {trans_amount}")
+                            if trans_amount == 20.00:
+                                user.profile.credits += 1
+                            elif trans_amount == 720.00:
+                                user.profile.credits += 40
+                                user.profile.is_pro = True
+                                user.profile.subscription_status = "active"
+                            elif trans_amount == 1440.00:
+                                user.profile.credits += 80
+                                user.profile.is_pro = True
+                                user.profile.subscription_status = "active"
+                            else:
+                                # Caso padrão (se valor for diferente por algum desconto)
+                                user.profile.credits += 40
+                                user.profile.is_pro = True
+                                
+                            user.profile.save()
+                            print(f"Usuário {user.username} - Pagamento processado: {trans_amount}")
                         
-                        # Disparar Email de notificação da compra para o Admin
-                        from django.core.mail import send_mail
-                        nome_cliente = user.get_full_name() or user.username
-                        email_cliente = user.email or 'N/A'
-                        send_mail(
-                            subject=f'✅ Nova Venda Confirmada: {nome_cliente}',
-                            message=f'Sucesso! Um pagamento de R$ {trans_amount} foi aprovado no Mercado Pago e os créditos foram liberados.\n\nDetalhes do Cliente:\nNome: {nome_cliente}\nEmail: {email_cliente}\nID do Pagamento: {payment_id}',
-                            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br'),
-                            recipient_list=['geffersonvivan@gmail.com'],
-                            fail_silently=True,
-                        )
+                        # Disparar Email de notificação da compra para o Admin via Celery
+                        try:
+                            from .tasks import send_payment_notification_task
+                            nome_cliente = user.get_full_name() or user.username
+                            email_cliente = user.email or 'N/A'
+                            send_payment_notification_task.delay(nome_cliente, email_cliente, trans_amount, payment_id)
+                        except Exception as em:
+                            print(f"Erro disparando webhook email: {em}")
                         
             return HttpResponse(status=200)
         except Exception as e:
