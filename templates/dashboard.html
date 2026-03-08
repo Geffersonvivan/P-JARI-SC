@@ -370,46 +370,54 @@
             </div>
 
             <!-- Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
-                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Total Julgado</h3>
-                    <div class="text-4xl font-bold text-[#4285f4]">{{ total_julgados }}</div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">Nesta conta</p>
+                    <h3 class="text-gray-500 font-medium text-xs mb-2 uppercase tracking-wider">Total Julgado</h3>
+                    <div class="text-3xl lg:text-4xl font-bold text-[#4285f4]">{{ total_julgados }}</div>
+                    <p class="text-[11px] text-gray-400 mt-2 font-medium">Nesta conta</p>
                 </div>
 
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
-                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Tempo Poupado</h3>
-                    <div class="text-4xl font-bold text-[#fbbc05]">{{ tempo_poupado_horas }}H</div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">~40 min por processo</p>
+                    <h3 class="text-gray-500 font-medium text-xs mb-2 uppercase tracking-wider">Tempo Julgamento</h3>
+                    <div class="text-3xl lg:text-4xl font-bold text-[#fbbc05]">{{ tempo_poupado_horas }}H</div>
+                    <p class="text-[11px] text-gray-400 mt-2 font-medium leading-tight text-wrap break-words">Total</p>
                 </div>
 
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
-                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Taxa Deferimento</h3>
-                    <div class="text-4xl font-bold text-[#34a853]">{{ taxa_deferimento }}%</div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">{{ deferidos_count }} Deferido(s)</p>
+                    <h3 class="text-gray-500 font-medium text-xs mb-2 uppercase tracking-wider">Média Processo</h3>
+                    <div class="text-3xl lg:text-4xl font-bold text-[#fbbc05]">~40M</div>
+                    <p class="text-[11px] text-gray-400 mt-2 font-medium leading-tight text-wrap break-words">
+                        Economizados por auto</p>
                 </div>
 
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
-                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Taxa Indeferimento</h3>
-                    <div class="text-4xl font-bold text-[#ea4335]">{{ taxa_indeferimento }}%</div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">{{ indeferidos_count }} Indeferido(s)</p>
+                    <h3 class="text-gray-500 font-medium text-xs mb-2 uppercase tracking-wider">Taxa Deferimento</h3>
+                    <div class="text-3xl lg:text-4xl font-bold text-[#34a853]">{{ taxa_deferimento }}%</div>
+                    <p class="text-[11px] text-gray-400 mt-2 font-medium">{{ deferidos_count }} Deferido(s)</p>
                 </div>
 
                 <div
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
-                    <h3 class="text-gray-500 font-medium text-sm mb-2 uppercase tracking-wider">Créditos Lidos</h3>
-                    <div class="text-4xl font-bold text-[#9b72cb]">
+                    <h3 class="text-gray-500 font-medium text-xs mb-2 uppercase tracking-wider">Taxa Indeferimento</h3>
+                    <div class="text-3xl lg:text-4xl font-bold text-[#ea4335]">{{ taxa_indeferimento }}%</div>
+                    <p class="text-[11px] text-gray-400 mt-2 font-medium">{{ indeferidos_count }} Indeferido(s)</p>
+                </div>
+
+                <div
+                    class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-gray-500 font-medium text-xs mb-2 uppercase tracking-wider">Créditos Lidos</h3>
+                    <div class="text-3xl lg:text-4xl font-bold text-[#9b72cb]">
                         {% if is_pro %}
                         ∞
                         {% else %}
                         {{ total_usos_global }} / {{ creditos_usuario }}
                         {% endif %}
                     </div>
-                    <p class="text-xs text-gray-400 mt-2 font-medium">
+                    <p class="text-[11px] text-gray-400 mt-2 font-medium">
                         {% if is_pro %}
                         Plano Ilimitado
                         {% else %}

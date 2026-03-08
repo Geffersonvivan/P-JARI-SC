@@ -304,14 +304,14 @@ class GeminiClient:
             "   (a) Falhas formais graves visíveis nos autos ou prova documental *concreta e idônea* (fotos evidentes, vídeos, certidões).\n"
             "2. Para cada tese identificada (Tese 1, Tese 2, Tese 3, ...), proceder assim, SEM decidir pelo julgador:\n"
             "   - Transcrever síntese objetiva da alegação, em apenas 2 linhas, no formato: 'Tese X – Síntese da alegação: ...'.\n"
-            "   - Confrontar com a prova constante no AIT e no processo, aplicando a regra de presunção de legitimidade acima, SEM acrescentar fatos não documentados, em apenas 2 linhas, no formato: 'Conjunto probatório: ...'.\n"
+            "   - Confrontar com a prova constante no AIT e no processo, aplicando a regra de presunção de legitimidade acima, SEM acrescentar fatos não documentados, em apenas 2 linhas. OBRIGATÓRIO: Pule uma linha dupla (\\n\\n) antes de iniciar e utilize o exato formato: 'Conjunto probatório: ...'.\n"
             "3. Com base exclusiva nas normas constantes do 'RAG Inventário Normativo vertx google' (Constituição Federal, CTB, leis federais, Resoluções CONTRAN, atos CETRAN/SC e Banco de Teses) e utilizando a IA apenas para redação, gerar OBRIGATORIAMENTE DOIS blocos, com LIMITE DE TAMANHO, assim:\n"
-            "   - Tese X – Alternativa (a) – Acolhimento (MÁXIMO 4 LINHAS): Explicar, em texto corrido e conciso (até 4 linhas), a linha de raciocínio para ACOLHIMENTO da tese, à luz do normativo (RAG), precedentes e prova dos autos. Indicar principais dispositivos/resoluções de forma objetiva. Deixar claro as premissas fáticas necessárias para sustentar essa alternativa.\n"
-            "   - Tese X – Alternativa (b) – Não acolhimento (MÁXIMO 4 LINHAS): Explicar, em texto corrido e conciso (até 4 linhas), a linha de raciocínio para NÃO ACOLHIMENTO, considerando a presunção de legitimidade, ausência de prova em contrário (se for o caso) e parâmetros do RAG. Indicar principais dispositivos legais aplicáveis. Deixar claro se a rejeição é por: (i) ausência de prova, (ii) irrelevância jurídica, ou (iii) incompatibilidade com entendimento consolidado.\n"
+            "   - Tese X – Alternativa (a) – Acolhimento: Explicar, em texto corrido e conciso (até 4 linhas), a linha de raciocínio para ACOLHIMENTO da tese, à luz do normativo (RAG), precedentes e prova dos autos. Indicar principais dispositivos/resoluções de forma objetiva. Deixar claro as premissas fáticas necessárias para sustentar essa alternativa.\n"
+            "   - Tese X – Alternativa (b) – Não acolhimento: Explicar, em texto corrido e conciso (até 4 linhas), a linha de raciocínio para NÃO ACOLHIMENTO, considerando a presunção de legitimidade, ausência de prova em contrário (se for o caso) e parâmetros do RAG. Indicar principais dispositivos legais aplicáveis. Deixar claro se a rejeição é por: (i) ausência de prova, (ii) irrelevância jurídica, ou (iii) incompatibilidade com entendimento consolidado.\n"
             "   - IMEDIATAMENTE após terminar o texto da Alternativa (B) para uma tese, pule uma linha e insira OBRIGATORIAMENTE a tag exata: [DECISAO_TESE_X] (onde X é o número da tese).\n"
             "4. PROIBIDO: Não concluir 'Acolhida' ou 'Não acolhida', não criar teses novas, não presuma argumento implícito, não agrupe teses.\n"
             "5. MENÚ INTERATIVO DE DECISÃO: Não agrupe as tags no final do texto. Cada tag deve aparecer logo abaixo da sua respectiva tese. Exemplo visual final de uma tese:\n"
-            "   Tese 1 - Alternativa (b) - Não acolhimento (MÁXIMO 4 LINHAS): [texto da defesa]\n"
+            "   Tese 1 - Alternativa (b) - Não acolhimento: [texto da defesa]\n"
             "   [DECISAO_TESE_1]\n"
         )
         
@@ -416,7 +416,7 @@ class GeminiClient:
             "Verificação de notificações e respeito ao contraditório + explicação normativa (art. 5º, LV, CF/88).\n\n"
             "Esta é a fundamentação.\n\n"
             "***DOSSIE_START***\n"
-            "[Cite apenas as leis e fundamentos em bullets pesquisando o link na WEB para a lei no formato Markdown, ex: * [CTB, Art. 165](url) ]\n"
+            "[Cite apenas as leis e fundamentos em bullets utilizando negrito para destacar a norma, ex: * **CTB, Art. 165** ]\n"
             "***DOSSIE_END***"
         )
         
@@ -479,6 +479,7 @@ class GeminiClient:
             "Você é o Auditor Corregedor do P-JARI/SC (Fase 6 - AUDITORIA).\n"
             "Sua única função é realizar um checklist sobre o Parecer Final submetido, cruzando a compatibilidade narrativa do Relator com a tabela matemática anterior.\n\n"
             "A Auditoria final apresentada deve ser FORMATADA EXCLUSIVAMENTE EM MARKDOWN (NÃO USE NENHUMA TAG HTML) DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
+            "OBRIGATÓRIO: Pule linha DUPLA (\\n\\n) no final de cada item de validação do checklist, para que eles não fiquem aglomerados em um único parágrafo.\n"
             "Classifique de forma estrita cada um dos blocos abaixo. Use ícones ricos como 🟢, 🔴, ⚠️.\n"
             "Exemplo visual: `**1. Identificação Processual:** 🟢 Conforme - O PA e SGPE coincidem com a base.`\n\n"
             "ITENS OBRIGATÓRIOS DO CHECKLIST:\n"

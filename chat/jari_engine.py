@@ -12,50 +12,48 @@ class JariEngine:
         
         if fase == 1:
             prefix = ""
-            if not self.parecer.data_sessao and not self.parecer.pa and not self.parecer.sgpe:
-                prefix = "**Iniciando Fase 1: Coleta e Identificação (F1)!**\n\n"
                 
             if not self.parecer.data_sessao:
-                return prefix + "1. Por favor, informe a **Data da Sessão de Julgamento** (DD/MM/AAAA):"
+                return prefix + "1. Informe a **Data da Sessão de Julgamento** (DD/MM/AAAA):"
             elif not self.parecer.pa:
-                return prefix + "2. Por favor, informe o número do **Processo Administrativo**:"
+                return prefix + "2. Informe o número do **Processo Administrativo**:"
             elif not self.parecer.sgpe:
-                return prefix + "3. Por favor, informe o número do **SGPE**:"
+                return prefix + "3. Informe o número do **SGPE**:"
             elif not self.parecer.prazo_final:
-                return prefix + "4. Por favor, informe o **Prazo Final para protocolo do recurso JARI** (DD/MM/AAAA):"
+                return prefix + "4. Informe o **Prazo Final para protocolo do recurso JARI** (DD/MM/AAAA):"
             elif not self.parecer.data_protocolo:
-                return prefix + "5. Por favor, informe a **Data do protocolo do recurso JARI** (DD/MM/AAAA):"
+                return prefix + "5. Informe a **Data do protocolo do recurso JARI** (DD/MM/AAAA):"
             elif not self.parecer.paginas_defesa:
-                return prefix + "6. Por favor, informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
+                return prefix + "6. Informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
             elif not self.parecer.autuacao_pdf_path:
-                return prefix + "7. Por favor, faça o upload dos arquivos **'Autuação' e 'Consolidado'** juntos e digite ok:"
+                return prefix + "7. Faça o upload dos arquivos **'Autuação' e 'Consolidado'** juntos."
             
             return "Fase 1 concluída."
 
         elif fase == 2:
             return (
                 f"{self.parecer.tabela_datas_sensiveis}\n\n"
-                f"Confirme **'ok'** ou indique a **divergência** antes de prosseguir para a Fase 3 (Tempestividade, Prescrições e Decadência)."
+                f"Digite **'ok'** para prosseguir."
             )
         elif fase == 3:
             return "Processando Prazos e Admissibilidade... (Simulando loading)"
         elif fase == 31: # Aguardando OK Admissibilidade
             return (
-                f"**Fase 3: Admissibilidade e Prazos**\n\n"
-                f"{self.parecer.admissibilidade_texto}\n\n"
-                f"Responda apenas com **'ok'** para prosseguir para a análise das teses, ou **'divergência'** para apontar erros."
+                f"{self.parecer.admissibilidade_texto}\n"
+                f"Digite **'ok'** para prosseguir."
             )
         elif fase == 4:
             return (
-                f"**Fase 4: Extração da Tese da Defesa**\n\n"
-                f"A inteligência analisou o recurso nas páginas informadas ({self.parecer.paginas_defesa}) e identificou a seguinte tese principal:\n\n"
+                f"**Extração da Tese da Defesa**\n\n"
+                f"O P-JARI analisou o recurso nas páginas informadas ({self.parecer.paginas_defesa}) e identificou a seguinte tese principal:\n\n"
                 f"**{self.parecer.tese}**\n\n"
-                f"Responda **'ok'** para validá-la e realizar a pesquisa jurisprudencial, ou **digite uma nova tese** para substituí-la."
+                f"Digite **'ok'** para prosseguir."
             )
         elif fase == 41: # Aguardando OK Tese
             return (
-                f"**Fase 4: Conclusão Prévia das Teses**\n\n"
-                f"{self.parecer.analise_tese_texto}"
+                f"**Conclusão Prévia das Teses**\n\n"
+                f"{self.parecer.analise_tese_texto}\n\n"
+                f"Digite **'ok'** para prosseguir."
             )
         elif fase == 5:
             return "Gerando Parecer Técnico Final em Bloco Único... (Aguarde...)"
@@ -286,7 +284,10 @@ class JariEngine:
                     
                     self.parecer.pasta = target_folder
                     sgpe = self.parecer.sgpe if self.parecer.sgpe else 'Sem SGPE'
-                    self.parecer.nome_processo = f"Parecer ({sgpe})"
+                    nome_usuario = f"{self.parecer.user.first_name} {self.parecer.user.last_name}".strip().upper()
+                    if not nome_usuario:
+                        nome_usuario = self.parecer.user.username.upper()
+                    self.parecer.nome_processo = f"Parecer {nome_usuario} {sgpe}"
                     self.parecer.is_saved = True
                     self.parecer.status_fase = 8
                     self.parecer.save()
@@ -389,13 +390,10 @@ class JariEngine:
         status_dec = "SIM" if self.parecer.has_decadencia else "NÃO"
         
         texto_status = (
-            f"**INÍCIO FASE 3: VERIFICAÇÃO DE PRAZOS E PRESCRIÇÕES OBRIGATÓRIAS**\n\n"
-            f"--- ⚖️ **CÁLCULOS TÉCNICOS EFETUADOS NA FASE 3 DO ROTEIRO** ---\n"
             f"- **Tempestivo**: {status_temp}\n"
             f"- **Prescrição Punitiva (>= 5 anos)**: {status_pun}\n"
             f"- **Prescrição Intercorrente (> 3 anos)**: {status_inter}\n"
             f"- **Decadência**: {status_dec}\n"
-            f"**[TRAVA JARI - EVIDÊNCIAS DA DECADÊNCIA APLICADA]**\n{relatorio_decadencia}\n\n"
         )
         
         self.parecer.admissibilidade_texto = texto_status
@@ -587,14 +585,12 @@ class JariEngine:
         self.parecer.status_fase = 6
         self.parecer.save()
         
-        final_response = (
-            f"**Fase 5: Parecer Técnico Gerado com Sucesso!**\n\n"
-            f"{parecer_text}\n\n"
+        return (
+            f"**Parecer Técnico Gerado com Sucesso!**\n\n"
+            f"{self.parecer.parecer_final}\n\n"
             f"---\n\n"
-            f"**DIGITE ok para auditoria final em tela (Fase 6).**"
-        )
-        
-        return final_response
+            f"Digite **'ok'** para prosseguir."
+        )      
         
     def run_phase_6(self):
         """Executa a Fase 6 — AUDITORIA EM TELA (Índice de Blindagem)."""
@@ -641,14 +637,17 @@ class JariEngine:
         checklist_texto = gemini.audit_parecer(self.parecer)
         
         report = f"### 🛡️ Auditoria Final de Conformidade\n\n"
-        report += f"**Índice de Blindagem JariMath:** {int(indice)}%\n\n"
         
         if indice != 100:
             report += f"⚠️ **Inconsistências Críticas (JariMath):**\n{self.parecer.blindagem_detalhes}\n\n"
-        else:
-            report += f"🟢 **Conformidade Matemática Integral.**\n\n"
             
         report += f"---\n\n{checklist_texto}\n\n"
+        
+        report += f"---\n\n"
+        if indice == 100:
+             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM 100% ✅**\n\n"
+        else:
+             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM {int(indice)}% ⚠️**\n\n"
             
         report += f"---\n{self.get_current_prompt()}" # Vai chamar a F7 da Pasta
         

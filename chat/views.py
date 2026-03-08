@@ -273,8 +273,9 @@ def chat_message_view(request):
             parecer_id = data.get('parecer_id')
             pasta_id = data.get('pasta_id')
             uploaded_files = []
-
-        if message:
+        message = message or ""
+        
+        if message or uploaded_files:
             
             # Novo bloco para buscar resumo da pasta com todos os seus projetos
             if message.strip() == 'RESUMO' and pasta_id:
@@ -327,7 +328,13 @@ def chat_message_view(request):
                         return JsonResponse({'requires_plan': True})
 
                 from datetime import datetime
-                nome_temporario = f"Processo {datetime.now().strftime('%d/%m %H:%M')}"
+                if request.user.is_authenticated:
+                    nome_usuario = f"{request.user.first_name} {request.user.last_name}".strip().upper()
+                    if not nome_usuario:
+                        nome_usuario = request.user.username.upper()
+                else:
+                    nome_usuario = "VISITANTE"
+                nome_temporario = f"Parecer {nome_usuario} {datetime.now().strftime('%d/%m %H:%M')}"
                 # is_saved=False indica que é um rascunho temporário ativo no chat
                 if request.user.is_authenticated:
                     parecer = Parecer.objects.create(user=request.user, nome_processo=nome_temporario, is_saved=False)
@@ -402,10 +409,10 @@ def check_task_status_view(request, task_id):
             try:
                 p = Parecer.objects.get(id=parecer_id)
                 reply = (
-                    f"**Fase 5: Parecer Técnico Gerado com Sucesso!**\n\n"
+                    f"**Parecer Técnico Gerado com Sucesso!**\n\n"
                     f"{p.parecer_final}\n\n"
                     f"---\n\n"
-                    f"**DIGITE ok para auditoria final em tela (Fase 6).**"
+                    f"Digite **'ok'** para prosseguir."
                 )
                 return JsonResponse({'status': 'SUCCESS', 'reply': reply, 'status_fase': p.status_fase})
             except Exception as e:

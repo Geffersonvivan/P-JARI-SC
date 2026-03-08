@@ -105,12 +105,12 @@
         {% if not request.user.is_authenticated %}
         <button id="btn-parecer" onclick="showLoginModal()"
             class="flex items-center gap-3 p-4 bg-[#d3e3fd] hover:bg-[#c2d7f7] rounded-2xl text-sm font-medium mb-8 transition shadow-sm opacity-60 text-gray-500">
-            <span class="text-xl">+</span> Pasta Parecer
+            <span class="text-xl">+</span> Pastas Pareceres
         </button>
         {% else %}
         <button id="btn-parecer"
             class="flex items-center gap-3 p-4 bg-[#d3e3fd] hover:bg-[#c2d7f7] rounded-2xl text-sm font-medium mb-8 transition shadow-sm">
-            <span class="text-xl">+</span> Pasta Parecer
+            <span class="text-xl">+</span> Pastas Pareceres
         </button>
         {% endif %}
 
@@ -394,8 +394,9 @@
                     <h1 class="text-2xl font-light mb-8 text-gray-500 leading-[1.4]">
                         Seja bem-vindo(a) ao P‑JARI/SC<br />
                         Sistema de apoio técnico aos Membros Julgadores da<br />
-                        Junta Administrativa de Recursos de Infrações (JARI) de Santa Catarina
+                        Junta Administrativa de Recursos de Infrações (JARI) de Santa Catarina.
                     </h1>
+                    {% if request.user.is_authenticated %}
                     <button id="btn-iniciar-processo"
                         class="bg-[#e4f0fc] text-blue-600 px-8 py-3 rounded-full hover:bg-blue-200 focus:outline-none transition font-medium text-lg shadow-sm flex items-center justify-center gap-3 mx-auto"
                         onclick="iniciarNovoProcesso()">
@@ -404,6 +405,7 @@
                             <path d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" />
                         </svg>
                     </button>
+                    {% endif %}
                 </div>
             </div>
             <div id="messages-container" class="content-container space-y-6 pb-10"></div>
@@ -458,8 +460,9 @@
                     </div>
                 </div>
                 {% endif %}
-                <p class="text-[11px] text-center mt-[2vh] text-gray-500">
-                    ⚠️ <strong>ATENÇÃO:</strong> a análise e a decisão final são de responsabilidade do Membro Julgador.
+                <p class="text-sm text-center mt-[2vh] text-gray-500">
+                    ⚠️ <strong>ATENÇÃO:</strong> a análise do processo e a decisão final são de responsabilidade
+                    exclusiva do Membro Julgador.
                 </p>
             </div>
         </footer>
@@ -1020,7 +1023,7 @@
             {% endif %}
 
             const text = userInput.value.trim();
-            if (text === "") return;
+            if (text === "" && selectedFiles.length === 0) return;
 
             const isIniciar = text.toLowerCase() === 'iniciar';
 
@@ -1054,7 +1057,7 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Processando análise técnica para o P-JARI/SC...
+                    Processando a análise técnica...
                 </div>
             `;
             messagesContainer.appendChild(jariDiv);
