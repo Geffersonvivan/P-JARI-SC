@@ -244,140 +244,42 @@ def mover_parecer_view(request, id):
 def chat_message_view(request):
     if not request.session.session_key:
         request.session.create()
+        
     filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+    
     try:
-        # Se Content-Type for multipart, tratar via POST
+        from .services import ChatService
+        import json
+        
         if request.content_type and 'multipart/form-data' in request.content_type:
-            message = request.POST.get('message')
+            message = request.POST.get('message', "")
             parecer_id = request.POST.get('parecer_id')
             pasta_id = request.POST.get('pasta_id')
-            
-            # Salva os arquivos e gera a string de caminhos usando o storage backend
-            files = []
-            from django.core.files.storage import default_storage
-            import os
-            for key, f in request.FILES.items():
-                if f.name.endswith('.pdf'):
-                    # O Django Storage cuida de salvar no Local ou no Google Cloud
-                    base_name = os.path.basename(f.name)
-                    path = default_storage.save(f'uploads/{base_name}', f)
-                    # Adiciona a URL do arquivo ou o nome no storage para referência futura
-                    files.append(path)
-            
-            uploaded_files = files
+            uploaded_files = ChatService.save_uploaded_files(request.FILES)
         else:
             data = json.loads(request.body)
-            message = data.get('message')
+            message = data.get('message', "")
             parecer_id = data.get('parecer_id')
             pasta_id = data.get('pasta_id')
             uploaded_files = []
-        message = message or ""
+            
+        if not (message or uploaded_files):
+            return JsonResponse({'error': 'Mensagem inválida'}, status=400)
+            
+        if message.strip() == 'RESUMO' and pasta_id:
+            return ChatService.handle_resumo_pasta(pasta_id, filter_kwargs)
+            
+        elif message.strip() == 'RESUMO_PROJETO' and parecer_id:
+            return ChatService.handle_resumo_projeto(parecer_id, filter_kwargs)
+            
+        elif not parecer_id and message.strip().lower() == 'iniciar':
+            return ChatService.handle_iniciar(request, filter_kwargs)
+            
+        elif parecer_id:
+            return ChatService.handle_processamento(parecer_id, message, uploaded_files, filter_kwargs)
+            
+        return JsonResponse({'reply': "Digite **iniciar** para começar uma nova análise de processo."})
         
-        if message or uploaded_files:
-            
-            # Novo bloco para buscar resumo da pasta com todos os seus projetos
-            if message.strip() == 'RESUMO' and pasta_id:
-                pasta = get_object_or_404(Pasta, id=pasta_id, **filter_kwargs)
-                projetos = pasta.projetos.filter(is_saved=True).order_by('-created_at')
-                if projetos.exists():
-                    reply = f"**{pasta.nome_pasta} - Visão Geral:**\n\nEsta pasta contém {projetos.count()} processos mapeados. Clique em um processo na barra lateral para ver o Laudo Técnico e o Parecer completo."
-                else:
-                    reply = "Esta pasta está vazia. Digite **iniciar** para começar uma nova análise."
-                return JsonResponse({'reply': reply})
-                
-            # Novo bloco para buscar O RESUMO DE APENAS UM ÚNICO PROJETO ESPECÍFICO
-            elif message.strip() == 'RESUMO_PROJETO' and parecer_id:
-                p = get_object_or_404(Parecer, id=parecer_id, is_saved=True, **filter_kwargs)
-                
-                reply = ""
-                
-                if p.parecer_final:
-                    reply += f"{p.parecer_final}\n\n"
-                    if p.dossie_fontes:
-                        import re
-                        parsed_dossie = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words font-semibold" rel="noopener noreferrer">\1</a>', p.dossie_fontes)
-                        # Remove markdown boldings and links from interfering with next regex
-                        parsed_dossie = re.sub(r'(?<!href="|href=\')\b(https?:\/\/[^\s<]+[^<.,:;"\')\]\s])', r'<a href="\1" target="_blank" class="text-blue-500 hover:text-blue-700 underline truncate inline-block max-w-[250px] align-bottom" title="\1" rel="noopener noreferrer">Acessar Link</a>', parsed_dossie)
-                    
-                    # Injects link for the editor isolated from paragraph tags so marked skips stripping CSS
-                    reply += f"\n\n<div style='margin-top: 20px;'><a href='/parecer/{p.id}/editor/' style='display:inline-block; padding:8px 16px; background-color:#2563eb !important; border-radius:8px; text-decoration:none !important; font-weight:600;'><span style='color:#ffffff !important; font-size:14px;'>✏️ Abrir Editor de Parecer Final</span></a></div>\n\n"
-                else:
-                    reply += "*(Sem parecer gerado)*\n\n"
-                return JsonResponse({'reply': reply})
-                
-            # Se o usuário mandou "iniciar" sem Parecer, cria um Processo Automático temporário (não salvo na sidebar ainda)
-            if not parecer_id and message.strip().lower() == 'iniciar':
-                if not request.user.is_authenticated:
-                    count = Parecer.objects.filter(user__isnull=True, session_key=request.session.session_key).count()
-                    if count >= 2:
-                        return JsonResponse({'requires_login': True})
-                else:
-                    # Usuário autenticado: Verifica limite de créditos (Ignora se for Vitalício Is Pro)
-                    total_usos = Parecer.objects.filter(user=request.user, is_saved=True).count()
-                    if total_usos >= request.user.profile.credits and not request.user.profile.is_pro:
-                        return JsonResponse({'requires_plan': True})
-
-                from datetime import datetime
-                if request.user.is_authenticated:
-                    nome_usuario = f"{request.user.first_name} {request.user.last_name}".strip().upper()
-                    if not nome_usuario:
-                        nome_usuario = request.user.username.upper()
-                else:
-                    nome_usuario = "VISITANTE"
-                nome_temporario = f"Parecer {nome_usuario} {datetime.now().strftime('%d/%m %H:%M')}"
-                # is_saved=False indica que é um rascunho temporário ativo no chat
-                if request.user.is_authenticated:
-                    parecer = Parecer.objects.create(user=request.user, nome_processo=nome_temporario, is_saved=False)
-                else:
-                    parecer = Parecer.objects.create(session_key=request.session.session_key, nome_processo=nome_temporario, is_saved=False)
-                
-                from .jari_engine import JariEngine
-                engine = JariEngine(parecer)
-                reply = engine.get_current_prompt()
-                
-                return JsonResponse({
-                    'reply': reply,
-                    'status_fase': parecer.status_fase,
-                    'active_parecer_id': parecer.id
-                })
-            
-            if parecer_id:
-                # Processamento Faseado usando o Jari Engine
-                from .jari_engine import JariEngine
-                parecer = get_object_or_404(Parecer, id=parecer_id, **filter_kwargs)
-                engine = JariEngine(parecer)
-                reply = engine.process_message(message, uploaded_files)
-                
-                if reply.startswith('{"status": "celery"'):
-                    import json
-                    try:
-                        data_celery = json.loads(reply)
-                        task_id = data_celery.get("task_id")
-                        tipo = data_celery.get("type", "NORMAL")
-                        
-                        if tipo == "PREJUDICIALIDADE":
-                            msg = "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto...*"
-                        else:
-                            msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O P-JARI irá disponibilizar o Parecer logo abaixo quando for concluído...*"
-                            
-                        return JsonResponse({
-                            'reply': msg,
-                            'status_fase': parecer.status_fase,
-                            'task_id': task_id,
-                            'is_processing': True
-                        })
-                    except Exception:
-                        pass
-                
-                return JsonResponse({
-                    'reply': reply,
-                    'status_fase': parecer.status_fase
-                })
-            else:
-                # Fallback se não mandou "iniciar" e não tem parecer selecionado
-                reply = "Digite **iniciar** para começar uma nova análise de processo."
-                return JsonResponse({'reply': reply})
-                
         return JsonResponse({'error': 'Mensagem inválida'}, status=400)
     except Exception as e:
         import traceback
@@ -450,15 +352,11 @@ def checkout_view(request):
         
         sdk = mercadopago.SDK(access_token)
         
-        # O PA_UNAUTHORIZED request bloqueia a geração dependendo de quem pede
-        # Ao usar o Production Token (APP_USR-) para validar, qualquer dado Payer 
-        # que conflitar minimamente com a conta do titular de destino é bloqueada pelo
-        # modelo antifraude (PolicyAgent). Para testes locais forçamos um e-mail dummy:
-        
-        # Pega um email que seja garantidamente DIFERENTE do email do dono da conta Mercado Pago
-        payer_email = "test_user_pjari_999@gmail.com"
-        if request.user.email and 'gefferson' not in request.user.email.lower() and request.user.email != 'geffersonvivan@gmail.com':
-            payer_email = request.user.email
+        # Se estivermos em produção real, usamos o e-mail do usuário.
+        # Caso ocorram bloqueios do antifraude do Mercado Pago por testar a compra
+        # na mesma máquina/conta do recebedor, recomenda-se usar modo sandbox do SDK.
+        payer_email = request.user.email or f"user_{request.user.id}@pjari.com.br"
+
 
         preference_data = {
             "items": [
