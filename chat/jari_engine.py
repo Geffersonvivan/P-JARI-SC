@@ -283,11 +283,9 @@ class JariEngine:
                     target_folder = pastas[idx]
                     
                     self.parecer.pasta = target_folder
-                    sgpe = self.parecer.sgpe if self.parecer.sgpe else 'Sem SGPE'
-                    nome_usuario = f"{self.parecer.user.first_name} {self.parecer.user.last_name}".strip().upper()
-                    if not nome_usuario:
-                        nome_usuario = self.parecer.user.username.upper()
-                    self.parecer.nome_processo = f"Parecer {nome_usuario} {sgpe}"
+                    sgpe = self.parecer.sgpe if self.parecer.sgpe else self.parecer.pa or ''
+                    recorrente_nome = self.parecer.recorrente if self.parecer.recorrente else 'Recorrente Não Informado'
+                    self.parecer.nome_processo = f"Parecer {recorrente_nome} - {sgpe}".strip(' -')
                     self.parecer.is_saved = True
                     self.parecer.status_fase = 8
                     self.parecer.save()
