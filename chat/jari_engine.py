@@ -331,6 +331,13 @@ class JariEngine:
         # 2. Chama o LLM para cruzar as respostas do Bloco A com o texto do Bloco B
         texto_tabela = gemini.generate_phase2_report(self.parecer, contexto_textual_datas)
         
+        import re
+        match_rec = re.search(r'RECORRENTE:\s*(.+)', texto_tabela, re.IGNORECASE)
+        if match_rec:
+            encontrado = match_rec.group(1).strip()
+            if "NÃO LOCALIZADO" not in encontrado.upper() and "[NOME" not in encontrado.upper():
+                self.parecer.recorrente = encontrado[:250]
+                
         self.parecer.tabela_datas_sensiveis = texto_tabela
         self.parecer.save()
         
