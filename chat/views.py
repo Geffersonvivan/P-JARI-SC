@@ -705,8 +705,8 @@ def estatisticas_gerais_view(request):
         media_segundos=Avg('tempo_julgamento_segundos')
     )
     
-    total_segundos = tempo_julgamento_stats['total_segundos'] or 0
-    media_segundos = tempo_julgamento_stats['media_segundos'] or 0
+    total_segundos = int(tempo_julgamento_stats['total_segundos'] or 0)
+    media_segundos = int(tempo_julgamento_stats['media_segundos'] or 0)
     
     tt_horas = total_segundos // 3600
     tt_minutos = (total_segundos % 3600) // 60
