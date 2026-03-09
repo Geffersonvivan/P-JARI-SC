@@ -474,6 +474,7 @@ def estatisticas_view(request):
     from django.db.models.functions import TruncDate
     import calendar
     from datetime import date
+    from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
     
     # Pegar mês e ano da requisição ou usar o atual
     hoje = timezone.localtime(timezone.now()).date()
