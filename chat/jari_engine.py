@@ -678,8 +678,21 @@ class JariEngine:
         self.parecer.save()
         
         from chat.integrations import GeminiClient
+        from django.utils import timezone
+        
         gemini = GeminiClient()
         checklist_texto = gemini.audit_parecer(self.parecer)
+        
+        # Calcular tempo de duração total
+        try:
+            inicio = self.parecer.created_at
+            agora = timezone.now()
+            diff_segundos = int((agora - inicio).total_seconds())
+            minutos = diff_segundos // 60
+            segundos = diff_segundos % 60
+            tempo_str = f"{minutos:02d}m {segundos:02d}s"
+        except Exception:
+            tempo_str = "00m --s"
         
         report = f"### 🛡️ Auditoria Final de Conformidade\n\n"
         
@@ -690,9 +703,9 @@ class JariEngine:
         
         report += f"---\n\n"
         if indice == 100:
-             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM 100% ✅**\n\n"
+             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM 100% ✅**.   ⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
         else:
-             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM {int(indice)}% ⚠️**\n\n"
+             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM {int(indice)}% ⚠️**.   ⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
             
         report += f"---\n{self.get_current_prompt()}" # Vai chamar a F7 da Pasta
         
