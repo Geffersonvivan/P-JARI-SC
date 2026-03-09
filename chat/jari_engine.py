@@ -704,9 +704,9 @@ class JariEngine:
         
         report += f"---\n\n"
         if indice == 100:
-             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM 100% ✅**.   ⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
+             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM 100% ✅**\n\n⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
         else:
-             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM {int(indice)}% ⚠️**.   ⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
+             report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM {int(indice)}% ⚠️**\n\n⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
             
         report += f"---\n{self.get_current_prompt()}" # Vai chamar a F7 da Pasta
         
