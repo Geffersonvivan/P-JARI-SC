@@ -205,3 +205,15 @@ def notify_admin_on_signup(request, user, **kwargs):
         )
     except Exception as e:
         print(f"Erro ao enviar email de notificação de signup: {e}")
+
+class BancoTese(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='banco_teses')
+    titulo = models.CharField(max_length=255)
+    conteudo = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.titulo} - {self.user.username}"
