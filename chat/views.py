@@ -773,8 +773,12 @@ def estatisticas_gerais_view(request):
     # 6. Taxa de Interceptação da Auditoria (JariMath vs Humano / 0-99 Score)
     auditorias_com_inconsistencia = Parecer.objects.filter(
         is_saved=True, created_at__year=ano, created_at__month=mes, blindagem_score__lt=100
-    ).count()
-    taxa_interceptacao = int((auditorias_com_inconsistencia / total_julgados_global) * 100) if total_julgados_global > 0 else 0
+    )
+    total_inconsistencias = auditorias_com_inconsistencia.count()
+    taxa_interceptacao = int((total_inconsistencias / total_julgados_global) * 100) if total_julgados_global > 0 else 0
+    
+    # 6.1 Log Detalhado de Inconsistências (Painel de Alucinações da IA)
+    ultimas_inconsistencias = auditorias_com_inconsistencia.order_by('-created_at')[:15]
     
     # 7. Conversão de Trial para PRO
     total_users = UserProfile.objects.count()
@@ -834,6 +838,7 @@ def estatisticas_gerais_view(request):
         # Novas métricas context
         'hit_rate': hit_rate,
         'taxa_interceptacao': taxa_interceptacao,
+        'ultimas_inconsistencias': ultimas_inconsistencias,
         'taxa_conversao': taxa_conversao,
         'top_artigos': top_artigos,
         'avg_dias_funil': avg_dias_funil,

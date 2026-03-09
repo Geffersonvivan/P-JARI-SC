@@ -644,8 +644,64 @@
                 </div>
             </div>
 
+            <!-- Tabela Analítica de Inconsistências (Feedback Loop) -->
+            <div class="mt-8 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-xl font-bold flex items-center gap-2 text-gray-800">
+                            Log de Inconsistências Críticas da Inteligência Artificial (JariMath)
+                        </h3>
+                        <p class="text-gray-500 text-sm mt-1">Registros das últimas falhas analíticas da LLM que
+                            engatilharam a trava de segurança da auditoria.</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="uppercase tracking-wider border-b-2 border-gray-100 text-gray-500 font-bold">
+                            <tr>
+                                <th class="px-4 py-3">Data</th>
+                                <th class="px-4 py-3">Processo (SGPE/PA)</th>
+                                <th class="px-4 py-3">Erro Detectado (Auditor)</th>
+                                <th class="px-4 py-3 text-right">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-gray-700">
+                            {% for erro in ultimas_inconsistencias %}
+                            <tr class="hover:bg-red-50/50 transition duration-150">
+                                <td class="px-4 py-4">{{ erro.created_at|date:"d/m M/Y - H:i" }}</td>
+                                <td class="px-4 py-4 font-medium text-gray-900">
+                                    {{ erro.sgpe|default:"Sem SGPE" }}<br>
+                                    <span class="text-xs text-gray-400 font-normal">{{ erro.nome_processo }}</span>
+                                </td>
+                                <td class="px-4 py-4 max-w-lg whitespace-normal">
+                                    <div class="text-red-600 font-medium text-sm flex items-start gap-1">
+                                        <span class="mt-0.5">{{ erro.blindagem_detalhes }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 text-right">
+                                    <a href="{% url 'chat_session' erro.session_key %}"
+                                        class="bg-red-100 text-red-600 px-4 py-2 rounded-lg font-medium hover:bg-red-200 transition text-xs">
+                                        Investigar Parecer
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="px-4 py-12 text-center text-gray-400">
+                                    <div class="text-4xl mb-3">🎉</div>
+                                    Nenhuma inconsistência analítica registrada recentemente.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </section>
     </main>
+
 
     <!-- Login Modal (Genspark Style) -->
     <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
