@@ -114,18 +114,6 @@
         </button>
         {% endif %}
 
-        {% if request.user.is_authenticated %}
-        <div class="mb-6">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Banco de Conhecimento</h3>
-            <button onclick="document.getElementById('citacaoModal').classList.remove('hidden')"
-                class="w-full flex items-center justify-between px-4 py-3 bg-white border border-[#dde3ea] hover:bg-gray-50 hover:border-gray-300 rounded-xl text-sm font-semibold text-gray-700 transition shadow-sm group">
-                <span class="flex items-center gap-2">
-                    <span class="text-lg text-blue-600 group-hover:scale-110 transition-transform">📚</span>
-                    Cadastrar Citação
-                </span>
-                <span class="text-gray-400 font-bold group-hover:text-blue-500 transition-colors">+</span>
-            </button>
-        </div>
         {% endif %}
 
         <nav id="folder-container" class="flex-1 overflow-y-auto space-y-1">
@@ -222,6 +210,22 @@
                         </div>
                         {% endfor %}
                     </div>
+                </div>
+
+                {% if request.user.is_authenticated %}
+                <div class="mt-8 mb-4 px-2">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Banco de Conhecimento</h3>
+                    <button onclick="document.getElementById('citacaoModal').classList.remove('hidden')"
+                        class="w-full flex items-center justify-between px-4 py-3 bg-white border border-[#dde3ea] hover:bg-gray-50 hover:border-gray-300 rounded-xl text-sm font-semibold text-gray-700 transition shadow-sm group focus:outline-none">
+                        <span class="flex items-center gap-2">
+                            <span class="text-lg text-blue-600 group-hover:scale-110 transition-transform">📚</span>
+                            Cadastrar Citação
+                        </span>
+                        <span class="text-gray-400 font-bold group-hover:text-blue-500 transition-colors">+</span>
+                    </button>
+                </div>
+                {% endif %}
+
         </nav>
 
         <div class="mt-auto border-t border-gray-300 pt-4 text-xs text-gray-600 relative">
@@ -1489,6 +1493,60 @@
             sendMessage();
         };
     </script>
+    </script>
+
+    <!-- Modal Integrado de Citações -->
+    <div id="citacaoModal"
+        class="hidden fixed inset-0 z-[60] overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <span>📚</span> Nova Citação / Jurisprudência
+                </h3>
+                <button onclick="closeCitacaoModal()"
+                    class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-gray-100 rounded-lg">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6">
+                <form id="formCitacao" onsubmit="submitCitacao(event)">
+                    <div class="mb-5">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Título da Citação <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" name="titulo" required placeholder="Ex: STJ - Decadência Administrativa"
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm text-sm">
+                        <p class="text-xs text-gray-500 mt-1.5">Um título curto para acha-la rápido pela barra lateral.
+                        </p>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Conteúdo <span
+                                class="text-red-500">*</span></label>
+                        <textarea name="conteudo" required rows="6"
+                            placeholder="Cole aqui o texto da jurisprudência, doutrina ou tese..."
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm text-sm"
+                            style="resize: none;"></textarea>
+                    </div>
+
+                    <div class="flex gap-3 justify-end items-center mt-2">
+                        <button type="button" onclick="closeCitacaoModal()"
+                            class="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="btnSubmitCitacao"
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center">
+                            Salvar Citação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>
