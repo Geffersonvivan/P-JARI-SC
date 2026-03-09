@@ -602,12 +602,25 @@ class JariEngine:
         
     def run_phase_6(self):
         """Executa a Fase 6 — AUDITORIA EM TELA (Índice de Blindagem)."""
-        # Checa se houve flag de erro interno fatal
+        # Checa se houve flag de erro interno fatal de compatibilidade
         erro_fatal = False
-        if (self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia or not self.parecer.is_tempestivo):
-            # Se era prejudicial mas o LLM gerou "INDEFERIDO" por teimosia (inconsistência)
-            if "DEFERIDO" not in self.parecer.parecer_final.upper():
+        incompatibilidade_msg = ""
+        
+        texto_parecer = self.parecer.parecer_final.upper()
+        
+        # 1. Regra de Admissibilidade (Intempestividade)
+        if not self.parecer.is_tempestivo:
+            # Se é intempestivo, o recurso não deve ser conhecido (INDEFERIDO)
+            if "INDEFERIDO" not in texto_parecer and "INDEFERIMENTO" not in texto_parecer:
                 erro_fatal = True
+                incompatibilidade_msg = "❌ Resultado incompatível com a Intempestividade do recurso (Deveria ser INDEFERIDO)"
+                
+        # 2. Regra de Extinção da Punibilidade (Prescrição/Decadência)
+        elif (self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia):
+            # Se tem prescrição/decadência, o mérito é prejudicado e a penalidade extinta (DEFERIDO)
+            if "DEFERIDO" not in texto_parecer and "DEFERIMENTO" not in texto_parecer:
+                erro_fatal = True
+                incompatibilidade_msg = "❌ Resultado incompatível com extinção da pretensão punitiva (Deveria ser DEFERIDO)"
                 
         # Checklist Objetivo
         # 10 itens como estipulado. Aqui validamos programaticamente 5 vitais.
@@ -616,7 +629,7 @@ class JariEngine:
         
         if erro_fatal:
             itens_conformes -= 5
-            inconsistencias.append("❌ Resultado incompatível com extinção da pretensão punitiva (Deveria ser DEFERIDO)")
+            inconsistencias.append(incompatibilidade_msg)
         
         # Validar nome e SGPE / PA na saída
         if self.parecer.sgpe and self.parecer.sgpe not in self.parecer.parecer_final:
