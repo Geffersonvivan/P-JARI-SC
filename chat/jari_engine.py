@@ -688,6 +688,7 @@ class JariEngine:
             inicio = self.parecer.created_at
             agora = timezone.now()
             diff_segundos = int((agora - inicio).total_seconds())
+            self.parecer.tempo_julgamento_segundos = diff_segundos
             minutos = diff_segundos // 60
             segundos = diff_segundos % 60
             tempo_str = f"{minutos:02d}m {segundos:02d}s"

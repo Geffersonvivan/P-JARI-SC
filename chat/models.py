@@ -64,6 +64,7 @@ class Parecer(models.Model):
     # Fase 6 - Auditoria e Blindagem
     blindagem_score = models.IntegerField(null=True, blank=True)
     blindagem_detalhes = models.TextField(blank=True, null=True)
+    tempo_julgamento_segundos = models.IntegerField(null=True, blank=True)
     
     # Meta dados
     created_at = models.DateTimeField(auto_now_add=True)
