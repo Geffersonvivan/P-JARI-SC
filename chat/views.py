@@ -145,10 +145,14 @@ def editar_parecer_view(request, id):
             import markdown
             parecer_gerado = markdown.markdown(texto_gerado_pela_ia, extensions=['nl2br', 'sane_lists', 'tables'])
 
+    from .models import BancoTese
+    banco_teses = BancoTese.objects.filter(user=request.user) if request.user.is_authenticated else []
+
     return render(request, 'editor_parecer.html', {
         'parecer': parecer,
         'parecer_gerado': parecer_gerado,
-        'config': config
+        'config': config,
+        'banco_teses': banco_teses
     })
 
 @require_POST

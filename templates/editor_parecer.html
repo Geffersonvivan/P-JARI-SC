@@ -23,10 +23,10 @@
 </head>
 
 <body class="p-4 md:p-8">
-    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6">
+    <div class="max-w-[1400px] w-full mx-auto flex flex-col lg:flex-row gap-6">
 
-        <!-- Main Editor Area -->
-        <div class="flex-grow bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100">
+        <!-- Main Editor Area (75%) -->
+        <div class="w-full lg:w-3/4 bg-white p-6 md:p-8 rounded-xl shadow-sm border border-gray-100 flex flex-col">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <h1 class="text-2xl font-bold text-gray-800">
                     <span class="text-blue-600">
@@ -86,6 +86,46 @@
         </div>
 
 
+
+    </div>
+
+    <!-- Right Sidebar: Banco de Teses (25%) -->
+    <div
+        class="w-full lg:w-1/4 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-h-[850px] sticky top-6">
+        <div class="bg-blue-600 text-white p-4">
+            <h2 class="text-base font-bold flex items-center gap-2">
+                <span>📚</span> Banco de Teses e Citações
+            </h2>
+            <p class="text-xs text-blue-100 mt-1 opacity-90">Arraste para o texto para colar em formato ABNT.</p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+            {% if banco_teses %}
+            {% for tese in banco_teses %}
+            <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing group relative"
+                draggable="true" ondragstart="handleDragStart(event)" data-conteudo="{{ tese.conteudo|escapejs }}">
+
+                <div
+                    class="absolute inset-y-0 left-0 w-1 bg-blue-500 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+                <h3 class="text-sm font-bold text-gray-800 mb-1 flex items-start gap-1">
+                    <span class="text-gray-400 mt-[2px] leading-none">∷</span>
+                    <span class="truncate">{{ tese.titulo }}</span>
+                </h3>
+                <p class="text-xs text-gray-500 line-clamp-3 leading-relaxed">
+                    {{ tese.conteudo|truncatechars:120 }}
+                </p>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="text-center p-6 text-gray-400">
+                <span class="text-3xl mb-2 block opacity-50">📂</span>
+                <p class="text-sm">Seu banco está vazio.</p>
+                <p class="text-xs mt-1">Cadastre teses lá na tela inicial (Home).</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
     </div>
 
@@ -167,8 +207,36 @@
                         e.content = e.content.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
                     }
                 });
+
+                // DRAG AND DROP HANDLING para Formatação ABNT
+                editor.on('drop', function (e) {
+                    const htmlData = e.dataTransfer.getData('text/html');
+                    if (htmlData && htmlData.includes('data-jari-tese="true"')) {
+                        // Extracted via set data
+                        return;
+                    }
+                });
             }
         });
+
+        // Configuração do Drag-and-Drop Sidebar Cards
+        function handleDragStart(event) {
+            const rawContent = event.currentTarget.getAttribute('data-conteudo');
+
+            // O Segredo: Formatar no padrão ABNT dentro do HTML de transferência
+            // Margem Esquerda de 4cm, justificado, fonte menor
+            const abntHTML = `
+                <div data-jari-tese="true" style="margin-left: 4cm; text-align: justify; font-size: 10pt; line-height: 1.2;">
+                    ${rawContent.replace(/\n/g, '<br>')}
+                </div>
+                <p>&nbsp;</p>
+            `;
+
+            // tinyMCE accepts text/html directly when dropped onto the text area smoothly
+            event.dataTransfer.setData('text/html', abntHTML);
+            event.dataTransfer.setData('text/plain', rawContent); // Fallback
+            event.dataTransfer.effectAllowed = 'copy';
+        }
 
         async function saveAsWord() {
             const editorInstance = tinymce.get('editor');
