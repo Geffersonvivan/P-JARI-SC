@@ -439,7 +439,7 @@ class GeminiClient:
             f"PROCESSO (PA): {parecer_obj.pa}\n"
             f"SGPE: {parecer_obj.sgpe}\n"
             f"RECORRENTE (Interessado): {parecer_obj.recorrente}\n"
-            f"DATA SESSÃO: {parecer_obj.data_sessao}\n\n"
+            f"DATA SESSÃO: {parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else ''}\n\n"
             f"---- PACOTE DE FLAGS MATEMÁTICAS (Soberanas para o Resultado e Capítulos 3.1 a 3.3) ----\n"
             f"{parecer_obj.admissibilidade_texto}\n\n"
             f"---- RESUMO FÁTICO (Para o Relatório e Datas da Prescrição) ----\n"
