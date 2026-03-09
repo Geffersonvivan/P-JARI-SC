@@ -672,7 +672,8 @@ def estatisticas_gerais_view(request):
     from django.db.models.functions import TruncDate
     import calendar
     from datetime import date
-    from .models import Parecer, ParecerFinal, AiRequestLog
+    from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig
+    from django.db.models import Avg, F, ExpressionWrapper, fields
     
     hoje = timezone.localtime(timezone.now()).date()
     try:
@@ -763,6 +764,49 @@ def estatisticas_gerais_view(request):
         num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
     ).order_by('-created_at')
     
+    # --- NOVAS MÉTRICAS ESTRATÉGIAS ---
+    
+    # 5. Eficiência do P-JARI Cache (Hit Rate Global)
+    cache_config = PjariCacheConfig.objects.first()
+    hit_rate = cache_config.hit_rate if cache_config else "0.00%"
+    
+    # 6. Taxa de Interceptação da Auditoria (JariMath vs Humano / 0-99 Score)
+    auditorias_com_inconsistencia = Parecer.objects.filter(
+        is_saved=True, created_at__year=ano, created_at__month=mes, blindagem_score__lt=100
+    ).count()
+    taxa_interceptacao = int((auditorias_com_inconsistencia / total_julgados_global) * 100) if total_julgados_global > 0 else 0
+    
+    # 7. Conversão de Trial para PRO
+    total_users = UserProfile.objects.count()
+    pro_users = UserProfile.objects.filter(is_pro=True).count()
+    taxa_conversao = int((pro_users / total_users) * 100) if total_users > 0 else 0
+    
+    # 8. Distribuição Legal (Top 3 - Termos na tese que remetem a artigos)
+    # Reutilizando a lógica do Dashboard local mas sem filtro de user
+    teses_globais = Parecer.objects.filter(
+        is_saved=True, created_at__year=ano, created_at__month=mes
+    ).exclude(tese__isnull=True).exclude(tese__exact='').values_list('tese', flat=True)
+    
+    texto_total_global = " ".join(teses_globais).lower()
+    import re
+    # Buscando citações a artigos, ex: "art. 165", "artigo 162"
+    artigos = re.findall(r'art[igo\.]*\s*(\d+[a-z]?)', texto_total_global)
+    from collections import Counter
+    contagem_artigos = Counter(artigos).most_common(3)
+    top_artigos = [{"artigo": f"Art. {art}", "qtd": qtd} for art, qtd in contagem_artigos]
+    
+    # 9. Funil Temporal (Gargalos de Prescrição - Média de dias Protocolo -> Julgamento)
+    processos_com_datas = Parecer.objects.filter(
+        is_saved=True, created_at__year=ano, created_at__month=mes, 
+        data_protocolo__isnull=False, data_sessao__isnull=False
+    ).annotate(
+        diff_dias=ExpressionWrapper(F('data_sessao') - F('data_protocolo'), output_field=fields.DurationField())
+    ).aggregate(avg_diff=Avg('diff_dias'))
+    
+    avg_dias_funil = 0
+    if processos_com_datas['avg_diff']:
+        avg_dias_funil = processos_com_datas['avg_diff'].days
+
     context = {
         'total_julgados': total_julgados_global,
         'tempo_poupado_horas': tempo_poupado_horas,
@@ -786,6 +830,13 @@ def estatisticas_gerais_view(request):
         'custo_gemini': f"US$ {custo_gemini:.4f}",
         'custo_perplexity': f"US$ {custo_perplexity:.4f}",
         'custo_vertex': f"US$ {custo_vertex:.4f}",
+        
+        # Novas métricas context
+        'hit_rate': hit_rate,
+        'taxa_interceptacao': taxa_interceptacao,
+        'taxa_conversao': taxa_conversao,
+        'top_artigos': top_artigos,
+        'avg_dias_funil': avg_dias_funil,
     }
     
     return render(request, 'dashboard_global.html', context)

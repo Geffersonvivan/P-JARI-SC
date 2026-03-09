@@ -420,6 +420,10 @@
                     class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
                     <h3 class="text-lg font-bold text-gray-800 mb-6">Produtividade Mensal</h3>
                     <div id="line-chart" class="flex-1 w-full"></div>
+                    <p class="text-xs text-gray-400 mt-4 text-center cursor-help transition hover:text-gray-600"
+                        title="Acompanhamento do volume de processos analisados mês a mês. Mostra a eficácia da JARI na redução do passivo de julgamentos.">
+                        Resumo: Evolução da produtividade ao longo do ano ℹ️
+                    </p>
                 </div>
 
                 <!-- Donut Chart -->
@@ -427,6 +431,10 @@
                     class="lg:col-span-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
                     <h3 class="text-lg font-bold text-gray-800 mb-6">Proporção de Resultado</h3>
                     <div id="donut-chart" class="flex-1 flex justify-center items-center w-full"></div>
+                    <p class="text-xs text-gray-400 mt-4 text-center cursor-help transition hover:text-gray-600"
+                        title="Distribuição percentual entre pareceres com tese de Deferimento (acolhimento, prescrição ou decadência) e Indeferimento. Ajuda a identificar tendências recursais.">
+                        Resumo: Taxa de conversão de julgamentos ℹ️
+                    </p>
                 </div>
             </div>
 
@@ -436,11 +444,15 @@
                     class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 w-full flex flex-col items-center">
                     <div class="w-full text-center">
                         <h3 class="text-2xl font-bold text-gray-800">Nuvem de Teses Recorrentes</h3>
-                        <p class="text-sm text-gray-500 mb-6">Termos mais citados nas teses de defesa julgadas no mês
+                        <p class="text-sm text-gray-500 mb-6 cursor-help transition hover:text-gray-700"
+                            title="Representação visual das palavras mais frequentes extraídas pelas LLMs nas teses de defesa. Quanto maior a fonte da palavra, maior a sua incidência nas argumentações avaliadas neste período.">
+                            Resumo: Termos mais citados nas teses de defesa julgadas no mês ℹ️
                         </p>
                     </div>
                     <!-- O tamanho do Canvas precisa ser fixo ou responsível no CSS, WordCloud pede sizes exatos -->
                     <canvas id="teses-cloud" width="900" height="300" class="max-w-full"></canvas>
+                    <p class="text-xs text-gray-400 mt-2 text-center w-full">Passe o mouse sobre o texto acima para
+                        entender a geração</p>
                 </div>
             </div>
 

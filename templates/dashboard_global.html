@@ -380,6 +380,69 @@
                 </div>
             </div>
 
+            <!-- Novas Métricas Secundárias -->
+            <h2 class="text-xl font-bold text-gray-700 mb-4 px-4 w-full max-w-7xl mx-auto mt-4">Comportamento do Sistema
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
+
+                <div
+                    class="bg-indigo-50 rounded-3xl p-6 shadow-sm border border-indigo-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-indigo-600 font-medium text-sm mb-2 uppercase tracking-wider cursor-help"
+                        title="Descreve o percentual de vezes em que o sistema P-Jari encontrou uma tese em cache sem precisar realizar uma nova requisição às IAs. Impacta drasticamente a economia do servidor.">
+                        Hit Rate (P-JARI Cache)</h3>
+                    <div class="text-4xl font-bold text-indigo-700">{{ hit_rate }}</div>
+                    <p class="text-xs text-indigo-500 mt-2 font-medium">Global Economizado</p>
+                </div>
+
+                <div
+                    class="bg-red-50 rounded-3xl p-6 shadow-sm border border-red-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-red-500 font-medium text-sm mb-2 uppercase tracking-wider cursor-help"
+                        title="Mede as vezes em que o Auditor JariMath (Fase 6) encontra furos lógicos nos pareceres produzidos, barrando a blindagem perfeita de 100%. Quanto menor este número, melhor.">
+                        Inconsistência Analítica</h3>
+                    <div class="text-4xl font-bold text-red-600">{{ taxa_interceptacao }}%</div>
+                    <p class="text-xs text-red-400 mt-2 font-medium">Interceptações do Auditor</p>
+                </div>
+
+                <div
+                    class="bg-green-50 rounded-3xl p-6 shadow-sm border border-green-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-green-600 font-medium text-sm mb-2 uppercase tracking-wider cursor-help"
+                        title="Métrica comercial indicando quantos usuários saíram da conta gratuita de 2 usos e adquiriram a ativação Vitalícia.">
+                        Migração Contas PRO</h3>
+                    <div class="text-4xl font-bold text-green-700">{{ taxa_conversao }}%</div>
+                    <p class="text-xs text-green-500 mt-2 font-medium">Conversão Pagante</p>
+                </div>
+
+                <div
+                    class="bg-orange-50 rounded-3xl p-6 shadow-sm border border-orange-100 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-orange-600 font-medium text-sm mb-2 uppercase tracking-wider cursor-help"
+                        title="Mostra a média de dias que o Processo tramitou entre sua data explícita de Protocolo e a Data Efetiva de Sessão. Ajuda a sinalizar perigos de prescrição intercorrente nas Jaris SC.">
+                        Gargalo de Julgamento</h3>
+                    <div class="text-4xl font-bold text-orange-700">~{{ avg_dias_funil }} d</div>
+                    <p class="text-xs text-orange-500 mt-2 font-medium">Média Protocolo -> Sessão</p>
+                </div>
+            </div>
+
+            <!-- Ranking de Artigos Citados -->
+            <div
+                class="grid grid-cols-1 w-full max-w-7xl mx-auto pb-4 px-4 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Distribuição Legal (Tipificações que sobrecarregam o
+                    Sistema)</h3>
+                <p class="text-sm text-gray-500 mb-4 cursor-help"
+                    title="Ranking dos artigos de Lei (CTB) mais recorrentes captados pela IA no escrutínio de teses ao longo do mês.">
+                    Artigos mais recorrentes nas sustentações orais processadas pela IA.</p>
+
+                <div class="flex gap-4">
+                    {% for art in top_artigos %}
+                    <div class="flex-1 bg-gray-50 rounded-xl p-4 border border-gray-200 text-center">
+                        <div class="text-xl font-bold text-gray-700">{{ art.artigo }}</div>
+                        <div class="text-xs text-gray-400 mt-1">{{ art.qtd }} Menções</div>
+                    </div>
+                    {% empty %}
+                    <div class="text-sm text-gray-400 italic">Sem artigos mapeados em teses neste mês.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
             <!-- Cards Consumo Inteligência Artificial -->
             <h2 class="text-xl font-bold text-gray-700 mb-4 px-4 w-full max-w-7xl mx-auto mt-4">Custos Estimados de IA
                 (Mensal)</h2>
@@ -431,6 +494,10 @@
                     class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
                     <h3 class="text-lg font-bold text-gray-800 mb-6">Produtividade Mensal GLOBAL</h3>
                     <div id="line-chart" class="flex-1 w-full"></div>
+                    <p class="text-xs text-gray-400 mt-4 text-center cursor-help transition hover:text-gray-600"
+                        title="Acúmulo consolidado do volume de processos analisados por todos os usuários do sistema em Santa Catarina mês a mês. Revela o desafogamento estrutural provido pelo P-JARI.">
+                        Resumo: Evolução da produtividade de todo o estado ℹ️
+                    </p>
                 </div>
 
                 <!-- Donut Chart -->
@@ -438,6 +505,10 @@
                     class="lg:col-span-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
                     <h3 class="text-lg font-bold text-gray-800 mb-6">Proporção RESULTADO GLOBAL</h3>
                     <div id="donut-chart" class="flex-1 flex justify-center items-center w-full"></div>
+                    <p class="text-xs text-gray-400 mt-4 text-center cursor-help transition hover:text-gray-600"
+                        title="Distribuição percentual consolidada de todos os servidores entre pareceres com tese de Deferimento (prescrição, decadência, mérito) e Indeferimento. Mapeia a tendência macro da JARI.">
+                        Resumo: Taxa de impacto social dos julgamentos estaduais ℹ️
+                    </p>
                 </div>
             </div>
 
