@@ -393,8 +393,11 @@
                     {% if request.user.is_authenticated %}
                     <button id="btn-iniciar-processo"
                         class="bg-[#e4f0fc] text-blue-600 px-8 py-3 rounded-full hover:bg-blue-200 focus:outline-none transition font-medium text-lg shadow-sm flex items-center justify-center gap-3 mx-auto"
-                        Iniciar nova análise <path d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" />
-                    </svg>
+                        onclick="iniciarNovoProcesso()">
+                        Iniciar nova análise
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" />
+                        </svg>
                     </button>
                     {% endif %}
                 </div>
