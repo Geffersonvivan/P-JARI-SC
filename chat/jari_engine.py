@@ -102,10 +102,12 @@ class JariEngine:
             # 1. Verifica PRIORITARIAMENTE se são os PDFs/comando ok da última etapa (Etapa 7)
             # Para evitar que o 'ok' caia numa variável anterior que acidentalmente esteja vazia (ex: data_protocolo)
             if uploaded_files and len(uploaded_files) > 0:
-                file_autuacao = uploaded_files[0]
-                file_consolidado = uploaded_files[0]
-                if len(uploaded_files) > 1:
-                    f1, f2 = uploaded_files[0], uploaded_files[1]
+                if len(uploaded_files) == 1:
+                    file_autuacao = uploaded_files[0]
+                    file_consolidado = uploaded_files[0]
+                else:
+                    f1 = uploaded_files[0]
+                    f2 = uploaded_files[1]
                     f1_lower = f1.lower()
                     f2_lower = f2.lower()
                     
