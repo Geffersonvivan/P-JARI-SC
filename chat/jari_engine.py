@@ -630,6 +630,28 @@ class JariEngine:
         if erro_fatal:
             itens_conformes -= 5
             inconsistencias.append(incompatibilidade_msg)
+            
+            # Alerta via E-mail para Auditoria
+            try:
+                assunto = f"🚨 P-JARI Alerta: Inconsistência Crítica na IA ({self.parecer.sgpe or self.parecer.nome_processo})"
+                mensagem = (
+                    f"O JariMath bloqueou uma resposta da LLM por quebra de regra fatal.\n\n"
+                    f"Processo: {self.parecer.nome_processo}\n"
+                    f"SGPE: {self.parecer.sgpe or 'N/A'}\n"
+                    f"Erro Detectado: {incompatibilidade_msg}\n\n"
+                    f"--- Texto Gerado pela LLM (Incompatível) ---\n"
+                    f"{self.parecer.parecer_final}\n\n"
+                    f"Por favor, verifique a Session Key: {self.parecer.session_key} no painel."
+                )
+                send_mail(
+                    subject=assunto,
+                    message=mensagem,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Erro ao disparar email de auditoria Fase 6: {str(e)}")
         
         # Validar nome e SGPE / PA na saída
         if self.parecer.sgpe and self.parecer.sgpe not in self.parecer.parecer_final:
