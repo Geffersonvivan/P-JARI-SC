@@ -114,6 +114,20 @@
         </button>
         {% endif %}
 
+        {% if request.user.is_authenticated %}
+        <div class="mb-6">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-2">Banco de Conhecimento</h3>
+            <button onclick="document.getElementById('citacaoModal').classList.remove('hidden')"
+                class="w-full flex items-center justify-between px-4 py-3 bg-white border border-[#dde3ea] hover:bg-gray-50 hover:border-gray-300 rounded-xl text-sm font-semibold text-gray-700 transition shadow-sm group">
+                <span class="flex items-center gap-2">
+                    <span class="text-lg text-blue-600 group-hover:scale-110 transition-transform">📚</span>
+                    Cadastrar Citação
+                </span>
+                <span class="text-gray-400 font-bold group-hover:text-blue-500 transition-colors">+</span>
+            </button>
+        </div>
+        {% endif %}
+
         <nav id="folder-container" class="flex-1 overflow-y-auto space-y-1">
             <!-- Pasta Fixa: Outros -->
             <div>
@@ -1010,6 +1024,64 @@
             } catch (error) {
                 console.error("Erro no polling:", error);
                 setTimeout(() => pollTaskStatus(taskId, msgId, parecerId), 5000);
+            }
+        }
+
+        // Logica para o Modal de Citações / Tese
+        function openCitacaoModal() {
+            document.getElementById('citacaoModal').classList.remove('hidden');
+        }
+
+        function closeCitacaoModal() {
+            document.getElementById('citacaoModal').classList.add('hidden');
+            document.getElementById('formCitacao').reset();
+            document.getElementById('btnSubmitCitacao').innerHTML = 'Salvar Citação';
+            document.getElementById('btnSubmitCitacao').disabled = false;
+        }
+
+        async function submitCitacao(event) {
+            event.preventDefault();
+            const form = document.getElementById('formCitacao');
+            const formData = new FormData(form);
+            const btn = document.getElementById('btnSubmitCitacao');
+
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-3 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Salvando...';
+
+            try {
+                const response = await fetch('/api/citacao/create/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken // Using global csrftoken variable
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    closeCitacaoModal();
+
+                    // Sucesso visual
+                    const successToast = document.createElement('div');
+                    successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg font-medium opacity-0 transition-opacity duration-300 z-50';
+                    successToast.innerHTML = '✅ Citação salva no seu Banco com sucesso!';
+                    document.body.appendChild(successToast);
+
+                    setTimeout(() => { successToast.classList.remove('opacity-0'); }, 100);
+                    setTimeout(() => {
+                        successToast.classList.add('opacity-0');
+                        setTimeout(() => successToast.remove(), 300);
+                    }, 3000);
+                } else {
+                    alert('Erro ao salvar citação. Tente novamente.');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Salvar Citação';
+                }
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                alert('Erro de conexão ao servidor.');
+                btn.disabled = false;
+                btn.innerHTML = 'Salvar Citação';
             }
         }
 

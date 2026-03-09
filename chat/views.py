@@ -901,5 +901,23 @@ def estatisticas_gerais_view(request):
         'top_artigos': top_artigos,
         'avg_dias_funil': avg_dias_funil,
     }
-    
     return render(request, 'dashboard_global.html', context)
+
+@login_required
+@require_POST
+def create_citacao_view(request):
+    import json
+    from .models import BancoTese
+    titulo = request.POST.get('titulo')
+    conteudo = request.POST.get('conteudo')
+    
+    if not titulo or not conteudo:
+        return JsonResponse({'error': 'Título e Conteúdo são obrigatórios.'}, status=400)
+        
+    banco = BancoTese.objects.create(
+        user=request.user,
+        titulo=titulo,
+        conteudo=conteudo
+    )
+    
+    return JsonResponse({'success': True, 'id': banco.id, 'titulo': titulo})

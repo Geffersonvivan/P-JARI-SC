@@ -18,4 +18,5 @@ urlpatterns = [
     path('estatisticas-gerais/', views.estatisticas_gerais_view, name='estatisticas_gerais'),
     path('onboarding/dismiss/', views.dismiss_onboarding_view, name='dismiss_onboarding'),
     path('api/reorder-folders/', views.reorder_folders_view, name='reorder_folders'),
+    path('api/citacao/create/', views.create_citacao_view, name='create_citacao'),
 ]
