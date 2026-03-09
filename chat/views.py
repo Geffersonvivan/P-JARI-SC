@@ -673,7 +673,7 @@ def estatisticas_gerais_view(request):
     import calendar
     from datetime import date
     from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig
-    from django.db.models import Avg, F, ExpressionWrapper, fields
+    from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
     
     hoje = timezone.localtime(timezone.now()).date()
     try:
