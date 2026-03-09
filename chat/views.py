@@ -20,7 +20,7 @@ def home_view(request):
         filter_kwargs = {'user__isnull': True, 'session_key': request.session.session_key}
 
     # Garante que a pasta fixa 'Outros' exista, e pré-carrega seus projetos
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved').order_by('-created_at'))
     
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", **filter_kwargs)
     # Busca a pasta 'Outros' novamente para aplicar o prefetch e contabilizar os salvamentos
@@ -585,12 +585,12 @@ def estatisticas_view(request):
         totais_por_dia.append(dados_dict.get(data_atual, 0))
         
     # 5. Nuvem de Palavras (Extraindo de Parecer.tese)
-    pareceres_mes = Parecer.objects.filter(
+    teses_mes = Parecer.objects.filter(
         user=request.user, 
         is_saved=True, 
         created_at__year=ano,
         created_at__month=mes
-    ).exclude(tese__isnull=True).exclude(tese__exact='')
+    ).exclude(tese__isnull=True).exclude(tese__exact='').values_list('tese', flat=True)
     
     import re
     from collections import Counter
@@ -598,10 +598,11 @@ def estatisticas_view(request):
                  'dos', 'das', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'por', 'pelo', 'pela',
                  'que', 'se', 'ao', 'aos', 'ou'}
     todas_palavras = []
-    for p in pareceres_mes:
-        if p.tese:
+    
+    for tese_texto in teses_mes:
+        if tese_texto:
             # limpar pontos e formatar
-            texto_limpo = re.sub(r'[^\w\s]', '', p.tese.lower())
+            texto_limpo = re.sub(r'[^\w\s]', '', tese_texto.lower())
             palavras = texto_limpo.split()
             palavras_filtradas = [w for w in palavras if len(w) > 3 and w not in stopwords]
             todas_palavras.extend(palavras_filtradas)
@@ -613,7 +614,7 @@ def estatisticas_view(request):
     nuvem_dados = [[item[0], item[1]] for item in top_palavras]
     
     # Replicar as pastas do menu lateral para manter a interface
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved').order_by('-created_at'))
     
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
     pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
@@ -810,7 +811,7 @@ def estatisticas_gerais_view(request):
     custo_perplexity = ((tokens_perplexity['in_t'] or 0) + (tokens_perplexity['out_t'] or 0)) * (1.00 / 1000000)
     custo_vertex = consultas_vertex * 0.005
     
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved').order_by('-created_at'))
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
     pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
         num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
