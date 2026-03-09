@@ -494,8 +494,16 @@
             <!-- Ranking de Artigos Citados -->
             <div
                 class="grid grid-cols-1 w-full max-w-7xl mx-auto pb-4 px-4 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-2">Distribuição Legal (Tipificações que sobrecarregam o
-                    Sistema)</h3>
+                <div class="relative group inline-block w-max mb-4 mt-2">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2 cursor-help">Distribuição Legal
+                        <span class="text-blue-500 text-[14px]">ℹ️</span></h3>
+                    <div
+                        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-0 mt-2 w-80 p-3 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed font-normal">
+                        Ranking dos artigos de Lei (CTB) que mais sobrecarregam o Estado, captados automaticamente pela
+                        IA no escrutínio de teses ao longo do mês.
+                        <div class="absolute left-6 -top-1.5 w-3 h-3 bg-gray-900 transform rotate-45"></div>
+                    </div>
+                </div>
                 <div class="relative group inline-block w-max">
                     <p
                         class="text-sm text-gray-500 mb-4 cursor-help flex items-center gap-1 transition-colors hover:text-gray-700">
@@ -526,11 +534,22 @@
             <h2 class="text-xl font-bold text-gray-700 mb-4 px-4 w-full max-w-7xl mx-auto mt-4">Custos Estimados de IA
                 (Mensal)</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
-                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
+                <div
+                    class="relative group bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
                     <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-blue-500"></span> Gemini API
+                        <h3
+                            class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2 cursor-help">
+                            <span class="w-3 h-3 rounded-full bg-blue-500"></span> Gemini API <span
+                                class="text-gray-500 text-xs">ℹ️</span>
                         </h3>
+                    </div>
+                    <div
+                        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-0 mt-2 w-64 p-3 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed">
+                        Custo do modelo principal (Flash/Pro) utilizado para redigir o parecer jurídico. Medido pelo
+                        balanço de Tokens Entrada (In) vs Saída (Out).
+                        <div
+                            class="absolute left-6 -top-1.5 w-3 h-3 bg-gray-800 border-t border-l border-gray-700 transform rotate-45">
+                        </div>
                     </div>
                     <div class="text-3xl font-bold text-white mb-1">{{ custo_gemini }}</div>
                     <div class="flex text-xs text-gray-400 justify-between mt-2">
@@ -539,11 +558,22 @@
                     </div>
                 </div>
 
-                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
+                <div
+                    class="relative group bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
                     <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-purple-500"></span> Perplexity API
+                        <h3
+                            class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2 cursor-help">
+                            <span class="w-3 h-3 rounded-full bg-purple-500"></span> Perplexity API <span
+                                class="text-gray-500 text-xs">ℹ️</span>
                         </h3>
+                    </div>
+                    <div
+                        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-0 mt-2 w-64 p-3 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed">
+                        Custo da IA de busca externa encarregada de varrer a internet diariamente em busca de novas
+                        resoluções do CONTRAN e CETRAN-SC não previstas.
+                        <div
+                            class="absolute left-6 -top-1.5 w-3 h-3 bg-gray-800 border-t border-l border-gray-700 transform rotate-45">
+                        </div>
                     </div>
                     <div class="text-3xl font-bold text-white mb-1">{{ custo_perplexity }}</div>
                     <div class="flex text-xs text-gray-400 justify-between mt-2">
@@ -552,11 +582,22 @@
                     </div>
                 </div>
 
-                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
+                <div
+                    class="relative group bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
                     <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Vertex Search
+                        <h3
+                            class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2 cursor-help">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Vertex Search <span
+                                class="text-gray-500 text-xs">ℹ️</span>
                         </h3>
+                    </div>
+                    <div
+                        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full right-0 mt-2 w-64 p-3 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed">
+                        Custo das requisições RAG (Retrieval-Augmented Generation) ao banco de dados vetorial
+                        corporativo contendo as leis de trânsito.
+                        <div
+                            class="absolute right-6 -top-1.5 w-3 h-3 bg-gray-800 border-t border-l border-gray-700 transform rotate-45">
+                        </div>
                     </div>
                     <div class="text-3xl font-bold text-white mb-1">{{ custo_vertex }}</div>
                     <div class="flex text-xs text-gray-400 justify-between mt-2">
@@ -571,7 +612,16 @@
                 <!-- Line Chart -->
                 <div
                     class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
-                    <h3 class="text-lg font-bold text-gray-800 mb-6">Produtividade Mensal GLOBAL</h3>
+                    <div class="relative group inline-block w-max mb-6">
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2 cursor-help">Produtividade
+                            Mensal GLOBAL <span class="text-blue-500 text-[14px]">ℹ️</span></h3>
+                        <div
+                            class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-0 mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed font-normal">
+                            Acompanhamento do volume de processos analisados mês a mês por todos os municípios. Mostra a
+                            eficácia da IA da JARI na redução do passivo de julgamentos do Estado.
+                            <div class="absolute left-6 -top-1.5 w-3 h-3 bg-gray-900 transform rotate-45"></div>
+                        </div>
+                    </div>
                     <div id="line-chart" class="flex-1 w-full"></div>
                     <div class="relative group mt-4 w-full flex justify-center">
                         <p
@@ -592,7 +642,15 @@
                 <!-- Donut Chart -->
                 <div
                     class="lg:col-span-1 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
-                    <h3 class="text-lg font-bold text-gray-800 mb-6">Proporção RESULTADO GLOBAL</h3>
+                    <div class="relative group inline-block w-max mb-6">
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2 cursor-help">Proporção
+                            RESULTADO GLOBAL <span class="text-blue-500 text-[14px]">ℹ️</span></h3>
+                        <div
+                            class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full right-0 mt-2 w-72 p-3 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed font-normal">
+                            Distribuição percentual global entre defesas deferidas e indeferidas na plataforma inteira.
+                            <div class="absolute right-6 -top-1.5 w-3 h-3 bg-gray-900 transform rotate-45"></div>
+                        </div>
+                    </div>
                     <div id="donut-chart" class="flex-1 flex justify-center items-center w-full"></div>
                     <div class="relative group mt-4 w-full flex justify-center">
                         <p
