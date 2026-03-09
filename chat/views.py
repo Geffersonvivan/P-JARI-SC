@@ -500,6 +500,32 @@ def estatisticas_view(request):
     tempo_poupado_minutos = total_julgados * 40
     tempo_poupado_horas = tempo_poupado_minutos // 60
     
+    # NOVAS MÉTRICAS DE TEMPO DE JULGAMENTO (USUÁRIO)
+    tempo_julgamento_stats = Parecer.objects.filter(
+        user=request.user,
+        is_saved=True,
+        created_at__year=ano,
+        created_at__month=mes,
+        tempo_julgamento_segundos__isnull=False
+    ).aggregate(
+        total_segundos=Sum('tempo_julgamento_segundos'),
+        media_segundos=Avg('tempo_julgamento_segundos')
+    )
+    
+    total_segundos = int(tempo_julgamento_stats['total_segundos'] or 0)
+    media_segundos = int(tempo_julgamento_stats['media_segundos'] or 0)
+    
+    tt_horas = total_segundos // 3600
+    tt_minutos = (total_segundos % 3600) // 60
+    if tt_horas > 0:
+        tempo_total_julgamento = f"{tt_horas}H {tt_minutos}M"
+    else:
+        tempo_total_julgamento = f"{tt_minutos}M"
+        
+    m_minutos = int(media_segundos) // 60
+    m_segundos = int(media_segundos) % 60
+    media_tempo_julgamento = f"{m_minutos}m {m_segundos}s"
+    
     # 3. Taxa de Deferimento e Indeferimento
     pareceres_base = Parecer.objects.filter(
         user=request.user,
@@ -609,6 +635,8 @@ def estatisticas_view(request):
     context = {
         'total_julgados': total_julgados,
         'tempo_poupado_horas': tempo_poupado_horas,
+        'tempo_total_julgamento': tempo_total_julgamento,
+        'media_tempo_julgamento': media_tempo_julgamento,
         'taxa_deferimento': taxa_deferimento,
         'taxa_indeferimento': taxa_indeferimento,
         'deferidos_count': deferidos,
