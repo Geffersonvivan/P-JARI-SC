@@ -102,17 +102,6 @@
                 class="font-medium text-lg uppercase text-[#444746] hover:text-blue-600 transition">P-JARI/SC</a>
         </div>
 
-        {% if not request.user.is_authenticated %}
-        <button id="btn-parecer" onclick="showLoginModal()"
-            class="flex items-center gap-3 p-4 bg-[#d3e3fd] hover:bg-[#c2d7f7] rounded-2xl text-sm font-medium mb-8 transition shadow-sm opacity-60 text-gray-500">
-            <span class="text-xl">+</span> Pastas Pareceres
-        </button>
-        {% else %}
-        <button id="btn-parecer"
-            class="flex items-center gap-3 p-4 bg-[#d3e3fd] hover:bg-[#c2d7f7] rounded-2xl text-sm font-medium mb-8 transition shadow-sm">
-            <span class="text-xl">+</span> Pastas Pareceres
-        </button>
-        {% endif %}
 
         <nav id="folder-container" class="flex-1 overflow-y-auto space-y-1">
             <!-- Pasta Fixa: Outros -->
@@ -210,19 +199,7 @@
                     </div>
                 </div>
 
-                {% if request.user.is_authenticated %}
-                <div class="mt-8 mb-4 px-2">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Banco de Conhecimento</h3>
-                    <button onclick="document.getElementById('citacaoModal').classList.remove('hidden')"
-                        class="w-full flex items-center justify-between px-4 py-3 bg-white border border-[#dde3ea] hover:bg-gray-50 hover:border-gray-300 rounded-xl text-sm font-semibold text-gray-700 transition shadow-sm group focus:outline-none">
-                        <span class="flex items-center gap-2">
-                            <span class="text-lg text-blue-600 group-hover:scale-110 transition-transform">📚</span>
-                            Cadastrar Citação
-                        </span>
-                        <span class="text-gray-400 font-bold group-hover:text-blue-500 transition-colors">+</span>
-                    </button>
-                </div>
-                {% endif %}
+
 
         </nav>
 
@@ -334,6 +311,23 @@
                     </a>
                     {% endif %}
 
+                    <hr class="border-gray-400 my-2 opacity-30" />
+
+                    <button id="btn-parecer"
+                        class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
+                        <span
+                            class="text-xl w-5 h-5 flex items-center justify-center font-bold text-blue-300 pb-1">+</span>
+                        Pastas Pareceres
+                    </button>
+
+                    <button
+                        onclick="document.getElementById('citacaoModal').classList.remove('hidden'); toggleUserMenu();"
+                        class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
+                        <span class="text-lg w-5 h-5 flex items-center justify-center font-bold">📚</span>
+                        Cadastrar Citação
+                    </button>
+
+                    <hr class="border-gray-400 my-2 opacity-30" />
 
                     <a href="#"
                         class="px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center justify-between text-white font-medium text-[15px]">
