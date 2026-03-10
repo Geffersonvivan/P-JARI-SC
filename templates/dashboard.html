@@ -245,6 +245,22 @@
 
                 <!-- Action Links -->
                 <div class="flex flex-col space-y-1">
+                    <button id="btn-parecer"
+                        class="px-3 py-2.5 rounded-xl hover:bg-[#666] text-left transition flex items-center gap-4 text-white font-medium text-[15px]">
+                        <span
+                            class="text-xl w-5 h-5 flex items-center justify-center font-bold text-blue-300 pb-1">+</span>
+                        Pastas Pareceres
+                    </button>
+
+                    <button
+                        onclick="document.getElementById('citacaoModal').classList.remove('hidden'); toggleUserMenu();"
+                        class="px-3 py-2.5 rounded-xl hover:bg-[#666] text-left transition flex items-center gap-4 text-white font-medium text-[15px]">
+                        <span class="text-lg w-5 h-5 flex items-center justify-center font-bold">📚</span>
+                        Gerenciar Citações
+                    </button>
+
+                    <hr class="border-gray-400 my-2 opacity-30" />
+
                     <a href="https://wa.me/5549991438813" target="_blank"
                         class="px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -855,7 +871,347 @@
                 }
             }
         });
+
+        // ============================================
+        // FUNCIONALIDADES ADICIONAIS: PASTAS E CITAÇÕES
+        // ============================================
+
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : "{{ csrf_token }}";
+
+        // Lógica do botão "+ Pastas"
+        const btnParecer = document.getElementById('btn-parecer');
+        if (btnParecer) {
+            btnParecer.addEventListener('click', async () => {
+                {% if not request.user.is_authenticated %}
+                // showLoginModal() may not exist in dashboard but shouldn't trigger if user context is required to see the menu.
+                alert("Necessário fazer login.");
+                return;
+                {% endif %}
+
+                const name = prompt("Digite o nome ou número para esta pasta:");
+                if (name && name.trim() !== "") {
+                    try {
+                        const response = await fetch('/parecer/create/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrftoken
+                            },
+                            body: JSON.stringify({ nome_processo: name.trim() })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+
+                            if (data.requires_login) {
+                                alert("Necessário login");
+                                return;
+                            }
+                            if (data.requires_plan) {
+                                window.location.href = '/planos/';
+                                return;
+                            }
+                            window.location.reload();
+                        } else {
+                            alert('Erro ao criar parecer.');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert("Erro de conexão ao criar pasta.");
+                    }
+                }
+            });
+        }
+
+        // Lógica do Modal de Citações / Tese
+        function openCitacaoModal() {
+            document.getElementById('citacaoModal').classList.remove('hidden');
+            switchCitacaoTab('nova');
+        }
+
+        function closeCitacaoModal() {
+            document.getElementById('citacaoModal').classList.add('hidden');
+            resetCitacaoForm();
+        }
+
+        function switchCitacaoTab(tab) {
+            const btnNova = document.getElementById('tab-btn-nova');
+            const btnLista = document.getElementById('tab-btn-lista');
+            const contentNova = document.getElementById('tab-content-nova');
+            const contentLista = document.getElementById('tab-content-lista');
+
+            if (tab === 'nova') {
+                btnNova.className = "px-4 py-1.5 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition-all";
+                if (btnLista) btnLista.className = "px-4 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all";
+                contentNova.classList.remove('hidden');
+                if (contentLista) contentLista.classList.add('hidden');
+            } else {
+                if (btnLista) btnLista.className = "px-4 py-1.5 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition-all";
+                btnNova.className = "px-4 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all";
+                if (contentLista) contentLista.classList.remove('hidden');
+                contentNova.classList.add('hidden');
+            }
+        }
+
+        function resetCitacaoForm() {
+            const formObj = document.getElementById('formCitacao');
+            if (formObj) formObj.reset();
+            const idEdit = document.getElementById('citacao_id_edit');
+            if (idEdit) idEdit.value = '';
+
+            const btnSub = document.getElementById('btnSubmitCitacao');
+            if (btnSub) {
+                btnSub.innerHTML = 'Salvar Citação';
+                btnSub.disabled = false;
+            }
+
+            const btnCanc = document.getElementById('btnCancelarEdicao');
+            if (btnCanc) btnCanc.classList.add('hidden');
+
+            const btnFech = document.getElementById('btnFecharModalNova');
+            if (btnFech) btnFech.classList.remove('hidden');
+
+            const helpTxt = document.getElementById('help-text-titulo');
+            if (helpTxt) helpTxt.innerText = "Um título curto para acha-la rápido pela barra lateral.";
+        }
+
+        function editCitacao(id) {
+            const tituloEl = document.getElementById(`tese-titulo-${id}`);
+            const conteuEl = document.getElementById(`tese-conteudo-${id}`);
+
+            if (!tituloEl || !conteuEl) return;
+
+            document.getElementById('citacao_id_edit').value = id;
+            document.getElementById('citacao_titulo').value = tituloEl.innerText;
+            document.getElementById('citacao_conteudo').value = conteuEl.innerText;
+
+            document.getElementById('btnSubmitCitacao').innerHTML = 'Atualizar Citação';
+
+            const btnCanc = document.getElementById('btnCancelarEdicao');
+            if (btnCanc) btnCanc.classList.remove('hidden');
+
+            const btnFech = document.getElementById('btnFecharModalNova');
+            if (btnFech) btnFech.classList.add('hidden');
+
+            const helpTxt = document.getElementById('help-text-titulo');
+            if (helpTxt) helpTxt.innerText = "Editando a citação selecionada.";
+
+            switchCitacaoTab('nova');
+        }
+
+        async function deleteCitacao(id) {
+            if (!confirm("Tem certeza que deseja excluir permanentemente esta citação do seu banco?")) return;
+
+            try {
+                const response = await fetch(`/api/citacao/${id}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken }
+                });
+                if (response.ok) {
+                    const card = document.getElementById(`tese-card-${id}`);
+                    if (card) {
+                        card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.95)';
+                    }
+
+                    const countSpan = document.getElementById('count-citacoes');
+                    if (countSpan) {
+                        let count = parseInt(countSpan.innerText) || 1;
+                        countSpan.innerText = count - 1;
+                        if (count - 1 === 0) {
+                            setTimeout(() => { window.location.reload(); }, 300);
+                            return;
+                        }
+                    }
+
+                    setTimeout(() => {
+                        if (card) card.remove();
+                    }, 300);
+                } else {
+                    alert('Erro ao excluir citação.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Erro de conexão ao excluir citação.');
+            }
+        }
+
+        async function submitCitacao(event) {
+            event.preventDefault();
+            const form = document.getElementById('formCitacao');
+            const btn = document.getElementById('btnSubmitCitacao');
+            const editId = document.getElementById('citacao_id_edit').value;
+
+            const formData = new FormData(form);
+            const isEditing = editId !== "";
+            const url = isEditing ? `/api/citacao/${editId}/edit/` : '/api/citacao/create/';
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-3 inline" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ' + (isEditing ? 'Atualizando...' : 'Salvando...');
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    closeCitacaoModal();
+                    const successToast = document.createElement('div');
+                    successToast.className = 'fixed bottom-5 right-5 bg-green-500 text-white px-6 py-3 rounded-xl shadow-lg font-medium opacity-0 transition-opacity duration-300 z-[100]';
+                    successToast.innerHTML = isEditing ? '✏️ Citação atualizada com sucesso!' : '✅ Citação salva com sucesso!';
+                    document.body.appendChild(successToast);
+
+                    setTimeout(() => { successToast.classList.remove('opacity-0'); }, 100);
+                    setTimeout(() => {
+                        successToast.classList.add('opacity-0');
+                        setTimeout(() => window.location.reload(), 300);
+                    }, 1200);
+                } else {
+                    alert('Erro ao processar citação. Tente novamente.');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                alert('Erro de conexão ao servidor.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
+                }
+            }
+        }
     </script>
+
+    <!-- Modal Gerenciador de Citações -->
+    <div id="citacaoModal"
+        class="hidden fixed inset-0 z-[60] overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+
+            <!-- Header com Tabs -->
+            <div
+                class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 flex-shrink-0">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <span>📚</span> Gerenciar Citações
+                    </h3>
+                    <div class="flex bg-gray-200/50 p-1 rounded-lg">
+                        <button id="tab-btn-nova" onclick="switchCitacaoTab('nova')"
+                            class="px-4 py-1.5 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition-all focus:outline-none">Ficha
+                            da Citação</button>
+                        <button id="tab-btn-lista" onclick="switchCitacaoTab('lista')"
+                            class="px-4 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all focus:outline-none">Minhas
+                            Citações (<span id="count-citacoes">{% if banco_teses %}{{ banco_teses|length }}{% else
+                                %}0{% endif %}</span>)</button>
+                    </div>
+                </div>
+                <button onclick="closeCitacaoModal()"
+                    class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-gray-100 rounded-lg shrink-0 ml-4 focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- TAB 1: Formulário (Criar/Editar) -->
+            <div id="tab-content-nova" class="p-6 overflow-y-auto custom-scrollbar">
+                <form id="formCitacao" onsubmit="submitCitacao(event)">
+                    <input type="hidden" id="citacao_id_edit" name="citacao_id_edit" value="">
+                    <div class="mb-5">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Título da Citação <span
+                                class="text-red-500">*</span></label>
+                        <input type="text" id="citacao_titulo" name="titulo" required
+                            placeholder="Ex: STJ - Decadência Administrativa"
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm text-sm">
+                        <p class="text-xs text-gray-500 mt-1.5" id="help-text-titulo">Um título curto para acha-la
+                            rápido pela barra lateral.</p>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Conteúdo <span
+                                class="text-red-500">*</span></label>
+                        <textarea id="citacao_conteudo" name="conteudo" required rows="6"
+                            placeholder="Cole aqui o texto da jurisprudência, doutrina ou tese..."
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm text-sm custom-scrollbar"
+                            style="resize: none;"></textarea>
+                    </div>
+
+                    <div class="flex gap-3 justify-end items-center mt-2">
+                        <button type="button" id="btnCancelarEdicao" onclick="resetCitacaoForm()"
+                            class="hidden px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition focus:outline-none">
+                            Cancelar Edição
+                        </button>
+                        <button type="button" onclick="closeCitacaoModal()"
+                            class="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition focus:outline-none"
+                            id="btnFecharModalNova">
+                            Fechar
+                        </button>
+                        <button type="submit" id="btnSubmitCitacao"
+                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center focus:outline-none">
+                            Salvar Citação
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 2: Listagem -->
+            <div id="tab-content-lista" class="p-6 hidden overflow-y-auto bg-gray-50 flex-1 custom-scrollbar">
+                <div class="space-y-3" id="citacao-list-container">
+                    {% if banco_teses %}
+                    {% for tese in banco_teses %}
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-colors shadow-sm"
+                        id="tese-card-{{ tese.id }}">
+                        <div class="flex-1 pr-4 mb-3 sm:mb-0">
+                            <h4 class="font-bold text-sm text-gray-800" id="tese-titulo-{{ tese.id }}">{{ tese.titulo }}
+                            </h4>
+                            <p class="text-xs text-gray-500 mt-1.5 line-clamp-3 leading-relaxed"
+                                id="tese-conteudo-{{ tese.id }}">{{ tese.conteudo }}</p>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <button onclick="editCitacao('{{ tese.id }}')"
+                                class="p-2 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-lg transition-colors flex items-center justify-center focus:outline-none"
+                                title="Editar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z">
+                                    </path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteCitacao('{{ tese.id }}')"
+                                class="p-2 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 rounded-lg transition-colors flex items-center justify-center focus:outline-none"
+                                title="Excluir">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div
+                        class="text-center py-12 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
+                        <span class="text-4xl mb-3 block opacity-50">📂</span>
+                        <p class="text-sm font-medium">Nenhuma citação cadastrada.</p>
+                        <p class="text-xs mt-1">Vá para a aba "Ficha da Citação" para adicionar a primeira.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
 </body>
 
 </html>
