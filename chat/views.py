@@ -35,10 +35,14 @@ def home_view(request):
     # Calcula o total de pareceres finalizados pelo usuário logado
     total_julgados = Parecer.objects.filter(**filter_kwargs, is_saved=True).count()
     
+    from .models import BancoTese
+    banco_teses = BancoTese.objects.filter(user=request.user) if request.user.is_authenticated else []
+    
     return render(request, 'home.html', {
         'pasta_outros': pasta_outros,
         'pastas': pastas,
-        'total_julgados': total_julgados
+        'total_julgados': total_julgados,
+        'banco_teses': banco_teses
     })
 
 def editar_parecer_view(request, id):
