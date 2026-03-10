@@ -100,7 +100,7 @@
                 {% if banco_teses %}
                 {% for tese in banco_teses %}
                 <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing group relative"
-                    draggable="true" ondragstart="handleDragStart(event)" data-conteudo="{{ tese.conteudo|escapejs }}">
+                    draggable="true" ondragstart="handleDragStart(event)">
 
                     <div
                         class="absolute inset-y-0 left-0 w-1 bg-blue-500 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -112,6 +112,11 @@
                     <p class="text-xs text-gray-500 line-clamp-3 leading-relaxed">
                         {{ tese.conteudo|truncatechars:120 }}
                     </p>
+
+                    <!-- Fonte oculta limpa já pronta para inserir -->
+                    <div class="jari-tese-source hidden">
+                        {{ tese.conteudo|linebreaksbr }}
+                    </div>
                 </div>
                 {% endfor %}
                 {% else %}
@@ -209,8 +214,23 @@
                 editor.on('drop', function (e) {
                     const htmlData = e.dataTransfer.getData('text/html');
                     if (htmlData && htmlData.includes('data-jari-tese="true"')) {
-                        // Extracted via set data
-                        return;
+                        // Cancela a extração padrão do TinyMCE
+                        e.preventDefault();
+
+                        // Posiciona o cursor no local do drop (necessário dependendo do navegador)
+                        try {
+                            const point = { x: e.clientX, y: e.clientY };
+                            const caretInfo = tinymce.dom.RangeUtils.getCaretRangeFromPoint(point.x, point.y, editor.getDoc());
+                            if (caretInfo) {
+                                editor.selection.setRng(caretInfo);
+                            }
+                        } catch (err) {
+                            console.warn("Could not set exact caret position natively", err);
+                        }
+
+                        // Injeta ativamente o nosso pacote com margens ABNT
+                        editor.insertContent(htmlData);
+                        return false;
                     }
                 });
             }
@@ -218,20 +238,24 @@
 
         // Configuração do Drag-and-Drop Sidebar Cards
         function handleDragStart(event) {
-            const rawContent = event.currentTarget.getAttribute('data-conteudo');
+            const sourceDiv = event.currentTarget.querySelector('.jari-tese-source');
+            if (!sourceDiv) return;
+
+            const rawContentHTML = sourceDiv.innerHTML;
+            const plainContent = sourceDiv.innerText;
 
             // O Segredo: Formatar no padrão ABNT dentro do HTML de transferência
             // Margem Esquerda de 4cm, justificado, fonte menor
             const abntHTML = `
-                <div data-jari-tese="true" style="margin-left: 4cm; text-align: justify; font-size: 10pt; line-height: 1.2;">
-                    ${rawContent.replace(/\n/g, '<br>')}
+                <div data-jari-tese="true" style="margin-left: 4cm; margin-bottom: 12px; text-align: justify; font-size: 10pt; line-height: 1.2;">
+                    ${rawContentHTML}
                 </div>
                 <p>&nbsp;</p>
             `;
 
             // tinyMCE accepts text/html directly when dropped onto the text area smoothly
             event.dataTransfer.setData('text/html', abntHTML);
-            event.dataTransfer.setData('text/plain', rawContent); // Fallback
+            event.dataTransfer.setData('text/plain', plainContent); // Fallback
             event.dataTransfer.effectAllowed = 'copy';
         }
 
