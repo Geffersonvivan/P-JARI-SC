@@ -537,19 +537,29 @@ def estatisticas_view(request):
         is_saved=True,
         created_at__year=ano,
         created_at__month=mes
-    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='').prefetch_related('pareceres_finais')
+    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
     
     total_finais = pareceres_base.count()
     deferidos = 0
     indeferidos = 0
     
-    for p in pareceres_base:
-        # Se tem parecer final editado e salvo, usa ele
-        final_db = p.pareceres_finais.last()
-        texto_analise = final_db.conteudo_html if final_db else p.parecer_final
+    # Otimização N+1: Buscar em lote apenas o essencial (ID e parecer_final original)
+    finais_info = list(pareceres_base.values_list('id', 'parecer_final'))
+    
+    # Otimização: Buscar em LOTE a última edição do ParecerFinal se o usuário salvou pelo Editor
+    # Isso evita uma consulta ao banco (p.pareceres_finais.last()) DENTRO de um laço for
+    from .models import ParecerFinal
+    final_overrides = {}
+    
+    # Coletamos todas as sobreposições de uma vez ordenando por created_at (o último sobrescreve os anteriores no dict)
+    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('created_at').values('parecer_referencia_id', 'conteudo_html'):
+        final_overrides[pf['parecer_referencia_id']] = pf['conteudo_html']
+    
+    for pid, p_final_text in finais_info:
+        texto_analise = final_overrides.get(pid, p_final_text)
         
         # O default do JariEngine é escrever "...RESULTADO: INDEFERIDO..." e afins
-        if texto_analise and "INDEFERID" in texto_analise.upper():
+        if texto_analise and "INDEFERID" in str(texto_analise).upper():
             indeferidos += 1
         else:
             deferidos += 1
@@ -594,7 +604,7 @@ def estatisticas_view(request):
         is_saved=True, 
         created_at__year=ano,
         created_at__month=mes
-    ).exclude(tese__isnull=True).exclude(tese__exact='').values_list('tese', flat=True)
+    ).exclude(tese__isnull=True).exclude(tese__exact='').values_list('tese', flat=True)[:200]
     
     import re
     from collections import Counter
@@ -760,16 +770,23 @@ def estatisticas_gerais_view(request):
         is_saved=True,
         created_at__year=ano,
         created_at__month=mes
-    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='').prefetch_related('pareceres_finais')
+    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
     
     total_finais = pareceres_base.count()
     deferidos = 0
     indeferidos = 0
     
-    for p in pareceres_base:
-        final_db = p.pareceres_finais.last()
-        texto_analise = final_db.conteudo_html if final_db else p.parecer_final
-        if texto_analise and "INDEFERID" in texto_analise.upper():
+    # Otimização N+1 Global
+    finais_info = list(pareceres_base.values_list('id', 'parecer_final'))
+    
+    from .models import ParecerFinal
+    final_overrides = {}
+    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('created_at').values('parecer_referencia_id', 'conteudo_html'):
+        final_overrides[pf['parecer_referencia_id']] = pf['conteudo_html']
+    
+    for pid, p_final_text in finais_info:
+        texto_analise = final_overrides.get(pid, p_final_text)
+        if texto_analise and "INDEFERID" in str(texto_analise).upper():
             indeferidos += 1
         else:
             deferidos += 1
@@ -849,7 +866,7 @@ def estatisticas_gerais_view(request):
     # Reutilizando a lógica do Dashboard local mas sem filtro de user
     teses_globais = Parecer.objects.filter(
         is_saved=True, created_at__year=ano, created_at__month=mes
-    ).exclude(tese__isnull=True).exclude(tese__exact='').values_list('tese', flat=True)
+    ).exclude(tese__isnull=True).exclude(tese__exact='').values_list('tese', flat=True)[:200]
     
     texto_total_global = " ".join(teses_globais).lower()
     import re
