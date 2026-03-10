@@ -245,11 +245,11 @@
             const plainContent = sourceDiv.innerText;
 
             // O Segredo: Formatar no padrão ABNT dentro do HTML de transferência
-            // Margem Esquerda de 4cm, justificado, fonte menor
+            // Margem Esquerda de 4cm, justificado, fonte menor. Trocar Div por P evita que o TinyMCE remova o estilo.
             const abntHTML = `
-                <div data-jari-tese="true" style="margin-left: 4cm; margin: 0; padding: 0; margin-left: 4cm; text-align: justify; font-size: 10pt; line-height: 1;">
+                <p data-jari-tese="true" style="margin-left: 4cm; margin-top: 0; margin-bottom: 0; padding: 0; text-align: justify; font-size: 10pt; line-height: 1.2;">
                     ${rawContentHTML}
-                </div>
+                </p>
             `;
 
             // tinyMCE accepts text/html directly when dropped onto the text area smoothly
