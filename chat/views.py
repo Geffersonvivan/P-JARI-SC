@@ -942,3 +942,34 @@ def create_citacao_view(request):
     )
     
     return JsonResponse({'success': True, 'id': banco.id, 'titulo': titulo})
+
+@login_required
+@require_POST
+def editar_citacao_view(request, id):
+    from .models import BancoTese
+    
+    titulo = request.POST.get('titulo')
+    conteudo = request.POST.get('conteudo')
+        
+    if not titulo or not conteudo:
+        return JsonResponse({'error': 'Título e Conteúdo são obrigatórios.'}, status=400)
+        
+    try:
+        citacao = BancoTese.objects.get(id=id, user=request.user)
+        citacao.titulo = titulo
+        citacao.conteudo = conteudo
+        citacao.save()
+        return JsonResponse({'success': True, 'id': citacao.id, 'titulo': citacao.titulo})
+    except BancoTese.DoesNotExist:
+        return JsonResponse({'error': 'Citação não encontrada ou permissão negada.'}, status=404)
+
+@login_required
+@require_POST
+def excluir_citacao_view(request, id):
+    from .models import BancoTese
+    try:
+        citacao = BancoTese.objects.get(id=id, user=request.user)
+        citacao.delete()
+        return JsonResponse({'success': True})
+    except BancoTese.DoesNotExist:
+        return JsonResponse({'error': 'Citação não encontrada ou permissão negada.'}, status=404)
