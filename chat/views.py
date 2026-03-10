@@ -20,7 +20,7 @@ def home_view(request):
         filter_kwargs = {'user__isnull': True, 'session_key': request.session.session_key}
 
     # Garante que a pasta fixa 'Outros' exista, e pré-carrega seus projetos
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved').order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
     
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", **filter_kwargs)
     # Busca a pasta 'Outros' novamente para aplicar o prefetch e contabilizar os salvamentos
@@ -628,7 +628,7 @@ def estatisticas_view(request):
     nuvem_dados = [[item[0], item[1]] for item in top_palavras]
     
     # Replicar as pastas do menu lateral para manter a interface
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved').order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
     
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
     pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
@@ -832,7 +832,7 @@ def estatisticas_gerais_view(request):
     custo_perplexity = ((tokens_perplexity['in_t'] or 0) + (tokens_perplexity['out_t'] or 0)) * (1.00 / 1000000)
     custo_vertex = consultas_vertex * 0.005
     
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved').order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
     pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
         num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
