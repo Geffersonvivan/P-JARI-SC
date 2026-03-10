@@ -174,7 +174,14 @@ class JariEngine:
             elif not self.parecer.autuacao_pdf_path:
                 return "❌ Por favor, os arquivos são essenciais para avançarmos. Anexe-os e digite 'ok'."
             
-            self.parecer.save()
+            try:
+                self.parecer.save()
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erro ao salvar dado na Fase 1 do JariEngine: {e}")
+                return f"❌ Erro ao processar a informação inserida. Verifique o formato e tente novamente (Erro: {str(e)[:50]})."
+                
             return self.get_current_prompt()
 
         elif fase == 2:
