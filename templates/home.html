@@ -722,28 +722,9 @@
                             window.location.href = '/planos/';
                             return;
                         }
-                        const id = `folder-${data.id}`;
-                        const div = document.createElement('div');
-                        div.id = id;
-                        div.className = "folder-item group";
-                        div.setAttribute("onclick", `selectFolder('${data.id}', this)`);
-                        div.innerHTML = `
-                            <div class="flex items-center gap-3 truncate w-[60%]">
-                                <span class="text-gray-500 flex-shrink-0">📁</span>
-                                <span class="truncate font-medium">${data.nome_processo}</span>
-                            </div>
-                            <div class="flex items-center justify-end gap-2 flex-1">
-                                <span class="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">0</span>
-                                <button onclick="deleteFolder(event, '${data.id}')"
-                                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-lg transition-opacity flex-shrink-0">×</button>
-                            </div>
-                        `;
-                        const separador = document.getElementById('separador-pastas');
-                        if (separador) {
-                            separador.insertAdjacentElement('afterend', div);
-                        } else {
-                            folderContainer.prepend(div);
-                        }
+
+                        // Atualiza a página para carregar a nova pasta perfeitamente
+                        window.location.reload();
                     } else {
                         alert('Erro ao criar parecer.');
                     }
