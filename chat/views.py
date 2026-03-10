@@ -769,7 +769,9 @@ def estatisticas_gerais_view(request):
     m_segundos = int(media_segundos) % 60
     media_tempo_julgamento = f"{m_minutos}m {m_segundos}s"
     
-    total_usuarios_ativos = Parecer.objects.filter(is_saved=True, created_at__year=ano, created_at__month=mes).values('user').distinct().count()
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    total_usuarios_ativos = User.objects.filter(is_superuser=False).count()
     
     # 2. Taxa Deferimento Global
     pareceres_base = Parecer.objects.filter(
