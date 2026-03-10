@@ -673,7 +673,7 @@ def estatisticas_view(request):
         'total_usos_global': total_usos_global,
         'creditos_usuario': creditos_usuario,
         'is_pro': is_pro,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-data_criacao'),
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
     }
     
     return render(request, 'dashboard.html', context)
@@ -927,7 +927,7 @@ def estatisticas_gerais_view(request):
         'taxa_conversao': taxa_conversao,
         'top_artigos': top_artigos,
         'avg_dias_funil': avg_dias_funil,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-data_criacao'),
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
     }
     return render(request, 'dashboard_global.html', context)
 
