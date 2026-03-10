@@ -551,8 +551,8 @@ def estatisticas_view(request):
     from .models import ParecerFinal
     final_overrides = {}
     
-    # Coletamos todas as sobreposições de uma vez ordenando por created_at (o último sobrescreve os anteriores no dict)
-    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('created_at').values('parecer_referencia_id', 'conteudo_html'):
+    # Coletamos todas as sobreposições de uma vez ordenando por data_criacao (o último sobrescreve os anteriores no dict)
+    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('data_criacao').values('parecer_referencia_id', 'conteudo_html'):
         final_overrides[pf['parecer_referencia_id']] = pf['conteudo_html']
     
     for pid, p_final_text in finais_info:
@@ -781,7 +781,7 @@ def estatisticas_gerais_view(request):
     
     from .models import ParecerFinal
     final_overrides = {}
-    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('created_at').values('parecer_referencia_id', 'conteudo_html'):
+    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('data_criacao').values('parecer_referencia_id', 'conteudo_html'):
         final_overrides[pf['parecer_referencia_id']] = pf['conteudo_html']
     
     for pid, p_final_text in finais_info:
