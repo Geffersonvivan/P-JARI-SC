@@ -572,8 +572,8 @@ def estatisticas_view(request):
     donut_series = [deferidos, indeferidos]
     
     if total_finais > 0:
-        taxa_deferimento = int((deferidos / total_finais) * 100)
-        taxa_indeferimento = int((indeferidos / total_finais) * 100)
+        taxa_deferimento = round((deferidos / total_finais) * 100)
+        taxa_indeferimento = round((indeferidos / total_finais) * 100)
     else:
         taxa_deferimento = 0
         taxa_indeferimento = 0
@@ -796,8 +796,8 @@ def estatisticas_gerais_view(request):
             deferidos += 1
             
     donut_series = [deferidos, indeferidos]
-    taxa_deferimento = int((deferidos / total_finais) * 100) if total_finais > 0 else 0
-    taxa_indeferimento = int((indeferidos / total_finais) * 100) if total_finais > 0 else 0
+    taxa_deferimento = round((deferidos / total_finais) * 100) if total_finais > 0 else 0
+    taxa_indeferimento = round((indeferidos / total_finais) * 100) if total_finais > 0 else 0
     
     # 3. Gráfico Temporal (Linha)
     pareceres_por_dia = (
