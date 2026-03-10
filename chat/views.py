@@ -483,6 +483,7 @@ def estatisticas_view(request):
     import calendar
     from datetime import date
     from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
+    from .models import BancoTese
     
     # Pegar mês e ano da requisição ou usar o atual
     hoje = timezone.localtime(timezone.now()).date()
@@ -672,6 +673,7 @@ def estatisticas_view(request):
         'total_usos_global': total_usos_global,
         'creditos_usuario': creditos_usuario,
         'is_pro': is_pro,
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-data_criacao'),
     }
     
     return render(request, 'dashboard.html', context)
@@ -720,7 +722,7 @@ def estatisticas_gerais_view(request):
     from django.db.models.functions import TruncDate
     import calendar
     from datetime import date
-    from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig
+    from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig, BancoTese
     from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
     
     hoje = timezone.localtime(timezone.now()).date()
@@ -925,6 +927,7 @@ def estatisticas_gerais_view(request):
         'taxa_conversao': taxa_conversao,
         'top_artigos': top_artigos,
         'avg_dias_funil': avg_dias_funil,
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-data_criacao'),
     }
     return render(request, 'dashboard_global.html', context)
 
