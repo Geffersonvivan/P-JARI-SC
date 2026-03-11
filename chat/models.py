@@ -225,6 +225,7 @@ class BancoTese(models.Model):
 class PostForum(models.Model):
     autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts_forum')
     conteudo = models.TextField()
+    imagem = models.ImageField(upload_to='forum_images/', blank=True, null=True)
     data_criacao = models.DateTimeField(auto_now_add=True)
     curtidas = models.ManyToManyField(User, related_name='postagens_curtidas', blank=True)
 

@@ -1032,23 +1032,25 @@ def excluir_citacao_view(request, id):
 @login_required
 @require_POST
 def criar_post_forum_view(request):
-    import json
     from .models import PostForum
     try:
-        data = json.loads(request.body)
-        conteudo = data.get('conteudo', '').strip()
+        conteudo = request.POST.get('conteudo', '').strip()
+        imagem = request.FILES.get('imagem')
+        
         if not conteudo:
             return JsonResponse({'status': 'error', 'message': 'Conteúdo não pode estar vazio.'}, status=400)
-        
+            
         post = PostForum.objects.create(
             autor=request.user,
-            conteudo=conteudo
+            conteudo=conteudo,
+            imagem=imagem
         )
         return JsonResponse({
             'status': 'success',
             'post_id': post.id,
             'autor': post.autor.first_name or post.autor.username,
             'conteudo': post.conteudo,
+            'imagem_url': post.imagem.url if post.imagem else None,
             'data_criacao': post.data_criacao.strftime('%d/%m/%Y %H:%M')
         })
     except Exception as e:

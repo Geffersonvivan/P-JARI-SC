@@ -32,7 +32,24 @@
                     <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
                         <form id="formNovoPost" onsubmit="submitNovoPost(event)">
                             <textarea id="novo_post_conteudo" rows="3" placeholder="O que você quer compartilhar com a comunidade?" class="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm text-sm resize-none custom-scrollbar bg-white" required></textarea>
-                            <div class="flex justify-end mt-3">
+                            
+                            <!-- Imagem Preview Container -->
+                            <div id="image-preview-container" class="hidden mt-2 p-2 border border-gray-200 rounded-lg bg-white flex items-center justify-between">
+                                <span id="image-preview-name" class="text-xs text-gray-600 truncate max-w-[200px]"></span>
+                                <button type="button" onclick="removerImagem()" class="text-red-500 hover:text-red-700 p-1">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+
+                            <div class="flex justify-between items-center mt-3">
+                                <label for="novo_post_imagem" class="cursor-pointer text-gray-500 hover:text-blue-600 transition flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span class="text-xs font-semibold">Anexar Imagem</span>
+                                    <input type="file" id="novo_post_imagem" accept="image/*" class="hidden" onchange="previewImagem(this)">
+                                </label>
+                                
                                 <button type="submit" id="btnSubmitPost" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center">
                                     Publicar no Mural
                                 </button>
@@ -56,8 +73,15 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Post Content -->
-                                    <div class="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap">{{ post.conteudo }}</div>
+                                    <!-- Post Content e Imagem -->
+                                    <div class="text-sm text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap">{{ post.conteudo }}</div>
+                                    {% if post.imagem %}
+                                    <div class="mb-4 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 max-h-96 flex items-center justify-center">
+                                        <a href="{{ post.imagem.url }}" target="_blank" class="block w-full h-full cursor-zoom-in">
+                                            <img src="{{ post.imagem.url }}" alt="Imagem da publicação" class="max-w-full max-h-96 object-contain mx-auto" loading="lazy">
+                                        </a>
+                                    </div>
+                                    {% endif %}
                                     
                                     <!-- Post Actions -->
                                     <div class="flex items-center gap-4 pt-3 border-t border-gray-50">
@@ -163,9 +187,28 @@
         }).catch(e => console.error("Erro ao atualizar acesso ao fórum:", e));
     }
 
+    function previewImagem(input) {
+        const container = document.getElementById('image-preview-container');
+        const nameSpan = document.getElementById('image-preview-name');
+        if (input.files && input.files[0]) {
+            nameSpan.textContent = input.files[0].name;
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    function removerImagem() {
+        const input = document.getElementById('novo_post_imagem');
+        const container = document.getElementById('image-preview-container');
+        input.value = ''; // Limpa o input
+        container.classList.add('hidden');
+    }
+
     async function submitNovoPost(event) {
         event.preventDefault();
         const conteudoInput = document.getElementById('novo_post_conteudo');
+        const imagemInput = document.getElementById('novo_post_imagem');
         const btn = document.getElementById('btnSubmitPost');
         const originalBtnText = btn.innerHTML;
         
@@ -174,18 +217,24 @@
         btn.disabled = true;
         btn.innerHTML = 'Publicando...';
 
+        const formData = new FormData();
+        formData.append('conteudo', conteudoInput.value);
+        if (imagemInput.files.length > 0) {
+            formData.append('imagem', imagemInput.files[0]);
+        }
+
         try {
             const response = await fetch('/api/forum/post/create/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRFToken': getCSRFTokenForum()
                 },
-                body: JSON.stringify({ conteudo: conteudoInput.value })
+                body: formData // usando form data ao invez de json
             });
 
             if (response.ok) {
                 conteudoInput.value = '';
+                removerImagem();
                 // Reload para exibir os posts mais recentes no modal ao abrir
                 window.location.reload(); 
             } else {
