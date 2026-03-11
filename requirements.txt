@@ -36,3 +36,4 @@ PyJWT>=2.11.0
 cryptography>=41.0.0
 oauthlib>=3.2.0
 markdown>=3.6.0
+django-tinymce>=5.0.0
