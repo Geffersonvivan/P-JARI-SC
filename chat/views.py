@@ -630,59 +630,32 @@ def estatisticas_view(request):
         datas.append(data_atual.strftime('%d/%m'))
         totais_por_dia.append(dados_dict.get(data_atual, 0))
         
-    # 5. Radar de Infrações (Extraindo de ParecerFinal ou Ementa)
-    pareceres_textos = Parecer.objects.filter(
+    # 5. Radar de Infrações (Extraindo da Origem Certa do Consolidado)
+    pareceres_radar = Parecer.objects.filter(
         user=request.user, 
         is_saved=True, 
         created_at__year=ano,
-        created_at__month=mes
-    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='').values_list('parecer_final', flat=True)
+        created_at__month=mes,
+        infracao_documento__isnull=False
+    ).exclude(infracao_documento__exact='').values('infracao_documento').annotate(
+        total=Count('id')
+    ).order_by('-total')[:5]
     
-    import re
-    from collections import Counter
+    radar_infracoes = []
     
-    infracoes_detectadas = []
-    
-    # Mapeamento heurístico rápido das infrações mais comuns no JARI SC
-    regras_infracao = {
-        r'(?i)art\.?\s*165\b|sob\s+a\s+influência\s+de\s+álcool|embriaguez': 'Art. 165 - Embriaguez e Álcool',
-        r'(?i)art\.?\s*165.?A\b|recusa|bafômetro': 'Art. 165-A - Recusa do Bafômetro',
-        r'(?i)art\.?\s*175\b|manobra\s+perigosa|arrancada': 'Art. 175 - Manobra Perigosa',
-        r'(?i)art\.?\s*218\b|velocidade': 'Art. 218 - Excesso de Velocidade',
-        r'(?i)art\.?\s*253\b|bloqueio\s+de\s+via': 'Art. 253 - Bloqueio de Via',
-        r'(?i)art\.?\s*148\b|provisória|permissão': 'Art. 148 - CNH Provisória',
-        r'(?i)somatório|excesso\s+de\s+pontos|suspensão\s+do\s+direito': 'Suspensão por Pontuação',
-        r'(?i)art\.?\s*244\b|capacete': 'Art. 244 - Falta de Capacete',
-        r'(?i)art\.?\s*162\b|cnh\s+vencida|sem\s+cnh': 'Art. 162 - CNH Irregular',
-    }
-    
-    for texto in pareceres_textos:
-        if texto:
-            encontrou = False
-            for padrao, nome_amigavel in regras_infracao.items():
-                if re.search(padrao, texto):
-                    infracoes_detectadas.append(nome_amigavel)
-                    encontrou = True
-                    # Apenas a primeira que bater com esse processo para não duplicar muito 
-                    # a estatística do ranking.
-                    break
-            
-            # Se não achou regra mapeada, e houver Ementa descritiva, a gente extrai o CTB numérico.
-            if not encontrou:
-                match_generico = re.search(r'(?i)art\.?\s*(\d{3}[A-Z]?)', texto)
-                if match_generico:
-                    infracoes_detectadas.append(f"Art. {match_generico.group(1).upper()} - Outros")
-    
-    contagem_infracoes = Counter(infracoes_detectadas).most_common(5)
-    max_count = contagem_infracoes[0][1] if contagem_infracoes else 1
-    
-    radar_infracoes = [
-        {
-            'nome': item[0],
-            'total': item[1],
-            'pct': round((item[1] / max_count) * 100) if max_count > 0 else 0
-        } for item in contagem_infracoes
-    ]
+    if pareceres_radar:
+        max_oco = pareceres_radar[0]['total']
+        for item in pareceres_radar:
+            nome_limpo = str(item['infracao_documento']).strip().upper()
+            if len(nome_limpo) > 45:
+                nome_limpo = nome_limpo[:42] + "..."
+                
+            pct = int((item['total'] / max_oco) * 100) if max_oco > 0 else 0
+            radar_infracoes.append({
+                'nome': nome_limpo,
+                'total': item['total'],
+                'pct': pct
+            })
     
     # Replicar as pastas do menu lateral para manter a interface
     projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
@@ -935,44 +908,31 @@ def estatisticas_gerais_view(request):
         is_saved=True, created_at__year=ano, created_at__month=mes
     ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='').values_list('parecer_final', flat=True)
     
-    infracoes_detectadas_globais = []
+    # 8. Extrai top 5 Infrações com base na coluna nativa
+    pareceres_radar_global = Parecer.objects.filter(
+        is_saved=True, 
+        created_at__year=ano,
+        created_at__month=mes,
+        infracao_documento__isnull=False
+    ).exclude(infracao_documento__exact='').values('infracao_documento').annotate(
+        total=Count('id')
+    ).order_by('-total')[:5]
     
-    regras_infracao = {
-        r'(?i)art\.?\s*165\b|sob\s+a\s+influência\s+de\s+álcool|embriaguez': 'Art. 165 - Embriaguez e Álcool',
-        r'(?i)art\.?\s*165.?A\b|recusa|bafômetro': 'Art. 165-A - Recusa do Bafômetro',
-        r'(?i)art\.?\s*175\b|manobra\s+perigosa|arrancada': 'Art. 175 - Manobra Perigosa',
-        r'(?i)art\.?\s*218\b|velocidade': 'Art. 218 - Excesso de Velocidade',
-        r'(?i)art\.?\s*253\b|bloqueio\s+de\s+via': 'Art. 253 - Bloqueio de Via',
-        r'(?i)art\.?\s*148\b|provisória|permissão': 'Art. 148 - CNH Provisória',
-        r'(?i)somatório|excesso\s+de\s+pontos|suspensão\s+do\s+direito': 'Suspensão por Pontuação',
-        r'(?i)art\.?\s*244\b|capacete': 'Art. 244 - Falta de Capacete',
-        r'(?i)art\.?\s*162\b|cnh\s+vencida|sem\s+cnh': 'Art. 162 - CNH Irregular',
-    }
+    radar_infracoes_global = []
     
-    for texto in pareceres_textos_globais:
-        if texto:
-            encontrou = False
-            for padrao, nome_amigavel in regras_infracao.items():
-                if re.search(padrao, texto):
-                    infracoes_detectadas_globais.append(nome_amigavel)
-                    encontrou = True
-                    break
-            
-            if not encontrou:
-                match_generico = re.search(r'(?i)art\.?\s*(\d{3}[A-Z]?)', texto)
-                if match_generico:
-                    infracoes_detectadas_globais.append(f"Art. {match_generico.group(1).upper()} - Outros")
-    
-    contagem_infracoes_global = Counter(infracoes_detectadas_globais).most_common(5)
-    max_count_global = contagem_infracoes_global[0][1] if contagem_infracoes_global else 1
-    
-    radar_infracoes_global = [
-        {
-            'nome': item[0],
-            'total': item[1],
-            'pct': round((item[1] / max_count_global) * 100) if max_count_global > 0 else 0
-        } for item in contagem_infracoes_global
-    ]
+    if pareceres_radar_global:
+        max_oco_global = pareceres_radar_global[0]['total']
+        for item in pareceres_radar_global:
+            nome_limpo_global = str(item['infracao_documento']).strip().upper()
+            if len(nome_limpo_global) > 45:
+                nome_limpo_global = nome_limpo_global[:42] + "..."
+                
+            pct_global = int((item['total'] / max_oco_global) * 100) if max_oco_global > 0 else 0
+            radar_infracoes_global.append({
+                'nome': nome_limpo_global,
+                'total': item['total'],
+                'pct': pct_global
+            })
     
     # 9. Funil Temporal (Gargalos de Prescrição - Média de dias Protocolo -> Julgamento)
     processos_com_datas = Parecer.objects.filter(

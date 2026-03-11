@@ -133,6 +133,14 @@ class JariEngine:
                         
                 self.parecer.autuacao_pdf_path = file_autuacao
                 self.parecer.consolidado_pdf_path = file_consolidado
+                
+                # Desafio Radar de Infracoes: Lemos o PDF agora para gravar a infração no banco nua e crua
+                if file_consolidado:
+                    from .pdf_extractor import PDFExtractor
+                    infracao = PDFExtractor.extract_infracao_from_pdf(file_consolidado)
+                    if infracao:
+                        self.parecer.infracao_documento = infracao
+                        
                 self.parecer.status_fase = 2
                 self.parecer.save()
                 return self.run_phase_2()
@@ -142,6 +150,7 @@ class JariEngine:
                 if self.parecer.data_sessao and self.parecer.paginas_defesa:
                     self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
                     self.parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
+                    self.parecer.infracao_documento = "DIRIGIR SOB A INFLUENCIA DE ALCOOL" # Mock para testes off-line
                     self.parecer.status_fase = 2
                     self.parecer.save()
                     return self.run_phase_2()

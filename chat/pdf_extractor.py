@@ -87,6 +87,69 @@ class PDFExtractor:
         return resultados
     
     @staticmethod
+    def extract_infracao_from_pdf(file_path):
+        """
+        Extrai a descrição literal da infração do documento (normalmente o Consolidado do DETRAN).
+        Procura o termo 'DESCRIÇÃO DA INFRAÇÃO' e captura as linhas seguintes que compõe o texto.
+        
+        Args:
+            file_path (str): Caminho do arquivo no Django Storage.
+            
+        Returns:
+            str: O texto da infração, ou None se não encontrado.
+        """
+        if not file_path or "upload_simulado" in file_path:
+            return None
+            
+        temp_path = None
+        infracao_encontrada = None
+        
+        try:
+            with default_storage.open(file_path, 'rb') as f_in:
+                fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+                with os.fdopen(fd, 'wb') as f_out:
+                    if hasattr(f_in, 'chunks'):
+                        for chunk in f_in.chunks():
+                            f_out.write(chunk)
+                    else:
+                        f_out.write(f_in.read())
+            
+            with fitz.open(temp_path) as doc:
+                text = ""
+                # Lê até as 5 primeiras páginas (geralmente o AIT tá no topo)
+                for page_num in range(min(5, len(doc))):
+                    text += doc[page_num].get_text("text") + "\n"
+                    
+                lines = text.split('\n')
+                
+                for i, line in enumerate(lines):
+                    line_clean = line.strip()
+                    if "DESCRIÇÃO DA INFRAÇÃO" in line_clean.upper() or "DESCRICAO DA INFRACAO" in line_clean.upper():
+                        # A descrição costuma estar na linha imediatamente abaixo ou nas 2 seguintes
+                        for j in range(1, 4):
+                            if i + j < len(lines):
+                                proxima_linha = lines[i+j].strip()
+                                # Ignora se for vazia ou for algum cabeçalho espúrio de quebra de página
+                                if proxima_linha and len(proxima_linha) > 5 and "CÓDIGO" not in proxima_linha.upper() and "MUNICÍPIO" not in proxima_linha.upper() and "Consolidado gerado" not in proxima_linha:
+                                     # Capturou a descrição
+                                     infracao_encontrada = proxima_linha
+                                     break
+                        if infracao_encontrada:
+                            break
+                            
+        except Exception as e:
+            print(f"Erro ao extrair infracao do documento: {e}")
+            
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+                    
+        return infracao_encontrada
+
+    @staticmethod
     def format_extraction_for_llm(datas_autuacao, datas_consolidado):
         """Formata a lista bruta de dicionários em texto simples para anexar ao prompt."""
         todas_ocorrencias = datas_autuacao + datas_consolidado

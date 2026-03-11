@@ -50,7 +50,8 @@ class Parecer(models.Model):
     has_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
     has_decadencia = models.BooleanField(null=True, blank=True)
     
-    # Textos gerados pelas IAs nas Fases 3 a 6
+    # Textos gerados pelas IAs nas Fases 3 a 6, ou extraidos do documento de origem (Fase 7)
+    infracao_documento = models.CharField(max_length=255, blank=True, null=True)
     admissibilidade_texto = models.TextField(blank=True, null=True)
     tese = models.TextField(blank=True, null=True)
     vertex_result = models.TextField(blank=True, null=True)
