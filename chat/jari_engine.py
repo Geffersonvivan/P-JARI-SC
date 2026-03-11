@@ -617,19 +617,19 @@ class JariEngine:
         
         texto_parecer = self.parecer.parecer_final.upper()
         
-        # 1. Regra de Admissibilidade (Intempestividade)
-        if not self.parecer.is_tempestivo:
-            # Se é intempestivo, o recurso não deve ser conhecido (INDEFERIDO)
-            if "INDEFERIDO" not in texto_parecer and "INDEFERIMENTO" not in texto_parecer:
-                erro_fatal = True
-                incompatibilidade_msg = "❌ Resultado incompatível com a Intempestividade do recurso (Deveria ser INDEFERIDO)"
-                
-        # 2. Regra de Extinção da Punibilidade (Prescrição/Decadência)
-        elif (self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia):
+        # 1. Regra de Extinção da Punibilidade (Prescrição/Decadência) - Ordem Pública prevalece
+        if (self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia):
             # Se tem prescrição/decadência, o mérito é prejudicado e a penalidade extinta (DEFERIDO)
             if "DEFERIDO" not in texto_parecer and "DEFERIMENTO" not in texto_parecer:
                 erro_fatal = True
                 incompatibilidade_msg = "❌ Resultado incompatível com extinção da pretensão punitiva (Deveria ser DEFERIDO)"
+                
+        # 2. Regra de Admissibilidade (Intempestividade)
+        elif not self.parecer.is_tempestivo:
+            # Se é intempestivo, mas não prescreveu, o recurso não deve ser conhecido (INDEFERIDO)
+            if "INDEFERIDO" not in texto_parecer and "INDEFERIMENTO" not in texto_parecer:
+                erro_fatal = True
+                incompatibilidade_msg = "❌ Resultado incompatível com a Intempestividade do recurso (Deveria ser INDEFERIDO)"
                 
         # Checklist Objetivo
         # 10 itens como estipulado. Aqui validamos programaticamente 5 vitais.
