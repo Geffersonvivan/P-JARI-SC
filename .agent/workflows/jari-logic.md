@@ -47,6 +47,7 @@ Solicite e valide:
 * **Prescrição Punitiva:** Intervalo entre marcos >= 1825 dias (ou 1826 se bissexto).
 * **Prescrição Intercorrente:** (Data_Sessão - Data_Protocolo) > 1095 dias.
 * **Tempestividade:** Se Data_Protocolo > Prazo_Final = ❌ Intempestivo.
+* **REGRA DE OURO (Ordem Pública):** Extinção da Punibilidade (Prescrição/Decadência) PREVALECE sobre a Admissibilidade. Se estiver prescrito, o resultado deve ser DEFERIDO, mesmo que o recurso seja intempestivo.
 
 ### Fase 4: Teses e Validação Cruzada
 * Se P1 for Negativo: Mérito prejudicado.

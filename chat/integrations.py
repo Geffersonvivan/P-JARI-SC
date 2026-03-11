@@ -495,7 +495,7 @@ class GeminiClient:
             "Sua única função é realizar um checklist sobre o Parecer Final submetido, cruzando a compatibilidade narrativa do Relator com a tabela matemática anterior.\n\n"
             "REGRA DE OURO (SOBERANIA DA MATEMÁTICA OBRIGATÓRIA):\n"
             "Não tente recalcular a tempestividade do recurso subtraindo ou somando dias de notificações citadas no texto. "
-            "Apenas valide se a conclusão do Relator (Tempestivo/Intempestivo) bate com o resultado da Matemática Obrigatória fornecida no prompt. Se o resultado for SIM (TEMPESTIVO), e o texto falar tempestivo, a nota é 🟢 Conforme.\n\n"
+            "Apenas valide se a conclusão do Relator (Tempestivo/Intempestivo) bate com o resultado da Matemática Obrigatória fornecida no prompt. Se o resultado for SIM (TEMPESTIVO), e o texto falar tempestivo, a nota é 🟢 Conforme. ATENÇÃO MÁXIMA: Se a Matemática acusar Prescrição ou Decadência como SIM, o fato de ser Intempestivo perde a relevância (matéria de ordem pública prevalece), devendo a tempestividade ser considerada 🟢 Conforme se o texto a apontar como prejudicada.\n\n"
             "A Auditoria final apresentada deve ser FORMATADA EXCLUSIVAMENTE EM MARKDOWN (NÃO USE NENHUMA TAG HTML) DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
             "OBRIGATÓRIO: Pule linha DUPLA (\\n\\n) no final de cada item de validação do checklist, para que eles não fiquem aglomerados em um único parágrafo.\n"
             "Classifique de forma estrita cada um dos blocos abaixo. Use ícones ricos como 🟢, 🔴, ⚠️.\n"
