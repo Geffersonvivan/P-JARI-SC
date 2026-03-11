@@ -124,9 +124,13 @@
                 <!-- Projetos da Pasta Outros -->
                 <div id="projetos-{{ pasta_outros.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
                     {% for p in pasta_outros.projetos.all %}
-                    <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
+                    <div class="relative flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                         onclick="selectProjeto('{{ p.id }}', '{{ pasta_outros.id }}')">
-                        <span class="flex-1 truncate mr-2" title="{{ p.nome_processo }}">• {{ p.nome_processo }}</span>
+                        <span class="flex-1 truncate mr-2">• {{ p.nome_processo }}</span>
+                        <!-- Custom Tooltip -->
+                        <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-4 top-8 w-[260px] p-2.5 bg-gray-900 text-white text-[11px] font-medium leading-tight rounded-xl shadow-2xl z-[100] whitespace-normal pointer-events-none border border-gray-700">
+                            {{ p.nome_processo }}
+                        </div>
                         <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
                             class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
                     </div>
@@ -158,9 +162,13 @@
                 <!-- Projetos da Pasta -->
                 <div id="projetos-{{ pasta.id }}" class="hidden pl-6 pr-2 space-y-1 my-1">
                     {% for p in pasta.projetos.all %}
-                    <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
+                    <div class="relative flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                         onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
-                        <span class="flex-1 truncate mr-2" title="{{ p.nome_processo }}">• {{ p.nome_processo }}</span>
+                        <span class="flex-1 truncate mr-2">• {{ p.nome_processo }}</span>
+                        <!-- Custom Tooltip -->
+                        <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-4 top-8 w-[260px] p-2.5 bg-gray-900 text-white text-[11px] font-medium leading-tight rounded-xl shadow-2xl z-[100] whitespace-normal pointer-events-none border border-gray-700">
+                            {{ p.nome_processo }}
+                        </div>
                         <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
                             class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
                     </div>
