@@ -358,12 +358,15 @@
                             let rawData = b64Match[2];
                             let contentId = "image_" + i + "@jari.sc";
 
-                            // Busca a proporção original real da imagem renderizada no editor da tela do usuário
-                            let w = 150, h = 85;
+                            // Busca a proporção original real evitando estouro de altura no Word
+                            let w = 110, h = 110;
                             const origNode = editorInstance.dom.select('img')[i];
                             if (origNode) {
-                                w = origNode.clientWidth || origNode.naturalWidth || origNode.width || 150;
-                                h = origNode.clientHeight || origNode.naturalHeight || origNode.height || 85;
+                                let natW = origNode.naturalWidth || 1;
+                                let natH = origNode.naturalHeight || 1;
+                                w = origNode.clientWidth || parseInt(origNode.getAttribute('width')) || 110;
+                                // Calcula a altura preservando rigidamente a proporção original
+                                h = Math.round(w * (natH / natW));
                             }
 
                             // Força dimensões exatas no HTML p/ o Word não esticar
@@ -372,6 +375,7 @@
                             img.setAttribute('height', h);
                             img.style.width = w + 'px';
                             img.style.height = h + 'px';
+                            img.style.maxWidth = w + 'px';
 
                             mhtmlBottom += "--NEXT.PART\n";
                             mhtmlBottom += "Content-Location: " + contentId + "\n";
@@ -459,7 +463,12 @@
                             reader.readAsDataURL(blob);
                         });
                         
-                        img.src = base64data; // Substitui o URL remoto pelo dado binário local
+                        // Espera o navegador aplicar o base64 para evitar PDF em branco
+                        await new Promise((resolve) => {
+                            img.onload = resolve;
+                            img.onerror = resolve;
+                            img.src = base64data; // Substitui o URL remoto pelo dado binário local
+                        });
                     } catch (e) {
                         console.error('Erro ao pré-carregar imagem para o PDF', e);
                     }
