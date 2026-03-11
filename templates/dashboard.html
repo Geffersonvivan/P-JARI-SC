@@ -126,7 +126,7 @@
                     {% for p in pasta_outros.projetos.all %}
                     <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                         onclick="selectProjeto('{{ p.id }}', '{{ pasta_outros.id }}')">
-                        <span class="truncate w-32">• {{ p.nome_processo }}</span>
+                        <span class="flex-1 truncate mr-2">• {{ p.nome_processo }}</span>
                         <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
                             class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
                     </div>
@@ -160,7 +160,7 @@
                     {% for p in pasta.projetos.all %}
                     <div class="flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                         onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
-                        <span class="truncate w-32">• {{ p.nome_processo }}</span>
+                        <span class="flex-1 truncate mr-2">• {{ p.nome_processo }}</span>
                         <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
                             class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 font-bold px-1 transition">×</button>
                     </div>
