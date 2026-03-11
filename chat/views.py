@@ -39,9 +39,16 @@ def home_view(request):
     if request.user.is_authenticated:
         banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
         teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
+        
+        tem_novidade_forum = False
+        ultimo_acesso = request.user.profile.ultimo_acesso_forum
+        ultimo_post = PostForum.objects.all().order_by('-data_criacao').first()
+        if ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso):
+            tem_novidade_forum = True
     else:
         banco_teses = []
         teses_comunidade = []
+        tem_novidade_forum = False
     
     return render(request, 'home.html', {
         'pasta_outros': pasta_outros,
@@ -50,6 +57,7 @@ def home_view(request):
         'banco_teses': banco_teses,
         'teses_comunidade': teses_comunidade,
         'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
+        'tem_novidade_forum': tem_novidade_forum,
     })
 
 def editar_parecer_view(request, id):
@@ -695,6 +703,11 @@ def estatisticas_view(request):
         'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
     }
     
+    if request.user.is_authenticated:
+        ultimo_acesso = request.user.profile.ultimo_acesso_forum
+        ultimo_post = PostForum.objects.all().order_by('-data_criacao').first()
+        context['tem_novidade_forum'] = bool(ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso))
+    
     return render(request, 'dashboard.html', context)
 
 from django.views.decorators.http import require_POST
@@ -952,6 +965,12 @@ def estatisticas_gerais_view(request):
         'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
         'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
     }
+    
+    if request.user.is_authenticated:
+        ultimo_acesso = request.user.profile.ultimo_acesso_forum
+        ultimo_post = PostForum.objects.all().order_by('-data_criacao').first()
+        context['tem_novidade_forum'] = bool(ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso))
+        
     return render(request, 'dashboard_global.html', context)
 
 @login_required
@@ -1101,6 +1120,18 @@ def get_comentarios_forum_view(request, post_id):
         return JsonResponse({'status': 'success', 'comentarios': dados})
     except PostForum.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Post não encontrado.'}, status=404)
+
+@login_required
+@require_POST
+def update_forum_access_view(request):
+    try:
+        from django.utils import timezone
+        profile = request.user.profile
+        profile.ultimo_acesso_forum = timezone.now()
+        profile.save()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required
 @require_POST

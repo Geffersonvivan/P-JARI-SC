@@ -160,6 +160,7 @@ class UserProfile(models.Model):
     subscription_status = models.CharField(max_length=50, default='inactive')
     viu_boas_vindas = models.BooleanField(default=False)
     can_view_global_stats = models.BooleanField(default=False, verbose_name="Ver Painel Global")
+    ultimo_acesso_forum = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
         return f"Profile: {self.user.username} - PRO: {self.is_pro}"

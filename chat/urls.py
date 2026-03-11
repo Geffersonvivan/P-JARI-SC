@@ -29,4 +29,5 @@ urlpatterns = [
     path('api/forum/post/<int:post_id>/comentar/', views.comentar_post_forum_view, name='comentar_post_forum'),
     path('api/forum/post/<int:post_id>/curtir/', views.curtir_post_forum_view, name='curtir_post_forum'),
     path('api/forum/post/<int:post_id>/comentarios/', views.get_comentarios_forum_view, name='get_comentarios_forum'),
+    path('api/forum/update-access/', views.update_forum_access_view, name='update_forum_access'),
 ]

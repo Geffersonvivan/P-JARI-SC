@@ -146,6 +146,23 @@
         return token;
     }
 
+    function abrirModalForum() {
+        document.getElementById('forumModal').classList.remove('hidden');
+        
+        // Esconder o badge de novidade localmente
+        const badge = document.getElementById('forum-badge');
+        if (badge) badge.style.display = 'none';
+
+        // Disparar requisição para atualizar o ultimo_acesso_forum do usuário
+        fetch("/api/forum/update-access/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFTokenForum()
+            }
+        }).catch(e => console.error("Erro ao atualizar acesso ao fórum:", e));
+    }
+
     async function submitNovoPost(event) {
         event.preventDefault();
         const conteudoInput = document.getElementById('novo_post_conteudo');
