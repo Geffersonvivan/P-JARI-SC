@@ -1286,10 +1286,17 @@
                         btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
                     }
                 }
-    <style>
-        @keyframes slideUpFade {
-            to {
-                transform: translateY(0);
+            } catch (error) {
+                console.error('Erro na requisição:', error);
+                alert('Erro de conexão ao servidor.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
+                }
+            }
+        }
+    </script>
+    
     <!-- Modal Gerenciador de Citações -->
     <div id="citacaoModal"
         class="hidden fixed inset-0 z-[60] overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
