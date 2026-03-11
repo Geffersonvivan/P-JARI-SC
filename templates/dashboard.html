@@ -387,14 +387,14 @@
                 <div class="flex items-center gap-2">
                     <label for="mes-filtro" class="text-sm font-medium text-gray-600">Mês de Referência:</label>
                     <input type="month" id="mes-filtro"
-                        value="{% if ano_selecionado and mes_selecionado %}{{ ano_selecionado }}-{{ mes_selecionado|stringformat:'02d' }}{% endif %}"
+                        value="{{ mes_ano_input }}"
                         class="px-4 py-2 min-w-[170px] rounded-xl text-gray-700 font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                         onchange="filtrarMes()">
                 </div>
             </div>
 
             <!-- Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
                 <div
                     class="relative group bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between transition hover:shadow-md">
                     <h3
