@@ -553,9 +553,10 @@ def estatisticas_view(request):
     tt_horas = total_segundos // 3600
     tt_minutos = (total_segundos % 3600) // 60
     if tt_horas > 0:
-        tempo_total_julgamento = f"{tt_horas}H {tt_minutos}M"
+        tempo_total_julgamento = f"{tt_horas}H {tt_minutos}m"
     else:
-        tempo_total_julgamento = f"{tt_minutos}M"
+        tt_segundos_resto = total_segundos % 60
+        tempo_total_julgamento = f"{tt_minutos}m {tt_segundos_resto}s"
         
     m_minutos = int(media_segundos) // 60
     m_segundos = int(media_segundos) % 60
@@ -793,9 +794,10 @@ def estatisticas_gerais_view(request):
     tt_horas = total_segundos // 3600
     tt_minutos = (total_segundos % 3600) // 60
     if tt_horas > 0:
-        tempo_total_julgamento = f"{tt_horas}H {tt_minutos}M"
+        tempo_total_julgamento = f"{tt_horas}H {tt_minutos}m"
     else:
-        tempo_total_julgamento = f"{tt_minutos}M"
+        tt_segundos_resto = total_segundos % 60
+        tempo_total_julgamento = f"{tt_minutos}m {tt_segundos_resto}s"
         
     m_minutos = int(media_segundos) // 60
     m_segundos = int(media_segundos) % 60
@@ -1130,6 +1132,17 @@ def update_forum_access_view(request):
         from django.utils import timezone
         profile = request.user.profile
         profile.ultimo_acesso_forum = timezone.now()
+        profile.save()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+@require_POST
+def update_tour_access_view(request):
+    try:
+        profile = request.user.profile
+        profile.has_seen_tour = True
         profile.save()
         return JsonResponse({'status': 'success'})
     except Exception as e:

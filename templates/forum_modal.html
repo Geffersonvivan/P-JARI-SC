@@ -1,6 +1,15 @@
-<!-- Modal Fórum JARI -->
-<div id="forumModal"
-    class="hidden fixed inset-0 z-[60] overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+<!-- User Dashboard/Forum Modal -->
+<style>
+    .forum-text a {
+        color: #3b82f6; /* text-blue-500 Tailwind */
+        text-decoration: underline;
+    }
+    .forum-text a:hover {
+        color: #2563eb; /* text-blue-600 Tailwind */
+    }
+</style>
+<div id="forum-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center hidden bg-gray-900/60 backdrop-blur-sm p-4 transition-opacity">
     <div
         class="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
 
@@ -10,7 +19,7 @@
             <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2 mb-0">
                 💬 Fórum dos Julgadores
             </h3>
-            <button onclick="document.getElementById('forumModal').classList.add('hidden')"
+            <button onclick="document.getElementById('forum-modal').classList.add('hidden')"
                 class="text-gray-400 hover:text-gray-600 transition p-1 hover:bg-gray-100 rounded-lg shrink-0 ml-4 focus:outline-none">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -74,7 +83,7 @@
                                     </div>
                                     
                                     <!-- Post Content e Imagem -->
-                                    <div class="text-sm text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap">{{ post.conteudo }}</div>
+                                    <div class="text-sm text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap forum-text">{{ post.conteudo|urlize }}</div>
                                     {% if post.imagem %}
                                     <div class="mb-4 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 max-h-96 flex items-center justify-center">
                                         <a href="{{ post.imagem.url }}" target="_blank" class="block w-full h-full cursor-zoom-in">
@@ -114,7 +123,7 @@
                                                             <span class="font-bold text-xs text-gray-800">{{ comentario.autor.first_name|default:comentario.autor.username }}</span>
                                                             <span class="text-[10px] text-gray-400">{{ comentario.data_criacao|date:"d/m H:i" }}</span>
                                                         </div>
-                                                        <p class="text-xs text-gray-700 leading-relaxed">{{ comentario.conteudo }}</p>
+                                                        <p class="text-xs text-gray-700 leading-relaxed forum-text">{{ comentario.conteudo|urlize }}</p>
                                                     </div>
                                                 </div>
                                             {% endfor %}
@@ -171,7 +180,7 @@
     }
 
     function abrirModalForum() {
-        document.getElementById('forumModal').classList.remove('hidden');
+        document.getElementById('forum-modal').classList.remove('hidden');
         
         // Esconder o badge de novidade localmente
         const badge = document.getElementById('forum-badge');
@@ -319,7 +328,7 @@
                                 <span class="font-bold text-xs text-gray-800">${data.autor}</span>
                                 <span class="text-[10px] text-gray-400">Agora mesmo</span>
                             </div>
-                            <p class="text-xs text-gray-700 leading-relaxed">${data.conteudo}</p>
+                            <p class="text-xs text-gray-700 leading-relaxed forum-text">${urlizeText(data.conteudo)}</p>
                         </div>
                     </div>
                 `;
@@ -338,9 +347,29 @@
             }
         } catch (e) {
             console.error('Erro de rede ao comentar:', e);
-            alert('Erro de conexão ao servidor.');
+            alert('Erro de conexão.');
         }
     }
+    
+    // JS helper to urlize new comments securely
+    function urlizeText(text) {
+        if (!text) return "";
+        const div = document.createElement('div');
+        div.innerText = text;
+        const escaped = div.innerHTML;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return escaped.replace(urlRegex, function(url) {
+            return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+        });
+    }
+
+    // Force target="_blank" for all links rendered by Django's urlize filter in the forum
+    document.addEventListener('click', function(e) {
+        if (e.target.tagName === 'A' && e.target.closest('.forum-text')) {
+            e.target.setAttribute('target', '_blank');
+            e.target.setAttribute('rel', 'noopener noreferrer');
+        }
+    });
 </script>
 <style>
     @keyframes slideUpFade {
