@@ -880,7 +880,7 @@
 
             if (menu && !menu.classList.contains('hidden')) {
                 const isClickInsideMenu = menu.contains(targetElement);
-                const isClickOnToggleInfo = targetElement.closest('.mt-auto.relative');
+                const isClickOnToggleInfo = targetElement.closest('button[onclick="toggleUserMenu()"]');
 
                 if (!isClickInsideMenu && !isClickOnToggleInfo) {
                     menu.classList.add('hidden');
