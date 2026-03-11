@@ -90,6 +90,7 @@ def editar_parecer_view(request, id):
             rodape_template = Template(rodape_texto)
             rodape_escolhido = rodape_template.render(Context({
                 'nome_membro': nome_usuario,
+                'nome_usuario': nome_usuario,
                 'deferido': palavra_resultado,
                 'indeferido': palavra_resultado,
                 'DEFERIDO': palavra_resultado,
