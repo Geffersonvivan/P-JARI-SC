@@ -913,13 +913,13 @@ def estatisticas_gerais_view(request):
     custo_perplexity = ((tokens_perplexity['in_t'] or 0) + (tokens_perplexity['out_t'] or 0)) * (1.00 / 1000000)
     custo_vertex = consultas_vertex * 0.005
     
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True, created_at__year=ano, created_at__month=mes).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
     pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
-        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
+        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True, projetos__created_at__year=ano, projetos__created_at__month=mes))
     ).first()
     pastas = Pasta.objects.filter(user=request.user).exclude(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
-        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
+        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True, projetos__created_at__year=ano, projetos__created_at__month=mes))
     ).order_by('-created_at')
     
     # --- NOVAS MÉTRICAS ESTRATÉGIAS ---
