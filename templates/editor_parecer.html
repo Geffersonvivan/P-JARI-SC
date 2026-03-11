@@ -420,28 +420,54 @@
             }
         }
 
-        function saveAsPDF() {
+        async function saveAsPDF() {
             const editorInstance = tinymce.get('editor');
             if (!editorInstance) return;
 
-            const htmlContent = editorInstance.getContent();
+            const btn = document.querySelector('button[onclick="openExportModal(\'pdf\')"]');
+            if (btn) btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Gerando...';
 
-            // Criar um container limpo apenas para impressão
-            const printElement = document.createElement('div');
-            printElement.innerHTML = htmlContent;
-            printElement.style.padding = '0'; // Tira borda excessiva
-            printElement.style.paddingBottom = '40px'; // Força espaço extra no final para evitar corte do html2canvas
-            printElement.style.fontFamily = 'Arial, Helvetica, sans-serif';
-            printElement.style.fontSize = '13px';
-            printElement.style.lineHeight = '1.6'; // Linhas mais espaçadas ajudam a biblioteca a não fatiar palavras ao meio
-            printElement.style.color = '#000';
-            printElement.style.backgroundColor = '#fff';
+            try {
+                const htmlContent = editorInstance.getContent();
 
+                // Criar um container limpo apenas para impressão
+                const printElement = document.createElement('div');
+                printElement.innerHTML = htmlContent;
+                printElement.style.padding = '0'; // Tira borda excessiva
+                printElement.style.paddingBottom = '40px'; // Força espaço extra no final para evitar corte do html2canvas
+                printElement.style.fontFamily = 'Arial, Helvetica, sans-serif';
+                printElement.style.fontSize = '13px';
+                printElement.style.lineHeight = '1.6'; // Linhas mais espaçadas ajudam a biblioteca a não fatiar palavras ao meio
+                printElement.style.color = '#000';
+                printElement.style.backgroundColor = '#fff';
 
+                // Buscar e converter todas as imagens para Base64 para garantir a renderização no PDF pelo html2canvas
+                const images = printElement.querySelectorAll('img');
+                for (let i = 0; i < images.length; i++) {
+                    let img = images[i];
+                    let originalSrc = img.src;
 
-            // Força a quebra de linha em tabelas ou textos longos
-            printElement.style.wordWrap = 'break-word';
-            printElement.style.overflowWrap = 'break-word';
+                    // Ignora se já for base64
+                    if (originalSrc.startsWith('data:')) continue;
+
+                    try {
+                        const response = await fetch(originalSrc);
+                        const blob = await response.blob();
+                        const reader = new FileReader();
+                        const base64data = await new Promise((resolve) => {
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+                        
+                        img.src = base64data; // Substitui o URL remoto pelo dado binário local
+                    } catch (e) {
+                        console.error('Erro ao pré-carregar imagem para o PDF', e);
+                    }
+                }
+
+                // Força a quebra de linha em tabelas ou textos longos
+                printElement.style.wordWrap = 'break-word';
+                printElement.style.overflowWrap = 'break-word';
 
             // Previne que o html2canvas corte o conteúdo no meio da linha e adiciona padding bottom
             const avoidBreakElements = printElement.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, tr, blockquote');
@@ -485,10 +511,16 @@
             };
 
             // Gerar PDF e restaurar a tela original
-            html2pdf().set(opt).from(printElement).save().then(() => {
-                document.body.removeChild(printElement);
-                if (mainUI) mainUI.style.display = 'block';
-            });
+            await html2pdf().set(opt).from(printElement).save();
+            document.body.removeChild(printElement);
+            if (mainUI) mainUI.style.display = 'block';
+            
+            } catch (error) {
+                console.error("Erro ao gerar PDF:", error);
+                alert("Ocorreu um erro ao gerar o arquivo PDF. Detalhes no console.");
+            } finally {
+                if (btn) btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Salvar em PDF';
+            }
         }
         
         // --- Community Theses JS ---
