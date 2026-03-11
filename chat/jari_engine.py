@@ -648,28 +648,6 @@ class JariEngine:
         if erro_fatal:
             itens_conformes -= 5
             inconsistencias.append(incompatibilidade_msg)
-            
-            # Alerta via E-mail para Auditoria
-            try:
-                assunto = f"🚨 P-JARI Alerta: Inconsistência Crítica na IA ({self.parecer.sgpe or self.parecer.nome_processo})"
-                mensagem = (
-                    f"O JariMath bloqueou uma resposta da LLM por quebra de regra fatal.\n\n"
-                    f"Processo: {self.parecer.nome_processo}\n"
-                    f"SGPE: {self.parecer.sgpe or 'N/A'}\n"
-                    f"Erro Detectado: {incompatibilidade_msg}\n\n"
-                    f"--- Texto Gerado pela LLM (Incompatível) ---\n"
-                    f"{self.parecer.parecer_final}\n\n"
-                    f"Por favor, verifique a Session Key: {self.parecer.session_key} no painel."
-                )
-                send_mail(
-                    subject=assunto,
-                    message=mensagem,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=['geffersonvivan@gmail.com'],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Erro ao disparar email de auditoria Fase 6: {str(e)}")
         
         # Validar nome e SGPE / PA na saída
         if self.parecer.sgpe and self.parecer.sgpe not in self.parecer.parecer_final:
@@ -689,6 +667,30 @@ class JariEngine:
         self.parecer.blindagem_score = int(indice)
         if inconsistencias:
              self.parecer.blindagem_detalhes = "\n".join(inconsistencias)
+             
+             # Disparo de Alerta via E-mail para o Administrador
+             try:
+                 from django.core.mail import send_mail
+                 from django.conf import settings
+                 assunto = f"🚨 P-JARI: Inconsistência Crítica detectada na IA ({self.parecer.sgpe or self.parecer.nome_processo})"
+                 mensagem = (
+                     f"O JariEngine detectou inconsistências de validação matemática durante a auditoria (Fase 6).\n\n"
+                     f"Processo: {self.parecer.nome_processo}\n"
+                     f"SGPE / PA: {self.parecer.sgpe or self.parecer.pa or 'Não Informado'}\n"
+                     f"Inconsistências Listadas:\n{self.parecer.blindagem_detalhes}\n\n"
+                     f"--- Trecho do Parecer (Problema) ---\n"
+                     f"{self.parecer.parecer_final[:1500]}... [Ver Completo na Ferramenta]\n\n"
+                     f"Session Key para Bug Tracking: {self.parecer.session_key}"
+                 )
+                 send_mail(
+                     subject=assunto,
+                     message=mensagem,
+                     from_email=settings.DEFAULT_FROM_EMAIL,
+                     recipient_list=['geffersonvivan@gmail.com'],
+                     fail_silently=True,
+                 )
+             except Exception as e:
+                 print(f"Erro ao disparar email de auditoria Fase 6: {str(e)}")
              
         self.parecer.status_fase = 7
         self.parecer.save()
