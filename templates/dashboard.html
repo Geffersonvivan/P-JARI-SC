@@ -705,18 +705,34 @@
 
         function filtrarMes() {
             const valor = document.getElementById('mes-filtro').value;
+            console.log("Calendar triggered with value:", valor);
             if (valor) {
-                const [ano, mes] = valor.split('-');
-                window.location.href = `?ano=${ano}&mes=${mes}`;
+                const parts = valor.split('-');
+                if (parts.length === 2) {
+                    const params = new URLSearchParams(window.location.search);
+                    params.set('ano', parts[0]);
+                    params.set('mes', parts[1]);
+                    window.location.search = params.toString();
+                }
             }
         }
 
-        // Define valor incial do input month
+        // Define valor incial do input month e preenche eventos robustos
         document.addEventListener("DOMContentLoaded", function () {
+            const inputMes = document.getElementById('mes-filtro');
+            
+            // Garantir que o onchange emita a açao caso a tag HTML falhe
+            if(inputMes) {
+                inputMes.addEventListener('change', function() {
+                    console.log('EventListener change detetado');
+                    filtrarMes();
+                });
+            }
+
             const anoSelecionado = '{{ ano_selecionado }}';
             const mesSelecionado = '{{ mes_selecionado }}'.padStart(2, '0');
             if (anoSelecionado && mesSelecionado !== '00') {
-                document.getElementById('mes-filtro').value = `${anoSelecionado}-${mesSelecionado}`;
+                inputMes.value = `${anoSelecionado}-${mesSelecionado}`;
             }
         });
 
