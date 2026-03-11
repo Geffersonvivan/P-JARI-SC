@@ -634,7 +634,7 @@ class JariEngine:
                 incompatibilidade_msg = "❌ Resultado incompatível com extinção da pretensão punitiva (Deveria ser DEFERIDO)"
                 
         # 2. Regra de Admissibilidade (Intempestividade)
-        elif not self.parecer.is_tempestivo:
+        elif self.parecer.is_tempestivo is False:
             # Se é intempestivo, mas não prescreveu, o recurso não deve ser conhecido (INDEFERIDO)
             if "INDEFERIDO" not in texto_parecer and "INDEFERIMENTO" not in texto_parecer:
                 erro_fatal = True

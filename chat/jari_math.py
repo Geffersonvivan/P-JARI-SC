@@ -23,6 +23,9 @@ class JariMath:
         Conforme roteiro: "Excluir o dia inicial e incluir o dia final na contagem."
         Matematicamente, (data_final - data_inicial).days já faz exatamente isso.
         """
+        if not start_date or not end_date:
+            return 0
+            
         if isinstance(start_date, str):
             start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
         if isinstance(end_date, str):
@@ -56,6 +59,9 @@ class JariMath:
         Datas obrigatórias exclusivas: Protocolo JARI (F1/P5) e Sessão (F1/P1).
         Regra de contagem: Excluir dia inicial, incluir final. Se > 1095 -> Prescrito.
         """
+        if not data_protocolo or not data_sessao:
+            return False
+            
         dias_diferenca = JariMath.calculate_days_diff(data_protocolo, data_sessao)
         return dias_diferenca > 1095
 
@@ -160,6 +166,9 @@ class JariMath:
         Tempestividade (CTB ART. 285)
         Se protocolo for posterior a limite -> Intempestivo
         """
+        if not data_protocolo or not prazo_final:
+            return None # Null indica que o avaliador não preencheu/sistema não encontrou
+            
         if isinstance(data_protocolo, str):
             data_protocolo = datetime.datetime.strptime(data_protocolo, "%Y-%m-%d").date()
         if isinstance(prazo_final, str):
