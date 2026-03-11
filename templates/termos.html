@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -63,10 +63,13 @@
                     <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col termo-container" data-id="termo">
                         <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
                             <h3 class="text-lg font-bold text-gray-900">Termos de Uso (Versão {{ termo.versao }})</h3>
-                        </div>
-                        <div class="p-6 max-h-96 overflow-y-auto scrollable-box text-sm text-gray-700 leading-relaxed doc-content">
-                            {{ termo.conteudo|linebreaks|safe }}
-                        </div>
+                        <!-- CONTEÚDO DINÂMICO DOS TERMOS DE USO -->
+                <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto"
+                    id="termos-container">
+                    <div class="prose prose-sm sm:prose-base max-w-none text-gray-700">
+                        {{ termo.conteudo|safe }}
+                    </div>
+                </div>
                         <div class="bg-blue-50/50 px-5 py-4 border-t border-gray-100 flex items-center">
                             <input type="checkbox" id="check-termo" name="aceite_termo" required disabled
                                 class="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 transition cursor-not-allowed">
@@ -85,10 +88,13 @@
                     <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col termo-container" data-id="politica">
                         <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
                             <h3 class="text-lg font-bold text-gray-900">Política de Privacidade (Versão {{ politica.versao }})</h3>
-                        </div>
-                        <div class="p-6 max-h-96 overflow-y-auto scrollable-box text-sm text-gray-700 leading-relaxed doc-content">
-                            {{ politica.conteudo|linebreaks|safe }}
-                        </div>
+                        <!-- CONTEÚDO DINÂMICO DA POLÍTICA DE PRIVACIDADE -->
+                <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto"
+                    id="politica-container">
+                    <div class="prose prose-sm sm:prose-base max-w-none text-gray-700">
+                        {{ politica.conteudo|safe }}
+                    </div>
+                </div>
                         <div class="bg-blue-50/50 px-5 py-4 border-t border-gray-100 flex items-center">
                             <input type="checkbox" id="check-politica" name="aceite_politica" required disabled
                                 class="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 transition cursor-not-allowed">

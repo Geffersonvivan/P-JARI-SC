@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from tinymce.models import HTMLField
 
 class DocumentoLegal(models.Model):
     TIPO_CHOICES = (
@@ -10,7 +11,7 @@ class DocumentoLegal(models.Model):
 
     tipo = models.CharField(max_length=50, choices=TIPO_CHOICES)
     versao = models.CharField(max_length=20, help_text="Ex: 1.0, 1.1, 2.0")
-    conteudo = models.TextField(help_text="Conteúdo HTML do documento")
+    conteudo = HTMLField(help_text="Conteúdo HTML do documento")
     is_active = models.BooleanField(default=False, help_text="Apenas um documento por tipo pode estar ativo")
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_publicacao = models.DateTimeField(default=timezone.now)
