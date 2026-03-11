@@ -501,7 +501,7 @@ def estatisticas_view(request):
     import json
     from datetime import datetime
     from django.db.models import Avg, F, Count
-    from .models import BancoTese, InconsistenciaAnalise, ProcessoPipeline, PostForum
+    from .models import BancoTese, PostForum
     from django.utils import timezone
     from datetime import timedelta
     from django.db.models.functions import TruncDate
