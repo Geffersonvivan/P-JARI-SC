@@ -172,20 +172,24 @@
             {% endfor %}
         </nav>
 
-        <div class="mt-auto border-t border-gray-300 pt-4 text-xs text-gray-600 relative flex flex-col items-center">
+        <div class="mt-auto w-full flex flex-col pb-4">
             {% if request.user.is_authenticated %}
 
             <!-- Fórum -->
-            <button onclick="document.getElementById('forumModal').classList.remove('hidden');" title="Fórum dos Julgadores"
-                class="p-2 hover:bg-gray-200 rounded-full cursor-pointer flex items-center justify-center transition focus:outline-none text-blue-600 mb-2">
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                </svg>
-            </button>
+            <div class="px-2 mb-2 flex justify-start">
+                <button onclick="document.getElementById('forumModal').classList.remove('hidden');" title="Fórum dos Julgadores"
+                    class="p-2 hover:bg-gray-200 rounded-full cursor-pointer flex items-center justify-center transition focus:outline-none text-blue-600">
+                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                </button>
+            </div>
 
-            <!-- User Menu Trigger Button -->
-            <button onclick="toggleUserMenu()"
-                class="p-2 hover:bg-gray-200 rounded-full cursor-pointer flex items-center justify-center transition focus:outline-none text-gray-600">
+            <!-- User Container -->
+            <div class="border-t border-gray-300 pt-3 px-2 text-xs text-gray-600 relative flex justify-start">
+                <!-- User Menu Trigger Button -->
+                <button onclick="toggleUserMenu()"
+                    class="p-2 hover:bg-gray-200 rounded-full cursor-pointer flex items-center justify-center transition focus:outline-none text-gray-600">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="8" r="4"></circle>
@@ -331,13 +335,14 @@
 
             {% else %}
             <!-- Unauthenticated Footer Actions -->
-            <div class="w-full space-y-2">
+            <div class="border-t border-gray-300 pt-4 px-2 w-full space-y-2">
                 <button onclick="showLoginModal()"
                     class="w-full text-left p-2 hover:bg-gray-200 rounded-full cursor-pointer flex items-center gap-2 text-blue-600 border-none outline-none bg-transparent font-medium">
                     <span>✨</span> Entrar / Cadastrar
                 </button>
             </div>
             {% endif %}
+            </div>
         </div>
     </aside>
 
