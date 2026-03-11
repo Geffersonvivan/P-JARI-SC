@@ -1137,16 +1137,6 @@ def update_forum_access_view(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-@login_required
-@require_POST
-def update_tour_access_view(request):
-    try:
-        profile = request.user.profile
-        profile.has_seen_tour = True
-        profile.save()
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required
 @require_POST
