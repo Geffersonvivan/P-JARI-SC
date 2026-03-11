@@ -210,6 +210,8 @@ class BancoTese(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='banco_teses')
     titulo = models.CharField(max_length=255)
     conteudo = models.TextField()
+    is_public = models.BooleanField(default=True)
+    usage_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

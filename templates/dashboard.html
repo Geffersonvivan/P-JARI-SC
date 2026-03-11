@@ -976,14 +976,19 @@
         }
 
         function editCitacao(id) {
-            const tituloEl = document.getElementById(`tese-titulo-${id}`);
-            const conteuEl = document.getElementById(`tese-conteudo-${id}`);
-
-            if (!tituloEl || !conteuEl) return;
+            const titulo = document.getElementById(`tese-titulo-${id}`).innerText;
+            const conteudo = document.getElementById(`tese-conteudo-${id}`).innerText;
+            const cardEl = document.getElementById(`tese-card-${id}`);
 
             document.getElementById('citacao_id_edit').value = id;
-            document.getElementById('citacao_titulo').value = tituloEl.innerText;
-            document.getElementById('citacao_conteudo').value = conteuEl.innerText;
+            document.getElementById('citacao_titulo').value = titulo;
+            document.getElementById('citacao_conteudo').value = conteudo;
+            
+            if (cardEl) {
+                const isPubAttr = cardEl.getAttribute('data-is-public');
+                const isPub = document.getElementById('citacao_is_public');
+                if (isPub) isPub.checked = (isPubAttr === 'true');
+            }
 
             document.getElementById('btnSubmitCitacao').innerHTML = 'Atualizar Citação';
 
@@ -1146,6 +1151,20 @@
                             style="resize: none;"></textarea>
                     </div>
 
+                    <div class="mb-6 flex items-start gap-3 bg-blue-50 border border-blue-100 p-4 rounded-xl">
+                        <div class="flex items-center h-5 mt-0.5">
+                            <input id="citacao_is_public" name="is_public" type="checkbox" value="true" class="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer" checked>
+                        </div>
+                        <div class="flex-1">
+                            <label for="citacao_is_public" class="text-sm font-bold text-gray-800 cursor-pointer">
+                                Tornar Público (Comunidade JARI)
+                            </label>
+                            <p class="text-xs text-gray-600 mt-1 leading-relaxed">
+                                Compartilhe esta tese na aba de Comunidade para que outros julgadores possam utilizá-la. Seu nome aparecerá como autor.
+                            </p>
+                        </div>
+                    </div>
+
                     <div class="flex gap-3 justify-end items-center mt-2">
                         <button type="button" id="btnCancelarEdicao" onclick="resetCitacaoForm()"
                             class="hidden px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition focus:outline-none">
@@ -1170,7 +1189,7 @@
                     {% if banco_teses %}
                     {% for tese in banco_teses %}
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-colors shadow-sm"
-                        id="tese-card-{{ tese.id }}">
+                        id="tese-card-{{ tese.id }}" data-is-public="{{ tese.is_public|lower }}">
                         <div class="flex-1 pr-4 mb-3 sm:mb-0">
                             <h4 class="font-bold text-sm text-gray-800" id="tese-titulo-{{ tese.id }}">{{ tese.titulo }}
                             </h4>

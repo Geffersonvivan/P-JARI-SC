@@ -36,13 +36,19 @@ def home_view(request):
     total_julgados = Parecer.objects.filter(**filter_kwargs, is_saved=True).count()
     
     from .models import BancoTese
-    banco_teses = BancoTese.objects.filter(user=request.user) if request.user.is_authenticated else []
+    if request.user.is_authenticated:
+        banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
+        teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
+    else:
+        banco_teses = []
+        teses_comunidade = []
     
     return render(request, 'home.html', {
         'pasta_outros': pasta_outros,
         'pastas': pastas,
         'total_julgados': total_julgados,
-        'banco_teses': banco_teses
+        'banco_teses': banco_teses,
+        'teses_comunidade': teses_comunidade
     })
 
 def editar_parecer_view(request, id):
@@ -150,13 +156,19 @@ def editar_parecer_view(request, id):
             parecer_gerado = markdown.markdown(texto_gerado_pela_ia, extensions=['nl2br', 'sane_lists', 'tables'])
 
     from .models import BancoTese
-    banco_teses = BancoTese.objects.filter(user=request.user) if request.user.is_authenticated else []
+    if request.user.is_authenticated:
+        banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
+        teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
+    else:
+        banco_teses = []
+        teses_comunidade = []
 
     return render(request, 'editor_parecer.html', {
         'parecer': parecer,
         'parecer_gerado': parecer_gerado,
         'config': config,
-        'banco_teses': banco_teses
+        'banco_teses': banco_teses,
+        'teses_comunidade': teses_comunidade
     })
 
 @require_POST
@@ -673,7 +685,8 @@ def estatisticas_view(request):
         'total_usos_global': total_usos_global,
         'creditos_usuario': creditos_usuario,
         'is_pro': is_pro,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
+        'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
     }
     
     return render(request, 'dashboard.html', context)
@@ -929,7 +942,8 @@ def estatisticas_gerais_view(request):
         'taxa_conversao': taxa_conversao,
         'top_artigos': top_artigos,
         'avg_dias_funil': avg_dias_funil,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
+        'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
     }
     return render(request, 'dashboard_global.html', context)
 
@@ -940,6 +954,8 @@ def create_citacao_view(request):
     from .models import BancoTese
     titulo = request.POST.get('titulo')
     conteudo = request.POST.get('conteudo')
+    is_public_str = request.POST.get('is_public', 'true')
+    is_public = str(is_public_str).lower() == 'true'
     
     if not titulo or not conteudo:
         return JsonResponse({'error': 'Título e Conteúdo são obrigatórios.'}, status=400)
@@ -947,10 +963,11 @@ def create_citacao_view(request):
     banco = BancoTese.objects.create(
         user=request.user,
         titulo=titulo,
-        conteudo=conteudo
+        conteudo=conteudo,
+        is_public=is_public
     )
     
-    return JsonResponse({'success': True, 'id': banco.id, 'titulo': titulo})
+    return JsonResponse({'success': True, 'id': banco.id, 'titulo': titulo, 'is_public': is_public})
 
 @login_required
 @require_POST
@@ -959,6 +976,7 @@ def editar_citacao_view(request, id):
     
     titulo = request.POST.get('titulo')
     conteudo = request.POST.get('conteudo')
+    is_public_str = request.POST.get('is_public')
         
     if not titulo or not conteudo:
         return JsonResponse({'error': 'Título e Conteúdo são obrigatórios.'}, status=400)
@@ -967,8 +985,10 @@ def editar_citacao_view(request, id):
         citacao = BancoTese.objects.get(id=id, user=request.user)
         citacao.titulo = titulo
         citacao.conteudo = conteudo
+        if is_public_str is not None:
+            citacao.is_public = str(is_public_str).lower() == 'true'
         citacao.save()
-        return JsonResponse({'success': True, 'id': citacao.id, 'titulo': citacao.titulo})
+        return JsonResponse({'success': True, 'id': citacao.id, 'titulo': citacao.titulo, 'is_public': citacao.is_public})
     except BancoTese.DoesNotExist:
         return JsonResponse({'error': 'Citação não encontrada ou permissão negada.'}, status=404)
 
@@ -982,3 +1002,37 @@ def excluir_citacao_view(request, id):
         return JsonResponse({'success': True})
     except BancoTese.DoesNotExist:
         return JsonResponse({'error': 'Citação não encontrada ou permissão negada.'}, status=404)
+
+@login_required
+@require_POST
+def increment_citacao_usage_view(request, id):
+    from .models import BancoTese
+    try:
+        citacao = BancoTese.objects.get(id=id)
+        citacao.usage_count += 1
+        citacao.save()
+        return JsonResponse({'success': True, 'usage_count': citacao.usage_count})
+    except BancoTese.DoesNotExist:
+        return JsonResponse({'error': 'Citação não encontrada.'}, status=404)
+
+@login_required
+@require_POST
+def import_citacao_comunidade_view(request, id):
+    from .models import BancoTese
+    try:
+        citacao_original = BancoTese.objects.get(id=id)
+        
+        nova_citacao = BancoTese.objects.create(
+            user=request.user,
+            titulo=citacao_original.titulo,
+            conteudo=citacao_original.conteudo,
+            is_public=False,
+            usage_count=0
+        )
+        
+        citacao_original.usage_count += 1
+        citacao_original.save()
+        
+        return JsonResponse({'success': True, 'id': nova_citacao.id, 'titulo': nova_citacao.titulo})
+    except BancoTese.DoesNotExist:
+        return JsonResponse({'error': 'Citação não encontrada.'}, status=404)

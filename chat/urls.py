@@ -21,4 +21,6 @@ urlpatterns = [
     path('api/citacao/create/', views.create_citacao_view, name='create_citacao'),
     path('api/citacao/<int:id>/edit/', views.editar_citacao_view, name='editar_citacao'),
     path('api/citacao/<int:id>/delete/', views.excluir_citacao_view, name='excluir_citacao'),
+    path('api/citacao/<int:id>/increment/', views.increment_citacao_usage_view, name='increment_citacao'),
+    path('api/citacao/<int:id>/import/', views.import_citacao_comunidade_view, name='import_citacao'),
 ]

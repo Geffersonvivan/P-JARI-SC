@@ -88,19 +88,30 @@
 
         <!-- Right Sidebar: Banco de Teses (25%) -->
         <div
-            class="w-full lg:w-[28%] bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden sticky top-8 lg:min-w-[300px]">
-            <div class="bg-blue-600 text-white p-4">
-                <h2 class="text-base font-bold flex items-center gap-2">
-                    <span>📚</span> Banco de Teses e Citações
-                </h2>
-                <p class="text-xs text-blue-100 mt-1 opacity-90">Arraste para o texto para colar em formato ABNT.</p>
+            class="w-full lg:w-[28%] bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden sticky top-8 lg:min-w-[300px]" style="max-height: calc(100vh - 4rem);">
+            
+            <div class="bg-blue-600 border-b border-blue-700 flex flex-col shrink-0">
+                <div class="p-4 pb-2 text-white">
+                    <h2 class="text-base font-bold flex items-center gap-2">
+                        <span>📚</span> Banco de Teses e Citações
+                    </h2>
+                    <p class="text-xs text-blue-100 mt-1 opacity-90">Arraste para o texto para colar em formato ABNT.</p>
+                </div>
+                <div class="flex px-2 pb-0 pt-1">
+                    <button id="tab-minhas-teses" onclick="switchSidebarTab('minhas')" class="flex-1 py-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors">
+                        Minhas Teses
+                    </button>
+                    <button id="tab-comunidade" onclick="switchSidebarTab('comunidade')" class="flex-1 py-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1">
+                        Comunidade
+                    </button>
+                </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
+            <div id="content-minhas-teses" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 custom-scrollbar">
                 {% if banco_teses %}
                 {% for tese in banco_teses %}
                 <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-grab active:cursor-grabbing group relative"
-                    draggable="true" ondragstart="handleDragStart(event)">
+                    draggable="true" ondragstart="handleDragStart(event, {{ tese.id }})">
 
                     <div
                         class="absolute inset-y-0 left-0 w-1 bg-blue-500 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -124,6 +135,54 @@
                     <span class="text-3xl mb-2 block opacity-50">📂</span>
                     <p class="text-sm">Seu banco está vazio.</p>
                     <p class="text-xs mt-1">Cadastre teses lá na tela inicial (Home).</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div id="content-comunidade" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 custom-scrollbar hidden">
+                {% if teses_comunidade %}
+                {% for tese in teses_comunidade %}
+                <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-grab active:cursor-grabbing group relative"
+                    draggable="true" ondragstart="handleDragStart(event, {{ tese.id }})">
+
+                    <div class="absolute inset-y-0 left-0 w-1 bg-purple-500 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="text-sm font-bold text-gray-800 flex items-start gap-1">
+                            <span class="text-gray-400 mt-[2px] leading-none">∷</span>
+                            <span class="truncate pr-2" title="{{ tese.titulo }}">{{ tese.titulo }}</span>
+                        </h3>
+                        <!-- Usage Count Badge -->
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-800 shrink-0" title="Usada {{ tese.usage_count }} vezes na JARI">
+                            🔥 {{ tese.usage_count }}
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-gray-500 line-clamp-3 leading-relaxed mb-2">
+                        {{ tese.conteudo|truncatechars:120 }}
+                    </p>
+                    
+                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+                        <span class="text-[10px] text-gray-400 truncate max-w-[120px]" title="Criado por: {{ tese.user.get_full_name|default:tese.user.username }}">
+                            Por: {{ tese.user.get_full_name|default:tese.user.username|truncatechars:15 }}
+                        </span>
+                        
+                        <button onclick="importTese({{ tese.id }})" class="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors flex items-center gap-1 font-semibold">
+                            📥 Salvar
+                        </button>
+                    </div>
+
+                    <!-- Fonte oculta limpa já pronta para inserir -->
+                    <div class="jari-tese-source hidden">
+                        {{ tese.conteudo|linebreaksbr }}
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center p-6 text-gray-400">
+                    <span class="text-3xl mb-2 block opacity-50">🌟</span>
+                    <p class="text-sm">Nenhuma tese pública.</p>
+                    <p class="text-xs mt-1">A comunidade ainda não compartilhou.</p>
                 </div>
                 {% endif %}
             </div>
@@ -228,6 +287,12 @@
                             console.warn("Could not set exact caret position natively", err);
                         }
 
+                        // Incrementa o uso dessa tese se veio do banco
+                        const pathMatch = htmlData.match(/data-tese-id="(\d+)"/);
+                        if (pathMatch && pathMatch[1]) {
+                             incrementTeseUsage(pathMatch[1]);
+                        }
+
                         // Injeta ativamente o nosso pacote com margens ABNT
                         editor.insertContent(htmlData);
                         return false;
@@ -237,7 +302,7 @@
         });
 
         // Configuração do Drag-and-Drop Sidebar Cards
-        function handleDragStart(event) {
+        function handleDragStart(event, teseId = '') {
             const sourceDiv = event.currentTarget.querySelector('.jari-tese-source');
             if (!sourceDiv) return;
 
@@ -247,7 +312,7 @@
             // O Segredo: Formatar no padrão ABNT dentro do HTML de transferência
             // Margem Esquerda de 4cm, justificado, fonte menor. Trocar Div por P evita que o TinyMCE remova o estilo.
             const abntHTML = `
-                <p data-jari-tese="true" style="margin-left: 4cm; margin-top: 0; margin-bottom: 0; padding: 0; text-align: justify; font-size: 10pt; line-height: 1.2;">
+                <p data-jari-tese="true" data-tese-id="${teseId}" style="margin-left: 4cm; margin-top: 0; margin-bottom: 0; padding: 0; text-align: justify; font-size: 10pt; line-height: 1.2;">
                     ${rawContentHTML}
                 </p>
             `;
@@ -422,6 +487,56 @@
                 document.body.removeChild(printElement);
                 if (mainUI) mainUI.style.display = 'block';
             });
+        }
+        
+        // --- Community Theses JS ---
+        function switchSidebarTab(tab) {
+            const tabMinhas = document.getElementById('tab-minhas-teses');
+            const tabComunidade = document.getElementById('tab-comunidade');
+            const contentMinhas = document.getElementById('content-minhas-teses');
+            const contentComunidade = document.getElementById('content-comunidade');
+            
+            if (tab === 'minhas') {
+                tabMinhas.className = "flex-1 py-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors";
+                tabComunidade.className = "flex-1 py-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1";
+                contentMinhas.classList.remove('hidden');
+                contentComunidade.classList.add('hidden');
+            } else {
+                tabComunidade.className = "flex-1 py-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors ml-1";
+                tabMinhas.className = "flex-1 py-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors";
+                contentComunidade.classList.remove('hidden');
+                contentMinhas.classList.add('hidden');
+            }
+        }
+        
+        async function incrementTeseUsage(id) {
+            try {
+                // Background call, no need to await strict result
+                fetch(`/api/citacao/${id}/increment/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+                });
+            } catch(e) { console.error('Error incrementing usage count', e); }
+        }
+        
+        async function importTese(id) {
+            if(!confirm("Deseja salvar esta tese da comunidade no seu banco pessoal?")) return;
+            try {
+                const response = await fetch(`/api/citacao/${id}/import/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+                });
+                
+                if (response.ok) {
+                    alert("Tese salva no seu banco com sucesso!");
+                    window.location.reload();
+                } else {
+                    alert("Erro ao importar a tese.");
+                }
+            } catch(e) {
+                console.error(e);
+                alert("Falha na conexão ao importar.");
+            }
         }
     </script>
 </body>
