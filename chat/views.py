@@ -35,7 +35,7 @@ def home_view(request):
     # Calcula o total de pareceres finalizados pelo usuário logado
     total_julgados = Parecer.objects.filter(**filter_kwargs, is_saved=True).count()
     
-    from .models import BancoTese
+    from .models import BancoTese, PostForum
     if request.user.is_authenticated:
         banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
         teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
@@ -48,7 +48,8 @@ def home_view(request):
         'pastas': pastas,
         'total_julgados': total_julgados,
         'banco_teses': banco_teses,
-        'teses_comunidade': teses_comunidade
+        'teses_comunidade': teses_comunidade,
+        'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
     })
 
 def editar_parecer_view(request, id):
@@ -691,6 +692,7 @@ def estatisticas_view(request):
         'is_pro': is_pro,
         'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
         'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
+        'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
     }
     
     return render(request, 'dashboard.html', context)

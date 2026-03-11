@@ -172,8 +172,16 @@
             {% endfor %}
         </nav>
 
-        <div class="mt-auto border-t border-gray-300 pt-4 text-xs text-gray-600 relative">
+        <div class="mt-auto border-t border-gray-300 pt-4 text-xs text-gray-600 relative flex flex-col items-center">
             {% if request.user.is_authenticated %}
+
+            <!-- Fórum -->
+            <button onclick="document.getElementById('forumModal').classList.remove('hidden');" title="Fórum dos Julgadores"
+                class="p-2 hover:bg-gray-200 rounded-full cursor-pointer flex items-center justify-center transition focus:outline-none text-blue-600 mb-2">
+                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+            </button>
 
             <!-- User Menu Trigger Button -->
             <button onclick="toggleUserMenu()"
@@ -646,120 +654,6 @@
                 </div>
             </div>
 
-            <!-- FÓRUM / MURAL JARI -->
-            <div class="w-full max-w-7xl mx-auto px-4 mb-10">
-                <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mx-20 -my-20 opacity-50 pointer-events-none"></div>
-                    
-                    <div class="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
-                        <div class="flex-1">
-                            <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-2">
-                                💬 Fórum dos Julgadores
-                            </h2>
-                            <p class="text-sm text-gray-500 mb-6">Mural central para debates, recados importantes e tira-dúvidas operacionais da comunidade JARI.</p>
-                            
-                            <!-- Área de Nova Publicação -->
-                            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6">
-                                <form id="formNovoPost" onsubmit="submitNovoPost(event)">
-                                    <textarea id="novo_post_conteudo" rows="3" placeholder="O que você quer compartilhar com a comunidade?" class="w-full p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm text-sm resize-none custom-scrollbar bg-white" required></textarea>
-                                    <div class="flex justify-end mt-3">
-                                        <button type="submit" id="btnSubmitPost" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-sm transition-colors flex items-center">
-                                            Publicar no Mural
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <!-- Feed de Postagens -->
-                            <div class="space-y-4" id="forum-feed-container">
-                                {% if posts_forum %}
-                                    {% for post in posts_forum %}
-                                        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:border-gray-200 transition" id="post-{{ post.id }}">
-                                            <!-- Post Header -->
-                                            <div class="flex items-center gap-3 mb-3">
-                                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-inner shrink-0">
-                                                    {{ post.autor.first_name|make_list|first|default:post.autor.username|make_list|first|upper }}
-                                                </div>
-                                                <div>
-                                                    <h4 class="font-bold text-gray-800 text-sm leading-tight">{{ post.autor.first_name|default:post.autor.username }}</h4>
-                                                    <span class="text-xs text-gray-400">{{ post.data_criacao|date:"d/m/Y H:i" }}</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Post Content -->
-                                            <div class="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap">{{ post.conteudo }}</div>
-                                            
-                                            <!-- Post Actions -->
-                                            <div class="flex items-center gap-4 pt-3 border-t border-gray-50">
-                                                <button onclick="toggleLikePost({{ post.id }})" class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-blue-600 transition group focus:outline-none" id="btn-like-{{ post.id }}">
-                                                    <svg class="w-4 h-4 {% if request.user in post.curtidas.all %}text-blue-600 fill-current{% else %}text-gray-400 group-hover:text-blue-500 fill-transparent{% endif %} transition-colors" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" id="icon-like-{{ post.id }}">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.514"></path>
-                                                    </svg>
-                                                    <span id="count-like-{{ post.id }}">{{ post.numero_curtidas }}</span>
-                                                </button>
-                                                
-                                                <button onclick="toggleComentarios({{ post.id }})" class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 transition focus:outline-none">
-                                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                                    </svg>
-                                                    Comentar (<span id="count-comentarios-{{ post.id }}">{{ post.comentarios.count }}</span>)
-                                                </button>
-                                            </div>
-
-                                            <!-- Seção de Comentários (Oculta por padrão) -->
-                                            <div id="comentarios-section-{{ post.id }}" class="hidden mt-4 pt-3 border-t border-gray-100 bg-gray-50/50 rounded-xl p-4">
-                                                <!-- Lista de Comentários -->
-                                                <div id="lista-comentarios-{{ post.id }}" class="space-y-3 mb-4 max-h-60 overflow-y-auto custom-scrollbar">
-                                                    {% for comentario in post.comentarios.all %}
-                                                        <div class="flex gap-3">
-                                                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs shrink-0">
-                                                                {{ comentario.autor.first_name|make_list|first|default:comentario.autor.username|make_list|first|upper }}
-                                                            </div>
-                                                            <div class="bg-white border border-gray-100 rounded-2xl rounded-tl-none p-3 shadow-sm flex-1">
-                                                                <div class="flex justify-between items-baseline mb-1">
-                                                                    <span class="font-bold text-xs text-gray-800">{{ comentario.autor.first_name|default:comentario.autor.username }}</span>
-                                                                    <span class="text-[10px] text-gray-400">{{ comentario.data_criacao|date:"d/m H:i" }}</span>
-                                                                </div>
-                                                                <p class="text-xs text-gray-700 leading-relaxed">{{ comentario.conteudo }}</p>
-                                                            </div>
-                                                        </div>
-                                                    {% endfor %}
-                                                </div>
-                                                
-                                                <!-- Novo Comentário Input -->
-                                                <form onsubmit="submitNovoComentario(event, {{ post.id }})" class="flex gap-2">
-                                                    <input type="text" id="novo_comentario_{{ post.id }}" placeholder="Escreva um comentário..." class="flex-1 bg-white border border-gray-200 rounded-full px-4 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" required>
-                                                    <button type="submit" class="bg-gray-800 hover:bg-black text-white rounded-full p-2 h-8 w-8 flex items-center justify-center transition focus:outline-none shrink-0" title="Enviar">
-                                                        <svg class="w-3 h-3 transform rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="text-center py-12 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                        <span class="text-3xl mb-2 block opacity-50">💬</span>
-                                        <p class="text-sm font-medium">O Mural está vazio.</p>
-                                        <p class="text-xs mt-1">Seja o primeiro a compartilhar algo com a comunidade JARI.</p>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <!-- Coluna Lateral (Dicas / Info) -->
-                        <div class="w-full md:w-64 shrink-0 hidden md:block space-y-4">
-                            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                                <h4 class="font-bold text-blue-800 text-sm mb-2 flex items-center gap-2"><span>📌</span> Regras do Fórum</h4>
-                                <ul class="text-xs text-blue-700 space-y-2 leading-relaxed">
-                                    <li>• Mantenha o decoro e a linguagem técnica.</li>
-                                    <li>• Não exponha dados sensíveis de processos em andamento.</li>
-                                    <li>• Dúvidas complexas? Poste o trecho da lei para facilitar debates.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-4 px-4">
@@ -1398,165 +1292,10 @@
                         btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
                     }
                 }
-            } catch (error) {
-                console.error('Erro na requisição:', error);
-                alert('Erro de conexão ao servidor.');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
-                }
-            }
-        }
-
-        // ============================================
-        // LÓGICA DO FÓRUM / MURAL JARI
-        // ============================================
-
-        async function submitNovoPost(event) {
-            event.preventDefault();
-            const conteudoInput = document.getElementById('novo_post_conteudo');
-            const btn = document.getElementById('btnSubmitPost');
-            const originalBtnText = btn.innerHTML;
-            
-            if (!conteudoInput.value.trim()) return;
-
-            btn.disabled = true;
-            btn.innerHTML = 'Publicando...';
-
-            try {
-                const response = await fetch('/api/forum/post/create/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
-                    body: JSON.stringify({ conteudo: conteudoInput.value })
-                });
-
-                if (response.ok) {
-                    conteudoInput.value = '';
-                    window.location.reload(); // Recarrega para trazer do template + backend atualizado
-                } else {
-                    const errorData = await response.json();
-                    alert(errorData.message || 'Erro ao publicar no fórum.');
-                    btn.disabled = false;
-                    btn.innerHTML = originalBtnText;
-                }
-            } catch (error) {
-                console.error(error);
-                alert('Erro de conexão.');
-                btn.disabled = false;
-                btn.innerHTML = originalBtnText;
-            }
-        }
-
-        async function toggleLikePost(postId) {
-            const iconWrap = document.getElementById(`icon-like-${postId}`);
-            const countSpan = document.getElementById(`count-like-${postId}`);
-            
-            try {
-                const response = await fetch(`/api/forum/post/${postId}/curtir/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    countSpan.innerText = data.numero_curtidas;
-                    
-                    if (data.curtiu) {
-                        iconWrap.classList.remove('text-gray-400', 'fill-transparent');
-                        iconWrap.classList.add('text-blue-600', 'fill-current');
-                    } else {
-                        iconWrap.classList.remove('text-blue-600', 'fill-current');
-                        iconWrap.classList.add('text-gray-400', 'fill-transparent');
-                    }
-                }
-            } catch (e) {
-                console.error("Erro ao curtir:", e);
-            }
-        }
-
-        function toggleComentarios(postId) {
-            const secao = document.getElementById(`comentarios-section-${postId}`);
-            if (secao) {
-                if (secao.classList.contains('hidden')) {
-                    secao.classList.remove('hidden');
-                } else {
-                    secao.classList.add('hidden');
-                }
-            }
-        }
-
-        async function submitNovoComentario(event, postId) {
-            event.preventDefault();
-            const inputEl = document.getElementById(`novo_comentario_${postId}`);
-            if (!inputEl.value.trim()) return;
-
-            try {
-                const response = await fetch(`/api/forum/post/${postId}/comentar/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
-                    body: JSON.stringify({ conteudo: inputEl.value })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Add comentário na interface
-                    const lista = document.getElementById(`lista-comentarios-${postId}`);
-                    const initialLetter = data.autor.charAt(0).toUpperCase();
-                    
-                    const novoComentarioHTML = `
-                        <div class="flex gap-3">
-                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs shrink-0">
-                                ${initialLetter}
-                            </div>
-                            <div class="bg-white border border-gray-100 rounded-2xl rounded-tl-none p-3 shadow-sm flex-1 transform transition-all translate-y-2 opacity-0 animate-slide-up" style="animation: slideUpFade 0.3s ease forwards;">
-                                <div class="flex justify-between items-baseline mb-1">
-                                    <span class="font-bold text-xs text-gray-800">${data.autor}</span>
-                                    <span class="text-[10px] text-gray-400">Agora mesmo</span>
-                                </div>
-                                <p class="text-xs text-gray-700 leading-relaxed">${data.conteudo}</p>
-                            </div>
-                        </div>
-                    `;
-                    
-                    lista.insertAdjacentHTML('beforeend', novoComentarioHTML);
-                    inputEl.value = '';
-                    
-                    // Atualiza contador de comentários
-                    const countSpan = document.getElementById(`count-comentarios-${postId}`);
-                    if (countSpan) {
-                        countSpan.innerText = parseInt(countSpan.innerText || 0) + 1;
-                    }
-                    
-                    // Rola a lista para baixo
-                    lista.scrollTop = lista.scrollHeight;
-                } else {
-                    alert('Erro ao comentar postagem.');
-                }
-            } catch (e) {
-                console.error('Erro de rede ao comentar:', e);
-                alert('Erro de conexão ao servidor.');
-            }
-        }
-    </script>
     <style>
         @keyframes slideUpFade {
             to {
                 transform: translateY(0);
-                opacity: 1;
-            }
-        }
-    </style>
-
     <!-- Modal Gerenciador de Citações -->
     <div id="citacaoModal"
         class="hidden fixed inset-0 z-[60] overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
@@ -1692,6 +1431,7 @@
 
         </div>
     </div>
+    <!-- Inclui Modal Fórum -->
+    {% include 'forum_modal.html' %}
 </body>
-
 </html>
