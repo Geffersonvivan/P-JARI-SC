@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termos de Uso e Política de Privacidade - P-JARI/SC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f0f4f9;
+        }
+
+        .scrollable-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scrollable-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 8px;
+        }
+
+        .scrollable-box::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .scrollable-box::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="bg-gray-900 px-8 py-6 flex-none">
+            <h2 class="text-2xl font-bold text-white mb-2">
+            {% if termo and politica %}
+                Termos de Uso e Política de Privacidade
+            {% elif termo %}
+                Atualização: Termos de Uso
+            {% elif politica %}
+                Atualização: Política de Privacidade
+            {% endif %}
+            </h2>
+            <p class="text-gray-300 text-sm">Por favor, leia atentamente todos os termos abaixo para liberar o acesso ao
+                P-JARI/SC. Você deve rolar até o final de cada documento para habilitar o aceite.</p>
+        </div>
+
+        <!-- Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <form id="termosForm" method="POST" action="{% url 'aceitar_termos' %}" class="flex-1 flex flex-col h-full object-contain overflow-hidden">
+                {% csrf_token %}
+                
+                <div class="flex-1 p-8 overflow-y-auto space-y-10 scrollable-box" id="main-scroll-area">
+                    
+                    {% if termo %}
+                    <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col termo-container" data-id="termo">
+                        <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
+                            <h3 class="text-lg font-bold text-gray-900">Termos de Uso (Versão {{ termo.versao }})</h3>
+                        </div>
+                        <div class="p-6 max-h-96 overflow-y-auto scrollable-box text-sm text-gray-700 leading-relaxed doc-content">
+                            {{ termo.conteudo|safe }}
+                        </div>
+                        <div class="bg-blue-50/50 px-5 py-4 border-t border-gray-100 flex items-center">
+                            <input type="checkbox" id="check-termo" name="aceite_termo" required disabled
+                                class="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 transition cursor-not-allowed">
+                            <label for="check-termo" class="ml-3 text-sm font-semibold text-gray-800 select-none cursor-not-allowed opacity-50 transition-opacity" id="label-termo">
+                                Li e aceito os Termos de Uso (v{{ termo.versao }})
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if termo and politica %}
+                    <hr class="border-gray-200">
+                    {% endif %}
+
+                    {% if politica %}
+                    <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col termo-container" data-id="politica">
+                        <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
+                            <h3 class="text-lg font-bold text-gray-900">Política de Privacidade (Versão {{ politica.versao }})</h3>
+                        </div>
+                        <div class="p-6 max-h-96 overflow-y-auto scrollable-box text-sm text-gray-700 leading-relaxed doc-content">
+                            {{ politica.conteudo|safe }}
+                        </div>
+                        <div class="bg-blue-50/50 px-5 py-4 border-t border-gray-100 flex items-center">
+                            <input type="checkbox" id="check-politica" name="aceite_politica" required disabled
+                                class="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 transition cursor-not-allowed">
+                            <label for="check-politica" class="ml-3 text-sm font-semibold text-gray-800 select-none cursor-not-allowed opacity-50 transition-opacity" id="label-politica">
+                                Li e aceito a Política de Privacidade (v{{ politica.versao }})
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                </div>
+
+                <!-- Footer / Action bar -->
+                <div class="bg-gray-50 px-8 py-5 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 flex-none">
+                    <div class="text-sm text-gray-500 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Leia os textos e role até o final de cada caixa para liberar o aceite.
+                    </div>
+                    
+                    <button type="submit" id="btn-aceitar" disabled
+                        class="w-full sm:w-auto px-8 py-3 bg-gray-900 text-white font-medium rounded-xl hover:bg-black focus:ring-4 focus:outline-none focus:ring-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        Aceitar Documentos e Continuar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scroll tracking logic for multiple boxes -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const containers = document.querySelectorAll('.termo-container');
+            const submitBtn = document.getElementById('btn-aceitar');
+            
+            // Register scroll lists
+            const scrollStatus = {};
+            const checkboxes = [];
+
+            containers.forEach(container => {
+                const docId = container.getAttribute('data-id');
+                const scrollBox = container.querySelector('.doc-content');
+                const checkbox = container.querySelector('input[type="checkbox"]');
+                const label = container.querySelector('label');
+                
+                scrollStatus[docId] = false;
+                checkboxes.push(checkbox);
+
+                function checkScroll() {
+                    if (scrollStatus[docId]) return;
+
+                    // Margem de erro (ex: 20px) porque dependendo do zoom/telas pode não ser exato
+                    // Se o conteúdo é menor que a caixa (não tem scroll), já libera
+                    if (scrollBox.scrollHeight <= scrollBox.clientHeight || 
+                        scrollBox.scrollTop + scrollBox.clientHeight >= scrollBox.scrollHeight - 20) {
+                        
+                        scrollStatus[docId] = true;
+                        
+                        // Habilita a checkbox e remove aparência de disabled
+                        checkbox.disabled = false;
+                        checkbox.classList.remove('cursor-not-allowed');
+                        label.classList.remove('opacity-50', 'cursor-not-allowed');
+                        label.classList.add('cursor-pointer', 'opacity-100');
+                        
+                        // Efeito visual 
+                        checkbox.parentElement.classList.add('animate-pulse', 'bg-blue-100');
+                        setTimeout(() => {
+                            checkbox.parentElement.classList.remove('animate-pulse', 'bg-blue-100');
+                        }, 1000);
+                        
+                        checkAllAccepted();
+                    }
+                }
+
+                // Initial check for short texts
+                checkScroll();
+
+                // Listen scroll
+                scrollBox.addEventListener('scroll', checkScroll);
+                
+                // Add event listener to checkbox to re-eval submit button
+                checkbox.addEventListener('change', checkAllAccepted);
+            });
+
+            function checkAllAccepted() {
+                // Return true if ALL rendered checkboxes are checked
+                const allChecked = checkboxes.every(cb => cb.checked);
+                submitBtn.disabled = !allChecked;
+            }
+            
+            // Força desativação no caso de cache / back button da página
+            checkboxes.forEach(cb => {
+                if(!scrollStatus[cb.closest('.termo-container').getAttribute('data-id')]) {
+                   cb.disabled = true;
+                   cb.checked = false;
+                }
+            });
+            checkAllAccepted();
+        });
+    </script>
+</body>
+
+</html>

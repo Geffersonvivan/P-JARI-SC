@@ -252,3 +252,15 @@ class ComentarioForum(models.Model):
 
     def __str__(self):
         return f"Comentário de {self.autor.username} no post {self.post.id}"
+
+class TermoAceiteLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='termos_aceites')
+    data_hora = models.DateTimeField(auto_now_add=True)
+    ip_usuario = models.GenericIPAddressField(null=True, blank=True)
+    versao_termo = models.CharField(max_length=50, default='1.0')
+
+    class Meta:
+        ordering = ['-data_hora']
+
+    def __str__(self):
+        return f"Aceite {self.versao_termo} - {self.user.username} em {self.data_hora.strftime('%d/%m/%Y %H:%M')}"

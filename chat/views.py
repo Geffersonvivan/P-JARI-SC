@@ -1255,3 +1255,49 @@ def proxy_image_view(request):
     except Exception as e:
         print(f"Erro no proxy de imagem: {e}")
         return HttpResponse(status=500)
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+from legal.models import DocumentoLegal, AceiteDocumentoLegal
+
+@login_required
+def aceitar_termos_view(request):
+    termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).first()
+    politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).first()
+
+    precisa_termo = False
+    precisa_politica = False
+
+    if termo_ativo:
+        precisa_termo = not AceiteDocumentoLegal.objects.filter(user=request.user, documento=termo_ativo).exists()
+    
+    if politica_ativa:
+        precisa_politica = not AceiteDocumentoLegal.objects.filter(user=request.user, documento=politica_ativa).exists()
+
+    if not precisa_termo and not precisa_politica:
+        request.session['documentos_legais_verificados'] = True
+        return redirect('home')
+
+    if request.method == 'POST':
+        ip = request.META.get('HTTP_X_FORWARDED_FOR')
+        if ip:
+            ip = ip.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+
+        # Se o form foi enviado e tinha caixa de seleção, registra
+        if precisa_termo and request.POST.get('aceite_termo') == 'on':
+            AceiteDocumentoLegal.objects.get_or_create(user=request.user, documento=termo_ativo, defaults={'ip_usuario': ip})
+            
+        if precisa_politica and request.POST.get('aceite_politica') == 'on':
+            AceiteDocumentoLegal.objects.get_or_create(user=request.user, documento=politica_ativa, defaults={'ip_usuario': ip})
+
+        request.session['documentos_legais_verificados'] = True
+        return redirect('home')
+
+    context = {
+        'termo': termo_ativo if precisa_termo else None,
+        'politica': politica_ativa if precisa_politica else None,
+    }
+
+    return render(request, 'termos.html', context)

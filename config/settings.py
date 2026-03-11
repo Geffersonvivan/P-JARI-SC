@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'anymail',
     'chat',
+    'legal',
     
     # Allauth
     'allauth',
@@ -93,6 +94,9 @@ MIDDLEWARE = [
     
     # Allauth middleware
     'allauth.account.middleware.AccountMiddleware',
+    
+    # Termos de Uso Middleware
+    'chat.middleware.RequireTermsAcceptanceMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

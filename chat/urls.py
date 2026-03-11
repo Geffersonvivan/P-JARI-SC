@@ -31,4 +31,5 @@ urlpatterns = [
     path('api/forum/post/<int:post_id>/comentarios/', views.get_comentarios_forum_view, name='get_comentarios_forum'),
     path('api/forum/update-access/', views.update_forum_access_view, name='update_forum_access'),
     path('api/proxy-image/', views.proxy_image_view, name='proxy_image'),
+    path('termos/', views.aceitar_termos_view, name='aceitar_termos'),
 ]
