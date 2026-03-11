@@ -64,7 +64,7 @@
                         <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
                             <h3 class="text-lg font-bold text-gray-900">Termos de Uso (Versão {{ termo.versao }})</h3>
                         <!-- CONTEÚDO DINÂMICO DOS TERMOS DE USO -->
-                <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto"
+                <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto doc-content scrollable-box"
                     id="termos-container">
                     <div class="prose prose-sm sm:prose-base max-w-none text-gray-700">
                         {{ termo.conteudo|safe }}
@@ -89,7 +89,7 @@
                         <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
                             <h3 class="text-lg font-bold text-gray-900">Política de Privacidade (Versão {{ politica.versao }})</h3>
                         <!-- CONTEÚDO DINÂMICO DA POLÍTICA DE PRIVACIDADE -->
-                <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto"
+                <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto doc-content scrollable-box"
                     id="politica-container">
                     <div class="prose prose-sm sm:prose-base max-w-none text-gray-700">
                         {{ politica.conteudo|safe }}
