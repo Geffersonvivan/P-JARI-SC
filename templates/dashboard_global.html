@@ -973,8 +973,14 @@
                     strokeDashArray: 4,
                 }
             };
-            var lineChart = new ApexCharts(document.querySelector("#line-chart"), lineOptions);
-            lineChart.render();
+            };
+            var lineChartContainer = document.querySelector("#line-chart");
+            if (totais.length === 0) {
+                lineChartContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full w-full text-gray-400 py-12"><span class="text-4xl mb-3 opacity-30">📉</span><p class="text-sm font-medium">Sem dados suficientes para este período.</p></div>';
+            } else {
+                var lineChart = new ApexCharts(lineChartContainer, lineOptions);
+                lineChart.render();
+            }
 
             // --- Donut Chart Initialization ---
             const donutSeriesRaw = JSON.parse('{{ donut_series|safe }}' || '[0, 0]');
@@ -1028,8 +1034,13 @@
                     y: { formatter: function (val) { return val + " Autos" } }
                 }
             };
-            const donutChart = new ApexCharts(document.querySelector("#donut-chart"), donutOptions);
-            donutChart.render();
+            var donutChartContainer = document.querySelector("#donut-chart");
+            if (isDonutEmpty) {
+                donutChartContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full w-full text-gray-400 py-8"><span class="text-4xl mb-3 opacity-30">🍩</span><p class="text-sm font-medium text-center">Nenhum veredito no período.</p></div>';
+            } else {
+                const donutChart = new ApexCharts(donutChartContainer, donutOptions);
+                donutChart.render();
+            }
 
         });
 
