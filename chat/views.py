@@ -489,6 +489,10 @@ def mercadopago_webhook(request):
 
 @login_required
 def estatisticas_view(request):
+    import json
+    from datetime import datetime
+    from django.db.models import Avg, F, Count
+    from .models import BancoTese, InconsistenciaAnalise, ProcessoPipeline, PostForum
     from django.utils import timezone
     from datetime import timedelta
     from django.db.models.functions import TruncDate
@@ -735,7 +739,7 @@ def estatisticas_gerais_view(request):
     from django.db.models.functions import TruncDate
     import calendar
     from datetime import date
-    from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig, BancoTese
+    from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig, BancoTese, PostForum
     from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
     
     hoje = timezone.localtime(timezone.now()).date()
