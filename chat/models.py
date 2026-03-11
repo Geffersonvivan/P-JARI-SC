@@ -219,3 +219,32 @@ class BancoTese(models.Model):
 
     def __str__(self):
         return f"{self.titulo} - {self.user.username}"
+
+
+class PostForum(models.Model):
+    autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts_forum')
+    conteudo = models.TextField()
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    curtidas = models.ManyToManyField(User, related_name='postagens_curtidas', blank=True)
+
+    class Meta:
+        ordering = ['-data_criacao']
+
+    def __str__(self):
+        return f"Post de {self.autor.username} em {self.data_criacao.strftime('%d/%m/%Y')}"
+
+    @property
+    def numero_curtidas(self):
+        return self.curtidas.count()
+
+class ComentarioForum(models.Model):
+    post = models.ForeignKey(PostForum, on_delete=models.CASCADE, related_name='comentarios')
+    autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comentarios_forum')
+    conteudo = models.TextField()
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['data_criacao']
+
+    def __str__(self):
+        return f"Comentário de {self.autor.username} no post {self.post.id}"

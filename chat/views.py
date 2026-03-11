@@ -944,6 +944,7 @@ def estatisticas_gerais_view(request):
         'avg_dias_funil': avg_dias_funil,
         'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
         'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
+        'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
     }
     return render(request, 'dashboard_global.html', context)
 
@@ -1002,6 +1003,98 @@ def excluir_citacao_view(request, id):
         return JsonResponse({'success': True})
     except BancoTese.DoesNotExist:
         return JsonResponse({'error': 'Citação não encontrada ou permissão negada.'}, status=404)
+
+@login_required
+@require_POST
+def criar_post_forum_view(request):
+    import json
+    from .models import PostForum
+    try:
+        data = json.loads(request.body)
+        conteudo = data.get('conteudo', '').strip()
+        if not conteudo:
+            return JsonResponse({'status': 'error', 'message': 'Conteúdo não pode estar vazio.'}, status=400)
+        
+        post = PostForum.objects.create(
+            autor=request.user,
+            conteudo=conteudo
+        )
+        return JsonResponse({
+            'status': 'success',
+            'post_id': post.id,
+            'autor': post.autor.first_name or post.autor.username,
+            'conteudo': post.conteudo,
+            'data_criacao': post.data_criacao.strftime('%d/%m/%Y %H:%M')
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+@require_POST
+def comentar_post_forum_view(request, post_id):
+    import json
+    from .models import PostForum, ComentarioForum
+    try:
+        data = json.loads(request.body)
+        conteudo = data.get('conteudo', '').strip()
+        if not conteudo:
+            return JsonResponse({'status': 'error', 'message': 'Conteúdo não pode estar vazio.'}, status=400)
+            
+        post = PostForum.objects.get(id=post_id)
+        comentario = ComentarioForum.objects.create(
+            post=post,
+            autor=request.user,
+            conteudo=conteudo
+        )
+        return JsonResponse({
+            'status': 'success',
+            'comentario_id': comentario.id,
+            'autor': comentario.autor.first_name or comentario.autor.username,
+            'conteudo': comentario.conteudo,
+            'data_criacao': comentario.data_criacao.strftime('%d/%m/%Y %H:%M')
+        })
+    except PostForum.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Post não encontrado.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+@require_POST
+def curtir_post_forum_view(request, post_id):
+    from .models import PostForum
+    try:
+        post = PostForum.objects.get(id=post_id)
+        if request.user in post.curtidas.all():
+            post.curtidas.remove(request.user)
+            curtiu = False
+        else:
+            post.curtidas.add(request.user)
+            curtiu = True
+            
+        return JsonResponse({
+            'status': 'success',
+            'curtiu': curtiu,
+            'numero_curtidas': post.numero_curtidas
+        })
+    except PostForum.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Post não encontrado.'}, status=404)
+
+@login_required
+def get_comentarios_forum_view(request, post_id):
+    from .models import PostForum
+    try:
+        post = PostForum.objects.get(id=post_id)
+        comentarios = post.comentarios.all()
+        dados = [{
+            'id': c.id,
+            'autor': c.autor.first_name or c.autor.username,
+            'conteudo': c.conteudo,
+            'data_criacao': c.data_criacao.strftime('%d/%m/%Y %H:%M')
+        } for c in comentarios]
+        
+        return JsonResponse({'status': 'success', 'comentarios': dados})
+    except PostForum.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Post não encontrado.'}, status=404)
 
 @login_required
 @require_POST

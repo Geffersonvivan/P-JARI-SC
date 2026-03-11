@@ -21,6 +21,12 @@ urlpatterns = [
     path('api/citacao/create/', views.create_citacao_view, name='create_citacao'),
     path('api/citacao/<int:id>/edit/', views.editar_citacao_view, name='editar_citacao'),
     path('api/citacao/<int:id>/delete/', views.excluir_citacao_view, name='excluir_citacao'),
-    path('api/citacao/<int:id>/increment/', views.increment_citacao_usage_view, name='increment_citacao'),
-    path('api/citacao/<int:id>/import/', views.import_citacao_comunidade_view, name='import_citacao'),
+    path('api/citacao/<int:id>/increment/', views.increment_citacao_usage_view, name='increment_citacao_usage'),
+    path('api/citacao/<int:id>/import/', views.import_citacao_comunidade_view, name='import_citacao_comunidade'),
+    
+    # Forum APIs
+    path('api/forum/post/create/', views.criar_post_forum_view, name='criar_post_forum'),
+    path('api/forum/post/<int:post_id>/comentar/', views.comentar_post_forum_view, name='comentar_post_forum'),
+    path('api/forum/post/<int:post_id>/curtir/', views.curtir_post_forum_view, name='curtir_post_forum'),
+    path('api/forum/post/<int:post_id>/comentarios/', views.get_comentarios_forum_view, name='get_comentarios_forum'),
 ]
