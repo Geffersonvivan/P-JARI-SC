@@ -469,6 +469,26 @@
                             img.onerror = resolve;
                             img.src = base64data; // Substitui o URL remoto pelo dado binário local
                         });
+                        
+                        // Garante proporção exata no PDF
+                        let w = 110, h = 110;
+                        const origNode = editorInstance.dom.select('img')[i];
+                        if (origNode) {
+                            let natW = origNode.naturalWidth || 1;
+                            let natH = origNode.naturalHeight || 1;
+                            w = origNode.clientWidth || parseInt(origNode.getAttribute('width')) || 110;
+                            h = Math.round(w * (natH / natW));
+                        }
+                        
+                        // Força estilos em linha inquebráveis para o html2canvas
+                        img.style.width = w + 'px';
+                        img.style.height = h + 'px';
+                        img.style.maxWidth = w + 'px';
+                        img.style.maxHeight = h + 'px';
+                        img.style.objectFit = 'contain';
+                        img.setAttribute('width', w);
+                        img.setAttribute('height', h);
+
                     } catch (e) {
                         console.error('Erro ao pré-carregar imagem para o PDF', e);
                     }
