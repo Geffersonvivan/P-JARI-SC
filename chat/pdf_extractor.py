@@ -122,6 +122,19 @@ class PDFExtractor:
                     
                 lines = text.split('\n')
                 
+                base_legal_encontrada = None
+                
+                # Procura primeiro pela Base Legal
+                for i, line in enumerate(lines):
+                    line_clean = line.strip()
+                    if "BASE LEGAL" in line_clean.upper():
+                        # A base legal costuma estar 1 linha abaixo (Ex: '165' ou '230 * XI')
+                        if i + 1 < len(lines):
+                            candidato = lines[i+1].strip()
+                            if candidato and len(candidato) < 20 and "CÓDIGO" not in candidato.upper():
+                                base_legal_encontrada = candidato
+                        break
+
                 for i, line in enumerate(lines):
                     line_clean = line.strip()
                     if "DESCRIÇÃO DA INFRAÇÃO" in line_clean.upper() or "DESCRICAO DA INFRACAO" in line_clean.upper():
@@ -135,6 +148,8 @@ class PDFExtractor:
                                      infracao_encontrada = proxima_linha
                                      break
                         if infracao_encontrada:
+                            if base_legal_encontrada:
+                                infracao_encontrada = f"{base_legal_encontrada} ||| {infracao_encontrada}"
                             break
                             
         except Exception as e:

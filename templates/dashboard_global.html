@@ -574,8 +574,13 @@
                                 
                                 <!-- Textos sobrepostos -->
                                 <div class="relative z-10 flex justify-between w-full items-center">
-                                    <span class="font-bold text-gray-800 text-sm md:text-base">{{ item.nome }}</span>
-                                    <span class="font-bold text-blue-700 bg-white/80 px-3 py-1 rounded-lg text-sm shadow-sm">{{ item.total }} {% if item.total == 1 %}processo{% else %}processos{% endif %}</span>
+                                    <div class="flex items-center gap-3">
+                                        {% if item.base_legal %}
+                                        <span class="font-bold text-gray-800 bg-[#E2E8F0] px-3 py-1 rounded-lg text-xs md:text-sm whitespace-nowrap shadow-sm min-w-[120px] text-center">Base legal {{ item.base_legal }}</span>
+                                        {% endif %}
+                                        <span class="font-bold text-gray-800 text-sm md:text-base truncate">{{ item.nome }}</span>
+                                    </div>
+                                    <span class="font-bold text-blue-700 bg-white/80 px-3 py-1 rounded-lg text-sm shadow-sm whitespace-nowrap">{{ item.total }} {% if item.total == 1 %}processo{% else %}processos{% endif %}</span>
                                 </div>
                             </div>
                             {% endfor %}

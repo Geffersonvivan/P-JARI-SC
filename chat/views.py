@@ -575,26 +575,40 @@ def estatisticas_view(request):
     deferidos = 0
     indeferidos = 0
     
-    # Otimização N+1: Buscar em lote apenas o essencial (ID e parecer_final original)
-    finais_info = list(pareceres_base.values_list('id', 'parecer_final'))
+    # Otimização N+1 Level 2: Realizar verificação de texto ("INDEFERID") no Banco de Dados
+    # Evita de baixar megabytes de textos para a memória do servidor Python
+    total_finais = pareceres_base.count()
     
-    # Otimização: Buscar em LOTE a última edição do ParecerFinal se o usuário salvou pelo Editor
-    # Isso evita uma consulta ao banco (p.pareceres_finais.last()) DENTRO de um laço for
+    ids_indeferidos_base = set(pareceres_base.filter(parecer_final__icontains='INDEFERID').values_list('id', flat=True))
+    
     from .models import ParecerFinal
+    from django.db.models import Case, When, Value, BooleanField
+    
+    overrides_info = ParecerFinal.objects.filter(
+        parecer_referencia__in=pareceres_base.values('id')
+    ).annotate(
+        is_indef=Case(
+            When(conteudo_html__icontains='INDEFERID', then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField()
+        )
+    ).order_by('data_criacao').values_list('parecer_referencia_id', 'is_indef')
+    
     final_overrides = {}
-    
-    # Coletamos todas as sobreposições de uma vez ordenando por data_criacao (o último sobrescreve os anteriores no dict)
-    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('data_criacao').values('parecer_referencia_id', 'conteudo_html'):
-        final_overrides[pf['parecer_referencia_id']] = pf['conteudo_html']
-    
-    for pid, p_final_text in finais_info:
-        texto_analise = final_overrides.get(pid, p_final_text)
+    for pid, is_indef in overrides_info:
+        final_overrides[pid] = is_indef
         
-        # O default do JariEngine é escrever "...RESULTADO: INDEFERIDO..." e afins
-        if texto_analise and "INDEFERID" in str(texto_analise).upper():
+    indeferidos = 0
+    # Precisamos iterar os IDs pra somar e dar preferencia ao override (Painel do Editor)
+    ids_base = pareceres_base.values_list('id', flat=True)
+    for pid in ids_base:
+        if pid in final_overrides:
+            if final_overrides[pid]:
+                indeferidos += 1
+        elif pid in ids_indeferidos_base:
             indeferidos += 1
-        else:
-            deferidos += 1
+            
+    deferidos = total_finais - indeferidos
     
     # Adicionando contagem limpa pro grafico Donut
     donut_series = [deferidos, indeferidos]
@@ -646,12 +660,21 @@ def estatisticas_view(request):
     if pareceres_radar:
         max_oco = pareceres_radar[0]['total']
         for item in pareceres_radar:
-            nome_limpo = str(item['infracao_documento']).strip().upper()
+            nome_bruto = str(item['infracao_documento']).strip().upper()
+            
+            base_legal = ""
+            nome_limpo = nome_bruto
+            if "|||" in nome_bruto:
+                partes = nome_bruto.split("|||", 1)
+                base_legal = partes[0].strip()
+                nome_limpo = partes[1].strip()
+
             if len(nome_limpo) > 45:
                 nome_limpo = nome_limpo[:42] + "..."
                 
             pct = int((item['total'] / max_oco) * 100) if max_oco > 0 else 0
             radar_infracoes.append({
+                'base_legal': base_legal,
                 'nome': nome_limpo,
                 'total': item['total'],
                 'pct': pct
@@ -700,7 +723,7 @@ def estatisticas_view(request):
         'is_pro': is_pro,
         'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
         'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
-        'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
+        'posts_forum': PostForum.objects.select_related('autor').prefetch_related('curtidas', 'comentarios__autor').order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
     }
     
     if request.user.is_authenticated:
@@ -817,20 +840,36 @@ def estatisticas_gerais_view(request):
     deferidos = 0
     indeferidos = 0
     
-    # Otimização N+1 Global
-    finais_info = list(pareceres_base.values_list('id', 'parecer_final'))
+    # Otimização N+1 Global: Conta via DB sem carregar texto original pra RAM
+    ids_indeferidos_base = set(pareceres_base.filter(parecer_final__icontains='INDEFERID').values_list('id', flat=True))
     
     from .models import ParecerFinal
-    final_overrides = {}
-    for pf in ParecerFinal.objects.filter(parecer_referencia__in=[pf_info[0] for pf_info in finais_info]).order_by('data_criacao').values('parecer_referencia_id', 'conteudo_html'):
-        final_overrides[pf['parecer_referencia_id']] = pf['conteudo_html']
+    from django.db.models import Case, When, Value, BooleanField
     
-    for pid, p_final_text in finais_info:
-        texto_analise = final_overrides.get(pid, p_final_text)
-        if texto_analise and "INDEFERID" in str(texto_analise).upper():
+    overrides_info = ParecerFinal.objects.filter(
+        parecer_referencia__in=pareceres_base.values('id')
+    ).annotate(
+        is_indef=Case(
+            When(conteudo_html__icontains='INDEFERID', then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField()
+        )
+    ).order_by('data_criacao').values_list('parecer_referencia_id', 'is_indef')
+    
+    final_overrides = {}
+    for pid, is_indef in overrides_info:
+        final_overrides[pid] = is_indef
+        
+    indeferidos = 0
+    ids_base = pareceres_base.values_list('id', flat=True)
+    for pid in ids_base:
+        if pid in final_overrides:
+            if final_overrides[pid]:
+                indeferidos += 1
+        elif pid in ids_indeferidos_base:
             indeferidos += 1
-        else:
-            deferidos += 1
+            
+    deferidos = total_finais - indeferidos
             
     donut_series = [deferidos, indeferidos]
     taxa_deferimento = round((deferidos / total_finais) * 100) if total_finais > 0 else 0
@@ -903,10 +942,7 @@ def estatisticas_gerais_view(request):
     pro_users = UserProfile.objects.filter(is_pro=True).count()
     taxa_conversao = int((pro_users / total_users) * 100) if total_users > 0 else 0
     
-    # 8. Radar de Infrações Global (Substituindo Nuvem antiga)
-    pareceres_textos_globais = Parecer.objects.filter(
-        is_saved=True, created_at__year=ano, created_at__month=mes
-    ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='').values_list('parecer_final', flat=True)
+    # A nuvem antiga que carregava os textos pro regex foi suprimida.
     
     # 8. Extrai top 5 Infrações com base na coluna nativa
     pareceres_radar_global = Parecer.objects.filter(
@@ -923,12 +959,21 @@ def estatisticas_gerais_view(request):
     if pareceres_radar_global:
         max_oco_global = pareceres_radar_global[0]['total']
         for item in pareceres_radar_global:
-            nome_limpo_global = str(item['infracao_documento']).strip().upper()
+            nome_bruto_global = str(item['infracao_documento']).strip().upper()
+            
+            base_legal_global = ""
+            nome_limpo_global = nome_bruto_global
+            if "|||" in nome_bruto_global:
+                partes = nome_bruto_global.split("|||", 1)
+                base_legal_global = partes[0].strip()
+                nome_limpo_global = partes[1].strip()
+
             if len(nome_limpo_global) > 45:
                 nome_limpo_global = nome_limpo_global[:42] + "..."
                 
             pct_global = int((item['total'] / max_oco_global) * 100) if max_oco_global > 0 else 0
             radar_infracoes_global.append({
+                'base_legal': base_legal_global,
                 'nome': nome_limpo_global,
                 'total': item['total'],
                 'pct': pct_global
@@ -981,7 +1026,7 @@ def estatisticas_gerais_view(request):
         'avg_dias_funil': avg_dias_funil,
         'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
         'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
-        'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
+        'posts_forum': PostForum.objects.select_related('autor').prefetch_related('curtidas', 'comentarios__autor').order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
     }
     
     if request.user.is_authenticated:
