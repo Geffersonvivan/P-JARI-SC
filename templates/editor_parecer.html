@@ -344,7 +344,8 @@
                     let originalSrc = img.src;
 
                     try {
-                        const response = await fetch(originalSrc);
+                        const proxyUrl = '/api/proxy-image/?url=' + encodeURIComponent(originalSrc);
+                        const response = await fetch(proxyUrl);
                         const blob = await response.blob();
                         const reader = new FileReader();
                         const base64data = await new Promise((resolve) => {
@@ -455,7 +456,8 @@
                     if (originalSrc.startsWith('data:')) continue;
 
                     try {
-                        const response = await fetch(originalSrc);
+                        const proxyUrl = '/api/proxy-image/?url=' + encodeURIComponent(originalSrc);
+                        const response = await fetch(proxyUrl);
                         const blob = await response.blob();
                         const reader = new FileReader();
                         const base64data = await new Promise((resolve) => {

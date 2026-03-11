@@ -1172,3 +1172,24 @@ def import_citacao_comunidade_view(request, id):
         return JsonResponse({'success': True, 'id': nova_citacao.id, 'titulo': nova_citacao.titulo})
     except BancoTese.DoesNotExist:
         return JsonResponse({'error': 'Citação não encontrada.'}, status=404)
+
+import requests
+
+@login_required
+def proxy_image_view(request):
+    url = request.GET.get('url')
+    if not url:
+        return HttpResponse(status=400)
+    
+    # Se for uma URL relativa, tenta montar a absoluta usando o host atual do request
+    if not url.startswith('http'):
+        url = request.build_absolute_uri(url)
+        
+    try:
+        r = requests.get(url, timeout=5)
+        response = HttpResponse(r.content, content_type=r.headers.get('Content-Type', 'image/jpeg'))
+        response['Access-Control-Allow-Origin'] = '*'
+        return response
+    except Exception as e:
+        print(f"Erro no proxy de imagem: {e}")
+        return HttpResponse(status=500)
