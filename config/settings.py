@@ -153,10 +153,13 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'chat.context_processors.pjari_info',
             ],
         },
     },
 ]
+
+PJARI_VERSION = '1.2'
 
 WSGI_APPLICATION = 'config.wsgi.application'
 

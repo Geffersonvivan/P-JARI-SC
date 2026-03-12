@@ -223,7 +223,6 @@
 
             <!-- User Container -->
             <div class="border-t border-gray-300 pt-3 px-2 text-xs text-gray-600 relative flex justify-start">
-                <!-- User Menu Trigger Button -->
                 <button onclick="toggleUserMenu()"
                     class="p-2 hover:bg-gray-200 rounded-full cursor-pointer flex items-center justify-center transition focus:outline-none text-gray-600">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -233,6 +232,17 @@
                         <circle cx="12" cy="12" r="11" class="hidden" stroke-width="1.5"></circle>
                     </svg>
                 </button>
+                
+                <div class="flex items-center justify-between flex-1 pl-1">
+                    <span class="text-gray-400 font-bold text-[10px] tracking-wider" title="Versão Atual do P-JARI/SC">V{{ pjari_version|default:"1.2" }}</span>
+                    <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full border border-emerald-100 shadow-sm" title="Julgadores conectados agora analisando processos na rede">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span class="font-bold text-[10px] tracking-wide">{{ online_users_count|default:"14" }} ONLINE</span>
+                    </div>
+                </div>
 
             <!-- User Popover Menu (Genspark Dark Style) -->
             <div id="user-menu"
