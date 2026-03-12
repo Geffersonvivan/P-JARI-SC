@@ -113,15 +113,42 @@ Se Total_Dias > 1095 → intercorrente configurada
 Se Total_Dias ≤ 1095 → não
 
 D) DECADÊNCIA
-Antes 12/04/21→Lei 9.873
-12/04/21 a 22/10/21→180/360 dias
-Após 22/10/21→180/360 da conclusão
-COVID (Res.782)→-256 dias quando cabível
-TRAVA:
-Identificar data da infração
-Classificar faixa temporal
-Justificar regra aplicada
-Indicar incidência COVID
+
+Sempre que o agente precisar analisar DECADÊNCIA em processo de trânsito (penalidades do art. 256 do CTB):
+Antes de qualquer cálculo ou conclusão, o agente deve buscar, no RAG “Inventário Normativo vertx google”, o documento: 
+
+"[SC]_CETRAN_Parecer_381_2022_PRAZO_DECADENCIAL.pdf".
+
+O conteúdo deste parecer deve ser tratado como fonte normativa principal para:
+
+definição de faixas temporais;
+escolha do marco inicial de contagem;
+definição se o caso é de decadência (art. 282 CTB) ou apenas prescrição (Lei 9.873/1999).
+
+Em caso de divergência entre resoluções o agente deve priorizar a interpretação do Parecer 381/2022,
+TRAVA OBRIGATÓRIA (fluxo padrão de decadência)
+Ao tratar de decadência, o agente sempre deve seguir, nesta ordem:
+Identificar a data da infração (data do cometimento da infração geradora da penalidade do art. 256 do CTB).
+
+Classificar a faixa temporal, comparando a data da infração com os marcos:
+
+12/04/2021 – início da vigência da Lei 14.071/2020.
+22/10/2021 – início da vigência da Lei 14.229/2021 (para fins do Parecer 381).
+
+Justificar textualmente qual regra será aplicada, citando de forma explícita:
+
+a faixa temporal (antes de 12/04/2021; entre 12/04/2021 e 21/10/2021; após 22/10/2021);
+o Parecer 381/2022 (e sua nota de atualização de 02/03/2023);
+o dispositivo legal correspondente (Lei 9.873/1999 ou art. 282, § 6º, CTB, conforme o caso).
+
+Verificar a incidência de suspensão de prazos por COVID (Res. 782/2020 e correlatas):
+
+identificar se o intervalo entre os marcos temporais analisados coincide, total ou parcialmente, com o período de suspensão de prazos;
+quando cabível, aplicar a “trava COVID”, descontando 256 dias do cômputo final, explicando isso na fundamentação.
+O agente nunca deve pular esses quatro passos ao concluir sobre decadência.
+
+Obs. Para infrações anteriores a 12/04/2021, não aplicar decadência de 180/360 dias e analisar apenas prescrição Lei 9.873/1999
+Além disso, sempre que reconhecer decadência, o agente deve explicitar de qual penalidade se trata (multa/advertência – art. 256, I e II – ou suspensão/cassação/reciclagem – art. 256, III a VII), indicando o marco inicial usado, o prazo (180/360 dias ou 5 anos da Lei 9.873/1999) e o número de dias efetivamente transcorridos, com ou sem abatimento COVID (–256 dias).
 
 RESULTADO FINAL P1
 Tempestivo:[SIM/NÃO]
