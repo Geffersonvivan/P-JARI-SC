@@ -563,6 +563,11 @@ class VertexAIClient:
                 serving_config=serving_config,
                 query=query,
                 page_size=top_k,
+                content_search_spec=discoveryengine.SearchRequest.ContentSearchSpec(
+                    snippet_spec=discoveryengine.SearchRequest.ContentSearchSpec.SnippetSpec(
+                        return_snippet=True
+                    )
+                )
             )
             
             response = client.search(request)
@@ -584,9 +589,19 @@ class VertexAIClient:
             resultados = []
             for result in response.results:
                 document_data = result.document.derived_struct_data
+                content = ""
+                
                 trechos = document_data.get("extractive_answers", [])
                 if trechos:
-                     resultados.append(trechos[0].get("content", ""))
+                     content = trechos[0].get("content", "")
+                
+                if not content:
+                    snippets = document_data.get("snippets", [])
+                    if snippets:
+                        content = snippets[0].get("snippet", "")
+                
+                if content:
+                    resultados.append(content)
                      
             if not resultados:
                 return "Nenhum documento interno encontrado para esta busca."
