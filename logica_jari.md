@@ -106,11 +106,15 @@ Cada marco reinicia a contagem
 
 C) PRESCRIÇÃO INTERCORRENTE-3 ANOS (Lei 9.873/99)
 
-Data inicial: protocolo recurso JARI (Pergunta 5)
-Data final: julgamento JARI (Pergunta 1)
-Total_Dias = diferença em dias corridos entre data pergunta 1 e 5
-Se Total_Dias > 1095 → intercorrente configurada
-Se Total_Dias ≤ 1095 → não
+Prazo legal: 3 anos. Contagem: Calendário Civil (Data a data).
+Datas obrigatórias:
+Data inicial: Protocolo Recurso JARI (pergunta 5/fase 1).
+Data final: Data do Julgamento JARI (pergunta 1/fase 1).
+Regra de contagem: Identificar o aniversário de 3 anos da data do protocolo. O prazo de 3 anos expira exatamente às 23:59 desta data de aniversário.
+Critério objetivo:
+Se Data do Julgamento > Data do Aniversário de 3 anos → declarar: “Prescrição intercorrente configurada.”
+Se Data do Julgamento ≤ Data do Aniversário de 3 anos → declarar: “Prescrição intercorrente não configurada.”
+Obs. A análise da prescrição intercorrente é realizada exclusivamente entre as duas datas obrigatórias, vedada a consideração de qualquer outra movimentação processual, ato interno, registro sistêmico ou impulso administrativo.
 
 D) DECADÊNCIA
 FONTES NORMATIVAS:
