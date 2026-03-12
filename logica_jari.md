@@ -113,42 +113,39 @@ Se Total_Dias > 1095 → intercorrente configurada
 Se Total_Dias ≤ 1095 → não
 
 D) DECADÊNCIA
+FONTES NORMATIVAS inclusas “RAG Inventário Normativo vertx google”: 
+[SC]_CETRAN_Parecer_381_2022_PRAZO_DECADENCIAL.pdf (e Nota de 02/03/2023).
+BR11_Res_782_2020_COVID_Prazos.pdf (Interrupção de prazos COVID-19).
 
-Sempre que o agente precisar analisar DECADÊNCIA em processo de trânsito (penalidades do art. 256 do CTB):
-Antes de qualquer cálculo ou conclusão, o agente deve buscar, no RAG “Inventário Normativo vertx google”, o documento: 
+TRAVA DE SEGURANÇA (GATEKEEPER): Identificar a DATA DA INFRAÇÃO e aplicar os filtros temporais:
 
-"[SC]_CETRAN_Parecer_381_2022_PRAZO_DECADENCIAL.pdf".
+FILTRO 1: INFRAÇÕES ATÉ 11/04/2021
+Decadência de 180/360 dias: Não se aplica (Infração anterior à Lei 14.071/2020) [SC].
+Regra: Aplicar exclusivamente a Lei 9.873/1999 (Prescrição Punitiva de 5 anos / Intercorrente de 3 anos) [SC].
+Suspensão por Pontos: Início da contagem no dia seguinte à totalização dos pontos (ativação da infração geradora) [SC].
 
-O conteúdo deste parecer deve ser tratado como fonte normativa principal para:
+FILTRO 2: INFRAÇÕES ENTRE 12/04/2021 E 21/10/2021
+Multas e Advertências (Art. 256, I e II): Aplica-se decadência de 180 ou 360 dias contados da infração [SC].
+Suspensão e Cassação (Art. 256, III a VII): NÃO há decadência de 180/360 dias (Conforme Nota de Atualização de 02/03/2023) [SC].
 
-definição de faixas temporais;
-escolha do marco inicial de contagem;
-definição se o caso é de decadência (art. 282 CTB) ou apenas prescrição (Lei 9.873/1999).
+FILTRO 3: INFRAÇÕES A PARTIR DE 22/10/2021 (LEI 14.229/2021)
+Todas as Penalidades: Aplica-se decadência de 180 ou 360 dias [SC].
+Marcos Iniciais:
+Multas (Sem flagrante): Data do conhecimento pelo órgão (Art. 282, §6º-A) [SC].
+Suspensão/Cassação: Conclusão do processo da multa que lhe deu causa [SC].
 
-Em caso de divergência entre resoluções o agente deve priorizar a interpretação do Parecer 381/2022,
-TRAVA OBRIGATÓRIA (fluxo padrão de decadência)
-Ao tratar de decadência, o agente sempre deve seguir, nesta ordem:
-Identificar a data da infração (data do cometimento da infração geradora da penalidade do art. 256 do CTB).
+REGRAS TRANSVERSAIS DE BLINDAGEM (OBRIGATÓRIO):
 
-Classificar a faixa temporal, comparando a data da infração com os marcos:
+1. INTERRUPÇÃO COVID-19 (Resolução 782/2020):
+Prazos Interrompidos: Estão interrompidos por tempo indeterminado, a partir de 20 de março de 2020, os prazos para defesa da autuação, recursos de multa, defesa processual e recursos de suspensão/cassação.
+Expedição de Penalidades: As Notificações de Penalidade (NP) somente puderam ser expedidas após o encerramento do prazo de defesa interrompido pela pandemia.
+Aplicação no Cálculo: Caso o processo tenha marcos entre 2020 e 2021, o agente deve descontar o período de interrupção definido pelo CONTRAN (conforme o cronograma de retomada de cada órgão), justificando que a inércia administrativa foi legalmente amparada pela Res. 782/2020.
 
-12/04/2021 – início da vigência da Lei 14.071/2020.
-22/10/2021 – início da vigência da Lei 14.229/2021 (para fins do Parecer 381).
+2. ISOLAMENTO DOS ATOS:
+A decadência da penalidade de suspensão não anula a multa originária se esta já se tornou definitiva, pois são atos jurídicos independentes [SC].
 
-Justificar textualmente qual regra será aplicada, citando de forma explícita:
-
-a faixa temporal (antes de 12/04/2021; entre 12/04/2021 e 21/10/2021; após 22/10/2021);
-o Parecer 381/2022 (e sua nota de atualização de 02/03/2023);
-o dispositivo legal correspondente (Lei 9.873/1999 ou art. 282, § 6º, CTB, conforme o caso).
-
-Verificar a incidência de suspensão de prazos por COVID (Res. 782/2020 e correlatas):
-
-identificar se o intervalo entre os marcos temporais analisados coincide, total ou parcialmente, com o período de suspensão de prazos;
-quando cabível, aplicar a “trava COVID”, descontando 256 dias do cômputo final, explicando isso na fundamentação.
-O agente nunca deve pular esses quatro passos ao concluir sobre decadência.
-
-Obs. Para infrações anteriores a 12/04/2021, não aplicar decadência de 180/360 dias e analisar apenas prescrição Lei 9.873/1999
-Além disso, sempre que reconhecer decadência, o agente deve explicitar de qual penalidade se trata (multa/advertência – art. 256, I e II – ou suspensão/cassação/reciclagem – art. 256, III a VII), indicando o marco inicial usado, o prazo (180/360 dias ou 5 anos da Lei 9.873/1999) e o número de dias efetivamente transcorridos, com ou sem abatimento COVID (–256 dias).
+3. VÍCIO FORMAL vs. DECADÊNCIA:
+Erros na Notificação de Autuação (NA) são Vícios Formais (Art. 281). A Decadência (Art. 282) refere-se exclusivamente ao prazo para expedição da Notificação de Penalidade (NP) [SC].
 
 RESULTADO FINAL P1
 Tempestivo:[SIM/NÃO]
