@@ -1301,3 +1301,15 @@ def aceitar_termos_view(request):
     }
 
     return render(request, 'termos.html', context)
+
+def visualizar_termos_view(request):
+    """View pública para visualizar os termos de uso e políticas de privacidade atuais."""
+    termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).first()
+    politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).first()
+    
+    context = {
+        'termo': termo_ativo,
+        'politica': politica_ativa,
+        'somente_visualizacao': True # Flag para o template esconder o form de aceite
+    }
+    return render(request, 'termos.html', context)

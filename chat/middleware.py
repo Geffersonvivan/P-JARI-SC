@@ -11,6 +11,7 @@ class RequireTermsAcceptanceMiddleware:
             # Lista de URLs permitidas sem aceite (evita loop infinito)
             allowed_urls = [
                 reverse('aceitar_termos'),
+                reverse('termos'),
                 reverse('account_logout'),
                 '/admin/',
                 '/static/',
@@ -38,6 +39,7 @@ class RequireTermsAcceptanceMiddleware:
 
                     if politica_ativa:
                         aceitou_politica = AceiteDocumentoLegal.objects.filter(user=request.user, documento=politica_ativa).exists()
+                        if not aceitou_politica:
                         if not aceitou_politica:
                             precisa_aceitar = True
 
