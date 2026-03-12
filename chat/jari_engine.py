@@ -50,11 +50,8 @@ class JariEngine:
                 f"Digite **'ok'** para prosseguir."
             )
         elif fase == 41: # Aguardando OK Tese
-            return (
-                f"**Conclusão Prévia das Teses**\n\n"
-                f"{self.parecer.analise_tese_texto}\n\n"
-                f"Digite **'ok'** para prosseguir."
-            )
+            return_str = f"**Conclusão Prévia das Teses**\n\n{self.parecer.analise_tese_texto}"
+            return return_str.strip()
         elif fase == 5:
             return "Gerando Parecer Técnico Final em Bloco Único... (Aguarde...)"
         elif fase == 7:
