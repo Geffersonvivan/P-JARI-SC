@@ -482,7 +482,7 @@ class GeminiClient:
             "**3.2 Prescrição intercorrente**\n\n"
             "Protocolo do recurso JARI: XXX\n\n"
             "Data do julgamento: XXX\n\n"
-            "O intervalo entre os marcos corresponde a aproximadamente XXX dias, (inferior, igual, superior) ao prazo de três anos (1095 dias) previsto para prescrição intercorrente.\n\n"
+            "O intervalo entre os marcos corresponde a exatos XXX dias, (inferior, igual, superior) ao prazo de três anos (1095 dias) previsto para prescrição intercorrente.\n\n"
             "+ explicação normativa e conclusão (configurada / não configurada).\n\n"
             "**3.3 Decadência**\n\n"
             "Regime temporal aplicado e Conclusão.\n\n"
