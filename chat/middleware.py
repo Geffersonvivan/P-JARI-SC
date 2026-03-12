@@ -40,7 +40,6 @@ class RequireTermsAcceptanceMiddleware:
                     if politica_ativa:
                         aceitou_politica = AceiteDocumentoLegal.objects.filter(user=request.user, documento=politica_ativa).exists()
                         if not aceitou_politica:
-                        if not aceitou_politica:
                             precisa_aceitar = True
 
                     if precisa_aceitar:
