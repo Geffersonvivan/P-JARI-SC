@@ -607,83 +607,196 @@
                 </div>
             </div>
 
-            <!-- Cards Consumo Inteligência Artificial -->
-            <h2 class="text-xl font-bold text-gray-700 mb-4 px-4 w-full max-w-7xl mx-auto mt-4">Custos Estimados de IA
-                (Mensal)</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
-                <div
-                    class="relative group bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3
-                            class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2 cursor-help">
-                            <span class="w-3 h-3 rounded-full bg-blue-500"></span> Gemini API <span
-                                class="text-gray-500 text-xs">ℹ️</span>
-                        </h3>
-                    </div>
-                    <div
-                        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-0 mt-2 w-64 p-3 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed">
-                        Custo do modelo principal (Flash/Pro) utilizado para redigir o parecer jurídico. Medido pelo
-                        balanço de Tokens Entrada (In) vs Saída (Out).
-                        <div
-                            class="absolute left-6 -top-1.5 w-3 h-3 bg-gray-800 border-t border-l border-gray-700 transform rotate-45">
-                        </div>
-                    </div>
-                    <div class="text-3xl font-bold text-white mb-1">{{ custo_gemini }}</div>
-                    <div class="flex text-xs text-gray-400 justify-between mt-2">
-                        <span>In: {{ tokens_gemini_in }} tk</span>
-                        <span>Out: {{ tokens_gemini_out }} tk</span>
+            <!-- Inteligência Artificial -->
+            <h2 class="text-xl font-bold text-gray-800 mb-4 px-4 w-full max-w-7xl mx-auto mt-4">Inteligência Artificial</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 w-full max-w-7xl mx-auto px-4">
+                
+                <!-- Taxa de Disponibilidade (Hit-Rate Vertex) -->
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col h-full relative group min-h-[160px]">
+                    <h3 class="text-gray-400 font-medium text-sm mb-4 uppercase tracking-wider flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Hit-Rate RAG (Vertex)</div>
+                        <span class="text-gray-500 cursor-help transition-colors hover:text-gray-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </h3>
+                    <div class="text-4xl font-bold text-white mb-2">{{ taxa_uso_vertex }}</div>
+                    <p class="text-sm text-emerald-400 font-medium mt-auto">{{ consultas_vertex }} consultas Vertex vs {{ total_julgados }} pareceres</p>
+                    
+                    <!-- Tooltip -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 text-gray-300 text-xs rounded-xl shadow-2xl z-50 text-center leading-relaxed font-normal border border-gray-700">
+                        Mede a proporção de defesas julgadas que efetivamente realizaram buscas no RAG da JARI para obter base normativa.
+                        <div class="absolute left-1/2 -top-1.5 w-3 h-3 bg-gray-800 border-l border-t border-gray-700 transform rotate-45 -translate-x-1/2"></div>
                     </div>
                 </div>
 
-                <div
-                    class="relative group bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3
-                            class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2 cursor-help">
-                            <span class="w-3 h-3 rounded-full bg-purple-500"></span> Perplexity API <span
-                                class="text-gray-500 text-xs">ℹ️</span>
-                        </h3>
-                    </div>
-                    <div
-                        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-0 mt-2 w-64 p-3 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed">
-                        Custo da IA de busca externa encarregada de varrer a internet diariamente em busca de novas
-                        resoluções do CONTRAN e CETRAN-SC não previstas.
-                        <div
-                            class="absolute left-6 -top-1.5 w-3 h-3 bg-gray-800 border-t border-l border-gray-700 transform rotate-45">
+                <!-- Custos Agrupados -->
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col h-full relative group min-h-[160px]">
+                    <h3 class="text-gray-400 font-medium text-sm mb-6 uppercase tracking-wider flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Custos Mapeados (APIs)</div>
+                        <span class="text-gray-500 cursor-help transition-colors hover:text-gray-300">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </h3>
+                    <div class="space-y-4 mt-auto">
+                        <div class="flex justify-between items-center text-sm border-b border-gray-800 pb-2">
+                            <span class="text-gray-400">Gemini (Redação)</span>
+                            <span class="font-bold text-gray-200">{{ custo_gemini }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm border-b border-gray-800 pb-2">
+                            <span class="text-gray-400">Vertex (Leis SC)</span>
+                            <span class="font-bold text-gray-200">{{ custo_vertex }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-400">Perplexity (Federal)</span>
+                            <span class="font-bold text-gray-200">{{ custo_perplexity }}</span>
                         </div>
                     </div>
-                    <div class="text-3xl font-bold text-white mb-1">{{ custo_perplexity }}</div>
-                    <div class="flex text-xs text-gray-400 justify-between mt-2">
-                        <span>In: {{ tokens_perplexity_in }} tk</span>
-                        <span>Out: {{ tokens_perplexity_out }} tk</span>
+
+                    <!-- Tooltip -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 text-gray-300 text-xs rounded-xl shadow-2xl z-50 text-center leading-relaxed font-normal border border-gray-700">
+                        Custo estimado financeiro das requisições via Inteligência Artificial para {{ mes_ano_input }}.
+                        <div class="absolute left-1/2 -top-1.5 w-3 h-3 bg-gray-800 border-l border-t border-gray-700 transform rotate-45 -translate-x-1/2"></div>
                     </div>
                 </div>
 
-                <div
-                    class="relative group bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3
-                            class="text-gray-400 font-medium text-sm uppercase tracking-wider flex items-center gap-2 cursor-help">
-                            <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Vertex Search <span
-                                class="text-gray-500 text-xs">ℹ️</span>
-                        </h3>
+                <!-- Consultas Cegas (Misses) -->
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col h-[230px] lg:h-full relative group">
+                    <h3 class="text-gray-400 font-medium text-sm mb-4 uppercase tracking-wider flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-500"></span> Misses RAG (Sem Retorno)</div>
+                        <span class="text-gray-500 cursor-help transition-colors hover:text-gray-300">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </h3>
+                    <div class="flex-1 overflow-y-auto space-y-3 pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full mt-auto">
+                        {% if vertex_misses %}
+                            {% for log in vertex_misses %}
+                            <div class="bg-gray-800/50 rounded-xl p-3 border border-gray-800 mb-2">
+                                <div class="text-[11px] text-gray-500 mb-1 flex justify-between">
+                                    <span>{{ log.data_requisicao|date:"d/m H:i" }}</span>
+                                    <span class="truncate ml-2 text-gray-400" title="{{ log.parecer_referencia.sgpe|default:'N/A' }}">PA: {{ log.parecer_referencia.pa|default:"N/A" }}</span>
+                                </div>
+                                <p class="text-[13px] text-gray-300 font-medium break-words leading-snug">{{ log.query_text|default:"Busca vazia..." }}</p>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="h-full flex flex-col items-center justify-center text-gray-600">
+                                <span class="text-3xl mb-3 opacity-20">🎯</span>
+                                <p class="text-sm font-medium text-center">Nenhum "Nenhum documento encontrado" registrado neste mês.</p>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div
-                        class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full right-0 mt-2 w-64 p-3 bg-gray-800 text-gray-300 border border-gray-700 text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed">
-                        Custo das requisições RAG (Retrieval-Augmented Generation) ao banco de dados vetorial
-                        corporativo contendo as leis de trânsito.
-                        <div
-                            class="absolute right-6 -top-1.5 w-3 h-3 bg-gray-800 border-t border-l border-gray-700 transform rotate-45">
-                        </div>
-                    </div>
-                    <div class="text-3xl font-bold text-white mb-1">{{ custo_vertex }}</div>
-                    <div class="flex text-xs text-gray-400 justify-between mt-2">
-                        <span>{{ consultas_vertex }} Queries</span>
-                        <span>US$ 0.005 / q</span>
+
+                    <!-- Tooltip -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 text-gray-300 text-xs rounded-xl shadow-2xl z-50 text-center leading-relaxed font-normal border border-gray-700">
+                        Lista das buscas em que a IA (Vertex RAG) falhou em encontrar a Resolução requisitada. Revise e envie os PDFs faltantes.
+                        <div class="absolute left-1/2 -top-1.5 w-3 h-3 bg-gray-800 border-l border-t border-gray-700 transform rotate-45 -translate-x-1/2"></div>
                     </div>
                 </div>
             </div>
 
+            <!-- Métricas Avançadas de IA (Tiers Secundários) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
+                <!-- Latência Perplexity -->
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col min-h-[160px] relative group">
+                    <h3 class="text-gray-400 font-medium text-sm mb-4 uppercase tracking-wider flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-500"></span> Latência Perplexity</div>
+                        <span class="text-gray-500 cursor-help transition-colors hover:text-gray-300">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </h3>
+                    <div class="flex items-baseline gap-2 mb-1 mt-auto">
+                        <span class="text-4xl font-bold text-white">{{ avg_latency_perplexity_sec }}</span>
+                        <span class="text-lg text-gray-500">s</span>
+                    </div>
+
+                    <!-- Tooltip -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 text-gray-300 text-xs rounded-xl shadow-2xl z-50 text-center leading-relaxed font-normal border border-gray-700">
+                        Mede a média de tempo de resposta da IA (Perplexity) para obter a base Federal da internet.
+                        <div class="absolute left-1/2 -top-1.5 w-3 h-3 bg-gray-800 border-l border-t border-gray-700 transform rotate-45 -translate-x-1/2"></div>
+                    </div>
+                </div>
+
+                <!-- Dispersão Gemini -->
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col min-h-[160px] relative group">
+                    <h3 class="text-gray-400 font-medium text-sm mb-4 uppercase tracking-wider flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-indigo-500"></span> Dispersão de Modelo</div>
+                        <span class="text-gray-500 cursor-help transition-colors hover:text-gray-300">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </h3>
+                    <div class="mt-auto space-y-1 w-full max-w-[150px]">
+                        <div class="flex items-end justify-between">
+                            <div class="text-2xl font-bold text-gray-200">{{ pct_gemini_pro }}%</div><div class="text-indigo-400 mb-1.5 text-xs font-semibold tracking-wide">PRO</div>
+                        </div>
+                        <div class="flex items-end justify-between">
+                            <div class="text-xl font-bold text-gray-500">{{ pct_gemini_flash }}%</div><div class="text-gray-500 mb-1 text-xs font-semibold tracking-wide">FLASH</div>
+                        </div>
+                    </div>
+
+                    <!-- Tooltip -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 text-gray-300 text-xs rounded-xl shadow-2xl z-50 text-center leading-relaxed font-normal border border-gray-700">
+                        Porcentagem de requisições que forçaram o uso do modelo denso (1.5 Pro) em detrimento do modelo base (1.5 Flash).
+                        <div class="absolute left-1/2 -top-1.5 w-3 h-3 bg-gray-800 border-l border-t border-gray-700 transform rotate-45 -translate-x-1/2"></div>
+                    </div>
+                </div>
+
+                <!-- Fadiga de Contexto (Top 5) -->
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col h-[200px] relative group">
+                    <h3 class="text-gray-400 font-medium text-sm mb-4 uppercase tracking-wider flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-orange-500"></span> Fadiga de Contexto</div>
+                        <span class="text-gray-500 cursor-help transition-colors hover:text-gray-300">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </h3>
+                    <div class="flex-1 overflow-y-auto space-y-2 pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full mt-auto">
+                        {% if top_fatigue_logs %}
+                            {% for log in top_fatigue_logs %}
+                            <div class="flex justify-between items-center bg-gray-800/50 rounded-xl p-2.5 border border-gray-800">
+                                <span class="text-[11px] text-gray-400 font-medium" title="{{ log.parecer_referencia.sgpe|default:'N/A' }}">PA: {{ log.parecer_referencia.pa|default:"N/A" }}</span>
+                                <span class="text-[11px] font-bold text-orange-400 opacity-80">{{ log.input_tokens|default:0 }} tk</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="h-full flex flex-col items-center justify-center text-gray-600">
+                                <p class="text-sm">Sem tráfego massivo.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tooltip -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 p-3 bg-gray-800 text-gray-300 text-xs rounded-xl shadow-2xl z-50 text-center leading-relaxed font-normal border border-gray-700">
+                        Ranking dos 5 processos deste mês que mais consumiram tokens (extremos) ao entrar na IA.
+                        <div class="absolute left-1/2 -top-1.5 w-3 h-3 bg-gray-800 border-l border-t border-gray-700 transform rotate-45 -translate-x-1/2"></div>
+                    </div>
+                </div>
+
+                <!-- Alerta OCR/Defeitos -->
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-md border border-gray-800 flex flex-col h-[200px] relative group">
+                    <h3 class="text-gray-400 font-medium text-sm mb-4 uppercase tracking-wider flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-600"></span> Defeitos de PDF (OCR)</div>
+                        <span class="text-gray-500 cursor-help transition-colors hover:text-gray-300">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                    </h3>
+                    <div class="text-3xl font-bold text-gray-200 mb-4 flex items-end gap-2 mt-auto">{{ pdf_defects_count }} <span class="text-[11px] uppercase tracking-wide font-medium text-gray-500 mb-1.5">Mapeados</span></div>
+                    
+                    <div class="flex-1 overflow-y-auto space-y-2 pr-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-700 [&::-webkit-scrollbar-thumb]:rounded-full">
+                        {% if pdf_defects_logs %}
+                            {% for log in pdf_defects_logs %}
+                            <div class="text-[11px] text-gray-400 bg-gray-800/50 rounded-xl p-2.5 truncate border border-gray-800">
+                                {{ log.parecer_referencia.pa|default:'N/A' }} 
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <!-- Tooltip -->
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full right-0 mt-2 w-72 p-3 bg-gray-800 text-gray-300 text-xs rounded-xl shadow-2xl z-50 text-center leading-relaxed font-normal border border-gray-700">
+                        Censo de autuações em que a Engine alertou "PDF Ilegível/Mal escaneado" impossibilitando leitura de data.
+                        <div class="absolute right-6 -top-1.5 w-3 h-3 bg-gray-800 border-l border-t border-gray-700 transform rotate-45"></div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-4 px-4">

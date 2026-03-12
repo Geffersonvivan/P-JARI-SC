@@ -1,7 +1,10 @@
 import os
+import time
 import requests
 from google import genai
 from google.cloud import discoveryengine_v1 as discoveryengine
+from django.core.mail import send_mail
+from django.conf import settings
 
 class PerplexityClient:
     def __init__(self):
@@ -31,9 +34,21 @@ class PerplexityClient:
         }
         
         try:
+            start_time = time.time()
             response = requests.post(self.url, json=payload, headers=headers)
+            
+            if response.status_code == 402:
+                send_mail(
+                    subject='🚨 JARI ALERTA (FUNDO PERPLEXITY)',
+                    message='O Perplexity AI retornou Erro 402 (Payment Required). O saldo da API esgotou e o sistema está respondendo via fallback.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True
+                )
+                
             response.raise_for_status()
             data = response.json()
+            latency_ms = int((time.time() - start_time) * 1000)
             
             try:
                 if parecer_obj:
@@ -44,7 +59,9 @@ class PerplexityClient:
                         provider='Perplexity',
                         fase='Pesquisa Base (Jurisprudência)',
                         input_tokens=data.get('usage', {}).get('prompt_tokens', 0),
-                        output_tokens=data.get('usage', {}).get('completion_tokens', 0)
+                        output_tokens=data.get('usage', {}).get('completion_tokens', 0),
+                        latency_ms=latency_ms,
+                        model_name='sonar-pro'
                     )
             except Exception as log_e:
                 print(f"Erro ao logar tokens Perplexity: {log_e}")
@@ -58,11 +75,22 @@ class GeminiClient:
         self.api_key = os.environ.get('GEMINI_API_KEY')
         self.client = genai.Client(api_key=self.api_key) if self.api_key else None
 
-    def _log_tokens(self, parecer_obj, response, fase_nome):
+    def _log_tokens(self, parecer_obj, response, fase_nome, model_name=None, start_time=None):
         if not parecer_obj or not response: return
         try:
             from .models import AiRequestLog
             usage = getattr(response, 'usage_metadata', None)
+            
+            latency_ms = 0
+            if start_time:
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+            is_pdf_defect = False
+            if hasattr(response, 'text') and response.text:
+                text_lower = response.text.lower()
+                if "ilegível" in text_lower or "mal escaneada" in text_lower or "não foi possível ler" in text_lower or "resolução ruim" in text_lower:
+                    is_pdf_defect = True
+
             if usage:
                 AiRequestLog.objects.create(
                     parecer_referencia=parecer_obj,
@@ -70,7 +98,10 @@ class GeminiClient:
                     provider='Gemini',
                     fase=fase_nome,
                     input_tokens=getattr(usage, 'prompt_token_count', 0),
-                    output_tokens=getattr(usage, 'candidates_token_count', 0)
+                    output_tokens=getattr(usage, 'candidates_token_count', 0),
+                    latency_ms=latency_ms,
+                    model_name=model_name,
+                    is_pdf_defect=is_pdf_defect
                 )
         except Exception as e:
             print(f"Erro ao logar tokens Gemini: {e}")
@@ -169,15 +200,26 @@ class GeminiClient:
             except Exception: pass
 
         try:
+            start_time = time.time()
+            model_to_use = 'gemini-2.5-pro'
             response = self.client.models.generate_content(
-                model='gemini-2.5-pro',
+                model=model_to_use,
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
-            self._log_tokens(parecer_obj, response, 'Fase 2 (DIR)')
+            self._log_tokens(parecer_obj, response, 'Fase 2 (DIR)', model_name=model_to_use, start_time=start_time)
             return response.text
         except Exception as e:
-            return f"Erro ao acessar Gemini na Fase 2: {str(e)}.\n"
+            err_str = str(e)
+            if "429" in err_str or "Too Many Requests" in err_str:
+                send_mail(
+                    subject='🚨 JARI ALERTA (COTA GEMINI)',
+                    message='A API do Gemini estourou a cota de RPM (Erro 429). O sistema pode apresentar instabilidade temporária.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True
+                )
+            return f"Erro ao acessar Gemini na Fase 2: {err_str}.\n"
 
     def extract_tese(self, parecer_obj):
         if not self.client:
@@ -211,14 +253,25 @@ class GeminiClient:
                 contents.insert(0, file_consolidado)
 
         try:
+            start_time = time.time()
+            model_to_use = 'gemini-2.5-flash'
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=model_to_use,
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
-            self._log_tokens(parecer_obj, response, 'Fase 4 (Extração)')
+            self._log_tokens(parecer_obj, response, 'Fase 4 (Extração)', model_name=model_to_use, start_time=start_time)
             return response.text.strip()
         except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "Too Many Requests" in err_str:
+                send_mail(
+                    subject='🚨 JARI ALERTA (COTA GEMINI)',
+                    message='A API do Gemini estourou a cota de RPM (Erro 429).',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True
+                )
             return f"Erro ao extrair tese via LLM: {str(e)}"
 
     def refine_tese(self, parecer_obj, user_hint):
@@ -250,12 +303,14 @@ class GeminiClient:
                 contents.insert(0, file_consolidado)
 
         try:
+            start_time = time.time()
+            model_to_use = 'gemini-2.5-flash'
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=model_to_use,
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
-            self._log_tokens(parecer_obj, response, 'Fase 4 (Refinamento)')
+            self._log_tokens(parecer_obj, response, 'Fase 4 (Refinamento)', model_name=model_to_use, start_time=start_time)
             return response.text.strip()
         except Exception as e:
             return f"Erro ao refinar tese via LLM: {str(e)}"
@@ -343,14 +398,25 @@ class GeminiClient:
                     contents.insert(0, file_consolidado)
 
         try:
+            start_time = time.time()
+            model_to_use = 'gemini-2.5-pro'
             response = self.client.models.generate_content(
-                model='gemini-2.5-pro', # Modelo 2.5 PRO para máxima análise de mérito (Rigidez absoluta)
+                model=model_to_use, # Modelo 2.5 PRO para máxima análise de mérito (Rigidez absoluta)
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
-            self._log_tokens(parecer_obj, response, 'Fase 4 (Análise Mérito)')
+            self._log_tokens(parecer_obj, response, 'Fase 4 (Análise Mérito)', model_name=model_to_use, start_time=start_time)
             return response.text
         except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "Too Many Requests" in err_str:
+                send_mail(
+                    subject='🚨 JARI ALERTA (COTA GEMINI)',
+                    message='A API do Gemini estourou a cota de RPM (Erro 429). Ocorreu na Análise de Mérito.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True
+                )
             return f"Erro ao acessar Gemini na Fase 4: {str(e)}.\n"
 
     def validate_and_generate_parecer(self, parecer_obj, tese, perplexity_result, vertex_result=""):
@@ -476,14 +542,25 @@ class GeminiClient:
             except Exception: pass
 
         try:
+            start_time = time.time()
+            model_to_use = 'gemini-2.5-flash'
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=model_to_use,
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
-            self._log_tokens(parecer_obj, response, 'Fase 5 (Parecer)')
+            self._log_tokens(parecer_obj, response, 'Fase 5 (Parecer)', model_name=model_to_use, start_time=start_time)
             return response.text
         except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "Too Many Requests" in err_str:
+                send_mail(
+                    subject='🚨 JARI ALERTA (COTA GEMINI)',
+                    message='A API do Gemini estourou a cota de RPM (Erro 429). Ocorreu na Fase 5 (Parecer).',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True
+                )
             return f"Erro ao acessar Gemini: {str(e)}.\nFalha ao gerar parecer via LLM."
 
     def audit_parecer(self, parecer_obj):
@@ -530,12 +607,14 @@ class GeminiClient:
         )
 
         try:
+            start_time = time.time()
+            model_to_use = 'gemini-2.5-flash'
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=model_to_use,
                 contents=[prompt],
                 config={'system_instruction': system_instruction, 'temperature': 0.1}
             )
-            self._log_tokens(parecer_obj, response, 'Fase 6 (Auditoria)')
+            self._log_tokens(parecer_obj, response, 'Fase 6 (Auditoria)', model_name=model_to_use, start_time=start_time)
             return response.text
         except Exception as e:
             return f"⚠️ Auditoria Qualitativa offline. Resultado puramente matemático operando."
@@ -572,20 +651,6 @@ class VertexAIClient:
             
             response = client.search(request)
             
-            try:
-                if parecer_obj:
-                    from .models import AiRequestLog
-                    AiRequestLog.objects.create(
-                        parecer_referencia=parecer_obj,
-                        user=parecer_obj.user,
-                        provider='Vertex AI (Search)',
-                        fase='Pesquisa Base (RAG)',
-                        input_tokens=0,
-                        output_tokens=1
-                    )
-            except Exception:
-                pass
-            
             resultados = []
             for result in response.results:
                 document_data = result.document.derived_struct_data
@@ -603,9 +668,64 @@ class VertexAIClient:
                 if content:
                     resultados.append(content)
                      
+            is_miss = False
             if not resultados:
+                is_miss = True
+                
+            try:
+                if parecer_obj:
+                    from .models import AiRequestLog
+                    AiRequestLog.objects.create(
+                        parecer_referencia=parecer_obj,
+                        user=parecer_obj.user,
+                        provider='Vertex AI (Search)',
+                        fase='Pesquisa Base (RAG)',
+                        input_tokens=0,
+                        output_tokens=1,
+                        query_text=query,
+                        is_miss=is_miss
+                    )
+            except Exception:
+                pass
+                
+            if is_miss:
+                try:
+                    from django.core.mail import send_mail
+                    from django.conf import settings
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    
+                    subject = f"🚨 JARI ALERTA (RAG MISS): Termo Não Encontrado"
+                    message = (
+                        f"O sistema realizou uma busca no Vertex AI RAG que retornou VAZIA.\n\n"
+                        f"Termo Pesquisado:\n{query}\n\n"
+                        f"Por favor, verifique se algum documento normativo está faltando na base de dados (Ex: resoluções novas)."
+                    )
+                    send_mail(
+                        subject,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        ['geffersonvivan@gmail.com'],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    pass
                 return "Nenhum documento interno encontrado para esta busca."
                 
             return "\n\n---\n\n".join(resultados)
         except Exception as e:
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                subject = f"🚨 JARI ALERTA INOPERÂNCIA: Erro Vertex AI"
+                message = f"O banco de dados privado do JARI (Vertex) caiu ou retornou erro.\n\nErro: {str(e)}"
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    ['geffersonvivan@gmail.com'],
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
             return f"Erro ao buscar no Vertex AI: {str(e)}"

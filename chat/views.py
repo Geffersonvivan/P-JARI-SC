@@ -909,9 +909,29 @@ def estatisticas_gerais_view(request):
     )
     consultas_vertex = logs.filter(provider__icontains='Vertex').count()
     
+    vertex_misses = logs.filter(provider__icontains='Vertex', is_miss=True).order_by('-data_requisicao')
+    taxa_uso_vertex = f"{int((consultas_vertex / total_julgados_global) * 100)}%" if total_julgados_global > 0 else "0%"
+    
     custo_gemini = (tokens_gemini['in_t'] or 0) * (0.075 / 1000000) + (tokens_gemini['out_t'] or 0) * (0.30 / 1000000)
     custo_perplexity = ((tokens_perplexity['in_t'] or 0) + (tokens_perplexity['out_t'] or 0)) * (1.00 / 1000000)
     custo_vertex = consultas_vertex * 0.005
+    
+    # NOVAS MÉTRICAS IA (Latência, Dispersão, Fadiga e Defeito)
+    from django.db.models import Avg
+    perplexity_logs_qs = logs.filter(provider__icontains='Perplexity')
+    avg_latency_perplexity_ms = perplexity_logs_qs.aggregate(avg_lat=Avg('latency_ms'))['avg_lat'] or 0
+    avg_latency_perplexity_sec = round(avg_latency_perplexity_ms / 1000, 2)
+    
+    gemini_logs_qs = logs.filter(provider__icontains='Gemini', model_name__isnull=False).exclude(model_name='')
+    gemini_total_requests = gemini_logs_qs.count()
+    gemini_pro_count = gemini_logs_qs.filter(model_name__icontains='pro').count()
+    gemini_flash_count = gemini_logs_qs.filter(model_name__icontains='flash').count()
+    pct_gemini_pro = int((gemini_pro_count / gemini_total_requests) * 100) if gemini_total_requests > 0 else 0
+    pct_gemini_flash = int((gemini_flash_count / gemini_total_requests) * 100) if gemini_total_requests > 0 else 0
+    
+    top_fatigue_logs = logs.filter(provider__icontains='Gemini', input_tokens__gt=0).order_by('-input_tokens')[:5]
+    pdf_defects_logs = logs.filter(provider__icontains='Gemini', is_pdf_defect=True).order_by('-data_requisicao')
+    pdf_defects_count = pdf_defects_logs.count()
     
     projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True, created_at__year=ano, created_at__month=mes).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
     pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
@@ -1018,6 +1038,14 @@ def estatisticas_gerais_view(request):
         'custo_gemini': f"US$ {custo_gemini:.4f}",
         'custo_perplexity': f"US$ {custo_perplexity:.4f}",
         'custo_vertex': f"US$ {custo_vertex:.4f}",
+        'vertex_misses': vertex_misses,
+        'taxa_uso_vertex': taxa_uso_vertex,
+        'avg_latency_perplexity_sec': avg_latency_perplexity_sec,
+        'pct_gemini_pro': pct_gemini_pro,
+        'pct_gemini_flash': pct_gemini_flash,
+        'top_fatigue_logs': top_fatigue_logs,
+        'pdf_defects_logs': pdf_defects_logs,
+        'pdf_defects_count': pdf_defects_count,
         
         # Novas métricas context
         'hit_rate': hit_rate,

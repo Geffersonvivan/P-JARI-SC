@@ -148,6 +148,11 @@ class AiRequestLog(models.Model):
     input_tokens = models.IntegerField(default=0)
     output_tokens = models.IntegerField(default=0)
     data_requisicao = models.DateTimeField(auto_now_add=True)
+    query_text = models.TextField(blank=True, null=True, help_text="Termo pesquisado, caso aplicável (Ex: Vertex RAG query)")
+    is_miss = models.BooleanField(default=False, help_text="Se True, significa que a IA não retornou resultados práticos (Ex: RAG vazio)")
+    latency_ms = models.IntegerField(default=0, help_text="Tempo de execução da chamada em milissegundos")
+    model_name = models.CharField(max_length=100, blank=True, null=True, help_text="Versão do modelo (ex: sonar-pro, gemini-2.5-flash)")
+    is_pdf_defect = models.BooleanField(default=False, help_text="Se True, significa que o OCR do PDF falhou e a IA não conseguiu ler o conteúdo")
 
     def __str__(self):
         nome_usuario = self.user.username if self.user else "Anon"
