@@ -269,3 +269,23 @@ class TermoAceiteLog(models.Model):
 
     def __str__(self):
         return f"Aceite {self.versao_termo} - {self.user.username} em {self.data_hora.strftime('%d/%m/%Y %H:%M')}"
+
+class PjariVersion(models.Model):
+    major = models.IntegerField(default=1, verbose_name="Major (Paradigma)")
+    minor = models.IntegerField(default=2, verbose_name="Minor (Raciocínio/Lógica)")
+    patch = models.IntegerField(default=0, verbose_name="Patch/Versão Vertex (Base de Leis)")
+    logica_hash = models.CharField(max_length=64, blank=True, null=True, verbose_name="Hash do logica_jari.md")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Controle de Versão (JARI)"
+        verbose_name_plural = "Controle de Versão (JARI)"
+
+    def __str__(self):
+        return f"v{self.major}.{self.minor}.{self.patch}"
+
+    def save(self, *args, **kwargs):
+        # Garante que seja um Singleton (apenas um registro na tabela)
+        if not self.pk and PjariVersion.objects.exists():
+            return PjariVersion.objects.first()
+        super().save(*args, **kwargs)
