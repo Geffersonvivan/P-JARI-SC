@@ -495,10 +495,7 @@ class GeminiClient:
             "<div style=\"text-align: center;\">\n"
             "Diante do exposto, voto pelo <b>INDEFERIMENTO</b> (ou <b>DEFERIMENTO</b>) do presente recurso,<br>\n"
             "<b>MANTENDO</b> (ou <b>ANULANDO</b>) a penalidade aplicada pela autoridade de trânsito.\n"
-            "</div>\n\n"
-            "***DOSSIE_START***\n"
-            "[Cite apenas as leis e fundamentos em bullets sem utilizar bold, ex: CTB, Art. 165 ]\n"
-            "***DOSSIE_END***"
+            "</div>"
         )
         
         prompt = (
