@@ -153,7 +153,7 @@ def editar_parecer_view(request, id):
             
             # Para o TinyMCE, um bloco flex ou div simples com text-align center é totalmente respeitado nativamente
             rodape_centralizado = f"""
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: 50px; width: 100%;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; margin-top: 25px; width: 100%;">
                 <div style="text-align: center; width: auto; display: inline-block;">
                     {rodape_escolhido.replace('<p>', '<p style="text-align: center; margin: 0; padding: 0;">').replace('text-align: left;', 'text-align: center;')}
                 </div>
