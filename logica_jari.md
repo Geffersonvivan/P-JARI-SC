@@ -113,39 +113,46 @@ Se Total_Dias > 1095 → intercorrente configurada
 Se Total_Dias ≤ 1095 → não
 
 D) DECADÊNCIA
-FONTES NORMATIVAS inclusas “RAG Inventário Normativo vertx google”: 
+FONTES NORMATIVAS:
 [SC]_CETRAN_Parecer_381_2022_PRAZO_DECADENCIAL.pdf (e Nota de 02/03/2023).
 BR11_Res_782_2020_COVID_Prazos.pdf (Interrupção de prazos COVID-19).
 
 TRAVA DE SEGURANÇA (GATEKEEPER): Identificar a DATA DA INFRAÇÃO e aplicar os filtros temporais:
 
 FILTRO 1: INFRAÇÕES ATÉ 11/04/2021
-Decadência de 180/360 dias: Não se aplica (Infração anterior à Lei 14.071/2020) [SC].
-Regra: Aplicar exclusivamente a Lei 9.873/1999 (Prescrição Punitiva de 5 anos / Intercorrente de 3 anos) [SC].
-Suspensão por Pontos: Início da contagem no dia seguinte à totalização dos pontos (ativação da infração geradora) [SC].
+BLINDAGEM CONTRA RETROATIVIDADE (HARD STOP): É proibido declarar decadência com base nos prazos de 180 ou 360 dias para este período.
+Ação do Agente: O cálculo de 180/360 dias deve ser desabilitado. O agente deve declarar: "Decadência: Não se aplica (Infração anterior à vigência da Lei 14.071/2020)".
+Regra de Análise: Aplicar exclusivamente a Lei 9.873/1999 (Prescrição Punitiva de 5 anos e Intercorrente de 3 anos).
+Suspensão por Pontos: Início da contagem no dia seguinte à totalização dos pontos (ativação da infração geradora).
 
 FILTRO 2: INFRAÇÕES ENTRE 12/04/2021 E 21/10/2021
-Multas e Advertências (Art. 256, I e II): Aplica-se decadência de 180 ou 360 dias contados da infração [SC].
-Suspensão e Cassação (Art. 256, III a VII): NÃO há decadência de 180/360 dias (Conforme Nota de Atualização de 02/03/2023) [SC].
+Multas e Advertências (Art. 256, I e II): Aplica-se decadência de 180 ou 360 dias contados da infração.
+Suspensão e Cassação (Art. 256, III a VII): NÃO há decadência de 180/360 dias (Conforme Nota de Atualização de 02/03/2023).
 
 FILTRO 3: INFRAÇÕES A PARTIR DE 22/10/2021 (LEI 14.229/2021)
-Todas as Penalidades: Aplica-se decadência de 180 ou 360 dias [SC].
+Todas as Penalidades: Aplica-se decadência de 180 ou 360 dias.
 Marcos Iniciais:
-Multas (Sem flagrante): Data do conhecimento pelo órgão (Art. 282, §6º-A) [SC].
-Suspensão/Cassação: Conclusão do processo da multa que lhe deu causa [SC].
+Multas (Sem flagrante): Data do conhecimento pelo órgão (Art. 282, §6º-A).
+Suspensão/Cassação: Conclusão do processo da multa que lhe deu causa.
 
 REGRAS TRANSVERSAIS DE BLINDAGEM (OBRIGATÓRIO):
 
-1. INTERRUPÇÃO COVID-19 (Resolução 782/2020):
-Prazos Interrompidos: Estão interrompidos por tempo indeterminado, a partir de 20 de março de 2020, os prazos para defesa da autuação, recursos de multa, defesa processual e recursos de suspensão/cassação.
-Expedição de Penalidades: As Notificações de Penalidade (NP) somente puderam ser expedidas após o encerramento do prazo de defesa interrompido pela pandemia.
-Aplicação no Cálculo: Caso o processo tenha marcos entre 2020 e 2021, o agente deve descontar o período de interrupção definido pelo CONTRAN (conforme o cronograma de retomada de cada órgão), justificando que a inércia administrativa foi legalmente amparada pela Res. 782/2020.
+1. INTERRUPÇÃO COVID-19 (Resolução 782/2020 - Blindagem de Inércia):
+Prazos Interrompidos: A partir de 20 de março de 2020, os prazos para defesas e recursos foram interrompidos por tempo indeterminado.
+Bloqueio de Expedição: As Notificações de Penalidade (NP) somente puderam ser expedidas após o encerramento do prazo de defesa interrompido.
+BLINDAGEM NO CÁLCULO: Qualquer atraso aparente entre 2020 e 2021 deve ser justificado como impedimento legal de agir (Art. 6º da Res. 782/2020), não podendo ser computado como desídia administrativa para fins de prescrição ou decadência.
 
 2. ISOLAMENTO DOS ATOS:
-A decadência da penalidade de suspensão não anula a multa originária se esta já se tornou definitiva, pois são atos jurídicos independentes [SC].
+A decadência da penalidade de suspensão não anula a multa originária se esta já se tornou definitiva, pois são atos jurídicos independentes e respeitam o ato jurídico perfeito.
 
 3. VÍCIO FORMAL vs. DECADÊNCIA:
-Erros na Notificação de Autuação (NA) são Vícios Formais (Art. 281). A Decadência (Art. 282) refere-se exclusivamente ao prazo para expedição da Notificação de Penalidade (NP) [SC].
+Erros na Notificação de Autuação (NA) ou no AR (como "número inexistente") são Vícios Formais do Art. 281 e devem ser tratados no mérito. A Decadência do Art. 282 refere-se exclusivamente ao atraso na expedição da Notificação de Penalidade (NP).
+
+CAMADA EXTRA: FUNDAMENTAÇÃO DE PRESCRIÇÃO (FILTRO 1)
+Sempre que o processo cair no FILTRO 1, o agente deve obrigatoriamente realizar o cálculo da Prescrição Punitiva (5 anos) para blindar o mérito:
+Exemplo (Caso Bianchi): Infração em 09/05/2018. Instauração em 14/10/2022.
+Cálculo: Transcorridos 4 anos e 5 meses.
+Conclusão: Ação Punitiva tempestiva (dentro do prazo de 5 anos da Lei 9.873/1999).
 
 RESULTADO FINAL P1
 Tempestivo:[SIM/NÃO]
