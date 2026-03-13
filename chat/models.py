@@ -121,8 +121,15 @@ class PjariCacheConfig(models.Model):
     def hit_rate(self):
         if self.total_requests == 0:
             return "0.00%"
-        return f"{(self.total_hits / self.total_requests) * 100:.2f}%"
+        rate = (self.total_hits / self.total_requests) * 100
+        return f"{rate:.2f}%"
 
+    @property
+    def total_economia(self):
+        # Cada hit no cache economiza 1 request Vertex + 1 request Perplexity. Media de $0.05 por hit total.
+        economia_dolar = self.total_hits * 0.05
+        return f"${economia_dolar:.2f}"
+        
 
 class PjariCacheEntry(models.Model):
     cache_key = models.CharField(max_length=255, unique=True, verbose_name="Chave de Cache (Artigo + Núcleo)")
