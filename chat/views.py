@@ -10,6 +10,11 @@ from django.conf import settings
 import mercadopago
 from .models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
 
+def landing_page_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+    return render(request, 'landing.html')
+
 def home_view(request):
     if not request.session.session_key:
         request.session.create()

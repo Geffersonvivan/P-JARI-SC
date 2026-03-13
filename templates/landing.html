@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P-JARI/SC | Sistema de Apoio Técnico para Julgadores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .bg-hero {
+            background-color: #0f172a;
+            background-image: radial-gradient(circle at top right, #1e293b, #0f172a);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 antialiased selection:bg-blue-200 selection:text-blue-900">
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 bg-[#0f172a]/95 backdrop-blur-sm border-b border-slate-700/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex-shrink-0 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-gavel text-white text-xl"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-white">P<span class="text-blue-400">-</span>JARI<span class="text-slate-400 text-sm font-normal ml-1 border-l border-slate-600 pl-2">SC</span></span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#solucao" class="text-slate-300 hover:text-white transition font-medium text-sm">Benefícios</a>
+                    <a href="#fluxo" class="text-slate-300 hover:text-white transition font-medium text-sm">Como Funciona</a>
+                    <a href="#planos" class="text-slate-300 hover:text-white transition font-medium text-sm">Planos</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/accounts/login/" class="text-slate-300 hover:text-white font-medium text-sm transition">Entrar</a>
+                    <a href="/app/" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition shadow-lg shadow-blue-600/30">Testar Ferramenta</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="bg-hero relative overflow-hidden pt-20 pb-32">
+        <!-- Abstract Decoration -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none">
+            <div class="absolute top-1/4 -right-64 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 -left-64 w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center max-w-4xl mx-auto">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-medium mb-8">
+                    <i class="fas fa-shield-halved text-xs"></i>
+                    Apoio Técnico Exclusivo para JARI e CETRAN
+                </div>
+                
+                <h1 class="text-5xl md:text-6xl font-bold text-white tracking-tight mb-6 leading-tight">
+                    O P-JARI pensa com rapidez.<br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Você decide com segurança.</span>
+                </h1>
+                
+                <p class="text-lg md:text-xl text-slate-300 mb-10 leading-relaxed font-light max-w-3xl mx-auto">
+                    O primeiro sistema de Apoio Técnico desenhado exclusivamente para Membros Julgadores de trânsito. Automatize contagens de prazos, organize teses e gere minutas fundamentadas em segundos, mantendo 100% da sua autonomia decisória.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="/app/" class="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold text-lg transition shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2">
+                        Testar em um Recurso Real <i class="fas fa-arrow-right text-sm"></i>
+                    </a>
+                </div>
+                
+                <p class="mt-6 text-xs text-slate-500 font-medium">
+                    <i class="fas fa-info-circle mr-1"></i> Aviso Ético: O P-JARI é uma ferramenta consultiva. A assinatura e a decisão final permanecem prerrogativas exclusivas do Julgador.
+                </p>
+            </div>
+            
+            <!-- Dashboard Mockup -->
+            <div class="mt-20 max-w-5xl mx-auto relative group">
+                <div class="absolute -inset-1 bg-gradient-to-b from-blue-500/30 to-indigo-600/10 rounded-2xl blur-xl opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+                <div class="relative bg-[#0f172a] rounded-xl border border-slate-700/80 shadow-2xl overflow-hidden aspect-[16/9] flex items-center justify-center text-slate-500">
+                    <img src="/static/assets/dashboard-mockup.png" alt="Dashboard Cockpit P-JARI" class="w-full h-full object-cover object-top opacity-90" onerror="this.src='https://via.placeholder.com/1200x675/0f172a/334155?text=Painel+de+Julgamento+P-JARI'">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefícios Section -->
+    <section id="solucao" class="py-24 bg-white relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Blindagem e Produtividade</h2>
+                <p class="mt-4 text-lg text-slate-600">Não terceirize sua função. Amplie sua capacidade analítica com ferramentas matemáticas e semânticas criadas para o cenário catarinense.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-6">
+                        <i class="fas fa-bolt text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Velocidade no Julgamento</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Redução drástica do tempo de leitura morta de processo e identificação de peças no dossiê. Vá direto para o que importa: as teses de mérito.</p>
+                </div>
+                
+                <!-- Card 2 -->
+                <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 mb-6">
+                        <i class="fas fa-calculator text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Sem Erros de Prazos</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Calcule matematicamente a Tempestividade, Decadência e a complexa Prescrição Intercorrente (Res. 782/2020) sem chance de falha humana.</p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mb-6">
+                        <i class="fas fa-file-signature text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Padronização Técnica</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Gere rascunhos de votos uniformes, estruturados com Relatório, Fundamentação e Ementa, baseados exclusivamente na jurisprudência do CETRAN/SC.</p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600 mb-6">
+                        <i class="fas fa-magnifying-glass-chart text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">JARI Match (Auditoria)</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Uma camada reversa de inteligência que analisa o parecer antes da entrega, impedindo alucinações cognitivas e dados incorretos da IA geradora.</p>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 mb-6">
+                        <i class="fas fa-brain text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Autonomia Total (Seu Banco)</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">O sistema aprende com você. Crie e reutilize o seu "Storage" pessoal com os argumentos vencedores que você mais utiliza e confessa.</p>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 mb-6">
+                        <i class="fas fa-users text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Comunidade e Fórum</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Troque experiências, entenda como outros membros estão votando temas polêmicos e enriqueça seu arsenal jurídico.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Como Funciona Section -->
+    <section id="fluxo" class="py-24 bg-slate-50 border-y border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-3xl text-center mb-16">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">O Fluxo da Decisão Assistida</h2>
+                <p class="mt-4 text-lg text-slate-600">A Máquina faz o trabalho braçal. Você faz o trabalho cognitivo.</p>
+            </div>
+
+            <div class="relative">
+                <!-- Line -->
+                <div class="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-blue-200 -translate-x-1/2"></div>
+                
+                <div class="space-y-12">
+                    <!-- Step 1 -->
+                    <div class="relative flex flex-col md:flex-row items-center md:justify-between group">
+                        <div class="md:w-5/12 text-center md:text-right pr-0 md:pr-8 mb-4 md:mb-0">
+                            <h4 class="text-lg font-bold text-slate-900">1. Input Humano e Documentos</h4>
+                            <p class="text-sm text-slate-600 mt-2">Você responde 6 perguntas vitais (datas e placa) no Formulário e anexa a Notificação da Autuação + PDF Consolidado de Defesa.</p>
+                        </div>
+                        <div class="w-10 h-10 absolute left-1/2 -translate-x-1/2 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center z-10 text-blue-600 font-bold text-sm shadow-md group-hover:scale-110 transition">1</div>
+                        <div class="md:w-5/12 pl-0 md:pl-8 text-center md:text-left text-slate-400">
+                            <div class="inline-block p-4 rounded-xl bg-white shadow-sm border border-slate-100"><i class="fas fa-upload text-3xl text-blue-400"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="relative flex flex-col md:flex-row-reverse items-center md:justify-between group">
+                        <div class="md:w-5/12 text-center md:text-left pl-0 md:pl-8 mb-4 md:mb-0">
+                            <h4 class="text-lg font-bold text-slate-900">2. Motor Matemático (Ordem Pública)</h4>
+                            <p class="text-sm text-slate-600 mt-2">O JariMath entra em ação, cruza as datas, valida a tempestividade e julga objetivamente prescrição punitiva, intercorrente e decadência.</p>
+                        </div>
+                        <div class="w-10 h-10 absolute left-1/2 -translate-x-1/2 bg-white border-4 border-emerald-500 rounded-full flex items-center justify-center z-10 text-emerald-600 font-bold text-sm shadow-md group-hover:scale-110 transition">2</div>
+                        <div class="md:w-5/12 pr-0 md:pr-8 text-center md:text-right text-slate-400">
+                            <div class="inline-block p-4 rounded-xl bg-white shadow-sm border border-slate-100"><i class="fas fa-calculator text-3xl text-emerald-400"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="relative flex flex-col md:flex-row items-center md:justify-between group">
+                        <div class="md:w-5/12 text-center md:text-right pr-0 md:pr-8 mb-4 md:mb-0">
+                            <h4 class="text-lg font-bold text-slate-900">3. Decisão Humana no Mérito</h4>
+                            <p class="text-sm text-slate-600 mt-2">O sistema mapeia todas as teses que o advogado levantou na defesa. Uma por uma, VOCÊ clica para Aceitar (Falha do Órgão) ou Rejeitar a tese.</p>
+                        </div>
+                        <div class="w-10 h-10 absolute left-1/2 -translate-x-1/2 bg-white border-4 border-amber-500 rounded-full flex items-center justify-center z-10 text-amber-600 font-bold text-sm shadow-md group-hover:scale-110 transition">3</div>
+                        <div class="md:w-5/12 pl-0 md:pl-8 text-center md:text-left text-slate-400">
+                            <div class="inline-block p-4 rounded-xl bg-white shadow-sm border border-slate-100"><i class="fas fa-scale-balanced text-3xl text-amber-400"></i></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4 -->
+                    <div class="relative flex flex-col md:flex-row-reverse items-center md:justify-between group">
+                        <div class="md:w-5/12 text-center md:text-left pl-0 md:pl-8 mb-4 md:mb-0">
+                            <h4 class="text-lg font-bold text-slate-900">4. Geração e Auditoria JARI-Match</h4>
+                            <p class="text-sm text-slate-600 mt-2">A IA redige o parecer completo unindo a matemática e suas decisões. Uma IA Revisora audita imediatamente para garantir que nenhuma lei inventada foi citada.</p>
+                        </div>
+                        <div class="w-10 h-10 absolute left-1/2 -translate-x-1/2 bg-white border-4 border-indigo-500 rounded-full flex items-center justify-center z-10 text-indigo-600 font-bold text-sm shadow-md group-hover:scale-110 transition">4</div>
+                        <div class="md:w-5/12 pr-0 md:pr-8 text-center md:text-right text-slate-400">
+                            <div class="inline-block p-4 rounded-xl bg-white shadow-sm border border-slate-100"><i class="fas fa-file-shield text-3xl text-indigo-400"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Planos Section -->
+    <section id="planos" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-3xl font-bold tracking-tight text-slate-900">Preencha sua pauta gastando centavos por processo</h2>
+                <p class="mt-4 text-lg text-slate-600">Modelagem justa e previsível para quem julga.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                <!-- Free -->
+                <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="text-xl font-bold text-slate-900">Teste Cético</h3>
+                    <p class="text-slate-500 text-sm mt-2 mb-6">Para o julgador testar a ferramenta com um dossiê real e avaliar o output.</p>
+                    <div class="text-4xl font-extrabold text-slate-900 mb-6">Grátis</div>
+                    <ul class="space-y-3 mb-8 flex-1 text-sm text-slate-700">
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> <b>5 Créditos</b> Iniciais</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Acesso Integral ao Dash</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Todas as Auditorias</li>
+                    </ul>
+                    <a href="/app/" class="w-full text-center py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition">Criar Conta</a>
+                </div>
+
+                <!-- Basic -->
+                <div class="bg-[#0f172a] rounded-2xl p-8 border border-[#1e293b] shadow-xl relative flex flex-col transform md:-translate-y-4">
+                    <div class="absolute top-0 right-0 transform translate-x-2 -translate-y-2">
+                        <span class="bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">Mais Popular</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Sessões Ordinárias</h3>
+                    <p class="text-slate-400 text-sm mt-2 mb-6">Ideal para conselheiros que cobrem pautas regulares todo mês.</p>
+                    <div class="text-4xl font-extrabold text-white mb-2">R$ 57<span class="text-lg font-normal text-slate-400">/mês</span></div>
+                    <div class="text-sm text-blue-300 font-medium mb-6">Apenas R$ 1,42 por parecer</div>
+                    <ul class="space-y-3 mb-8 flex-1 text-sm text-slate-300">
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-blue-400"></i> <b>40 Processos/Mês</b></li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-blue-400"></i> JARI Math Premium</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-blue-400"></i> Armazenamento (Banco de Teses)</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-blue-400"></i> Exportação ilimitada</li>
+                    </ul>
+                    <a href="/accounts/signup/" class="w-full text-center py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition shadow-lg shadow-blue-500/20">Assinar Plano Básico</a>
+                </div>
+
+                <!-- Pro -->
+                <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="text-xl font-bold text-slate-900">Alta Demanda</h3>
+                    <p class="text-slate-500 text-sm mt-2 mb-6">Para relatores com grande volume de pauta ou sessões extraordinárias.</p>
+                    <div class="text-4xl font-extrabold text-slate-900 mb-2">R$ 97<span class="text-lg font-normal text-slate-500">/mês</span></div>
+                    <div class="text-sm text-green-600 font-medium mb-6">Apenas R$ 1,21 por parecer</div>
+                    <ul class="space-y-3 mb-8 flex-1 text-sm text-slate-700">
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> <b>80 Processos/Mês</b></li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Prioridade nas Novas Features</li>
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Créditos Cumulativos *</li>
+                    </ul>
+                    <a href="/accounts/signup/" class="w-full text-center py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl transition">Assinar Plano PRO</a>
+                </div>
+            </div>
+            <div class="text-center mt-10">
+                <p class="text-sm text-slate-500">*A contabilidade é transparente: 1 parecer gerado consumirá sempre exato 1 crédito.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ & Trust -->
+    <section class="py-24 bg-slate-50 border-t border-slate-200">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold tracking-tight text-slate-900 text-center mb-12">Dúvidas Frequentes da Comunidade Jurídica</h2>
+            
+            <div class="space-y-6">
+                <!-- Feat -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h4 class="text-lg font-semibold text-slate-900">A Inteligência Artificial vai decidir no meu lugar?</h4>
+                    <p class="text-slate-600 mt-2"><b>Jamais.</b> O P-JARI foi construído sob um Princípio de Trava de Soberania (Human in the Loop). O motor nunca julgará o "Mérito Fático" da infração. Você visualiza a denúncia, lê a defesa e decide apertar o botão de "Acolher o Advogado" ou "Rejeitar a Defesa". Só então a IA aplica a formatação gramatical pesada para embasar a <b>sua</b> decisão humana usando as normas do P-JARI.</p>
+                </div>
+                <!-- Feat -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h4 class="text-lg font-semibold text-slate-900">E se o CTB ou a lei mudar amanhã?</h4>
+                    <p class="text-slate-600 mt-2">O nosso Inventário Normativo, apelidado carinhosamente de "Sistema Google Vertex", puxa os manuais em tempo real (incluindo Manuais Brasileiros de Fiscalização). Se o CETRAN/SC assinar uma nota técnica limitando prazos, o nosso motor Matemático JariMath incorpora dentro de horas para barrar alucinações de Pareceres desatualizados.</p>
+                </div>
+                <!-- Feat -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <h4 class="text-lg font-semibold text-slate-900">Os dados dos processos ficam expostos ou públicos?</h4>
+                    <p class="text-slate-600 mt-2">Todo o upload e análise feito nos PDFs é processado em containers em nuvem privados (sem uso publicitário do input/DLP). Exortamos sempre aos conselheiros que ofusquem dados CPF e dados críticos antes do upload, garantindo máxima blindagem do sigilo.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Final -->
+    <section class="bg-blue-600 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-white mb-6">Leve a transformação digital para sua pauta do JARI/DETRAN.</h2>
+            <a href="/app/" class="inline-block px-8 py-4 bg-white text-blue-600 hover:bg-blue-50 font-bold rounded-xl text-lg transition shadow-xl">
+                Começar agora com 5 Créditos Grátis
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-[#0f172a] py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2 text-white">
+                <i class="fas fa-gavel text-xl"></i>
+                <span class="font-bold">P-JARI/SC</span>
+            </div>
+            <div class="text-slate-400 text-sm">
+                &copy; 2026 P-JARI/SC. Tecnologia para Conselheiros de Trânsito.
+            </div>
+            <div class="flex gap-6">
+                <a href="/termos/" class="text-slate-400 hover:text-white text-sm transition">Termos de Uso</a>
+                <a href="#" class="text-slate-400 hover:text-white text-sm transition">Política de Privacidade</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

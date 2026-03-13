@@ -2,7 +2,8 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.home_view, name='home'),
+    path('', views.landing_page_view, name='landing'),
+    path('app/', views.home_view, name='home'),
     path('parecer/create/', views.create_parecer_view, name='create_parecer'),
     path('parecer/<int:id>/delete/', views.delete_parecer_view, name='delete_parecer'),
     path('parecer/<int:id>/mover/', views.mover_parecer_view, name='mover_parecer'),
