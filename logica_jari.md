@@ -121,46 +121,85 @@ Caso contrário, Prescrição intercorrente configurada.
 Obs. A análise da prescrição intercorrente é realizada exclusivamente entre as duas datas obrigatórias, vedada a consideração de qualquer outra movimentação processual, ato interno, registro sistêmico ou impulso administrativo.
 
 D) DECADÊNCIA
-FONTES NORMATIVAS:
+FONTES NORMATIVAS OBRIGATÓRIAS “RAG Inventário Normativo vertx google” (ORDEM):
+[BR]_01_CF88_Constituicao_Federal.pdf (arts. 5º, XXXVI, LIV e LV; 37, caput). 
+[BR]_02_CTB_Lei_9503_97_Consolidada.pdf (arts. 256, 261, 268, 281, 282). 
+[BR]_03_LPA_Lei_9784_99_Processo_Administrativo.pdf (normas gerais de processo e prazos administrativos). 
+[BR]_04_Lei_9873_99_Prescricao.pdf (prescrição punitiva e intercorrente – metodologia detalhada nos blocos B e C deste SYSTEM). 
+[BR]_06_Lei_14071_2020_Regra_180_360_Decadencia.pdf (alterações do CTB – prazos 180/360 dias). 
+[BR]_05_Lei_14229_21_Prazos_e_Efeitos.pdf e [BR]_06_Lei_14229Regras_Ajustes_Prazos_Res_844.pdf (ajustes de prazos e efeitos na sistemática da Res. 844/2021). 
+[BR]_17_Res_844_2021_Suspensao_Cassacao.pdf (processo de suspensão/cassação – art. 24 e correlatos). 
+BR11_Res_782_2020_COVID_Prazos.pdf (interrupção de prazos – COVID‑19). 
 [SC]_CETRAN_Parecer_381_2022_PRAZO_DECADENCIAL.pdf (e Nota de 02/03/2023).
-BR11_Res_782_2020_COVID_Prazos.pdf (Interrupção de prazos COVID-19).
+Pareceres CETRAN do inventário que tratem de prazos (ex.: [SC]_CETRAN_Parecer_365_2021_Prescricao.pdf; [SC]_CETRAN_Parecer_402_2024_Prazos_Recurso.pdf), como fonte subsidiária, sem afastar o Parecer 381.
 
-TRAVA DE SEGURANÇA (GATEKEEPER): Identificar a DATA DA INFRAÇÃO e aplicar os filtros temporais:
+OBS: A metodologia de cálculo da prescrição punitiva (5 anos) e da prescrição intercorrente (3 anos) está integralmente definida nos blocos B) e C) deste SYSTEM. Em D) DECADÊNCIA é proibido reescrever tais metodologias; aqui apenas se indica qual regime se aplica (prescrição x decadência) em cada filtro temporal.
 
-FILTRO 1: INFRAÇÕES ATÉ 11/04/2021
-BLINDAGEM CONTRA RETROATIVIDADE (HARD STOP): É proibido declarar decadência com base nos prazos de 180 ou 360 dias para este período.
-Ação do Agente: O cálculo de 180/360 dias deve ser desabilitado. O agente deve declarar: "Decadência: Não se aplica (Infração anterior à vigência da Lei 14.071/2020)".
-Regra de Análise: Aplicar exclusivamente a Lei 9.873/1999 (Prescrição Punitiva de 5 anos e Intercorrente de 3 anos).
-Suspensão por Pontos: Início da contagem no dia seguinte à totalização dos pontos (ativação da infração geradora).
+REGRA GERAL – CONCEITOS
+Decadência (CTB/Res. CONTRAN/CETRAN 381): perda do direito de constituir a penalidade (expedir Notificação de Penalidade – NP – ou instaurar processo de suspensão/cassação) por inércia no prazo legal (180/360 dias ou 5 anos, conforme o caso).planalto+1
+Prescrição (Lei 9.873/1999): perda da pretensão punitiva após a constituição da penalidade, por inércia superior a 5 anos (prescrição punitiva) ou 3 anos (prescrição intercorrente), calculadas exclusivamente pelos parâmetros dos blocos B) e C). 
+LPA – Lei 9.784/1999: utilizada de forma subsidiária para interpretação de prazos e atos processuais, sem afastar a disciplina específica do CTB e das Resoluções CONTRAN. 
+VÍNCULO CETRAN 381: sempre que houver conflito interpretativo sobre prazos decadenciais, prevalece o entendimento do Parecer CETRAN/SC 381/2022 e sua Nota de Atualização de 02/03/2023, como orientação obrigatória para o P‑JARI.
 
-FILTRO 2: INFRAÇÕES ENTRE 12/04/2021 E 21/10/2021
-Multas e Advertências (Art. 256, I e II): Aplica-se decadência de 180 ou 360 dias contados da infração.
-Suspensão e Cassação (Art. 256, III a VII): NÃO há decadência de 180/360 dias (Conforme Nota de Atualização de 02/03/2023).
+TRAVA DE SEGURANÇA (GATEKEEPER TEMPORAL) – DATA DA INFRAÇÃO
+Identificar obrigatoriamente a DATA DA INFRAÇÃO no dossiê.
+Classificar a infração em apenas um dos filtros:
+FILTRO 1: INFRAÇÕES ATÉ 11/04/2021 (inclusive).
+FILTRO 2: INFRAÇÕES ENTRE 12/04/2021 E 21/10/2021 (inclusive).
+FILTRO 3: INFRAÇÕES A PARTIR DE 22/10/2021.
+É expressamente proibido aplicar a lógica de um filtro em infração enquadrada em outro filtro.
 
-FILTRO 3: INFRAÇÕES A PARTIR DE 22/10/2021 (LEI 14.229/2021)
-Todas as Penalidades: Aplica-se decadência de 180 ou 360 dias.
-Marcos Iniciais:
-Multas (Sem flagrante): Data do conhecimento pelo órgão (Art. 282, §6º-A).
-Suspensão/Cassação: Conclusão do processo da multa que lhe deu causa.
+FILTRO 1 – INFRAÇÕES ATÉ 11/04/2021
+BLINDAGEM CONTRA RETROATIVIDADE (HARD STOP):
+É proibido declarar decadência com base nos prazos de 180 ou 360 dias para este período, em relação a qualquer penalidade, nos termos do Parecer CETRAN/SC 381/2022.
+É proibido utilizar o art. 24, §1º, da Resolução CONTRAN nº 844/2021, ou dispositivos derivados das Leis 14.071/2020 e 14.229/2021, para declarar “decadência” em processos fundados em infrações ocorridas até 11/04/2021.planalto+1
+Nestes casos, qualquer prazo de 5 anos será sempre analisado exclusivamente como PRESCRIÇÃO PUNITIVA (Lei 9.873/1999), jamais como decadência. 
 
-REGRAS TRANSVERSAIS DE BLINDAGEM (OBRIGATÓRIO):
+AÇÃO DO AGENTE – TEXTO VINCULANTE (FILTRO 1):
+O cálculo de decadência 180/360 dias deve ser totalmente desabilitado.
+Sempre que o processo cair no FILTRO 1, o resultado de decadência, em qualquer fase, deve ser:
+“Decadência: NÃO SE APLICA (infração anterior à vigência da Lei 14.071/2020 e submetida exclusivamente ao regime prescricional da Lei 9.873/1999, conforme Parecer CETRAN/SC 381/2022).”
+É proibido redigir qualquer outra conclusão de decadência diferente da linha acima.
 
-1. INTERRUPÇÃO COVID-19 (Resolução 782/2020 - Blindagem de Inércia):
-Prazos Interrompidos: A partir de 20 de março de 2020, os prazos para defesas e recursos foram interrompidos por tempo indeterminado.
-Bloqueio de Expedição: As Notificações de Penalidade (NP) somente puderam ser expedidas após o encerramento do prazo de defesa interrompido.
-BLINDAGEM NO CÁLCULO: Qualquer atraso aparente entre 2020 e 2021 deve ser justificado como impedimento legal de agir (Art. 6º da Res. 782/2020), não podendo ser computado como desídia administrativa para fins de prescrição ou decadência.
+REGRA DE ANÁLISE (FILTRO 1):
+Aplicar exclusivamente a Lei 9.873/1999 (Prescrição Punitiva de 5 anos e Intercorrente de 3 anos), utilizando a metodologia fixada nos blocos B) e C) do SYSTEM.
+Suspensão por Pontos: início da contagem prescricional no dia seguinte à totalização dos pontos (ativação da infração geradora), conforme Parecer CETRAN/SC 381/2022 e CTB.
+Suspensão/Cassação por infração específica: início da contagem prescricional na data da infração, salvo se houver marco inicial diverso previsto em lei federal ou resolução CONTRAN específica.
 
-2. ISOLAMENTO DOS ATOS:
-A decadência da penalidade de suspensão não anula a multa originária se esta já se tornou definitiva, pois são atos jurídicos independentes e respeitam o ato jurídico perfeito.
+FILTRO 2 – INFRAÇÕES ENTRE 12/04/2021 E 21/10/2021
+Multas e Advertências (art. 256, I e II, CTB):
+Aplica‑se a decadência de 180 ou 360 dias contados da data da infração, nos termos da Lei 14.071/2020 (alterações do art. 282 CTB), complementada pelo Parecer CETRAN/SC 381/2022.exametoxicologico+1
+Suspensão e Cassação (art. 256, III a VII, CTB):
+NÃO se aplica decadência de 180/360 dias neste período, conforme Nota de Atualização de 02/03/2023 do CETRAN/SC.
+Para estas penalidades, analisar apenas prescrição (Lei 9.873/1999) pelos critérios dos blocos B) e C), e, quando cabível, prazo de 5 anos de natureza claramente prescricional, sem rotular como decadência.
+Qualquer tentativa de aplicar decadência de 180/360 dias à suspensão/cassação neste intervalo temporal deve ser bloqueada e substituída pela seguinte conclusão:
+“Decadência: NÃO CONFIGURADA (penalidades de suspensão/cassação no período 12/04/2021 a 21/10/2021 não se submetem aos prazos decadenciais de 180/360 dias, conforme Parecer CETRAN/SC 381/2022 e Nota de 02/03/2023).”
 
-3. VÍCIO FORMAL vs. DECADÊNCIA:
-Erros na Notificação de Autuação (NA) ou no AR (como "número inexistente") são Vícios Formais do Art. 281 e devem ser tratados no mérito. A Decadência do Art. 282 refere-se exclusivamente ao atraso na expedição da Notificação de Penalidade (NP).
+FILTRO 3 – INFRAÇÕES A PARTIR DE 22/10/2021 (LEI 14.229/2021)
+Todas as penalidades (multas, advertências, suspensão e cassação) submetem‑se ao regime decadencial de 180 ou 360 dias, conforme CTB alterado pelas Leis 14.071/2020 e 14.229/2021, Resolução CONTRAN nº 844/2021 e Parecer CETRAN/SC 381/2022.gov+2
+Marcos iniciais obrigatórios:
+Multas sem flagrante: data do conhecimento da infração pelo órgão, nos termos do art. 282, §6º‑A, CTB.
+Multas com flagrante: data da infração (salvo regra específica em contrário).
+Suspensão/Cassação: data da conclusão do processo da multa que lhes deu causa (data em que a penalidade originária se torna definitiva), nos termos do art. 24, §1º, da Resolução 844/2021, interpretado conforme Parecer CETRAN/SC 381/2022. 
+Critério objetivo: se a autoridade deixar transcorrer, sem a prática do ato constitutivo (expedição da NP ou instauração da suspensão/cassação), prazo superior a 180 ou 360 dias (conforme hipótese legal), caracteriza‑se decadência da penalidade correspondente, seguindo a interpretação consolidada pelo Parecer CETRAN/SC 381/2022.
 
-CAMADA EXTRA: FUNDAMENTAÇÃO DE PRESCRIÇÃO (FILTRO 1)
-Sempre que o processo cair no FILTRO 1, o agente deve obrigatoriamente realizar o cálculo da Prescrição Punitiva (5 anos) para blindar o mérito:
-Exemplo (Caso Bianchi): Infração em 09/05/2018. Instauração em 14/10/2022.
-Cálculo: Transcorridos 4 anos e 5 meses.
-Conclusão: Ação Punitiva tempestiva (dentro do prazo de 5 anos da Lei 9.873/1999).
+REGRAS TRANSVERSAIS DE BLINDAGEM (OBRIGATÓRIO)
+INTERRUPÇÃO COVID‑19 (Resolução 782/2020 – Blindagem de Inércia):
+A partir de 20/03/2020, os prazos para defesas e recursos foram interrompidos por tempo indeterminado. 
+As Notificações de Penalidade (NP) somente puderam ser expedidas após o encerramento do prazo de defesa interrompido.
+BLINDAGEM NO CÁLCULO: qualquer aparente atraso, entre 2020 e 2021, que recaia em período abrangido pela Resolução 782/2020 deve ser tratado como IMPEDIMENTO LEGAL DE AGIR (art. 6º da Res. 782/2020), não podendo ser computado como desídia administrativa para fins de prescrição ou decadência. 
+
+ISOLAMENTO DOS ATOS:
+A decadência (ou prescrição) da penalidade de suspensão/cassação não anula a multa originária se esta já se tornou definitiva; são atos jurídicos independentes, regidos pelo princípio do ato jurídico perfeito (CF/88, art. 5º, XXXVI; Parecer CETRAN/SC 381/2022). 
+
+VÍCIO FORMAL vs. DECADÊNCIA:
+Erros na Notificação de Autuação (NA) ou no AR (como “número inexistente”) configuram vícios formais de admissibilidade (art. 281, CTB) e devem ser tratados no mérito, à luz das teses defensivas, bem como de pareceres específicos sobre nulidade de notificação (ex.: [SC]_CETRAN_Parecer_284_2015_Endereco_Desatualizado.pdf), quando pertinentes. 
+A decadência do art. 282 CTB e da legislação superveniente refere‑se exclusivamente ao atraso na expedição da Notificação de Penalidade (NP) ou na instauração do processo de suspensão/cassação, conforme o filtro temporal aplicável (1, 2 ou 3).planalto+1
+
+CAMADA EXTRA: VINCULAÇÃO DO RESULTADO DE DECADÊNCIA À FASE 5
+O resultado final da análise de decadência na Fase 3 (Filtros 1, 2 e 3) deve ser reproduzido, sem inovação, no item 3.3 “Decadência” da Fase 5 – PARECER.
+É proibido, na Fase 5, alterar a natureza (prescrição x decadência), o filtro temporal ou a conclusão numérica obtida na Fase 3.
+Qualquer tentativa de reclassificar prazos prescricionais como decadenciais (ou o inverso) deve ser bloqueada e substituída pela fórmula definida para o filtro correspondente (especialmente a cláusula fixa de “Decadência: NÃO SE APLICA” no FILTRO 1).
 
 RESULTADO FINAL P1
 Tempestivo:[SIM/NÃO]

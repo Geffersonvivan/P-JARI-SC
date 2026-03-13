@@ -485,7 +485,7 @@ class GeminiClient:
             "Identificado o aniversário de 3 anos da data do protocolo, constatou-se que o julgamento ocorreu em momento posterior à expiração exata do prazo, de modo que a prescrição intercorrente está configurada. (ou: Se dia e mês iguais e ano com menos ou exatos 3 anos de diferença, declarar: 'Prescrição intercorrente não configurada.')\n\n"
             "+ conclusão (configurada / não configurada).\n\n"
             "**3.3 Decadência**\n\n"
-            "Regime temporal aplicado e Conclusão.\n\n"
+            "Regime temporal aplicado e Conclusão. ATENÇÃO MÁXIMA: É proibido alterar a natureza (prescrição x decadência) ou inovar. Reproduza estritamente a conclusão obtida na análise obrigatória da Fase 3. Se a Fase 3 apontar 'NÃO SE APLICA' (Filtro 1), escreva exatamente isso.\n\n"
             "**MATERIALIDADE**\n\n"
             "Explicação normativa sobre a materialidade da infração ancorada na presunção de legitimidade dos atos.\n\n"
             "**GARANTIAS PROCESSUAIS**\n\n"
