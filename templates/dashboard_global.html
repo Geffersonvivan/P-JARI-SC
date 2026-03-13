@@ -1661,21 +1661,21 @@ flowchart TD
         ÉIntempestivo -->|Sim| Intempestivo[Recurso Intempestivo]
         ÉIntempestivo -->|Não| VerificaPP
 
-        VerificaPP -- Prescrição Punitiva --> ÉPPP{"Diferença > 5 Anos?"}
+        VerificaPP -- Prescrição Punitiva --> ÉPPP{"Diferença Maior que 5 Anos?"}
         ÉPPP -->|Sim| PPP[Prescrição Punitiva do Estado]
         ÉPPP -->|Não| VerificaPI
 
-        VerificaPI -- Prescrição Intercorrente --> ÉPI{"Julgamento > Aniversário de 3 Anos do Recurso?"}
+        VerificaPI -- Prescrição Intercorrente --> ÉPI{"Julgamento Ultrapassa Aniversário de 3 Anos do Recurso?"}
         ÉPI -->|Sim| PI[Prescrição Intercorrente]
         ÉPI -->|Não| VerificaDecadencia
 
-        VerificaDecadencia -- Decadência CTB --> ÉDecadente{"Passou de 180/360 dias da Infração sem Notificação? (Considerando Filtros/Covid)"}
+        VerificaDecadencia -- Decadência CTB --> ÉDecadente{"Passou de 180 ou 360 dias da Infração sem Notificação?"}
         ÉDecadente -->|Sim| Decadente[Decadência do Direito de Punir]
         ÉDecadente -->|Não| F4
     end
 
-    Intempestivo --> GatilhoIndeferidoLiminar{Gatilho: Recurso Não Conhecido}
-    PPP --> GatilhoDeferidoLiminar{Gatilho: Extinção da Punibilidade}
+    Intempestivo --> GatilhoIndeferidoLiminar{"Gatilho: Recurso Não Conhecido"}
+    PPP --> GatilhoDeferidoLiminar{"Gatilho: Extinção da Punibilidade"}
     PI --> GatilhoDeferidoLiminar
     Decadente --> GatilhoDeferidoLiminar
 
