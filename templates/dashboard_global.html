@@ -1636,82 +1636,82 @@
 %%{init: {'theme': 'dark', 'themeVariables': { 'fontFamily': 'Inter', 'primaryColor': '#1e293b', 'primaryTextColor': '#f8fafc', 'primaryBorderColor': '#334155', 'lineColor': '#64748b'}}}%%
 flowchart TD
 
-    Start([Início: Novo Recurso Submetido pelo Assessor]) --> F1
+    Start([Inicio Novo Recurso Submetido pelo Assessor]) --> F1
 
-    subgraph Fase1 ["Fase 1: Extração Cognitiva e Tabela Básica (Gemini Flash)"]
-        F1(Leitura do PDF Único/Consolidado) --> ExtraiMetadados{"LLM extrai 5 perguntas:"}
-        ExtraiMetadados -->|Placa, AIT, Data Infração| F2
-        ExtraiMetadados -->|Auto de Infração Incompleto| F2_Falha(Nulidade por Falta de Peça)
+    subgraph Fase1 [Fase 1 Extracao Cognitiva e Tabela Basica]
+        F1(Leitura do PDF) --> ExtraiMetadados{LLM extrai 5 perguntas}
+        ExtraiMetadados -->|Placa AIT Data Infracao| F2
+        ExtraiMetadados -->|Auto de Infracao Incompleto| F2_Falha(Nulidade por Falta de Peca)
     end
 
     F2_Falha -.-> F5_Conclusora
 
-    subgraph Fase2 ["Fase 2: Validação Formal Fixa (Regex/Python)"]
-        F2(Valida Conformidade do AIT) --> RegexCheck{Passou nas Regras Restritas?}
+    subgraph Fase2 [Fase 2 Validacao Formal Fixa Regex]
+        F2(Valida Conformidade do AIT) --> RegexCheck{Passou nas Regras Restritas}
         RegexCheck -->|Sim| F3
-        RegexCheck -->|Não - Ex: Renavam Divergente| RejeitaFormal(Alerta no Log: Requer Validação Humana)
+        RegexCheck -->|Nao Renavam Divergente| RejeitaFormal(Requer Validacao Humana)
     end
 
     RejeitaFormal -.-> F3
 
-    subgraph Fase3 ["Fase 3: Motor Matemático P-JARI (Ordem Pública)"]
-        F3(Submete Datas à JariMath) --> CheckPrejudicialidade
+    subgraph Fase3 [Fase 3 Motor Matematico Ordem Publica]
+        F3(Submete Datas a JariMath) --> CheckPrejudicialidade
 
-        CheckPrejudicialidade -- Verifica Tempestividade --> ÉIntempestivo{"Passou do Prazo de Defesa?"}
-        ÉIntempestivo -->|Sim| Intempestivo[Recurso Intempestivo]
-        ÉIntempestivo -->|Não| VerificaPP
+        CheckPrejudicialidade -->|Verifica Tempestividade| EIntempestivo{Passou do Prazo de Defesa}
+        EIntempestivo -->|Sim| Intempestivo[Recurso Intempestivo]
+        EIntempestivo -->|Nao| VerificaPP
 
-        VerificaPP -- Prescrição Punitiva --> ÉPPP{"Diferença Maior que 5 Anos?"}
-        ÉPPP -->|Sim| PPP[Prescrição Punitiva do Estado]
-        ÉPPP -->|Não| VerificaPI
+        VerificaPP -->|Prescricao Punitiva| EPPP{Diferenca Maior que 5 Anos}
+        EPPP -->|Sim| PPP[Prescricao Punitiva do Estado]
+        EPPP -->|Nao| VerificaPI
 
-        VerificaPI -- Prescrição Intercorrente --> ÉPI{"Julgamento Ultrapassa Aniversário de 3 Anos do Recurso?"}
-        ÉPI -->|Sim| PI[Prescrição Intercorrente]
-        ÉPI -->|Não| VerificaDecadencia
+        VerificaPI -->|Prescricao Intercorrente| EPI{Julgamento Ultrapassa Aniversario de 3 Anos}
+        EPI -->|Sim| PI[Prescricao Intercorrente]
+        EPI -->|Nao| VerificaDecadencia
 
-        VerificaDecadencia -- Decadência CTB --> ÉDecadente{"Passou de 180 ou 360 dias da Infração sem Notificação?"}
-        ÉDecadente -->|Sim| Decadente[Decadência do Direito de Punir]
-        ÉDecadente -->|Não| F4
+        VerificaDecadencia -->|Decadencia CTB| EDecadente{Passou limite de dias da Infracao}
+        EDecadente -->|Sim| Decadente[Decadencia do Direito de Punir]
+        EDecadente -->|Nao| F4
     end
 
-    Intempestivo --> GatilhoIndeferidoLiminar{"Gatilho: Recurso Não Conhecido"}
-    PPP --> GatilhoDeferidoLiminar{"Gatilho: Extinção da Punibilidade"}
+    Intempestivo --> GatilhoIndeferidoLiminar{Gatilho Recurso Nao Conhecido}
+    PPP --> GatilhoDeferidoLiminar{Gatilho Extincao da Punibilidade}
     PI --> GatilhoDeferidoLiminar
     Decadente --> GatilhoDeferidoLiminar
 
-    GatilhoIndeferidoLiminar --> |Mérito Prejudicado| F5_Conclusora
-    GatilhoDeferidoLiminar --> |Mérito Prejudicado| F5_Conclusora
+    GatilhoIndeferidoLiminar -->|Merito Prejudicado| F5_Conclusora
+    GatilhoDeferidoLiminar -->|Merito Prejudicado| F5_Conclusora
 
-    subgraph Fase4 ["Fase 4: RAG & Recuperação Jurisprudencial (Vertex AI)"]
-        F4(Busca Semântica no Inventário Google) --> BuscaLegis("Localiza CTB, Resoluções CONTRAN e CETRAN/SC")
-        BuscaLegis --> ExtraiTesesDefense("LLM Isola Teses do Infrator")
+    subgraph Fase4 [Fase 4 Recuperacao Jurisprudencial Vertex AI]
+        F4(Busca Semantica no Inventario Google) --> BuscaLegis(Localiza Regras CTB e CONTRAN)
+        BuscaLegis --> ExtraiTesesDefense(LLM Isola Teses do Infrator)
         ExtraiTesesDefense --> F5
     end
 
-    subgraph Fase5 ["Fase 5: Motor de Julgamento Limpo (Gemini Pro/Flash)"]
-        F5(Redação do Parecer) --> AnaliseMerito{"Avaliação de Mérito das Teses da Defesa"}
-        AnaliseMerito --> |Tese Infrutífera / Baseada em Achismo| AcolhimentoB("Opção B: Mantém Presunção de Legitimidade")
-        AnaliseMerito --> |Tese Factual com Prova / Nulidade Oficial| AcolhimentoA("Opção A: Acolhe Falha do Órgão Autuador")
+    subgraph Fase5 [Fase 5 Motor de Julgamento Gemini Flash]
+        F5(Redacao do Parecer) --> AnaliseMerito{Avaliacao de Merito das Teses da Defesa}
+        AnaliseMerito -->|Tese Infrutifera| AcolhimentoB(Opcao B Mantem Presuncao)
+        AnaliseMerito -->|Tese Factual com Prova| AcolhimentoA(Opcao A Acolhe Falha do Orgao Autuador)
         
-        AcolhimentoB --> TerminaIndeferido("Gera minuta de INDEFERIMENTO")
-        AcolhimentoA --> TerminaDeferido("Gera minuta de DEFERIMENTO")
+        AcolhimentoB --> TerminaIndeferido(Gera minuta de INDEFERIMENTO)
+        AcolhimentoA --> TerminaDeferido(Gera minuta de DEFERIMENTO)
     end
 
     TerminaIndeferido --> F5_Conclusora
     TerminaDeferido --> F5_Conclusora
 
-    subgraph Fase6 ["Fase 6: Camada de Blindagem e Auditoria Reversa"]
-        F5_Conclusora(Compila Texto Final) --> AuditoriaReversa("LLM Revisor Cruza Matemática x Texto")
-        AuditoriaReversa --> ChecaErro{"Há Erro ou Alucinação Material?"}
-        ChecaErro -->|Sim| Bloqueia("Retém Entrega - Alerta Assessor")
-        ChecaErro -->|Não| Conclui
+    subgraph Fase6 [Fase 6 Camada de Blindagem e Auditoria Reversa]
+        F5_Conclusora(Compila Texto Final) --> AuditoriaReversa(LLM Revisor Cruza Matematica e Texto)
+        AuditoriaReversa --> ChecaErro{Ha Erro ou Alucinacao Material}
+        ChecaErro -->|Sim| Bloqueia(Retem Entrega Alerta Assessor)
+        ChecaErro -->|Nao| Conclui
     end
 
-    Bloqueia --> EndIndef([Fim: Interceptado P-Jari])
-    Conclui --> ResultadoFinal{"Resultado do Julgamento"}
+    Bloqueia --> EndIndef([Fim Interceptado P Jari])
+    Conclui --> ResultadoFinal{Resultado}
     
-    ResultadoFinal -->|Recurso Não Conhecido / Presunção Mantida| FimIndeferido([🏁 PROCESSO INDEFERIDO - MULTA MANTIDA])
-    ResultadoFinal -->|Prescrição / Decadência / Falha Material| FimDeferido([🏁 PROCESSO DEFERIDO - MULTA CANCELADA])
+    ResultadoFinal -->|Recurso Nao Conhecido| FimIndeferido([PROCESSO INDEFERIDO E MULTA MANTIDA])
+    ResultadoFinal -->|Prescricao ou Falha Material| FimDeferido([PROCESSO DEFERIDO E MULTA CANCELADA])
 
     style FimIndeferido fill:#7f1d1d,stroke:#f87171,color:#fff
     style FimDeferido fill:#14532d,stroke:#4ade80,color:#fff
