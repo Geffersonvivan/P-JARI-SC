@@ -390,7 +390,7 @@
             <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pl-4 pr-4 gap-4">
                 <h1 class="text-3xl font-bold text-gray-800">Visão Administrativa (Global)</h1>
                 <div class="flex items-center gap-4">
-                    <button onclick="document.getElementById('mermaid-modal').showModal()" 
+                    <button id="btnCerebroJari" onclick="document.getElementById('mermaid-modal').showModal()" 
                             class="flex items-center gap-2 px-5 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition shadow-sm border border-gray-700 focus:outline-none"
                             title="Ver arquitetura ponta-a-ponta do Motor P-JARI">
                         <span>🧠</span> Ver Inteligência P-JARI
@@ -1632,7 +1632,10 @@
             
             <!-- Conteúdo Mermaid -->
             <div class="flex-1 overflow-auto custom-scrollbar p-8 flex justify-center items-start bg-[#0f172a]">
-                <pre class="mermaid">
+                <div id="mermaid-target" class="w-full flex justify-center items-center h-full">
+                    <div class="animate-pulse text-slate-400">Iniciando Motor Visual...</div>
+                </div>
+                <pre id="mermaid-source" style="display:none;">
 %%{init: {'theme': 'dark', 'themeVariables': { 'fontFamily': 'Inter', 'primaryColor': '#1e293b', 'primaryTextColor': '#f8fafc', 'primaryBorderColor': '#334155', 'lineColor': '#64748b'}}}%%
 flowchart TD
 
@@ -1736,23 +1739,23 @@ flowchart TD
 
         // Function to explicitly render the diagram when the modal opens
         window.renderMermaidDiagram = async function() {
-            const container = document.querySelector('.mermaid');
+            const target = document.getElementById('mermaid-target');
+            const source = document.getElementById('mermaid-source');
+            
             // Check if already rendered
-            if (container.getAttribute('data-processed') === 'true') {
+            if (target.getAttribute('data-processed') === 'true') {
                 return; 
             }
             try {
                 // Get the raw text
-                const graphDefinition = container.textContent;
-                // Clear the container
-                container.innerHTML = '';
+                const graphDefinition = source.textContent;
                 // Render into the container
                 const { svg } = await mermaid.render('mermaid-graph-inner', graphDefinition);
-                container.innerHTML = svg;
-                container.setAttribute('data-processed', 'true');
+                target.innerHTML = svg;
+                target.setAttribute('data-processed', 'true');
             } catch (error) {
                 console.error("Mermaid Render Error:", error);
-                container.innerHTML = `<div style="color: #ef4444; padding: 20px;">
+                target.innerHTML = `<div style="color: #ef4444; padding: 20px;">
                     <h4>Falha de Renderização do Diagrama</h4>
                     <pre style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">${error.message}</pre>
                 </div>`;
