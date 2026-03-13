@@ -389,12 +389,19 @@
         <section id="dashboard-window" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col bg-[#f0f4f9]">
             <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 pl-4 pr-4 gap-4">
                 <h1 class="text-3xl font-bold text-gray-800">Visão Administrativa (Global)</h1>
-                <div class="flex items-center gap-2">
-                    <label for="mes-filtro" class="text-sm font-medium text-gray-600">Mês de Referência:</label>
-                    <input type="month" id="mes-filtro"
-                        value="{{ mes_ano_input }}"
-                        class="px-4 py-2 min-w-[170px] rounded-xl text-gray-700 font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                        onchange="filtrarMes()">
+                <div class="flex items-center gap-4">
+                    <button onclick="document.getElementById('mermaid-modal').showModal()" 
+                            class="flex items-center gap-2 px-5 py-2 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition shadow-sm border border-gray-700 focus:outline-none"
+                            title="Ver arquitetura ponta-a-ponta do Motor P-JARI">
+                        <span>🧠</span> Ver Inteligência P-JARI
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <label for="mes-filtro" class="text-sm font-medium text-gray-600">Mês de Referência:</label>
+                        <input type="month" id="mes-filtro"
+                            value="{{ mes_ano_input }}"
+                            class="px-4 py-2 min-w-[170px] rounded-xl text-gray-700 font-medium border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            onchange="filtrarMes()">
+                    </div>
                 </div>
             </div>
 
@@ -1603,5 +1610,127 @@
     <!-- Inclui Modal Fórum -->
     {% include 'forum_modal.html' %}
     
+    <!-- Modal do Fluxograma Mermaid -->
+    <dialog id="mermaid-modal" class="w-11/12 max-w-7xl h-5/6 rounded-2xl shadow-2xl backdrop:bg-gray-900 backdrop:bg-opacity-80 p-0 bg-[#0f172a] overflow-hidden border border-gray-700">
+        <div class="flex flex-col h-full relative">
+            <!-- Header do Modal -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-800 bg-[#1e293b]">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🧠</span>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Cérebro Algorítmico P-JARI</h2>
+                        <p class="text-sm text-gray-400 mt-1">Mapa de Arquitetura E2E: Fluxo de Decisão Autônoma</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('mermaid-modal').close()" 
+                        class="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Conteúdo Mermaid -->
+            <div class="flex-1 overflow-auto custom-scrollbar p-8 flex justify-center items-start bg-[#0f172a]">
+                <pre class="mermaid">
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontFamily': 'Inter', 'primaryColor': '#1e293b', 'primaryTextColor': '#f8fafc', 'primaryBorderColor': '#334155', 'lineColor': '#64748b'}}}%%
+flowchart TD
+
+    Start([Início: Novo Recurso Submetido pelo Assessor]) --> F1
+
+    subgraph Fase1 ["Fase 1: Extração Cognitiva e Tabela Básica (Gemini Flash)"]
+        F1(Leitura do PDF Único/Consolidado) --> ExtraiMetadados{"LLM extrai 5 perguntas:"}
+        ExtraiMetadados -->|Placa, AIT, Data Infração| F2
+        ExtraiMetadados -->|Auto de Infração Incompleto| F2_Falha(Nulidade por Falta de Peça)
+    end
+
+    F2_Falha -.-> F5_Conclusora
+
+    subgraph Fase2 ["Fase 2: Validação Formal Fixa (Regex/Python)"]
+        F2(Valida Conformidade do AIT) --> RegexCheck{Passou nas Regras Restritas?}
+        RegexCheck -->|Sim| F3
+        RegexCheck -->|Não - Ex: Renavam Divergente| RejeitaFormal(Alerta no Log: Requer Validação Humana)
+    end
+
+    RejeitaFormal -.-> F3
+
+    subgraph Fase3 ["Fase 3: Motor Matemático P-JARI (Ordem Pública)"]
+        F3(Submete Datas à JariMath) --> CheckPrejudicialidade
+
+        CheckPrejudicialidade -- Verifica Tempestividade --> ÉIntempestivo{"Passou do Prazo de Defesa?"}
+        ÉIntempestivo -->|Sim| Intempestivo[Recurso Intempestivo]
+        ÉIntempestivo -->|Não| VerificaPP
+
+        VerificaPP -- Prescrição Punitiva --> ÉPPP{"Diferença > 5 Anos?"}
+        ÉPPP -->|Sim| PPP[Prescrição Punitiva do Estado]
+        ÉPPP -->|Não| VerificaPI
+
+        VerificaPI -- Prescrição Intercorrente --> ÉPI{"Julgamento > Aniversário de 3 Anos do Recurso?"}
+        ÉPI -->|Sim| PI[Prescrição Intercorrente]
+        ÉPI -->|Não| VerificaDecadencia
+
+        VerificaDecadencia -- Decadência CTB --> ÉDecadente{"Passou de 180/360 dias da Infração sem Notificação? (Considerando Filtros/Covid)"}
+        ÉDecadente -->|Sim| Decadente[Decadência do Direito de Punir]
+        ÉDecadente -->|Não| F4
+    end
+
+    Intempestivo --> GatilhoIndeferidoLiminar{Gatilho: Recurso Não Conhecido}
+    PPP --> GatilhoDeferidoLiminar{Gatilho: Extinção da Punibilidade}
+    PI --> GatilhoDeferidoLiminar
+    Decadente --> GatilhoDeferidoLiminar
+
+    GatilhoIndeferidoLiminar --> |Mérito Prejudicado| F5_Conclusora
+    GatilhoDeferidoLiminar --> |Mérito Prejudicado| F5_Conclusora
+
+    subgraph Fase4 ["Fase 4: RAG & Recuperação Jurisprudencial (Vertex AI)"]
+        F4(Busca Semântica no Inventário Google) --> BuscaLegis("Localiza CTB, Resoluções CONTRAN e CETRAN/SC")
+        BuscaLegis --> ExtraiTesesDefense("LLM Isola Teses do Infrator")
+        ExtraiTesesDefense --> F5
+    end
+
+    subgraph Fase5 ["Fase 5: Motor de Julgamento Limpo (Gemini Pro/Flash)"]
+        F5(Redação do Parecer) --> AnaliseMerito{"Avaliação de Mérito das Teses da Defesa"}
+        AnaliseMerito --> |Tese Infrutífera / Baseada em Achismo| AcolhimentoB("Opção B: Mantém Presunção de Legitimidade")
+        AnaliseMerito --> |Tese Factual com Prova / Nulidade Oficial| AcolhimentoA("Opção A: Acolhe Falha do Órgão Autuador")
+        
+        AcolhimentoB --> TerminaIndeferido("Gera minuta de INDEFERIMENTO")
+        AcolhimentoA --> TerminaDeferido("Gera minuta de DEFERIMENTO")
+    end
+
+    TerminaIndeferido --> F5_Conclusora
+    TerminaDeferido --> F5_Conclusora
+
+    subgraph Fase6 ["Fase 6: Camada de Blindagem e Auditoria Reversa"]
+        F5_Conclusora(Compila Texto Final) --> AuditoriaReversa("LLM Revisor Cruza Matemática x Texto")
+        AuditoriaReversa --> ChecaErro{"Há Erro ou Alucinação Material?"}
+        ChecaErro -->|Sim| Bloqueia("Retém Entrega - Alerta Assessor")
+        ChecaErro -->|Não| Conclui
+    end
+
+    Bloqueia --> EndIndef([Fim: Interceptado P-Jari])
+    Conclui --> ResultadoFinal{"Resultado do Julgamento"}
+    
+    ResultadoFinal -->|Recurso Não Conhecido / Presunção Mantida| FimIndeferido([🏁 PROCESSO INDEFERIDO - MULTA MANTIDA])
+    ResultadoFinal -->|Prescrição / Decadência / Falha Material| FimDeferido([🏁 PROCESSO DEFERIDO - MULTA CANCELADA])
+
+    style FimIndeferido fill:#7f1d1d,stroke:#f87171,color:#fff
+    style FimDeferido fill:#14532d,stroke:#4ade80,color:#fff
+    style GatilhoIndeferidoLiminar fill:#ef4444,stroke:#fff,color:#fff
+    style GatilhoDeferidoLiminar fill:#22c55e,stroke:#fff,color:#fff
+    style CheckPrejudicialidade fill:#3b82f6,color:#fff
+                </pre>
+            </div>
+        </div>
+    </dialog>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            flowchart: { htmlLabels: true, curve: 'basis' }
+        });
+    </script>
     </body>
 </html>
