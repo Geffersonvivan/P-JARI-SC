@@ -277,6 +277,21 @@ class TermoAceiteLog(models.Model):
     def __str__(self):
         return f"Aceite {self.versao_termo} - {self.user.username} em {self.data_hora.strftime('%d/%m/%Y %H:%M')}"
 
+class SystemHealthCheck(models.Model):
+    data_execucao = models.DateTimeField(auto_now_add=True)
+    status_operacional = models.BooleanField(default=True)
+    latencia_media_apis = models.FloatField(default=0.0)
+    math_score = models.CharField(max_length=50, default="N/A")
+    tempo_total_ciclo = models.FloatField(default=0.0)
+    log_detalhado = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-data_execucao']
+
+    def __str__(self):
+        status = "OK" if self.status_operacional else "FALHA"
+        return f"HealthCheck [{status}] - {self.data_execucao.strftime('%d/%m/%Y %H:%M')}"
+
 class PjariVersion(models.Model):
     major = models.IntegerField(default=1, verbose_name="Major (Paradigma)")
     minor = models.IntegerField(default=2, verbose_name="Minor (Raciocínio/Lógica)")

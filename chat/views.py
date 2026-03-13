@@ -1049,6 +1049,7 @@ def estatisticas_gerais_view(request):
         'pdf_defects_count': pdf_defects_count,
         
         # Novas métricas context
+        'health_check': SystemHealthCheck.objects.first(),
         'hit_rate': hit_rate,
         'total_economia': total_economia,
         'taxa_interceptacao': taxa_interceptacao,
