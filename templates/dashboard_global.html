@@ -504,7 +504,7 @@
                         Saúde Motor (E2E) <span class="text-gray-500">ℹ️</span>
                     </h3>
                     <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full right-0 mt-2 w-72 p-3 bg-white text-gray-800 text-xs rounded-xl shadow-xl z-50 text-center border border-gray-200 leading-relaxed">
-                        Resultado do último teste end-to-end automático (rodado aos Domingos: {{ health_check.data_execucao|date:"d/m H:i"|default:"Pendente" }}). Monitora queda das APIs Google Vertex/Gemini.
+                        Resultado do último teste end-to-end automático (rodado aos Domingos: {{ health_check.data_execucao|date:"d/m H:i"|default:"Pendente" }}). Monitora queda das APIs Google Vertex/Gemini, Perplexity e falhas no cálculo matemático JariMath.
                         <div class="absolute right-6 -top-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
                     </div>
                     {% if health_check and health_check.status_operacional %}
