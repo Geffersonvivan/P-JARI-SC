@@ -62,8 +62,19 @@ class JariMath:
         if not data_protocolo or not data_sessao:
             return False
             
-        dias_diferenca = JariMath.calculate_days_diff(data_protocolo, data_sessao)
-        return dias_diferenca > 1095
+        if isinstance(data_protocolo, str):
+            data_protocolo = datetime.datetime.strptime(data_protocolo, "%Y-%m-%d").date()
+        if isinstance(data_sessao, str):
+            data_sessao = datetime.datetime.strptime(data_sessao, "%Y-%m-%d").date()
+
+        # Calcula o aniversário de 3 anos (Calendário Civil - data a data)
+        try:
+            aniversario = data_protocolo.replace(year=data_protocolo.year + 3)
+        except ValueError:
+            # Lida com caso excepcional onde data_protocolo seja dia 29 de fevereiro em ano bissexto
+            aniversario = data_protocolo.replace(year=data_protocolo.year + 3, day=28)
+            
+        return data_sessao > aniversario
 
     @staticmethod
     def check_decadencia(data_infracao, data_expedicao_autuacao, data_decisao_final=None):
