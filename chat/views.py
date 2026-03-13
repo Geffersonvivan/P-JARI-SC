@@ -947,6 +947,7 @@ def estatisticas_gerais_view(request):
     # 5. Eficiência do P-JARI Cache (Hit Rate Global)
     cache_config = PjariCacheConfig.objects.first()
     hit_rate = cache_config.hit_rate if cache_config else "0.00%"
+    total_economia = cache_config.total_economia if cache_config else "$0.00"
     
     # 6. Taxa de Interceptação da Auditoria (JariMath vs Humano / 0-99 Score)
     auditorias_com_inconsistencia = Parecer.objects.filter(
@@ -1049,6 +1050,7 @@ def estatisticas_gerais_view(request):
         
         # Novas métricas context
         'hit_rate': hit_rate,
+        'total_economia': total_economia,
         'taxa_interceptacao': taxa_interceptacao,
         'ultimas_inconsistencias': ultimas_inconsistencias,
         'taxa_conversao': taxa_conversao,
