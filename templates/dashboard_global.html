@@ -1725,11 +1725,51 @@ flowchart TD
 
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        
+        // Initialize without auto-starting to prevent errors in hidden modals
         mermaid.initialize({ 
-            startOnLoad: true,
+            startOnLoad: false,
             theme: 'dark',
             securityLevel: 'loose',
             flowchart: { htmlLabels: true, curve: 'basis' }
+        });
+
+        // Function to explicitly render the diagram when the modal opens
+        window.renderMermaidDiagram = async function() {
+            const container = document.querySelector('.mermaid');
+            // Check if already rendered
+            if (container.getAttribute('data-processed') === 'true') {
+                return; 
+            }
+            try {
+                // Get the raw text
+                const graphDefinition = container.textContent;
+                // Clear the container
+                container.innerHTML = '';
+                // Render into the container
+                const { svg } = await mermaid.render('mermaid-graph-inner', graphDefinition);
+                container.innerHTML = svg;
+                container.setAttribute('data-processed', 'true');
+            } catch (error) {
+                console.error("Mermaid Render Error:", error);
+                container.innerHTML = `<div style="color: #ef4444; padding: 20px;">
+                    <h4>Falha de Renderização do Diagrama</h4>
+                    <pre style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">${error.message}</pre>
+                </div>`;
+            }
+        };
+
+        // Hook into the modal open button event
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnJari = document.getElementById('btnCerebroJari');
+            if (btnJari) {
+                btnJari.addEventListener('click', () => {
+                    // Small delay to allow the dialog to become visible and have width/height before rendering
+                    setTimeout(() => {
+                        window.renderMermaidDiagram();
+                    }, 100);
+                });
+            }
         });
     </script>
     </body>
