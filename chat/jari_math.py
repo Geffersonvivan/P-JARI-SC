@@ -55,12 +55,22 @@ class JariMath:
     @staticmethod
     def check_prescription_intercorrente(data_protocolo, data_sessao):
         """
-        Prescrição Intercorrente (Lei 9.873/99): 3 anos (1095 dias corridos).
+        Prescrição Intercorrente (Lei 9.873/99).
+        Prazo legal: 3 anos. Contagem: Calendário Civil (data a data).
         Datas obrigatórias exclusivas: Protocolo JARI (F1/P5) e Sessão (F1/P1).
-        Regra de contagem: Excluir dia inicial, incluir final. Se > 1095 -> Prescrito.
+        
+        Regra de contagem: 
+        Deve-se identificar o “aniversário” de 3 anos da data do protocolo do recurso JARI.
+        Cálculo objetivo: Some 3 (três) anos civis à data do protocolo.
+        A data obtida será denominada “Data de Aniversário de 3 anos do Protocolo”.
+
+        Se a Data da Sessão de Julgamento JARI for anterior ou igual à Data de Aniversário:
+        "Prescrição intercorrente não configurada."
+        Se a Data da Sessão de Julgamento JARI for posterior à Data de Aniversário:
+        "Prescrição intercorrente configurada."
         """
         if not data_protocolo or not data_sessao:
-            return False
+            return False, "Dados insuficientes para calcular a prescrição intercorrente."
             
         if isinstance(data_protocolo, str):
             data_protocolo = datetime.datetime.strptime(data_protocolo, "%Y-%m-%d").date()
@@ -74,7 +84,14 @@ class JariMath:
             # Lida com caso excepcional onde data_protocolo seja dia 29 de fevereiro em ano bissexto
             aniversario = data_protocolo.replace(year=data_protocolo.year + 3, day=28)
             
-        return data_sessao > aniversario
+        is_prescrito = data_sessao > aniversario
+        
+        if is_prescrito:
+            declaracao = "Prescrição intercorrente configurada."
+        else:
+            declaracao = "Prescrição intercorrente não configurada."
+            
+        return is_prescrito, declaracao
 
     @staticmethod
     def check_decadencia(data_infracao, data_expedicao_autuacao, data_decisao_final=None):

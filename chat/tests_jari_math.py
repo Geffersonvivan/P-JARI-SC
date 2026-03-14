@@ -6,14 +6,19 @@ class TestJariMath(TestCase):
 
     def test_prescricao_intercorrente(self):
         # Data inicial (Protocolo): 10/01/2020
-        # Data final (Sessão): 09/01/2023 (1095 dias exatos - Não prescrito)
         data_protocolo = datetime.date(2020, 1, 10)
-        data_sessao_nao_presc = datetime.date(2023, 1, 9)
-        self.assertFalse(JariMath.check_prescription_intercorrente(data_protocolo, data_sessao_nao_presc))
         
-        # Data final (Sessão): 10/01/2023 (1096 dias - Prescrito)
-        data_sessao_prescrito = datetime.date(2023, 1, 10)
-        self.assertTrue(JariMath.check_prescription_intercorrente(data_protocolo, data_sessao_prescrito))
+        # Data final (Sessão) igual ao aniversário (10/01/2023) - Não prescrito
+        data_sessao_nao_presc = datetime.date(2023, 1, 10)
+        presc_bool, msg = JariMath.check_prescription_intercorrente(data_protocolo, data_sessao_nao_presc)
+        self.assertFalse(presc_bool)
+        self.assertEqual(msg, "Prescrição intercorrente não configurada.")
+        
+        # Data final (Sessão) posterior ao aniversário (11/01/2023) - Prescrito
+        data_sessao_prescrito = datetime.date(2023, 1, 11)
+        presc_bool, msg = JariMath.check_prescription_intercorrente(data_protocolo, data_sessao_prescrito)
+        self.assertTrue(presc_bool)
+        self.assertEqual(msg, "Prescrição intercorrente configurada.")
 
     def test_prescricao_punitiva(self):
         # 5 anos corridos (1825 dias) = Não prescrito. 1826 dias = Prescrito

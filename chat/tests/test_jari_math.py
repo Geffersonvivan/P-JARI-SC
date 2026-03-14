@@ -25,15 +25,19 @@ class JariMathTests(TestCase):
         self.assertEqual(JariMath.calculate_days_diff("2023-03-01", "2024-03-01"), 366)
 
     def test_check_prescription_intercorrente(self):
-        # Exactly 3 years (1095 days, no leap year) - should NOT trigger prescription
         protocol_date = datetime.date(2017, 1, 1)
-        session_date = datetime.date(2020, 1, 1) # Note: 2020 is leap, but we haven't crossed Feb 29 yet
-        self.assertTrue(JariMath.calculate_days_diff(protocol_date, session_date) == 1095)
-        self.assertFalse(JariMath.check_prescription_intercorrente(protocol_date, session_date))
+        
+        # On exact anniversary - should NOT trigger prescription
+        session_date = datetime.date(2020, 1, 1)
+        is_prescrito, msg = JariMath.check_prescription_intercorrente(protocol_date, session_date)
+        self.assertFalse(is_prescrito)
+        self.assertEqual(msg, "Prescrição intercorrente não configurada.")
 
-        # > 3 years (e.g., 1096 days) - should trigger prescription
+        # After exact anniversary - should trigger prescription
         session_date_late = datetime.date(2020, 1, 2)
-        self.assertTrue(JariMath.check_prescription_intercorrente(protocol_date, session_date_late))
+        is_prescrito, msg = JariMath.check_prescription_intercorrente(protocol_date, session_date_late)
+        self.assertTrue(is_prescrito)
+        self.assertEqual(msg, "Prescrição intercorrente configurada.")
 
     def test_check_tempestividade(self):
         # On the exact final day

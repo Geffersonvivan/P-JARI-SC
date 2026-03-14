@@ -401,7 +401,9 @@ class JariEngine:
         # 3. Execução EXATA das restrições (Roteiro Fase 3)
         self.parecer.is_tempestivo = JariMath.check_tempestividade(self.parecer.data_protocolo, self.parecer.prazo_final)
         self.parecer.has_prescricao_punitiva = JariMath.check_prescription_punitiva(data_infracao, self.parecer.data_sessao, datas_processadas)
-        self.parecer.has_prescricao_intercorrente = JariMath.check_prescription_intercorrente(self.parecer.data_protocolo, self.parecer.data_sessao)
+        
+        inter_bool, relatorio_intercorrente = JariMath.check_prescription_intercorrente(self.parecer.data_protocolo, self.parecer.data_sessao)
+        self.parecer.has_prescricao_intercorrente = inter_bool
         
         decadencia_bool, relatorio_decadencia = JariMath.check_decadencia(data_infracao, data_notificacao_autuacao, None)
         self.parecer.has_decadencia = decadencia_bool
@@ -409,13 +411,12 @@ class JariEngine:
         # 4. Texto visual para o usuário confirmando
         status_temp = "SIM" if self.parecer.is_tempestivo else "NÃO"
         status_pun = "SIM" if self.parecer.has_prescricao_punitiva else "NÃO"
-        status_inter = "SIM" if self.parecer.has_prescricao_intercorrente else "NÃO"
         status_dec = "SIM" if self.parecer.has_decadencia else "NÃO"
         
         texto_status = (
             f"- **Tempestivo**: {status_temp}\n"
             f"- **Prescrição Punitiva (>= 5 anos)**: {status_pun}\n"
-            f"- **Prescrição Intercorrente (> 3 anos)**: {status_inter}\n"
+            f"- **Prescrição Intercorrente (3 anos)**: {relatorio_intercorrente}\n"
             f"- **Decadência**: {status_dec}\n"
         )
         
