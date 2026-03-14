@@ -64,7 +64,7 @@
                     {% if termo %}
                     <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col termo-container" data-id="termo">
                         <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
-                            <h3 class="text-lg font-bold text-gray-900">Termos de Uso (Versão {{ termo.versao }})</h3>
+                            <h3 class="text-lg font-bold text-gray-900">Termos de Uso</h3>
                         </div>
                         <!-- CONTEÚDO DINÂMICO DOS TERMOS DE USO -->
                 <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto doc-content scrollable-box"
@@ -78,7 +78,7 @@
                             <input type="checkbox" id="check-termo" name="aceite_termo" required disabled
                                 class="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 transition cursor-not-allowed">
                             <label for="check-termo" class="ml-3 text-sm font-semibold text-gray-800 select-none cursor-not-allowed opacity-50 transition-opacity" id="label-termo">
-                                Li e aceito os Termos de Uso (v{{ termo.versao }})
+                                Li e aceito os Termos de Uso
                             </label>
                         </div>
                         {% endif %}
@@ -92,7 +92,7 @@
                     {% if politica %}
                     <div class="border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col termo-container" data-id="politica">
                         <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
-                            <h3 class="text-lg font-bold text-gray-900">Política de Privacidade (Versão {{ politica.versao }})</h3>
+                            <h3 class="text-lg font-bold text-gray-900">Política de Privacidade</h3>
                         </div>
                         <!-- CONTEÚDO DINÂMICO DA POLÍTICA DE PRIVACIDADE -->
                 <div class="p-6 md:p-8 bg-white border-b border-gray-100 max-h-[60vh] overflow-y-auto doc-content scrollable-box"
@@ -106,7 +106,7 @@
                             <input type="checkbox" id="check-politica" name="aceite_politica" required disabled
                                 class="w-5 h-5 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 transition cursor-not-allowed">
                             <label for="check-politica" class="ml-3 text-sm font-semibold text-gray-800 select-none cursor-not-allowed opacity-50 transition-opacity" id="label-politica">
-                                Li e aceito a Política de Privacidade (v{{ politica.versao }})
+                                Li e aceito a Política de Privacidade
                             </label>
                         </div>
                         {% endif %}
