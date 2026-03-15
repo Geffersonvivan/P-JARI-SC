@@ -96,17 +96,17 @@
             <!-- Master Tabs Header -->
             <div class="bg-blue-600 flex flex-col shrink-0">
                 <div class="flex px-2 pt-2 pb-0 mt-1">
-                    <button id="master-tab-teses" onclick="switchMasterTab('teses')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2">
-                        <span>📚</span> <span class="hidden sm:inline">Teses & Citações</span><span class="sm:hidden">Teses</span>
-                    </button>
-                    <button id="master-tab-agente" onclick="switchMasterTab('agente')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2">
+                    <button id="master-tab-agente" onclick="switchMasterTab('agente')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2">
                         <span>✨</span> <span class="hidden sm:inline">Agente JARI</span><span class="sm:hidden">Agente</span>
+                    </button>
+                    <button id="master-tab-teses" onclick="switchMasterTab('teses')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2">
+                        <span>📚</span> <span class="hidden sm:inline">Teses & Citações</span><span class="sm:hidden">Teses</span>
                     </button>
                 </div>
             </div>
 
             <!-- TAB 1: Banco de Teses Pleno -->
-            <div id="panel-banco-teses" class="flex flex-col flex-1 overflow-hidden">
+            <div id="panel-banco-teses" class="flex flex-col flex-1 overflow-hidden hidden">
                 <!-- Sub-abas do Banco de Teses -->
                 <div class="bg-white border-b border-gray-200 flex flex-col shrink-0">
                     <div class="p-3 pb-2 text-gray-800 bg-gray-50 border-b border-gray-100">
@@ -204,7 +204,7 @@
             </div>
 
             <!-- TAB 2: Agente JARI -->
-            <div id="panel-agente-jari" class="flex flex-col flex-1 overflow-hidden hidden bg-[#f9fafb]">
+            <div id="panel-agente-jari" class="flex flex-col flex-1 overflow-hidden bg-[#f9fafb]">
                 <!-- Área de Chat do Agente -->
                 <div id="agent-messages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#f9fafb]">
                     <div class="flex flex-col items-center justify-center h-full text-center text-gray-400 space-y-3 p-4">
@@ -610,13 +610,13 @@
             const contentComunidade = document.getElementById('content-comunidade');
             
             if (tab === 'minhas') {
-                tabMinhas.className = "flex-1 py-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors";
-                tabComunidade.className = "flex-1 py-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1";
+                tabMinhas.className = "flex-1 py-2 text-xs font-bold text-blue-600 bg-white rounded-t border-t border-l border-r border-gray-200 focus:outline-none transition-colors";
+                tabComunidade.className = "flex-1 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-t border-t border-l border-r border-transparent focus:outline-none transition-colors ml-1";
                 contentMinhas.classList.remove('hidden');
                 contentComunidade.classList.add('hidden');
             } else {
-                tabComunidade.className = "flex-1 py-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors ml-1";
-                tabMinhas.className = "flex-1 py-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors";
+                tabComunidade.className = "flex-1 py-2 text-xs font-bold text-blue-600 bg-white rounded-t border-t border-l border-r border-gray-200 focus:outline-none transition-colors ml-1";
+                tabMinhas.className = "flex-1 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-t border-t border-l border-r border-transparent focus:outline-none transition-colors";
                 contentComunidade.classList.remove('hidden');
                 contentMinhas.classList.add('hidden');
             }
@@ -659,23 +659,27 @@
             const panelTeses = document.getElementById('panel-banco-teses');
             const panelAgente = document.getElementById('panel-agente-jari');
 
-            if (tab === 'teses') {
-                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2";
+            if (tab === 'agente') {
+                // Agente ativado (Agente é o layout da ESQUERDA agora, sem ml-1)
+                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2";
                 
-                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
-                
-                panelTeses.classList.remove('hidden');
-                panelAgente.classList.add('hidden');
-            } else {
-                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
-                
-                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors flex justify-center items-center gap-2";
+                // Teses desativado (Teses é o layout da DIREITA agora, COM ml-1)
+                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
                 
                 panelAgente.classList.remove('hidden');
                 panelTeses.classList.add('hidden');
                 
                 // Foco automágico ao abrir Aba Agente
                 setTimeout(() => document.getElementById('agent-input').focus(), 50);
+            } else {
+                // Teses ativado (DIREITA, COM ml-1)
+                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
+                
+                // Agente desativado (ESQUERDA, SEM ml-1)
+                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors flex justify-center items-center gap-2";
+                
+                panelTeses.classList.remove('hidden');
+                panelAgente.classList.add('hidden');
             }
         }
 
