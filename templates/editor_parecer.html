@@ -92,22 +92,34 @@
         <div
             class="w-full lg:w-[30%] bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden sticky top-8 lg:min-w-[300px]" style="max-height: calc(100vh - 4rem);">
             
-            <div class="bg-blue-600 border-b border-blue-700 flex flex-col shrink-0">
-                <div class="p-4 pb-2 text-white">
-                    <h2 class="text-base font-bold flex items-center gap-2">
-                        <span>📚</span> Banco de Teses e Citações
-                    </h2>
-                    <p class="text-xs text-blue-100 mt-1 opacity-90">Arraste para o texto para colar em formato ABNT.</p>
-                </div>
-                <div class="flex px-2 pb-0 pt-1">
-                    <button id="tab-minhas-teses" onclick="switchSidebarTab('minhas')" class="flex-1 py-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors">
-                        Minhas Teses
+            <!-- Master Tabs Header -->
+            <div class="bg-blue-600 flex flex-col shrink-0">
+                <div class="flex px-2 pt-2 pb-0 mt-1">
+                    <button id="master-tab-teses" onclick="switchMasterTab('teses')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors flex justify-center items-center gap-2">
+                        <span>📚</span> <span class="hidden sm:inline">Teses & Citações</span><span class="sm:hidden">Teses</span>
                     </button>
-                    <button id="tab-comunidade" onclick="switchSidebarTab('comunidade')" class="flex-1 py-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1">
-                        Comunidade
+                    <button id="master-tab-agente" onclick="switchMasterTab('agente')" class="flex-1 py-3 px-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2">
+                        <span>✨</span> <span class="hidden sm:inline">Agente JARI</span><span class="sm:hidden">Agente</span>
                     </button>
                 </div>
             </div>
+
+            <!-- TAB 1: Banco de Teses Pleno -->
+            <div id="panel-banco-teses" class="flex flex-col flex-1 overflow-hidden">
+                <!-- Sub-abas do Banco de Teses -->
+                <div class="bg-white border-b border-gray-200 flex flex-col shrink-0">
+                    <div class="p-3 pb-2 text-gray-800 bg-gray-50 border-b border-gray-100">
+                        <p class="text-xs text-gray-500 flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Arraste o card para o texto para colar formatado.</p>
+                    </div>
+                    <div class="flex px-2 pb-0 pt-2 bg-gray-50">
+                        <button id="tab-minhas-teses" onclick="switchSidebarTab('minhas')" class="flex-1 py-2 text-xs font-bold text-blue-600 bg-white rounded-t border-t border-l border-r border-gray-200 focus:outline-none transition-colors">
+                            Minhas Teses
+                        </button>
+                        <button id="tab-comunidade" onclick="switchSidebarTab('comunidade')" class="flex-1 py-2 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-t border-t border-l border-r border-transparent focus:outline-none transition-colors ml-1">
+                            Comunidade
+                        </button>
+                    </div>
+                </div>
 
             <div id="content-minhas-teses" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50 custom-scrollbar">
                 {% if banco_teses %}
@@ -187,6 +199,41 @@
                     <p class="text-xs mt-1">A comunidade ainda não compartilhou.</p>
                 </div>
                 {% endif %}
+            </div>
+            </div>
+
+            <!-- TAB 2: Agente JARI -->
+            <div id="panel-agente-jari" class="flex flex-col flex-1 overflow-hidden hidden bg-[#f9fafb]">
+                <!-- Área de Chat do Agente -->
+                <div id="agent-messages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#f9fafb]">
+                    <div class="flex flex-col items-center justify-center h-full text-center text-gray-400 space-y-3 p-4">
+                        <div class="w-12 h-12 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center text-2xl shadow-sm">🤖</div>
+                        <p class="text-sm font-medium">Sou seu assistente jurídico especializado no rito da JARI.</p>
+                        <p class="text-xs">Faça perguntas sobre a legislação, jurisprudência ou detalhes deste processo.</p>
+                        <div class="mt-4 px-3 py-1 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded border border-yellow-200 uppercase tracking-widest">Acesso no Editor (Fase 4)</div>
+                    </div>
+                </div>
+
+                <!-- Input do Agente -->
+                <div class="p-3 border-t border-[#dde3ea] bg-white flex-shrink-0">
+                    <!-- Chips de Sugestão Contextual -->
+                    <div id="agent-chips-container" class="flex gap-2 overflow-x-auto custom-scrollbar pb-3 mb-1 -mx-1 px-1">
+                        <button type="button" onclick="agentInput.value='Melhore a clareza deste texto:'; agentInput.focus();" class="shrink-0 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
+                            ✍️ Melhorar Texto
+                        </button>
+                        <button type="button" onclick="agentInput.value='Resuma os fatos principais a partir das imagens do auto:'; agentInput.focus();" class="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
+                            📄 Resumir Fatos
+                        </button>
+                    </div>
+
+                    <!-- Box Principal de Texto -->
+                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-2xl px-3 py-2 shadow-sm focus-within:ring-2 focus-within:ring-indigo-100 focus-within:border-indigo-300 transition-all">
+                        <input type="text" id="agent-input" placeholder="Pergunte ao Agente..." class="flex-1 bg-transparent border-none outline-none px-2 text-sm text-gray-700">
+                        <button type="button" id="agent-send-btn" onclick="safeSendAgentMessage()" class="p-1.5 text-gray-400 hover:text-indigo-600 transition rounded-full focus:outline-none">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -601,6 +648,188 @@
             } catch(e) {
                 console.error(e);
                 alert("Falha na conexão ao importar.");
+            }
+        }
+
+        // --- Master Tabs & Agent JS (Fase 4) ---
+        function switchMasterTab(tab) {
+            const btnTeses = document.getElementById('master-tab-teses');
+            const btnAgente = document.getElementById('master-tab-agente');
+            const panelTeses = document.getElementById('panel-banco-teses');
+            const panelAgente = document.getElementById('panel-agente-jari');
+
+            if (tab === 'teses') {
+                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors flex justify-center items-center gap-2";
+                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
+                panelTeses.classList.remove('hidden');
+                panelAgente.classList.add('hidden');
+            } else {
+                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
+                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors flex justify-center items-center gap-2";
+                panelAgente.classList.remove('hidden');
+                panelTeses.classList.add('hidden');
+                // Foco automágico ao abrir Aba Agente
+                setTimeout(() => document.getElementById('agent-input').focus(), 50);
+            }
+        }
+
+        // --- Agent Communication Logic for Editor ---
+        const agentInput = document.getElementById('agent-input');
+        const agentSendBtn = document.getElementById('agent-send-btn');
+        const messagesContainer = document.getElementById('agent-messages');
+
+        // Permitir "Enter" no Agent Input
+        if (agentInput) {
+            agentInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    safeSendAgentMessage();
+                }
+            });
+        }
+
+        function formatMessageEditor(text) {
+            const renderer = new marked.Renderer();
+            renderer.link = function (token) {
+                const href = typeof token === 'string' ? arguments[0] : token.href;
+                const text = typeof token === 'string' ? arguments[2] : token.text;
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${text}</a>`;
+            };
+            marked.setOptions({ renderer: renderer });
+
+            let rawHtml = marked.parse(text);
+
+            return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
+                <style>
+                    .markdown-content table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; font-size: 13px; }
+                    .markdown-content th, .markdown-content td { border: 1px solid #dde3ea; padding: 8px 12px; text-align: left; }
+                    .markdown-content th { background-color: #eff3f9; font-weight: 600; color: #1f1f1f; }
+                    .markdown-content tr:nth-child(even) { background-color: #fafbfc; }
+                    .markdown-content ul { list-style-type: disc; padding-left: 20px; }
+                    .markdown-content ol { list-style-type: decimal; padding-left: 20px; }
+                    .markdown-content a:not(.bg-blue-600) { color: #2563eb; text-decoration: underline; font-weight: 500; }
+                    .markdown-content strong { color: #1f1f1f; font-weight: 700; }
+                    .markdown-content hr { border-color: #dde3ea; margin: 15px 0; }
+                </style>
+                ${rawHtml}
+            </div>`;
+        }
+
+        function appendAgentMessageEditor(text, sender, msgId = null) {
+            const div = document.createElement('div');
+            div.className = sender === 'user' ? 'flex justify-end fade-in-up' : 'flex gap-3 fade-in-up';
+            if (msgId) div.id = msgId;
+
+            if (sender === 'user') {
+                div.innerHTML = `<div class="bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%] text-sm shadow-sm">${text}</div>`;
+            } else {
+                // Remove Loading Indicator, se houver
+                if (text === 'Pensando...') {
+                    div.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
+                        <div class="text-[#444746] leading-relaxed pt-1 w-full bg-white px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 italic animate-pulse">Pensando...</div>
+                    `;
+                } else {
+                    const cleanRawHtml = formatMessageEditor(text);
+                    // O "Magic Button" do TinyMCE injeta o conteúdo no cursor atual
+                    div.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-[12px] shadow-sm">🤖</div>
+                        <div class="text-[#444746] leading-relaxed w-full bg-white rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 overflow-hidden flex flex-col group">
+                            <div class="p-4 overflow-x-auto">${cleanRawHtml}</div>
+                            
+                            <!-- AÇÃO MÁGICA TINYMCE -->
+                            <div class="border-t border-gray-100 p-2 bg-gray-50 flex items-center justify-center transition-colors">
+                                <button onclick="injectIntoTinyMCE(this)" type="button" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                                    Inserir Resposta no Editor
+                                </button>
+                                <div class="hidden raw-response-data">${encodeURIComponent(cleanRawHtml)}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            messagesContainer.appendChild(div);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return div;
+        }
+
+        // Função "Mágica" de Injeção Direta
+        function injectIntoTinyMCE(btnElement) {
+            const rawDataEl = btnElement.nextElementSibling;
+            if (!rawDataEl) return;
+            
+            const htmlContent = decodeURIComponent(rawDataEl.innerHTML);
+            const editorInstance = tinymce.get('editor');
+            
+            if (editorInstance) {
+                // Injeta ativamente no ponteiro (cursor) em que o usuário parou
+                editorInstance.insertContent(htmlContent);
+                
+                // Feedback Visual de Sucesso
+                const originalText = btnElement.innerHTML;
+                btnElement.className = "w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded text-xs font-bold transition-all shadow-sm";
+                btnElement.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> Inserido com Sucesso!`;
+                
+                // Retorna ao estado normal
+                setTimeout(() => {
+                    btnElement.className = "w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm";
+                    btnElement.innerHTML = originalText;
+                }, 3000);
+            } else {
+                alert("Erro: Editor não carregado.");
+            }
+        }
+
+        async function safeSendAgentMessage() {
+            try {
+                await sendAgentMessageEditor();
+            } catch (e) {
+                console.error("Agent UI Error:", e);
+                alert("Erro interno na interface do Agente: " + e.message);
+            }
+        }
+
+        async function sendAgentMessageEditor() {
+            const text = agentInput.value.trim();
+            if (!text) return;
+
+            appendAgentMessageEditor(text, 'user');
+            agentInput.value = '';
+
+            const loadingId = 'agent-loading-' + Date.now();
+            appendAgentMessageEditor('Pensando...', 'agent', loadingId);
+
+            try {
+                const response = await fetch('/chat/agent_message/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ 
+                        message: text, 
+                        parecer_id: "{{ parecer.id|default:'' }}" // Manda o contexto do Parecer aberto!
+                    })
+                });
+
+                const data = await response.json();
+                
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                if (response.ok) {
+                    appendAgentMessageEditor(data.reply, 'agent');
+                } else {
+                    let errorMessage = data.error || data.trace || "Erro ao processar mensagem.";
+                    appendAgentMessageEditor('**Erro Backend:** ```' + errorMessage + '```', 'agent');
+                }
+            } catch (error) {
+                console.error('Erro de Rede:', error);
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+                appendAgentMessageEditor('**Erro de Rede:** Falha ao comunicar com o servidor.', 'agent');
             }
         }
     </script>
