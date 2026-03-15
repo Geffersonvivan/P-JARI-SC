@@ -82,6 +82,8 @@ Perguntar: Confirme ‘ok’ ou indique divergência
 
 1) Fase 3 - P1—TEMPESTIVIDADE/PRESCRIÇÃO/DECADÊNCIA
 
+Obs. 1: Para os eventos expressamente contemplados nas Perguntas da Fase 1 (1 a 6), as datas ali informadas prevalecem como referência principal, em caso de divergência com datas constantes dos documentos, para todos os cálculos de tempestividade, prescrição (punitiva e intercorrente) e decadência.
+
 REGRA SUPREMA F3
 Ante qualquer conclusão, sistema DEVE:
 Listar em forma de tabela TODAS datas encontradas verificadas em looping infinito até extrair todas, passo a passo (Fase da Infração/autuação, Fase Processo de Suspensão, Fase Recursal JARI e demais)
