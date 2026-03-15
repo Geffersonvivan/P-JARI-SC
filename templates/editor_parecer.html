@@ -219,10 +219,10 @@
                 <div class="p-3 border-t border-[#dde3ea] bg-white flex-shrink-0">
                     <!-- Chips de Sugestão Contextual -->
                     <div id="agent-chips-container" class="flex gap-2 overflow-x-auto custom-scrollbar pb-3 mb-1 -mx-1 px-1">
-                        <button type="button" onclick="agentInput.value='Melhore a clareza deste texto:'; agentInput.focus();" class="shrink-0 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
+                        <button type="button" onclick="agentInput.value='Melhore a clareza deste texto:'; safeSendAgentMessage();" class="shrink-0 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
                             ✍️ Melhorar Texto
                         </button>
-                        <button type="button" onclick="agentInput.value='Resuma os fatos principais a partir das imagens do auto:'; agentInput.focus();" class="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
+                        <button type="button" onclick="agentInput.value='Resuma os fatos principais a partir das imagens do auto:'; safeSendAgentMessage();" class="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
                             📄 Resumir Fatos
                         </button>
                     </div>
@@ -754,7 +754,7 @@
                             
                             <!-- AÇÃO MÁGICA TINYMCE -->
                             <div class="border-t border-gray-100 p-2 bg-gray-50 flex items-center justify-center transition-colors">
-                                <button onclick="injectIntoTinyMCE(this)" type="button" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm">
+                                <button onclick="injectIntoTinyMCE(this)" title="Inserir texto no cursor atual do editor" type="button" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                                     Inserir Resposta no Editor
                                 </button>
