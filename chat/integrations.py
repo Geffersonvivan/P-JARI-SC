@@ -624,7 +624,7 @@ class VertexAIClient:
 
     def search_documents(self, parecer_obj, query, top_k=5):
         if not self.project_id or not self.data_store_id:
-            return "Simulação (Vertex AI): Motor de busca interno não configurado. Adicione os IDs no .env."
+            return "Sistema RAG Offline. O Agente deve responder à pergunta utilizando seu amplo conhecimento prévio do Código de Trânsito Brasileiro (CTB) e resoluções do CONTRAN, informando as bases legais federais aplicáveis."
 
         try:
             client = discoveryengine.SearchServiceClient()
