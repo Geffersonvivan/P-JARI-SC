@@ -274,8 +274,6 @@ class GeminiClient:
             "**Cálculo fundamentado:** (texto)\n\n"
             "Prescrição Punitiva: [SIM/NÃO]\n\n"
             "**Cálculo fundamentado:** (texto)\n\n"
-            "Prescrição Intercorrente: [SIM/NÃO]\n\n"
-            "**Cálculo fundamentado:** (texto)\n\n"
             "Decadência: [SIM/NÃO/NÃO SE APLICA]\n\n"
             "**Cálculo fundamentado:** (texto)"
         )

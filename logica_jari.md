@@ -317,8 +317,6 @@ Decadência: [SIM/NÃO/NÃO SE APLICA]
 
 **Cálculo fundamentado:** (texto)
 
-Perguntar: Confirme ‘ok’ ou indique divergência
-
 Fase 4 — TESES
 **REGRA DE MEMÓRIA:** Toda a Análise de Admissibilidade e Prazos calculada na Fase 3 deve ser anexada na memória do Prompt desta fase.
 
