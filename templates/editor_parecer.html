@@ -206,11 +206,14 @@
             <div id="panel-agente-jari" class="flex flex-col flex-1 overflow-hidden bg-[#f9fafb]">
                 <!-- Área de Chat do Agente -->
                 <div id="agent-messages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#f9fafb]">
-                    <div class="flex flex-col items-center justify-center h-full text-center text-gray-400 p-4 space-y-4">
-                        <p class="text-[15px] font-medium text-gray-400 tracking-wide">Sou seu assistente especializado no rito da JARI.</p>
-                        <div class="text-[13px] text-gray-400 flex items-center gap-2 bg-[#f4f6f8] px-5 py-2 rounded-full">
-                            <span class="font-bold text-gray-400 text-sm">?</span>
-                            <span class="font-medium">Pergunte algo sobre este parecer!</span>
+                    <div class="flex flex-col items-center justify-center h-full text-center p-4 space-y-5">
+                        <p class="text-[15px] font-medium text-gray-400/80 tracking-wide">Sou seu assistente especializado no rito da JARI.</p>
+                        <div class="text-[13px] text-gray-400/80 flex items-center gap-2.5 bg-white/60 px-5 py-2.5 rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100/50">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <path d="M12 17h.01"></path>
+                            </svg>
+                            <span class="font-medium tracking-wide">Pergunte algo sobre este parecer!</span>
                         </div>
                     </div>
                 </div>
@@ -759,11 +762,15 @@
                             <div class="p-4 overflow-x-auto">${cleanRawHtml}</div>
                             
                             <!-- AÇÃO MÁGICA TINYMCE -->
-                            <div class="border-t border-gray-100 p-2 bg-gray-50 flex items-center justify-center transition-colors">
-                                <button onclick="injectIntoTinyMCE(this)" title="Inserir texto no cursor atual do editor" type="button" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm">
+                            <div class="border-t border-gray-100 p-2 bg-gray-50 flex items-center justify-center transition-colors relative group/btn">
+                                <button onclick="injectIntoTinyMCE(this)" type="button" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                                     Inserir Resposta no Editor
                                 </button>
+                                <!-- Custom Instant Tooltip -->
+                                <div class="invisible group-hover/btn:visible opacity-0 group-hover/btn:opacity-100 transition-all duration-200 absolute top-full mt-2 right-0 whitespace-nowrap bg-gray-800 text-white text-[12px] font-medium py-1.5 px-3 rounded shadow-xl pointer-events-none z-50">
+                                    Posicione o cursor no lugar onde deseja inserir o texto!
+                                </div>
                                 <div class="hidden raw-response-data">${encodeURIComponent(cleanRawHtml)}</div>
                             </div>
                         </div>
