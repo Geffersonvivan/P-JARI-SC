@@ -270,13 +270,13 @@ class GeminiClient:
             "Prescrição Intercorrente: [SIM/NÃO]\n"
             "Decadência: [SIM/NÃO/NÃO SE APLICA]\n\n"
             "Em seguida, os quatro blocos de Cálculo fundamentado, exatamente neste formato e nesta ordem:\n"
-            "Tempestivo: [SIM/NÃO]\n"
+            "Tempestivo: [SIM/NÃO]\n\n"
             "**Cálculo fundamentado:** (texto)\n\n"
-            "Prescrição Punitiva: [SIM/NÃO]\n"
+            "Prescrição Punitiva: [SIM/NÃO]\n\n"
             "**Cálculo fundamentado:** (texto)\n\n"
-            "Prescrição Intercorrente: [SIM/NÃO]\n"
+            "Prescrição Intercorrente: [SIM/NÃO]\n\n"
             "**Cálculo fundamentado:** (texto)\n\n"
-            "Decadência: [SIM/NÃO/NÃO SE APLICA]\n"
+            "Decadência: [SIM/NÃO/NÃO SE APLICA]\n\n"
             "**Cálculo fundamentado:** (texto)"
         )
         

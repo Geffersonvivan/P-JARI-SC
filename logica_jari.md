@@ -305,12 +305,16 @@ Decadência: [SIM/NÃO/NÃO SE APLICA]
 
 Em seguida, os quatro blocos de Cálculo fundamentado, exatamente neste formato e nesta ordem:
 Tempestivo: [SIM/NÃO]
+
 **Cálculo fundamentado:** (texto)
 Prescrição Punitiva: [SIM/NÃO]
+
 **Cálculo fundamentado:** (texto)
 Prescrição Intercorrente: [SIM/NÃO]
+
 **Cálculo fundamentado:** (texto)
 Decadência: [SIM/NÃO/NÃO SE APLICA]
+
 **Cálculo fundamentado:** (texto)
 
 Perguntar: Confirme ‘ok’ ou indique divergência
