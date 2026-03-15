@@ -758,19 +758,20 @@
                     // O "Magic Button" do TinyMCE injeta o conteúdo no cursor atual
                     div.innerHTML = `
                         <div class="w-8 h-8 rounded-full bg-indigo-600 flex-shrink-0 flex items-center justify-center text-white text-[12px] shadow-sm">🤖</div>
-                        <div class="text-[#444746] leading-relaxed w-full bg-white rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 overflow-hidden flex flex-col group">
+                        <div class="text-[#444746] leading-relaxed w-full bg-white rounded-2xl rounded-tl-sm shadow-sm border border-gray-100 flex flex-col">
                             <div class="p-4 overflow-x-auto">${cleanRawHtml}</div>
                             
-                            <!-- AÇÃO MÁGICA TINYMCE -->
-                            <div class="border-t border-gray-100 p-2 bg-gray-50 flex items-center justify-center transition-colors relative group/btn">
-                                <button onclick="injectIntoTinyMCE(this)" type="button" class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm">
+                            <div class="border-t border-gray-100 p-2 bg-gray-50 flex items-center justify-center transition-colors rounded-b-2xl">
+                                <button onclick="injectIntoTinyMCE(this)" onmouseenter="this.querySelector('.agent-btn-tooltip').style.opacity='1'; this.querySelector('.agent-btn-tooltip').style.visibility='visible';" onmouseleave="this.querySelector('.agent-btn-tooltip').style.opacity='0'; this.querySelector('.agent-btn-tooltip').style.visibility='hidden';" type="button" class="relative w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-600 border border-emerald-200 rounded text-xs font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-all shadow-sm">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
                                     Inserir Resposta no Editor
+                                    
+                                    <!-- Custom Instant Tooltip with guaranteed rendering -->
+                                    <div class="agent-btn-tooltip" style="opacity: 0; visibility: hidden; transition: all 0.2s ease; position: absolute; bottom: 100%; margin-bottom: 8px; left: 50%; transform: translateX(-50%); white-space: nowrap; background-color: #1f2937; color: white; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 4px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); pointer-events: none; z-index: 50;">
+                                        Posicione o cursor no lugar onde deseja inserir o texto!
+                                        <svg style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); height: 8px; color: #1f2937;" x="0px" y="0px" viewBox="0 0 255 255" xml:space="preserve"><polygon fill="currentColor" points="0,0 127.5,127.5 255,0"/></svg>
+                                    </div>
                                 </button>
-                                <!-- Custom Instant Tooltip -->
-                                <div class="invisible group-hover/btn:visible opacity-0 group-hover/btn:opacity-100 transition-all duration-200 absolute top-full mt-2 right-0 whitespace-nowrap bg-gray-800 text-white text-[12px] font-medium py-1.5 px-3 rounded shadow-xl pointer-events-none z-50">
-                                    Posicione o cursor no lugar onde deseja inserir o texto!
-                                </div>
                                 <div class="hidden raw-response-data">${encodeURIComponent(cleanRawHtml)}</div>
                             </div>
                         </div>
