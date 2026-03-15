@@ -321,7 +321,91 @@ def chat_message_view(request):
         import logging
         logger = logging.getLogger(__name__)
         trace = traceback.format_exc()
-        logger.error(f"ERRO CHAT: {str(e)}\n\n{trace}")
+        return JsonResponse({'error': str(e), 'trace': trace}, status=500)
+
+@require_POST
+def chat_agent_message_view(request):
+    """Novo endpoint isolado para o Agente Lateral (Drawer) da Fase 2."""
+    if not request.session.session_key:
+        request.session.create()
+        
+    filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+    
+    try:
+        import json
+        import os
+        from django.conf import settings
+        from .models import Parecer
+        from .integrations import GeminiClient, VertexAIClient, PerplexityClient
+        
+        data = json.loads(request.body)
+        message = data.get('message', "")
+        parecer_id = data.get('parecer_id')
+        
+        if not message:
+            return JsonResponse({'error': 'Mensagem inválida'}, status=400)
+            
+        parecer = None
+        context_str = "Nenhum processo referenciado. Responda apenas com base na legislação."
+        if parecer_id:
+            try:
+                parecer = Parecer.objects.get(id=parecer_id, **filter_kwargs)
+                context_str = (
+                    f"PROCESSO (PA): {parecer.pa}\nSGPE: {parecer.sgpe}\n"
+                    f"Infração Ocorrida: {parecer.infracao_documento}\n"
+                    f"Admissibilidade Contexto: {parecer.admissibilidade_texto}\n"
+                    f"Tese do Recorrente: {parecer.tese}\n"
+                    f"Datas Sensíveis: {parecer.tabela_datas_sensiveis}\n"
+                )
+            except Parecer.DoesNotExist:
+                pass
+                
+        # Le a instrução magna do Agente Lateral
+        logica_path = os.path.join(settings.BASE_DIR, 'logica_jari_perguntas.md')
+        system_instruction = "Você é um Consultor de Rito JARI."
+        if os.path.exists(logica_path):
+            with open(logica_path, 'r') as f:
+                system_instruction = f.read()
+                
+        # RAG orquestrado e simples
+        vertex_results = ""
+        perplexity_results = ""
+        
+        # Decide se vale acionar o RAG (Heurística simples para não gastar chamadas atoa)
+        # Se o usuário perguntar de leis, resoluções ou prazos, aciona Vertex
+        msg_lower = message.lower()
+        needs_rag = any(kw in msg_lower for kw in ['lei', 'ctb', 'resoluç', 'prazo', 'prescriç', 'decadênc', 'recurso', 'art', 'código'])
+        
+        if needs_rag:
+            vertex_client = VertexAIClient()
+            vertex_results = vertex_client.search_documents(parecer, message, top_k=3)
+            # Pula perplexity no fluxo default do agente pra ser rapido (Streaming não está nativo no DJango sem Channels)
+            
+        gemini_client = GeminiClient()
+        if not gemini_client.client:
+             return JsonResponse({'reply': "Simulação: O Agente Lateral está funcionando offline.", 'status': 'success'})
+             
+        prompt = (
+            f"=== CONTEXTO DO PROCESSO ===\n{context_str}\n\n"
+            f"=== JURISPRUDÊNCIA / NORMAS (RAG) ===\n{vertex_results}\n\n"
+            f"=== PERGUNTA DO USUÁRIO ===\n{message}\n"
+        )
+        
+        contents = [prompt]
+        response = gemini_client.client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=contents,
+            config={'system_instruction': system_instruction}
+        )
+        
+        if parecer:
+            gemini_client._log_tokens(parecer, response, 'Fase 2 (Agente Drawer)', model_name='gemini-2.5-flash')
+            
+        return JsonResponse({'reply': response.text, 'status': 'success'})
+        
+    except Exception as e:
+        import traceback
+        trace = traceback.format_exc()
         return JsonResponse({'error': str(e), 'trace': trace}, status=500)
 
 def check_task_status_view(request, task_id):
