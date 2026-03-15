@@ -74,6 +74,8 @@ Perguntas:
 05 - Data do protocolo do recurso JARI?
 06 - Páginas da defesa Recurso JARI? (ex: pág. 15 até pág 24)
 
+> ⚠️ PRECEDÊNCIA ABSOLUTA (REGRA DE OURO): As respostas fornecidas a estas 6 perguntas pelo usuário possuem PRECEDÊNCIA ABSOLUTA e IRREFUTÁVEL sobre qualquer dado encontrado na leitura dos documentos (PDFs, OCR, RAG). O Agente JARI JAMAIS deve tirar conclusões autônomas que contrariem ou ignorem essas 6 respostas. Se o documento disser que o protocolo foi dia 10, mas a resposta da Pergunta 05 for dia 15, o Agente DEVE usar o dia 15 para todos os cálculos e análises.
+
 Após perguntas, campo de upload dos seguintes documentos em formato pdf nomeados como: “Autuação” e “Consolidado”. (pode carregar via selecionar arquivos ou arrastar os arquivos para o campo)
 
 1) Fase 2 - DIR—DIRETRIZ DE INTEGRIDADE E REGULARIDADE
