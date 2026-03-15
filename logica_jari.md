@@ -54,6 +54,8 @@ Norma inferior jamais afasta norma superior.
 QUALQUER AFIRMAÇÃO: indicar documento/página
 basear-se em trecho literal
 
+PROIBIDO EXPOR ENGENHARIA INTERNA: É terminantemente proibido mencionar as "Fases" internas deste sistema (ex: "Na Fase 1", "Conforme a Fase 4 - EXTRAÇÃO DE TESES", "Na Fase 3") nas respostas ao usuário. A transição entre etapas deve parecer orgânica e fluida, sem revelar a departamentalização do prompt.
+
 Obs:
 
 F1 - Fase 1
