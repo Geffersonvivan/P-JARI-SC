@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/13.0.0/marked.min.js"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -99,8 +99,8 @@
                     <button id="master-tab-teses" onclick="switchMasterTab('teses')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2">
                         <span>📚</span> <span class="hidden sm:inline">Teses & Citações</span><span class="sm:hidden">Teses</span>
                     </button>
-                    <button id="master-tab-agente" onclick="switchMasterTab('agente')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-100 bg-blue-700 hover:bg-blue-800 hover:text-white rounded-t-lg border border-transparent focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2">
-                        <span class="opacity-70">✨</span> <span class="hidden sm:inline opacity-90">Agente JARI</span><span class="sm:hidden opacity-90">Agente</span>
+                    <button id="master-tab-agente" onclick="switchMasterTab('agente')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2">
+                        <span>✨</span> <span class="hidden sm:inline">Agente JARI</span><span class="sm:hidden">Agente</span>
                     </button>
                 </div>
             </div>
@@ -661,19 +661,15 @@
 
             if (tab === 'teses') {
                 btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2";
-                btnTeses.innerHTML = '<span>📚</span> <span class="hidden sm:inline">Teses & Citações</span><span class="sm:hidden">Teses</span>';
                 
-                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-100 bg-blue-700 hover:bg-blue-800 hover:text-white rounded-t-lg border border-transparent focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
-                btnAgente.innerHTML = '<span class="opacity-70">✨</span> <span class="hidden sm:inline opacity-90">Agente JARI</span><span class="sm:hidden opacity-90">Agente</span>';
+                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
                 
                 panelTeses.classList.remove('hidden');
                 panelAgente.classList.add('hidden');
             } else {
                 btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
-                btnAgente.innerHTML = '<span>✨</span> <span class="hidden sm:inline">Agente JARI</span><span class="sm:hidden">Agente</span>';
                 
-                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-100 bg-blue-700 hover:bg-blue-800 hover:text-white rounded-t-lg border border-transparent focus:outline-none transition-colors flex justify-center items-center gap-2";
-                btnTeses.innerHTML = '<span class="opacity-70">📚</span> <span class="hidden sm:inline opacity-90">Teses & Citações</span><span class="sm:hidden opacity-90">Teses</span>';
+                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 hover:text-blue-900 rounded-t-lg border-t border-l border-r border-blue-300 focus:outline-none transition-colors flex justify-center items-center gap-2";
                 
                 panelAgente.classList.remove('hidden');
                 panelTeses.classList.add('hidden');
@@ -702,10 +698,15 @@
             const renderer = new marked.Renderer();
             renderer.link = function (token) {
                 const href = typeof token === 'string' ? arguments[0] : token.href;
-                const text = typeof token === 'string' ? arguments[2] : token.text;
-                return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${text}</a>`;
+                const linkText = typeof token === 'string' ? arguments[2] : token.text;
+                return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">${linkText}</a>`;
             };
-            marked.setOptions({ renderer: renderer });
+            
+            if (marked.setOptions) {
+                marked.setOptions({ renderer: renderer });
+            } else {
+                marked.use({ renderer });
+            }
 
             let rawHtml = marked.parse(text);
 
