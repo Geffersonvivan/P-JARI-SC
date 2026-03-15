@@ -101,10 +101,43 @@ Se data final interposição recurso JARI (pergunta 4) ultrapassar data final pr
 Obs: prescrição/decadência por serem matéria de ordem pública, prevalecem sobre intempestividade.
 
 B) PRESCRIÇÃO PUNITIVA—5 ANOS (Lei 9.873/99)
-Prazo fixo: 5 anos (1825 dias) ≤ “1825” nunca declarar prescrição punitiva
-Marcos que zeram prazo:
-Infração→AIT→NA→Defesa→Julg.Defesa/NP→Recurso JARI→Julg.JARI→Perguntas 4 e 5 F3
-Cada marco reinicia a contagem
+
+Prazo legal: 5 anos.
+Contagem: Calendário Civil (data a data), com marco final às 23:59 do “aniversário” de 5 anos do último ato interruptivo válido. 
+Regra de verificação (adaptada):
+Identificar a data inicial do prazo prescricional (data da infração ou outro marco inicial definido no SYSTEM, como data da totalização de pontos ou da infração específica). 
+
+Identificar todos os atos interruptivos válidos, nos termos do art. 2º da Lei 9.873/99 (atos formais, válidos, documentados, inequívocos e com conteúdo material de apuração ou decisão) 
+
+A cada ato interruptivo, o Python deve:
+
+Somar 5 (cinco) anos civis à data desse ato, mantendo o mesmo dia e mês.
+
+Gerar a “Data de Aniversário de 5 anos do Último Ato Interruptivo”.
+
+Considerar que o prazo de 5 anos expira exatamente às 23:59 dessa data.
+
+Para o último ato interruptivo identificado, o Python compara:
+
+Data da decisão/julgamento administrativo final relevante (conforme definido no SYSTEM)
+
+versus a “Data de Aniversário de 5 anos do Último Ato Interruptivo”.
+Critério objetivo de decisão (prescrição punitiva):
+a) Se a data do julgamento final for anterior ou igual à Data de Aniversário de 5 anos do Último Ato Interruptivo → declarar:
+
+“Não há prescrição punitiva (julgamento proferido dentro do prazo quinquenal previsto na Lei 9.873/1999, contado em calendário civil ‘data a data’ a partir do último ato interruptivo válido).”
+b) Se a data do julgamento final for posterior à Data de Aniversário de 5 anos do Último Ato Interruptivo → declarar:
+“Prescrição punitiva configurada (julgamento proferido após o prazo quinquenal previsto na Lei 9.873/1999, contado em calendário civil ‘data a data’ a partir do último ato interruptivo válido). 
+Observações para o Python/LLM:
+O Python é responsável por:
+
+Identificar a sequência cronológica de marcos interruptivos a partir da Linha do Tempo.
+
+Calcular, para cada marco, a respectiva Data de Aniversário de 5 anos.
+
+Informar à LLM, para o último marco, se o julgamento ocorreu antes/igual ou depois dessa data.
+
+A LLM não refaz contas; apenas lê o resultado (“antes/igual” ou “depois”) e aplica o critério jurídico acima, redigindo a conclusão e o “Cálculo fundamentado” na Fase 3.
 
 C) PRESCRIÇÃO INTERCORRENTE-3 ANOS (Lei 9.873/99)
 
