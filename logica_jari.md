@@ -276,16 +276,16 @@ Os intervalos em dias já calculados pelo Python.
 
 Formatação OBRIGATÓRIA da justificativa:
 Tempestivo: [SIM/NÃO]
-“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando quais datas foram usadas, qual intervalo o Python calculou e por que isso leva à conclusão de tempestivo ou intempestivo, conforme art. 285 do CTB e regras do prazo máximo para interposição do recurso JARI).
+**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando quais datas foram usadas, qual intervalo o Python calculou e por que isso leva à conclusão de tempestivo ou intempestivo, conforme art. 285 do CTB e regras do prazo máximo para interposição do recurso JARI).
 
 Prescrição Punitiva: [SIM/NÃO]
-“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando: data inicial usada; marcos interruptivos considerados a partir da Linha do Tempo; maior intervalo calculado pelo Python entre o último ato interruptivo e o julgamento; comparação com 1825 dias da Lei 9.873/99; conclusão pela existência ou não de prescrição punitiva).
+**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando: data inicial usada; marcos interruptivos considerados a partir da Linha do Tempo; maior intervalo calculado pelo Python entre o último ato interruptivo e o julgamento; comparação com 1825 dias da Lei 9.873/99; conclusão pela existência ou não de prescrição punitiva).
 
 Prescrição Intercorrente: [SIM/NÃO]
-“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando: uso da Data de Protocolo do Recurso JARI – Pergunta 5/Fase 1 – e da Data da Sessão de Julgamento JARI – Pergunta 1/Fase 1 – conforme registradas na Tabela de Datas Sensíveis; data do “aniversário de 3 anos” calculada pelo Python; verificação se a sessão ocorreu antes/igual ou depois desse aniversário; conclusão pela configuração ou não da prescrição intercorrente).
+**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando: uso da Data de Protocolo do Recurso JARI – Pergunta 5/Fase 1 – e da Data da Sessão de Julgamento JARI – Pergunta 1/Fase 1 – conforme registradas na Tabela de Datas Sensíveis; data do “aniversário de 3 anos” calculada pelo Python; verificação se a sessão ocorreu antes/igual ou depois desse aniversário; conclusão pela configuração ou não da prescrição intercorrente).
 
 Decadência: [SIM/NÃO]
-“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando: identificação da Data da Infração e do Filtro temporal aplicável – 1, 2 ou 3 – conforme o SYSTEM; indicação das datas usadas para aferir prazos decadenciais – notificação de penalidade e/ou instauração de suspensão/cassação – conforme a Tabela de Datas Sensíveis; uso dos intervalos calculados pelo Python para verificar se excederam 180/360 dias ou 5 anos, respeitando as travas obrigatórias do filtro, inclusive a hipótese de “Decadência: NÃO SE APLICA”).
+**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando: identificação da Data da Infração e do Filtro temporal aplicável – 1, 2 ou 3 – conforme o SYSTEM; indicação das datas usadas para aferir prazos decadenciais – notificação de penalidade e/ou instauração de suspensão/cassação – conforme a Tabela de Datas Sensíveis; uso dos intervalos calculados pelo Python para verificar se excederam 180/360 dias ou 5 anos, respeitando as travas obrigatórias do filtro, inclusive a hipótese de “Decadência: NÃO SE APLICA”).
 
 REGRAS IMPORTANTES:
 Você NÃO pode refazer contas de dias. Use sempre os intervalos fornecidos pelo Python.
@@ -303,15 +303,15 @@ Prescrição Punitiva: [SIM/NÃO]
 Prescrição Intercorrente: [SIM/NÃO]
 Decadência: [SIM/NÃO/NÃO SE APLICA]
 
-Em seguida, os quatro blocos de “Cálculo fundamentado”, exatamente neste formato e nesta ordem:
+Em seguida, os quatro blocos de Cálculo fundamentado, exatamente neste formato e nesta ordem:
 Tempestivo: [SIM/NÃO]
-Cálculo fundamentado: (texto)
+**Cálculo fundamentado:** (texto)
 Prescrição Punitiva: [SIM/NÃO]
-Cálculo fundamentado: (texto)
+**Cálculo fundamentado:** (texto)
 Prescrição Intercorrente: [SIM/NÃO]
-Cálculo fundamentado: (texto)
+**Cálculo fundamentado:** (texto)
 Decadência: [SIM/NÃO/NÃO SE APLICA]
-Cálculo fundamentado: (texto)
+**Cálculo fundamentado:** (texto)
 
 Perguntar: Confirme ‘ok’ ou indique divergência
 
