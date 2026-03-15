@@ -178,12 +178,29 @@ def editar_parecer_view(request, id):
         banco_teses = []
         teses_comunidade = []
 
+    # Phase 5: Dynamic Context Chips
+    dynamic_chips = []
+    if parecer.infracao_documento:
+        infracao_lower = parecer.infracao_documento.lower()
+        if "165" in infracao_lower or "embriag" in infracao_lower or "bafôm" in infracao_lower or "recusa" in infracao_lower:
+            dynamic_chips.append({"label": "⚖️ Tese: Bafômetro", "prompt": "Sugira uma tese de defesa estruturada com base na jurisprudência do CETRAN-SC para a infração do Art. 165 / 165-A (Embriaguez ou Recusa ao Bafômetro)."})
+        if "excesso" in infracao_lower or "218" in infracao_lower or "velocidade" in infracao_lower or "radar" in infracao_lower:
+            dynamic_chips.append({"label": "⚖️ Tese: Radar/Velocidade", "prompt": "Quais são as principais teses de defesa preliminares e de mérito aceitas pelo CETRAN-SC para multas de excesso de velocidade relacionadas à aferição do radar?"})
+        if "suspens" in infracao_lower or "cass" in infracao_lower or "psdd" in infracao_lower:
+            dynamic_chips.append({"label": "⚖️ Tese: Suspensão da CNH", "prompt": "Verifique a pertinência da tese de 'bis in idem' ou argumente sobre a notificação no processo de suspensão/cassação da CNH."})
+
+    if not dynamic_chips:
+        # Padrões úteis se não conseguirmos capturar o enquadramento exato
+        dynamic_chips.append({"label": "🔎 Analisar Prazos e Prescrição", "prompt": "Levando em conta o CTB e as resoluções do CONTRAN aplicáveis, analise as datas sensíveis informadas neste processo e me diga se há possível prescrição (quinquenal ou intercorrente) ou decadência (Art 281)."})
+        dynamic_chips.append({"label": "⚖️ Melhores Teses CETRAN", "prompt": "Quais são as teses de defesa ou preliminares processuais com maior índice de provimento no CETRAN-SC para este caso específico?"})
+
     return render(request, 'editor_parecer.html', {
         'parecer': parecer,
         'parecer_gerado': parecer_gerado,
         'config': config,
         'banco_teses': banco_teses,
-        'teses_comunidade': teses_comunidade
+        'teses_comunidade': teses_comunidade,
+        'dynamic_chips': dynamic_chips
     })
 
 @require_POST

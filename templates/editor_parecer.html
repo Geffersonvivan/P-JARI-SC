@@ -219,12 +219,18 @@
                 <div class="p-3 border-t border-[#dde3ea] bg-white flex-shrink-0">
                     <!-- Chips de Sugestão Contextual -->
                     <div id="agent-chips-container" class="flex gap-2 overflow-x-auto custom-scrollbar pb-3 mb-1 -mx-1 px-1">
+                        {% for chip in dynamic_chips %}
+                        <button type="button" onclick="agentInput.value='{{ chip.prompt|escapejs }}'; safeSendAgentMessage();" class="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5 shadow-sm">
+                            {{ chip.label }}
+                        </button>
+                        {% empty %}
                         <button type="button" onclick="agentInput.value='Melhore a clareza deste texto:'; safeSendAgentMessage();" class="shrink-0 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
                             ✍️ Melhorar Texto
                         </button>
                         <button type="button" onclick="agentInput.value='Resuma os fatos principais a partir das imagens do auto:'; safeSendAgentMessage();" class="shrink-0 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors flex items-center gap-1.5">
                             📄 Resumir Fatos
                         </button>
+                        {% endfor %}
                     </div>
 
                     <!-- Box Principal de Texto -->
