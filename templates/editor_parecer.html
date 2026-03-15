@@ -96,11 +96,11 @@
             <!-- Master Tabs Header -->
             <div class="bg-blue-600 flex flex-col shrink-0">
                 <div class="flex px-2 pt-2 pb-0 mt-1">
-                    <button id="master-tab-teses" onclick="switchMasterTab('teses')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors flex justify-center items-center gap-2">
+                    <button id="master-tab-teses" onclick="switchMasterTab('teses')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2">
                         <span>📚</span> <span class="hidden sm:inline">Teses & Citações</span><span class="sm:hidden">Teses</span>
                     </button>
-                    <button id="master-tab-agente" onclick="switchMasterTab('agente')" class="flex-1 py-3 px-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2">
-                        <span>✨</span> <span class="hidden sm:inline">Agente JARI</span><span class="sm:hidden">Agente</span>
+                    <button id="master-tab-agente" onclick="switchMasterTab('agente')" class="flex-1 py-3 px-2 text-sm font-bold text-blue-100 bg-blue-700 hover:bg-blue-800 hover:text-white rounded-t-lg border border-transparent focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2">
+                        <span class="opacity-70">✨</span> <span class="hidden sm:inline opacity-90">Agente JARI</span><span class="sm:hidden opacity-90">Agente</span>
                     </button>
                 </div>
             </div>
@@ -660,15 +660,24 @@
             const panelAgente = document.getElementById('panel-agente-jari');
 
             if (tab === 'teses') {
-                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors flex justify-center items-center gap-2";
-                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
+                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors flex justify-center items-center gap-2";
+                btnTeses.innerHTML = '<span>📚</span> <span class="hidden sm:inline">Teses & Citações</span><span class="sm:hidden">Teses</span>';
+                
+                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-100 bg-blue-700 hover:bg-blue-800 hover:text-white rounded-t-lg border border-transparent focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
+                btnAgente.innerHTML = '<span class="opacity-70">✨</span> <span class="hidden sm:inline opacity-90">Agente JARI</span><span class="sm:hidden opacity-90">Agente</span>';
+                
                 panelTeses.classList.remove('hidden');
                 panelAgente.classList.add('hidden');
             } else {
-                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
-                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-white hover:bg-blue-700 rounded-t-lg focus:outline-none transition-colors flex justify-center items-center gap-2";
+                btnAgente.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-600 bg-white rounded-t-lg border-t border-l border-r border-gray-200 shadow-[0_4px_0_0_#fff] z-10 focus:outline-none transition-colors ml-1 flex justify-center items-center gap-2";
+                btnAgente.innerHTML = '<span>✨</span> <span class="hidden sm:inline">Agente JARI</span><span class="sm:hidden">Agente</span>';
+                
+                btnTeses.className = "flex-1 py-3 px-2 text-sm font-bold text-blue-100 bg-blue-700 hover:bg-blue-800 hover:text-white rounded-t-lg border border-transparent focus:outline-none transition-colors flex justify-center items-center gap-2";
+                btnTeses.innerHTML = '<span class="opacity-70">📚</span> <span class="hidden sm:inline opacity-90">Teses & Citações</span><span class="sm:hidden opacity-90">Teses</span>';
+                
                 panelAgente.classList.remove('hidden');
                 panelTeses.classList.add('hidden');
+                
                 // Foco automágico ao abrir Aba Agente
                 setTimeout(() => document.getElementById('agent-input').focus(), 50);
             }
