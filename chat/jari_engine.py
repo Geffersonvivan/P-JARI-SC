@@ -412,11 +412,12 @@ class JariEngine:
         status_temp = "SIM" if self.parecer.is_tempestivo else "NÃO"
         status_pun = "SIM" if self.parecer.has_prescricao_punitiva else "NÃO"
         status_dec = "SIM" if self.parecer.has_decadencia else "NÃO"
+        status_inter = "SIM" if self.parecer.has_prescricao_intercorrente else "NÃO"
         
         texto_status = (
             f"- **Tempestivo**: {status_temp}\n"
             f"- **Prescrição Punitiva (>= 5 anos)**: {status_pun}\n"
-            f"- **Prescrição Intercorrente (3 anos)**: {relatorio_intercorrente}\n"
+            f"- **Prescrição Intercorrente (3 anos)**: {status_inter}\n"
             f"- **Decadência**: {status_dec}\n"
         )
         
