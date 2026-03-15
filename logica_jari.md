@@ -127,11 +127,8 @@ Data da decisão/julgamento administrativo final relevante (conforme definido no
 
 versus a “Data de Aniversário de 5 anos do Último Ato Interruptivo”.
 Critério objetivo de decisão (prescrição punitiva):
-a) Se a data do julgamento final for anterior ou igual à Data de Aniversário de 5 anos do Último Ato Interruptivo → declarar:
-
-“Não há prescrição punitiva (julgamento proferido dentro do prazo quinquenal previsto na Lei 9.873/1999, contado em calendário civil ‘data a data’ a partir do último ato interruptivo válido).”
-b) Se a data do julgamento final for posterior à Data de Aniversário de 5 anos do Último Ato Interruptivo → declarar:
-“Prescrição punitiva configurada (julgamento proferido após o prazo quinquenal previsto na Lei 9.873/1999, contado em calendário civil ‘data a data’ a partir do último ato interruptivo válido). 
+a) Se a data do julgamento final for anterior ou igual à Data de Aniversário de 5 anos do Último Ato Interruptivo → declarar resultado: NÃO.
+b) Se a data do julgamento final for posterior à Data de Aniversário de 5 anos do Último Ato Interruptivo → declarar resultado: SIM.
 Observações para o Python/LLM:
 O Python é responsável por:
 
@@ -196,8 +193,7 @@ Nestes casos, qualquer prazo de 5 anos será sempre analisado exclusivamente com
 
 AÇÃO DO AGENTE – TEXTO VINCULANTE (FILTRO 1):
 O cálculo de decadência 180/360 dias deve ser totalmente desabilitado.
-Sempre que o processo cair no FILTRO 1, o resultado de decadência, em qualquer fase, deve ser:
-“Decadência: NÃO SE APLICA (infração anterior à vigência da Lei 14.071/2020 e submetida exclusivamente ao regime prescricional da Lei 9.873/1999, conforme Parecer CETRAN/SC 381/2022).”
+Sempre que o processo cair no FILTRO 1, o resultado de decadência, em qualquer fase, deve ser: NÃO SE APLICA.
 É proibido redigir qualquer outra conclusão de decadência diferente da linha acima.
 
 REGRA DE ANÁLISE (FILTRO 1):
@@ -211,8 +207,7 @@ Aplica‑se a decadência de 180 ou 360 dias contados da data da infração, nos
 Suspensão e Cassação (art. 256, III a VII, CTB):
 NÃO se aplica decadência de 180/360 dias neste período, conforme Nota de Atualização de 02/03/2023 do CETRAN/SC.
 Para estas penalidades, analisar apenas prescrição (Lei 9.873/1999) pelos critérios dos blocos B) e C), e, quando cabível, prazo de 5 anos de natureza claramente prescricional, sem rotular como decadência.
-Qualquer tentativa de aplicar decadência de 180/360 dias à suspensão/cassação neste intervalo temporal deve ser bloqueada e substituída pela seguinte conclusão:
-“Decadência: NÃO CONFIGURADA (penalidades de suspensão/cassação no período 12/04/2021 a 21/10/2021 não se submetem aos prazos decadenciais de 180/360 dias, conforme Parecer CETRAN/SC 381/2022 e Nota de 02/03/2023).”
+Qualquer tentativa de aplicar decadência de 180/360 dias à suspensão/cassação neste intervalo temporal deve ser bloqueada e substituída pela seguinte conclusão: NÃO.
 
 FILTRO 3 – INFRAÇÕES A PARTIR DE 22/10/2021 (LEI 14.229/2021)
 Todas as penalidades (multas, advertências, suspensão e cassação) submetem‑se ao regime decadencial de 180 ou 360 dias, conforme CTB alterado pelas Leis 14.071/2020 e 14.229/2021, Resolução CONTRAN nº 844/2021 e Parecer CETRAN/SC 381/2022.gov+2
