@@ -409,17 +409,29 @@ class JariEngine:
         self.parecer.has_decadencia = decadencia_bool
         
         # 4. Texto visual para o usuário confirmando
-        status_temp = "SIM" if self.parecer.is_tempestivo else "NÃO"
-        status_pun = "SIM" if self.parecer.has_prescricao_punitiva else "NÃO"
-        status_dec = "SIM" if self.parecer.has_decadencia else "NÃO"
-        status_inter = "SIM" if self.parecer.has_prescricao_intercorrente else "NÃO"
+        dias_tempestividade = 0
+        if self.parecer.prazo_final and self.parecer.data_protocolo:
+             dias_tempestividade = JariMath.calculate_days_diff(self.parecer.prazo_final, self.parecer.data_protocolo)
+             
+        ultimo_marco = max(datas_processadas) if datas_processadas else data_infracao
+        dias_punitiva = 0
+        if self.parecer.data_sessao:
+             dias_punitiva = JariMath.calculate_days_diff(ultimo_marco, self.parecer.data_sessao)
         
-        texto_status = (
-            f"- **Tempestivo**: {status_temp}\n"
-            f"- **Prescrição Punitiva (>= 5 anos)**: {status_pun}\n"
-            f"- **Prescrição Intercorrente (3 anos)**: {status_inter}\n"
-            f"- **Decadência**: {status_dec}\n"
+        decadencia_final = "SIM" if self.parecer.has_decadencia else "NÃO"
+        if "Antes 12/04" in relatorio_decadencia and not self.parecer.has_decadencia:
+            decadencia_final = "NÃO SE APLICA"
+            
+        matematica_detalhes = (
+            f"- Tempestividade: Diferença em dias corridos (Protocolo x Prazo Final) = {dias_tempestividade} dias de atraso (valores positivos indicam atraso). (Valor final exigido pelo sistema JariMath: {'SIM' if self.parecer.is_tempestivo else 'NÃO'}).\n"
+            f"- Prescrição Punitiva (Exige atingir 1825 dias): Maior intervalo desde último marco válido identificado = {dias_punitiva} dias corridos calculados. (Valor final exigido pelo JariMath: {'SIM' if self.parecer.has_prescricao_punitiva else 'NÃO'}).\n"
+            f"- Prescrição Intercorrente (Aniversário de 3 anos alcançado): {relatorio_intercorrente} (Valor final exigido pelo JariMath: {'SIM' if self.parecer.has_prescricao_intercorrente else 'NÃO'}).\n"
+            f"- Decadência (Regimes temporais do CTB / Resolução):\n{relatorio_decadencia}\n(Valor final exigido pelo JariMath: {decadencia_final})\n"
         )
+        
+        from chat.integrations import GeminiClient
+        gemini = GeminiClient()
+        texto_status = gemini.generate_phase3_report(self.parecer, matematica_detalhes)
         
         self.parecer.admissibilidade_texto = texto_status
         self.parecer.status_fase = 31 # Aguarda confirmação

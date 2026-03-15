@@ -221,6 +221,103 @@ class GeminiClient:
                 )
             return f"Erro ao acessar Gemini na Fase 2: {err_str}.\n"
 
+    def generate_phase3_report(self, parecer_obj, matematica_detalhes):
+        if not self.client:
+             return "Simulação: Admissibilidade checada. Tempestivo. Prescrições Afastadas."
+             
+        system_instruction = (
+            "RESULTADO FINAL\n"
+            "Você recebe, já prontos e calculados pelo Python:\n"
+            "As respostas da Fase 1 (perguntas 1 a 6).\n"
+            "A LINHA DO TEMPO MÍNIMA (todas as datas essenciais, em ordem cronológica).\n"
+            "A TABELA DE DATAS SENSÍVEIS PARA PRAZOS (tipos, datas, origem, observações).\n"
+            "Os intervalos em dias corridos usados para:\n"
+            "Tempestividade do recurso JARI.\n"
+            "Prescrição punitiva (5 anos – 1825 dias).\n"
+            "Prescrição intercorrente (3 anos – cálculo “data a data”).\n"
+            "Prazos decadenciais (180/360 dias ou 5 anos, conforme Filtro 1/2/3).\n"
+            "Toda contagem numérica e diferença de datas já foi feita pelo Python.\n\n"
+            "Sua função é exclusivamente jurídica: ler esses dados, aplicar as regras normativas do SYSTEM e redigir o RESULTADO FINAL para o julgador.\n\n"
+            "SUA TAREFA NESTA FASE:\n"
+            "Declarar EXPRESSAMENTE, em bloco inicial, apenas nos colchetes, o resultado de cada item:\n"
+            "Tempestivo: [SIM/NÃO]\n"
+            "Prescrição Punitiva: [SIM/NÃO]\n"
+            "Prescrição Intercorrente: [SIM/NÃO]\n"
+            "Decadência: [SIM/NÃO/NÃO SE APLICA]\n\n"
+            "Em seguida, justificar cada um dos quatro itens usando:\n"
+            "As respostas da Fase 1 (especialmente perguntas 1, 4 e 5).\n"
+            "A LINHA DO TEMPO MÍNIMA.\n"
+            "A TABELA DE DATAS SENSÍVEIS PARA PRAZOS.\n"
+            "Os intervalos em dias já calculados pelo Python.\n\n"
+            "Formatação OBRIGATÓRIA da justificativa:\n"
+            "Tempestivo: [SIM/NÃO]\n"
+            "“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando quais datas foram usadas, qual intervalo o Python calculou e por que isso leva à conclusão de tempestivo ou intempestivo, conforme art. 285 do CTB e regras do prazo máximo para interposição do recurso JARI).\n\n"
+            "Prescrição Punitiva: [SIM/NÃO]\n"
+            "“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando: data inicial usada; marcos interruptivos considerados a partir da Linha do Tempo; maior intervalo calculado pelo Python entre o último ato interruptivo e o julgamento; comparação com 1825 dias da Lei 9.873/99; conclusão pela existência ou não de prescrição punitiva).\n\n"
+            "Prescrição Intercorrente: [SIM/NÃO]\n"
+            "“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando: uso da Data de Protocolo do Recurso JARI – Pergunta 5/Fase 1 – e da Data da Sessão de Julgamento JARI – Pergunta 1/Fase 1 – conforme registradas na Tabela de Datas Sensíveis; data do “aniversário de 3 anos” calculada pelo Python; verificação se a sessão ocorreu antes/igual ou depois desse aniversário; conclusão pela configuração ou não da prescrição intercorrente).\n\n"
+            "Decadência: [SIM/NÃO/NÃO SE APLICA]\n"
+            "“Cálculo fundamentado:” + (texto curto, objetivo e jurídico, explicando: identificação da Data da Infração e do Filtro temporal aplicável – 1, 2 ou 3 – conforme o SYSTEM; indicação das datas usadas para aferir prazos decadenciais – notificação de penalidade e/ou instauração de suspensão/cassação – conforme a Tabela de Datas Sensíveis; uso dos intervalos calculados pelo Python para verificar se excederam 180/360 dias ou 5 anos, respeitando as travas obrigatórias do filtro, inclusive a hipótese de “Decadência: NÃO SE APLICA”).\n\n"
+            "REGRAS IMPORTANTES:\n"
+            "Você NÃO pode refazer contas de dias. Use sempre os intervalos fornecidos pelo Python.\n"
+            "Se houver múltiplas versões de datas para um mesmo tipo (POSSÍVEL (1), (2)…), você deve mencionar isso na fundamentação, dizendo que há versões divergentes registradas na Tabela de Datas Sensíveis e que o julgador deve escolher qual data prevalece na Fase 5 – Parecer.\n"
+            "Se algum tipo essencial estiver como “NÃO LOCALIZADO”, mencione na fundamentação do item correspondente que a ausência documental foi registrada na Tabela de Datas Sensíveis e pode impactar a análise de prazo, cabendo ao julgador avaliar.\n"
+            "A prescrição punitiva, a prescrição intercorrente e a decadência são matérias de ordem pública e, quando configuradas, prevalecem sobre eventual intempestividade do recurso, devendo isso ser mencionado na fundamentação quando relevante.\n\n"
+            "SAÍDA FINAL – ORDEM OBRIGATÓRIA:\n"
+            "Bloco de quatro linhas com os resultados:\n"
+            "Tempestivo: [SIM/NÃO]\n"
+            "Prescrição Punitiva: [SIM/NÃO]\n"
+            "Prescrição Intercorrente: [SIM/NÃO]\n"
+            "Decadência: [SIM/NÃO/NÃO SE APLICA]\n\n"
+            "Em seguida, os quatro blocos de “Cálculo fundamentado”, exatamente neste formato e nesta ordem:\n"
+            "Tempestivo: [SIM/NÃO]\n"
+            "Cálculo fundamentado: (texto)\n"
+            "Prescrição Punitiva: [SIM/NÃO]\n"
+            "Cálculo fundamentado: (texto)\n"
+            "Prescrição Intercorrente: [SIM/NÃO]\n"
+            "Cálculo fundamentado: (texto)\n"
+            "Decadência: [SIM/NÃO/NÃO SE APLICA]\n"
+            "Cálculo fundamentado: (texto)"
+        )
+        
+        data_sessao_str = parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else 'NÃO INFORMADO'
+        prazo_final_str = parecer_obj.prazo_final.strftime('%d/%m/%Y') if parecer_obj.prazo_final else 'NÃO INFORMADO'
+        data_protocolo_str = parecer_obj.data_protocolo.strftime('%d/%m/%Y') if parecer_obj.data_protocolo else 'NÃO INFORMADO'
+
+        prompt_text = (
+            f"=== Respostas da Fase 1 ===\n"
+            f"1. Sessão JARI: {data_sessao_str}\n"
+            f"4. Prazo Final Recurso: {prazo_final_str}\n"
+            f"5. Protocolo Recurso: {data_protocolo_str}\n\n"
+            f"=== Fatos Documentais (Fase 2) ===\n"
+            f"{parecer_obj.tabela_datas_sensiveis or 'Não há tabela F2 gerada.'}\n\n"
+            f"=== Flags Matemáticas e Intervalos do Python (Fase 3) ===\n"
+            f"{matematica_detalhes}\n\n"
+            "Aplique estritamente o roteiro obrigatório e devolva os resultados solicitados baseando-se unicamente nas flags matemáticas acima."
+        )
+        
+        try:
+            start_time = time.time()
+            model_to_use = 'gemini-2.5-pro'
+            response = self.client.models.generate_content(
+                model=model_to_use,
+                contents=[prompt_text],
+                config={'system_instruction': system_instruction}
+            )
+            self._log_tokens(parecer_obj, response, 'Fase 3 (Avaliação Prazos)', model_name=model_to_use, start_time=start_time)
+            return response.text
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "Too Many Requests" in err_str:
+                send_mail(
+                    subject='🚨 JARI ALERTA (COTA GEMINI)',
+                    message='A API do Gemini estourou a cota de RPM (Erro 429). O sistema pode apresentar instabilidade temporária.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True
+                )
+            return f"Erro ao acessar Gemini na Fase 3: {err_str}.\n"
+
     def extract_tese(self, parecer_obj):
         if not self.client:
              return "Simulação: O recorrente alega a não aferição do radar pelo INMETRO."
