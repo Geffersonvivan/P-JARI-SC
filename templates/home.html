@@ -444,7 +444,7 @@
                         Junta Administrativa de Recursos de Infrações (JARI) de Santa Catarina.
                     </h1>
                     {% if request.user.is_authenticated %}
-                    <button id="btn-iniciar-processo"
+                    <button type="button" id="btn-iniciar-processo"
                         class="bg-[#e4f0fc] text-blue-600 px-8 py-3 rounded-full hover:bg-blue-200 focus:outline-none transition font-medium text-lg shadow-sm flex items-center justify-center gap-3 mx-auto"
                         onclick="iniciarNovoProcesso()">
                         Iniciar nova análise
@@ -495,7 +495,7 @@
                             class="flex-1 bg-transparent border-none outline-none px-2 text-lg">
 
                         <div class="flex gap-4 px-2 text-gray-500">
-                            <button id="btn-send"
+                            <button type="button" id="btn-send"
                                 class="bg-[#e4f0fc] text-blue-600 p-2.5 rounded-full hover:bg-blue-200 focus:outline-none transition flex items-center justify-center"
                                 title="Enviar Mensagem">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="ml-0.5"
@@ -1215,7 +1215,7 @@
         }
 
         async function sendMessage(e) {
-            if (e) e.preventDefault();
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
             {% if not request.user.is_authenticated %}
             showLoginModal();
             return;
