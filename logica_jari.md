@@ -235,8 +235,7 @@ O resultado final da análise de decadência na Fase 3 (Filtros 1, 2 e 3) deve s
 É proibido, na Fase 5, alterar a natureza (prescrição x decadência), o filtro temporal ou a conclusão numérica obtida na Fase 3.
 Qualquer tentativa de reclassificar prazos prescricionais como decadenciais (ou o inverso) deve ser bloqueada e substituída pela fórmula definida para o filtro correspondente (especialmente a cláusula fixa de “Decadência: NÃO SE APLICA” no FILTRO 1).
 
-RESULTADO FINAL P1
-
+RESULTADO FINAL
 Você recebe, já prontos e calculados pelo Python:
 As respostas da Fase 1 (perguntas 1 a 6).
 
@@ -248,24 +247,28 @@ Os intervalos em dias corridos usados para:
 
 Tempestividade do recurso JARI.
 
-Prescrição punitiva (5 anos – 1825 dias).
+Prescrição punitiva (5 anos – cálculo “data a data”).
 
 Prescrição intercorrente (3 anos – cálculo “data a data”).
 
-Prazos decadenciais (180/360 dias ou 5 anos, conforme Filtro 1/2/3).
-
+Prazos decadenciais (180/360 dias ou 5 anos, conforme Filtro 1/2/3, nos termos do CTB, das Leis 14.071/2020, 14.229/2021 e do Parecer CETRAN/SC 381/2022).
 Toda contagem numérica e diferença de datas já foi feita pelo Python.
-Sua função é exclusivamente jurídica: ler esses dados, aplicar as regras normativas do SYSTEM e redigir o RESULTADO FINAL para o julgador.
 
-SUA TAREFA NESTA FASE:
-Declarar EXPRESSAMENTE, em bloco inicial, apenas nos colchetes, o resultado de cada item:
-Tempestivo: [SIM/NÃO]
-Prescrição Punitiva: [SIM/NÃO]
-Prescrição Intercorrente: [SIM/NÃO]
-Decadência: [SIM/NÃO/NÃO SE APLICA]
+Sua função é exclusivamente jurídica: ler esses dados, aplicar as regras normativas do SYSTEM e redigir o RESULTADO TÉCNICO para o julgador.
+Obs. 1: Para os eventos expressamente contemplados nas Perguntas da Fase 1 (1 a 6), as datas ali informadas prevalecem como referência principal, em caso de divergência com datas constantes dos documentos, para todos os cálculos de tempestividade, prescrição (punitiva e intercorrente) e decadência.
 
+1. Resultado técnico automático (SIM/NÃO)
+Primeiro, você deve DECLARAR EXPRESSAMENTE, com base exclusiva nos dados e normas, o resultado TÉCNICO de cada item, preenchendo apenas os colchetes:
+Tempestivo (resultado técnico do sistema): [SIM/NÃO]
+Prescrição Punitiva (resultado técnico do sistema): [SIM/NÃO]
+Prescrição Intercorrente (resultado técnico do sistema): [SIM/NÃO]
+Decadência (resultado técnico do sistema): [SIM/NÃO]
+“SIM” = o sistema conclui que a hipótese está CONFIGURADA (ex.: “Prescrição Punitiva: SIM” = há prescrição punitiva).
+
+“NÃO” = o sistema conclui que a hipótese NÃO está configurada.
+
+2. Justificativas – “Cálculo fundamentado”
 Em seguida, justificar cada um dos quatro itens usando:
-
 As respostas da Fase 1 (especialmente perguntas 1, 4 e 5).
 
 A LINHA DO TEMPO MÍNIMA.
@@ -273,56 +276,74 @@ A LINHA DO TEMPO MÍNIMA.
 A TABELA DE DATAS SENSÍVEIS PARA PRAZOS.
 
 Os intervalos em dias já calculados pelo Python.
-
 Formatação OBRIGATÓRIA da justificativa:
 Tempestivo: [SIM/NÃO]
-**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando quais datas foram usadas, qual intervalo o Python calculou e por que isso leva à conclusão de tempestivo ou intempestivo, conforme art. 285 do CTB e regras do prazo máximo para interposição do recurso JARI).
+
+Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando quais datas foram usadas, qual intervalo o Python calculou entre a “Data limite para interposição do recurso JARI” e a “Data de protocolo do recurso JARI” e por que isso leva à conclusão de recurso tempestivo ou intempestivo, conforme art. 285 do CTB e regras do prazo máximo para interposição).
 
 Prescrição Punitiva: [SIM/NÃO]
-**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando: data inicial usada; marcos interruptivos considerados a partir da Linha do Tempo; maior intervalo calculado pelo Python entre o último ato interruptivo e o julgamento; comparação com 1825 dias da Lei 9.873/99; conclusão pela existência ou não de prescrição punitiva).
-
-Prescrição Intercorrente: [SIM/NÃO]
-**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando: uso da Data de Protocolo do Recurso JARI – Pergunta 5/Fase 1 – e da Data da Sessão de Julgamento JARI – Pergunta 1/Fase 1 – conforme registradas na Tabela de Datas Sensíveis; data do “aniversário de 3 anos” calculada pelo Python; verificação se a sessão ocorreu antes/igual ou depois desse aniversário; conclusão pela configuração ou não da prescrição intercorrente).
-
-Decadência: [SIM/NÃO]
-**Cálculo fundamentado:** (texto curto, objetivo e jurídico, explicando: identificação da Data da Infração e do Filtro temporal aplicável – 1, 2 ou 3 – conforme o SYSTEM; indicação das datas usadas para aferir prazos decadenciais – notificação de penalidade e/ou instauração de suspensão/cassação – conforme a Tabela de Datas Sensíveis; uso dos intervalos calculados pelo Python para verificar se excederam 180/360 dias ou 5 anos, respeitando as travas obrigatórias do filtro, inclusive a hipótese de “Decadência: NÃO SE APLICA”).
-
-REGRAS IMPORTANTES:
-Você NÃO pode refazer contas de dias. Use sempre os intervalos fornecidos pelo Python.
-
-Se houver múltiplas versões de datas para um mesmo tipo (POSSÍVEL (1), (2)…), você deve mencionar isso na fundamentação, dizendo que há versões divergentes registradas na Tabela de Datas Sensíveis e que o julgador deve escolher qual data prevalece na Fase 5 – Parecer.
-
-Se algum tipo essencial estiver como “NÃO LOCALIZADO”, mencione na fundamentação do item correspondente que a ausência documental foi registrada na Tabela de Datas Sensíveis e pode impactar a análise de prazo, cabendo ao julgador avaliar.
-
-A prescrição punitiva, a prescrição intercorrente e a decadência são matérias de ordem pública e, quando configuradas, prevalecem sobre eventual intempestividade do recurso, devendo isso ser mencionado na fundamentação quando relevante.
-
-SAÍDA FINAL – ORDEM OBRIGATÓRIA:
-Bloco de quatro linhas com os resultados:
-Tempestivo: [SIM/NÃO]
-Prescrição Punitiva: [SIM/NÃO]
-Prescrição Intercorrente: [SIM/NÃO]
-Decadência: [SIM/NÃO/NÃO SE APLICA]
-
-Em seguida, os quatro blocos de Cálculo fundamentado, exatamente neste formato e nesta ordem:
-Tempestivo: [SIM/NÃO]
-
-**Cálculo fundamentado:** (texto)
-[DECISAO_ADMISSIBILIDADE_TEMPESTIVIDADE]
-
-Prescrição Punitiva: [SIM/NÃO]
-
-**Cálculo fundamentado:** (texto)
-[DECISAO_ADMISSIBILIDADE_PUNITIVA]
+ 
+Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando: data inicial do prazo; marcos interruptivos considerados a partir da Linha do Tempo; maior intervalo calculado pelo Python entre o último ato interruptivo válido e o julgamento final; comparação com 1825 dias (5 anos) da Lei 9.873/99; conclusão pela existência ou não de prescrição punitiva).
 
 Prescrição Intercorrente: [SIM/NÃO]
 
-**Cálculo fundamentado:** (texto)
-[DECISAO_ADMISSIBILIDADE_INTERCORRENTE]
+Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando: uso da Data de Protocolo do Recurso JARI – Pergunta 5/Fase 1 – e da Data da Sessão de Julgamento JARI – Pergunta 1/Fase 1 – conforme registradas na Tabela de Datas Sensíveis; data do “aniversário de 3 anos” calculada pelo Python; verificação se a sessão ocorreu antes, no dia ou depois desse aniversário; conclusão pela configuração ou não da prescrição intercorrente).
 
 Decadência: [SIM/NÃO/NÃO SE APLICA]
 
-**Cálculo fundamentado:** (texto)
-[DECISAO_ADMISSIBILIDADE_DECADENCIA]
+Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando: identificação da Data da Infração e do Filtro temporal aplicável – 1, 2 ou 3 – conforme o SYSTEM; indicação das datas usadas para aferir prazos decadenciais – expedição da Notificação de Penalidade e/ou instauração da suspensão/cassação – conforme a Tabela de Datas Sensíveis; uso dos intervalos calculados pelo Python para verificar se excederam 180, 360 dias ou 5 anos, respeitando as travas obrigatórias de cada filtro, inclusive a hipótese de “Decadência: NÃO SE APLICA” no Filtro 1).
+
+3. Quadro-resumo de opções ao julgador (A/B)
+Após apresentar as conclusões técnicas e os “Cálculos fundamentados”, você deve montar um quadro-resumo com as opções de decisão HUMANA para cada item, SEM alterar os resultados técnicos:
+TEMPESTIVIDADE – resultado técnico do sistema: [SIM/NÃO]
+
+Opções para o julgador:
+ A – Acolho
+ B – Não acolho
+
+PRESCRIÇÃO PUNITIVA – resultado técnico do sistema: [SIM/NÃO]
+
+Opções para o julgador:
+ A – Acolho
+ B – Não acolho
+
+PRESCRIÇÃO INTERCORRENTE – resultado técnico do sistema: [SIM/NÃO]
+
+Opções para o julgador:
+ A – Acolho
+ B – Não acolho
+
+DECADÊNCIA – resultado técnico do sistema: [SIM/NÃO]
+
+Opções para o julgador:
+ A – Acolho
+ B – Não acolho
+
+Instrua o julgador:
+“Informe, obrigatoriamente, a opção escolhida para cada item, no formato:
+ 
+ TEMPESTIVIDADE: A ou B
+ PRESCRIÇÃO PUNITIVA: A ou B
+ PRESCRIÇÃO INTERCORRENTE: A ou B
+ DECADÊNCIA: A ou B”
+
+4. Conversão das escolhas em resultado consolidado
+Após o julgador informar as escolhas (por exemplo: “Tempestividade A; Punitiva B; Intercorrente B; Decadência A”), você deve:
+Para cada item, combinar:
+Resultado técnico do sistema (SIM/NÃO)
+Escolha do julgador (A/B)
+
+Preencher o “Resultado escolhido pelo membro julgador”, seguindo esta regra:
+Se o julgador escolher A (acolho), o resultado escolhido repete o resultado técnico do sistema.
+Se o julgador escolher B (não acolho), o resultado escolhido será o oposto do resultado técnico (SIM ↔ NÃO).
+
+Formato obrigatório:
+Resultado escolhido pelo membro julgador:
+ Tempestivo: [SIM/NÃO]
+ Prescrição Punitiva: [SIM/NÃO]
+ Prescrição Intercorrente: [SIM/NÃO]
+ Decadência: [SIM/NÃO]
+Registre internamente essa combinação para envio à fase seguinte.
 
 Fase 4 — TESES
 **REGRA DE MEMÓRIA:** Toda a Análise de Admissibilidade e Prazos calculada na Fase 3 deve ser anexada na memória do Prompt desta fase.
