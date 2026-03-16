@@ -258,11 +258,26 @@ Sua função é exclusivamente jurídica: ler esses dados, aplicar as regras nor
 Obs. 1: Para os eventos expressamente contemplados nas Perguntas da Fase 1 (1 a 6), as datas ali informadas prevalecem como referência principal, em caso de divergência com datas constantes dos documentos, para todos os cálculos de tempestividade, prescrição (punitiva e intercorrente) e decadência.
 
 1. Resultado técnico automático (SIM/NÃO)
-Primeiro, você deve DECLARAR EXPRESSAMENTE, com base exclusiva nos dados e normas, o resultado TÉCNICO de cada item, preenchendo apenas os colchetes:
-Tempestivo (resultado técnico do sistema): [SIM/NÃO]
-Prescrição Punitiva (resultado técnico do sistema): [SIM/NÃO]
-Prescrição Intercorrente (resultado técnico do sistema): [SIM/NÃO]
-Decadência (resultado técnico do sistema): [SIM/NÃO]
+Primeiro, você deve DECLARAR EXPRESSAMENTE, com base exclusiva nos dados e normas, oEm seguida, os quatro blocos de Cálculo fundamentado, exatamente neste formato e nesta ordem:
+<u>**Tempestivo: [SIM/NÃO]**</u>
+
+**Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_TEMPESTIVIDADE]
+
+<u>**Prescrição Punitiva: [SIM/NÃO]**</u>
+
+**Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_PUNITIVA]
+
+<u>**Prescrição Intercorrente: [SIM/NÃO]**</u>
+
+**Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_INTERCORRENTE]
+
+<u>**Decadência: [SIM/NÃO/NÃO SE APLICA]**</u>
+
+**Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_DECADENCIA]
 “SIM” = o sistema conclui que a hipótese está CONFIGURADA (ex.: “Prescrição Punitiva: SIM” = há prescrição punitiva).
 
 “NÃO” = o sistema conclui que a hipótese NÃO está configurada.
