@@ -707,11 +707,13 @@
             document.getElementById('login-modal').classList.add('hidden');
         }
 
+        const isUserAuthenticated = "{{ request.user.is_authenticated|yesno:'true,false' }}" === "true";
+
         function iniciarNovoProcesso() {
-            {% if not request.user.is_authenticated %}
-            showLoginModal();
-            return;
-            {% endif %}
+            if (!isUserAuthenticated) {
+                showLoginModal();
+                return;
+            }
 
             const footer = document.getElementById('chat-footer');
             if (footer) footer.classList.remove('hidden-home');
@@ -800,10 +802,10 @@
         }
 
         document.getElementById('btn-parecer').addEventListener('click', async () => {
-            {% if not request.user.is_authenticated %}
-            showLoginModal();
-            return;
-            {% endif %}
+            if (!isUserAuthenticated) {
+                showLoginModal();
+                return;
+            }
 
             const name = prompt("Digite o nome ou número para esta pasta:");
             if (name && name.trim() !== "") {
