@@ -961,12 +961,12 @@
                 
                 // Tenta extrair o título da tese (ex: "Tese 4 - Síntese da alegação:" ou "**Tese 4 – TEMPESTIVIDADE:**")
                 // Vamos procurar o texto que vem logo após "Tese X - " ou "Tese X – " no contexto anterior à tag
-                let teseNome = \`Tese \${teseNum}\`;
+                let teseNome = `Tese ${teseNum}`;
                 
                 // Regex para buscar o cabeçalho mais próximo antes desta decisão. 
                 // Exemplo gerado pelo LLM: **Tese 4 – TEMPESTIVIDADE:** ou **Tese 4 - Síntese da alegação:**
                 // Vamos tentar capturar a string que o LLM usou para dar nome à Tese X.
-                const regexTitulo = new RegExp(\`(?:\\\\*\\\\*|<strong|<b>|>\\\\s*)Tese\\\\s+\${teseNum}\\\\s*[-–:]\\\\s*([^<\\\\*]+?)(?:\\\\*\\\\*|<\\\\/strong|<\\\\/b>|:)\`, 'i');
+                const regexTitulo = new RegExp(`(?:\\\\*\\\\*|<strong|<b>|>\\\\s*)Tese\\\\s+${teseNum}\\\\s*[-–:]\\\\s*([^<\\\\*]+?)(?:\\\\*\\\\*|<\\\\/strong|<\\\\/b>|:)`, 'i');
                 const contextBefore = string.substring(Math.max(0, offset - 1000), offset);
                 const matchTitulo = contextBefore.match(regexTitulo);
                 
@@ -976,7 +976,7 @@
                     if (!extractedName.toLowerCase().includes('síntese')) {
                         teseNome = extractedName.toUpperCase();
                     } else {
-                        teseNome = \`TESE \${teseNum}\`;
+                        teseNome = `TESE ${teseNum}`;
                     }
                 } else {
                     teseNome = `TESE ${teseNum}`;
@@ -1555,7 +1555,7 @@
         // --- Drag and Drop Folders (SortableJS) ---
         document.addEventListener('DOMContentLoaded', () => {
             const el = document.getElementById('sortable-folders');
-            if (el) {
+            if (el && typeof Sortable !== 'undefined') {
                 new Sortable(el, {
                     animation: 150,
                     ghostClass: 'bg-blue-50', // Efeito na pasta sendo movida
