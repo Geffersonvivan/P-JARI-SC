@@ -1875,8 +1875,12 @@
                 chatPanel.style.maxWidth = '800px';
                 chatPanel.style.width = '45%';
                 
-                btnTogglePdf.classList.add('bg-blue-600', 'text-white');
-                btnTogglePdf.classList.remove('bg-blue-50', 'text-blue-600');
+                // Define Glassmorphism and Active Classes
+                const inactiveClasses = ['bg-white/70', 'backdrop-blur-md', 'text-blue-700', 'hover:bg-white', 'border', 'border-white/50', 'shadow-lg', 'shadow-blue-500/10', 'hover:shadow-blue-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];
+                const activeClasses = ['bg-blue-600', 'text-white', 'shadow-inner'];
+                
+                btnTogglePdf.classList.remove(...inactiveClasses);
+                btnTogglePdf.classList.add(...activeClasses);
                 
                 // Abre a primeira aba que tiver documento, com prioridade para Defesa/Recurso
                 if (pdfDocs.recurso) {
@@ -1898,8 +1902,12 @@
                 chatPanel.style.maxWidth = '100%';
                 chatPanel.style.width = '100%';
                 
-                btnTogglePdf.classList.remove('bg-blue-600', 'text-white');
-                btnTogglePdf.classList.add('bg-blue-50', 'text-blue-600');
+                // Define Glassmorphism and Active Classes
+                const inactiveClasses = ['bg-white/70', 'backdrop-blur-md', 'text-blue-700', 'hover:bg-white', 'border', 'border-white/50', 'shadow-lg', 'shadow-blue-500/10', 'hover:shadow-blue-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];
+                const activeClasses = ['bg-blue-600', 'text-white', 'shadow-inner'];
+                
+                btnTogglePdf.classList.remove(...activeClasses);
+                btnTogglePdf.classList.add(...inactiveClasses);
             }
         }
 
