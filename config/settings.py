@@ -41,7 +41,13 @@ if csrf_trusted:
     CSRF_TRUSTED_ORIGINS = csrf_trusted.split(',')
 else:
     # Allow Railway and custom domains for CSRF by default
-    CSRF_TRUSTED_ORIGINS = ['https://*.railway.app', 'https://pjarisc.com.br', 'https://www.pjarisc.com.br']
+    CSRF_TRUSTED_ORIGINS = []
+
+# Sempre forçar os domínios básicos para evitar erros de deploy vazio (evita 403 CSRF)
+base_origins = ['https://*.railway.app', 'https://pjarisc.com.br', 'https://www.pjarisc.com.br']
+for origin in base_origins:
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
 
 # Forçar uso do HTTPS para CSRF/Session em ambiente Prod (DEBUG=False)
 if not DEBUG:
