@@ -307,15 +307,22 @@ Em seguida, os quatro blocos de Cálculo fundamentado, exatamente neste formato 
 Tempestivo: [SIM/NÃO]
 
 **Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_TEMPESTIVIDADE]
+
 Prescrição Punitiva: [SIM/NÃO]
 
 **Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_PUNITIVA]
+
 Prescrição Intercorrente: [SIM/NÃO]
 
 **Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_INTERCORRENTE]
+
 Decadência: [SIM/NÃO/NÃO SE APLICA]
 
 **Cálculo fundamentado:** (texto)
+[DECISAO_ADMISSIBILIDADE_DECADENCIA]
 
 Fase 4 — TESES
 **REGRA DE MEMÓRIA:** Toda a Análise de Admissibilidade e Prazos calculada na Fase 3 deve ser anexada na memória do Prompt desta fase.

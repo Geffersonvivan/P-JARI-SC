@@ -271,11 +271,17 @@ class GeminiClient:
             "Decadência: [SIM/NÃO/NÃO SE APLICA]\n\n"
             "Em seguida, os quatro blocos de Cálculo fundamentado, exatamente neste formato e nesta ordem:\n"
             "Tempestivo: [SIM/NÃO]\n\n"
-            "**Cálculo fundamentado:** (texto)\n\n"
+            "**Cálculo fundamentado:** (texto)\n"
+            "[DECISAO_ADMISSIBILIDADE_TEMPESTIVIDADE]\n\n"
             "Prescrição Punitiva: [SIM/NÃO]\n\n"
-            "**Cálculo fundamentado:** (texto)\n\n"
+            "**Cálculo fundamentado:** (texto)\n"
+            "[DECISAO_ADMISSIBILIDADE_PUNITIVA]\n\n"
+            "Prescrição Intercorrente: [SIM/NÃO]\n\n"
+            "**Cálculo fundamentado:** (texto)\n"
+            "[DECISAO_ADMISSIBILIDADE_INTERCORRENTE]\n\n"
             "Decadência: [SIM/NÃO/NÃO SE APLICA]\n\n"
-            "**Cálculo fundamentado:** (texto)"
+            "**Cálculo fundamentado:** (texto)\n"
+            "[DECISAO_ADMISSIBILIDADE_DECADENCIA]"
         )
         
         data_sessao_str = parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else 'NÃO INFORMADO'
