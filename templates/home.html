@@ -968,16 +968,35 @@
                 body: JSON.stringify({ message: 'RESUMO_PROJETO', parecer_id: currentParecerId })
             }).then(response => response.json())
                 .then(data => {
-                    if (data.reply) {
-                        messagesContainer.innerHTML = '';
+                    messagesContainer.innerHTML = '';
+                    if (data.chat_history && data.chat_history.length > 0) {
+                        data.chat_history.forEach(msg => {
+                            if (msg.role === 'user') {
+                                const userDiv = document.createElement('div');
+                                userDiv.className = "flex justify-end mt-4";
+                                userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatMessage(msg.content)}</div>`;
+                                messagesContainer.appendChild(userDiv);
+                            } else {
+                                const rDiv = document.createElement('div');
+                                rDiv.className = "flex justify-start items-start gap-3 mt-4 w-full";
+                                rDiv.innerHTML = `
+                                  <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
+                                  <div class="text-[#444746] leading-relaxed pt-1 w-full">${formatMessage(msg.content)}</div>
+                                `;
+                                messagesContainer.appendChild(rDiv);
+                            }
+                        });
+                        chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                    } else if (data.reply) {
                         const rDiv = document.createElement('div');
                         rDiv.className = "flex justify-start items-start gap-3 mt-4 w-full";
                         rDiv.innerHTML = `
                           <div class="w-8 h-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">P</div>
-                          <div class="text-[#444746] leading-relaxed pt-1 w-full bg-white p-6 rounded shadow-sm border border-gray-100">${formatMessage(data.reply)}</div>
+                          <div class="text-[#444746] leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
                         `;
                         messagesContainer.appendChild(rDiv);
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                    }
                         
                         // Atualiza as opções do Leitor de PDF e abre automaticamente se existir e se passou da fase 1
                         if (data.consolidado_url) {
@@ -1875,6 +1894,11 @@
                 chatPanel.style.maxWidth = '800px';
                 chatPanel.style.width = '45%';
                 
+                // FECHA A SIDEBAR AO ABRIR O PDF AUTOMATICAMENTE (Se estiver aberta e em Desktop)
+                if (window.innerWidth >= 768 && !sidebar.classList.contains('sidebar-hidden')) {
+                    toggleSidebar();
+                }
+                
                 // Define Glassmorphism and Active Classes
                 const inactiveClasses = ['bg-white/70', 'backdrop-blur-md', 'text-blue-700', 'hover:bg-white', 'border', 'border-white/50', 'shadow-lg', 'shadow-blue-500/10', 'hover:shadow-blue-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];
                 const activeClasses = ['bg-blue-600', 'text-white', 'shadow-inner'];
@@ -1897,10 +1921,10 @@
                 resizer.classList.add('hidden');
                 resizer.classList.remove('flex');
                 
-                // Se fechou, o Chat volta a ser 100% (flex-1)
+                // Se fechou, o Chat volta a ser 100% via Layout do Tailwind nativo (flex-1 devolve comportamento fluido)
                 chatPanel.classList.add('flex-1');
-                chatPanel.style.maxWidth = '100%';
-                chatPanel.style.width = '100%';
+                chatPanel.style.maxWidth = '';
+                chatPanel.style.width = '';
                 
                 // Define Glassmorphism and Active Classes
                 const inactiveClasses = ['bg-white/70', 'backdrop-blur-md', 'text-blue-700', 'hover:bg-white', 'border', 'border-white/50', 'shadow-lg', 'shadow-blue-500/10', 'hover:shadow-blue-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];

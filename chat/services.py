@@ -53,10 +53,15 @@ class ChatService:
         except Exception as e:
             print(f"Erro ao buscar URLs de media PDFs: {e}")
             
+        from .models import ChatMessage
+        historico = ChatMessage.objects.filter(parecer=p).order_by('created_at')
+        chat_history = [{'role': m.role, 'content': m.content} for m in historico]
+            
         return JsonResponse({
             'reply': reply,
             'autuacao_url': autuacao_url,
-            'consolidado_url': consolidado_url
+            'consolidado_url': consolidado_url,
+            'chat_history': chat_history
         })
 
     @staticmethod
@@ -86,6 +91,9 @@ class ChatService:
         engine = JariEngine(parecer)
         reply = engine.get_current_prompt()
         
+        from .models import ChatMessage
+        ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        
         return JsonResponse({
             'reply': reply,
             'status_fase': parecer.status_fase,
@@ -95,6 +103,12 @@ class ChatService:
     @staticmethod
     def handle_processamento(parecer_id, message, uploaded_files, filter_kwargs):
         parecer = get_object_or_404(Parecer, id=parecer_id, **filter_kwargs)
+        
+        from .models import ChatMessage
+        # Salva o input do usuario
+        if message and str(message).strip() != 'ESTE_E_UM_BOTAO_GHOST':
+            ChatMessage.objects.create(parecer=parecer, role='user', content=message)
+        
         engine = JariEngine(parecer)
         reply = engine.process_message(message, uploaded_files)
         
@@ -108,7 +122,8 @@ class ChatService:
                     msg = "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto...*"
                 else:
                     msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O P-JARI irá disponibilizar o Parecer logo abaixo quando for concluído...*"
-                    
+                
+                # Para respostas celery, não salvamos ainda no banco, quem vai salvar será a task ao vivo ou apenas recarregaremos após F5
                 return JsonResponse({
                     'reply': msg,
                     'status_fase': parecer.status_fase,
@@ -117,6 +132,9 @@ class ChatService:
                 })
             except Exception:
                 pass
+                
+        # Salva a resposta do robo
+        ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
         
         autuacao_url = None
         consolidado_url = None

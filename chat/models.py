@@ -105,6 +105,18 @@ class ParecerFinal(models.Model):
         nome = self.parecer_referencia.nome_processo if self.parecer_referencia else "Avulso"
         return f"Parecer Final: {nome} - {self.status_resultado}"
 
+class ChatMessage(models.Model):
+    parecer = models.ForeignKey(Parecer, on_delete=models.CASCADE, related_name='chat_history')
+    role = models.CharField(max_length=20, choices=[('user', 'User'), ('assistant', 'Assistant')])
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role} - {self.created_at.strftime('%d/%m %H:%M')}"
+
 class PjariCacheConfig(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Ativar PJARI-CACHE", help_text="Se desativado, o sistema sempre fará buscas externas na Fase 4 e 5.")
     total_requests = models.IntegerField(default=0, verbose_name="Total de Consultas")
