@@ -24,7 +24,7 @@ def gerar_parecer_task(self, parecer_id, tese=None):
         
         # Dispara o processamento demorado
         # O JariEngine irá escrever os resultados e setar status_fase = 6
-        engine.run_llm_phases()
+        engine.run_llm_phases(task_id=self.request.id)
         
         # Retorna sucesso para a requisição de polling
         return "SUCCESS"

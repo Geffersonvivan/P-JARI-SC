@@ -520,7 +520,7 @@ class GeminiClient:
                 )
             return f"Erro ao acessar Gemini na Fase 4: {str(e)}.\n"
 
-    def validate_and_generate_parecer(self, parecer_obj, tese, perplexity_result, vertex_result=""):
+    def validate_and_generate_parecer(self, parecer_obj, tese, perplexity_result, vertex_result="", task_id=None):
         relator_name = "NÃO INFORMADO"
         if parecer_obj.user:
             relator_name = f"{parecer_obj.user.first_name} {parecer_obj.user.last_name}".strip()
@@ -642,13 +642,42 @@ class GeminiClient:
         try:
             start_time = time.time()
             model_to_use = 'gemini-2.5-flash'
-            response = self.client.models.generate_content(
+            
+            redis_client = None
+            if task_id:
+                import redis
+                import json
+                try:
+                    redis_client = redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'))
+                except Exception as e:
+                    print(f"Erro de conexão com Redis: {e}")
+
+            response_stream = self.client.models.generate_content_stream(
                 model=model_to_use,
                 contents=contents,
                 config={'system_instruction': system_instruction}
             )
-            self._log_tokens(parecer_obj, response, 'Fase 5 (Parecer)', model_name=model_to_use, start_time=start_time)
-            return response.text
+            
+            full_text = []
+            last_chunk = None
+            for chunk in response_stream:
+                last_chunk = chunk
+                try:
+                    # Depending on library version, might throw exception if safety blocked
+                    chunk_text = getattr(chunk, 'text', '')
+                    if chunk_text:
+                        full_text.append(chunk_text)
+                        if redis_client:
+                            redis_client.publish(f"stream_{task_id}", json.dumps({
+                                'status': 'CHUNK',
+                                'text': chunk_text
+                            }))
+                except Exception as stream_err:
+                    print(f"Erro no streaming do chunk: {stream_err}")
+                    
+            final_text = "".join(full_text)
+            self._log_tokens(parecer_obj, last_chunk, 'Fase 5 (Parecer)', model_name=model_to_use, start_time=start_time)
+            return final_text
         except Exception as e:
             err_str = str(e)
             if "429" in err_str or "Too Many Requests" in err_str:

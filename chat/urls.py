@@ -11,6 +11,7 @@ urlpatterns = [
     path('chat/message/', views.chat_message_view, name='chat_message'),
     path('chat/agent_message/', views.chat_agent_message_view, name='chat_agent_message'),
     path('chat/task-status/<str:task_id>/', views.check_task_status_view, name='check_task_status'),
+    path('chat/stream/<str:task_id>/', views.stream_task_status_view, name='stream_task_status'),
     path('parecer/<int:id>/editor/', views.editar_parecer_view, name='editar_parecer'),
     path('parecer/<int:id>/salvar/', views.salvar_parecer_view, name='salvar_parecer'),
     path('planos/', views.planos_view, name='planos'),

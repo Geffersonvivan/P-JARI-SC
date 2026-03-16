@@ -1088,20 +1088,40 @@
             </div>`;
         }
 
-        async function pollTaskStatus(taskId, msgId, parecerId) {
-            try {
-                const response = await fetch(`/chat/task-status/${taskId}/?parecer_id=${parecerId || ''}`);
-                if (response.ok) {
-                    const data = await response.json();
+        function pollTaskStatus(taskId, msgId, parecerId) {
+            const eventSource = new EventSource(`/chat/stream/${taskId}/?parecer_id=${parecerId || ''}`);
+            let streamedMarkdown = "";
+            let msgContainer = document.getElementById(`msg-${msgId}`);
+            
+            if (msgContainer) {
+                msgContainer.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-blue-500 shadow-md shadow-blue-200 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">
+                        <svg class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+                    <div id="stream-content-${msgId}" class="text-[#444746] leading-relaxed pt-1 w-full bg-white p-6 rounded-xl shadow-lg shadow-gray-100/50 border border-blue-100/50 transition-all duration-300 min-h-[60px]">
+                        <span class="text-gray-400 italic text-sm animate-pulse">Aguardando IA...</span>
+                    </div>
+                `;
+            }
 
-                    if (data.status === 'SUCCESS') {
-                        const msgContainer = document.getElementById(`msg-${msgId}`);
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.status === 'CHUNK') {
+                        streamedMarkdown += data.text;
+                        const contentDiv = document.getElementById(`stream-content-${msgId}`);
+                        if (contentDiv) {
+                            contentDiv.innerHTML = formatMessage(streamedMarkdown);
+                            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'auto' });
+                        }
+                    } else if (data.status === 'SUCCESS') {
+                        eventSource.close();
                         if (msgContainer) {
                             msgContainer.innerHTML = `
                                 <div class="w-8 h-8 rounded-full bg-green-500 shadow-md shadow-green-200 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">✓</div>
                                 <div class="text-[#444746] leading-relaxed pt-1 w-full bg-white p-6 rounded-xl shadow-lg shadow-gray-100/50 border border-green-100/50 transition-opacity duration-500">${formatMessage(data.reply)}</div>
                             `;
-                            // Som opcional "plim" leve
                             try {
                                 const audio = new Audio('data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
                                 audio.volume = 0.5;
@@ -1109,9 +1129,15 @@
                             } catch (e) { }
 
                             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                            
+                            // Em caso de streaming bem sucedido é seguro deixar as atualizações de Fase prosseguirem como originalmente o FrontEnd fazia.
+                            // O FrontEnd habilita o input se 'status_fase' vem na resposta, mas só dentro do submitMessage.
+                            // Vamos habilitar de volta os inputs, por garantia.
+                            document.getElementById('status-dots').classList.add('hidden');
+                            if (typeof enableInput === "function") enableInput();
                         }
                     } else if (data.status === 'FAILURE') {
-                        const msgContainer = document.getElementById(`msg-${msgId}`);
+                        eventSource.close();
                         if (msgContainer) {
                             msgContainer.innerHTML = `
                                 <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
@@ -1119,17 +1145,20 @@
                             `;
                             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
                         }
-                    } else {
-                        // PROCESSING
-                        setTimeout(() => pollTaskStatus(taskId, msgId, parecerId), 3000);
+                        document.getElementById('status-dots').classList.add('hidden');
+                        if (typeof enableInput === "function") enableInput();
                     }
-                } else {
-                    setTimeout(() => pollTaskStatus(taskId, msgId, parecerId), 4000);
+                } catch (e) {
+                    console.error("Erro processando pacote SSE:", e);
                 }
-            } catch (error) {
-                console.error("Erro no polling:", error);
-                setTimeout(() => pollTaskStatus(taskId, msgId, parecerId), 5000);
-            }
+            };
+
+            eventSource.onerror = function(err) {
+                console.error("Erro no SSE EventSource:", err);
+                eventSource.close();
+                document.getElementById('status-dots').classList.add('hidden');
+                if (typeof enableInput === "function") enableInput();
+            };
         }
 
         // Logica para o Modal de Citações / Tese

@@ -537,7 +537,7 @@ class JariEngine:
         
         return self.get_current_prompt()
 
-    def run_llm_phases(self):
+    def run_llm_phases(self, task_id=None):
         """Executa a Fase 5 (Parecer Bloco Único) e Fase 6 (Blindagem)."""
         from chat.integrations import PerplexityClient, GeminiClient, VertexAIClient
         
@@ -567,7 +567,7 @@ class JariEngine:
                 perplexity_result = p_future.result() if p_future else self.parecer.perplexity_result
             
         # Fase 5: Geração de Parecer Textual (Gemini) Formatado
-        parecer_text = gemini.validate_and_generate_parecer(self.parecer, tese, perplexity_result, vertex_result)
+        parecer_text = gemini.validate_and_generate_parecer(self.parecer, tese, perplexity_result, vertex_result, task_id=task_id)
         
         # Extrair a Fundamentação Normativa (Dossiê) se existir
         # Usa regex pois o LLM às vezes perde os *** e escreve apenas DOSSIE_START
