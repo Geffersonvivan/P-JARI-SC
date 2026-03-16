@@ -423,7 +423,7 @@
 
     <main class="flex-1 flex flex-col relative overflow-hidden">
 
-        <header class="p-4 flex justify-between items-center">
+        <header class="p-4 flex justify-between items-center z-10 bg-white shadow-sm border-b border-gray-200">
             <div class="flex items-center gap-2">
                 <button id="btn-open-sidebar" onclick="toggleSidebar()"
                     class="p-2 hover:bg-gray-200 rounded-full md:hidden">☰</button>
@@ -431,11 +431,54 @@
                     class="text-lg font-medium md:hidden hover:text-blue-600 transition">P-JARI/SC</a>
             </div>
             <div class="flex items-center gap-4">
-                <!-- Header options space -->
+                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm text-sm font-medium">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    Visualizar Processo
+                </button>
             </div>
         </header>
 
-        <section id="chat-window" class="flex-1 overflow-y-auto p-4 flex flex-col">
+        <!-- Container Flex para Split Screen -->
+        <div class="flex-1 flex flex-row overflow-hidden relative" id="split-container">
+            
+            <!-- Painel Esquerdo: PDF Viewer (Escondido por Padrão) -->
+            <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-gray-300 bg-gray-50 z-10" style="width: 50%;">
+                
+                <!-- PDF Tabs/Header -->
+                <div class="flex items-center justify-between px-3 py-2 bg-gray-100 border-b border-gray-300">
+                    <div class="flex gap-2">
+                        <button id="tab-recurso" onclick="switchPdfTab('recurso')" class="px-4 py-1.5 text-sm font-semibold rounded-t-lg bg-white border-t border-l border-r border-gray-300 text-blue-700 shadow-sm transition-colors relative top-[1px]">Defesa/Recurso</button>
+                        <button id="tab-autuacao" onclick="switchPdfTab('autuacao')" class="px-4 py-1.5 text-sm font-medium rounded-t-lg bg-gray-200 text-gray-500 hover:bg-white hover:text-blue-700 border-t border-l border-r border-transparent hover:border-gray-300 transition-colors relative top-[1px]">Auto de Infração</button>
+                    </div>
+                    <button onclick="togglePdfViewer()" class="text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200 transition-colors" title="Fechar Visualizador">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                
+                <!-- Iframe Container -->
+                <div class="flex-1 relative bg-gray-200 flex items-center justify-center">
+                    <iframe id="pdf-iframe" src="" class="absolute inset-0 w-full h-full border-none"></iframe>
+                    <div id="pdf-placeholder" class="text-center p-6 flex flex-col items-center justify-center text-gray-400">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mb-4 opacity-50"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <p class="text-sm font-medium">Nenhum documento disponível ou a URL expirou.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resizer Handle -->
+            <div id="split-resizer" class="hidden w-1.5 cursor-col-resize bg-gray-300 hover:bg-blue-400 transition-colors z-20 flex-shrink-0 flex items-center justify-center">
+                <div class="h-8 w-0.5 bg-gray-400 rounded-full pointer-events-none"></div>
+            </div>
+
+            <!-- Painel Direito: Chat Main Area -->
+            <div id="chat-split-panel" class="flex-1 flex flex-col overflow-hidden relative min-w-[300px]">
+                <section id="chat-window" class="flex-1 overflow-y-auto p-4 flex flex-col">
             <div id="home-screen" class="flex-1 flex flex-col items-center justify-center">
                 <div class="content-container text-center mb-12">
                     <h1 class="text-2xl font-light mb-8 text-gray-500 leading-[1.4]">
@@ -518,6 +561,9 @@
                 </p>
             </div>
         </footer>
+        
+        </div> <!-- End Painel Direito -->
+        </div> <!-- End Split Container Flex -->
     </main>
 
     <!-- Fim do Main Content -->
@@ -929,6 +975,16 @@
                         `;
                         messagesContainer.appendChild(rDiv);
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                        
+                        // Atualiza as opções do Leitor de PDF e abre automaticamente se existir
+                        if (data.consolidado_url) pdfDocs.recurso = data.consolidado_url; else pdfDocs.recurso = null;
+                        if (data.autuacao_url) pdfDocs.autuacao = data.autuacao_url; else pdfDocs.autuacao = null;
+                        
+                        if (pdfDocs.recurso || pdfDocs.autuacao) {
+                            togglePdfViewer(true);
+                        } else {
+                            togglePdfViewer(false);
+                        }
                         
                         // Atualiza as sugestões do Agente Lateral (Dynamic Context Chips)
                         if (window.updateAgentChips) {
@@ -1725,6 +1781,110 @@
             input.value = finalString;
             sendMessage();
         };
+
+        // --- INÍCIO DO CÓDIGO DO SPLIT SCREEN (PDF VIEWER) ---
+        let pdfDocs = { recurso: null, autuacao: null };
+        let pdfViewerActive = false;
+        
+        const splitContainer = document.getElementById('split-container');
+        const pdfPanel = document.getElementById('pdf-split-panel');
+        const chatPanel = document.getElementById('chat-split-panel');
+        const resizer = document.getElementById('split-resizer');
+        const pdfIframe = document.getElementById('pdf-iframe');
+        const pdfPlaceholder = document.getElementById('pdf-placeholder');
+        const btnTogglePdf = document.getElementById('btn-toggle-pdf');
+
+        function togglePdfViewer(forceState = null) {
+            pdfViewerActive = forceState !== null ? forceState : !pdfViewerActive;
+            
+            if (pdfViewerActive) {
+                pdfPanel.classList.remove('hidden');
+                pdfPanel.classList.add('flex');
+                resizer.classList.remove('hidden');
+                resizer.classList.add('flex');
+                btnTogglePdf.classList.add('bg-blue-600', 'text-white');
+                btnTogglePdf.classList.remove('bg-blue-50', 'text-blue-600');
+                
+                // Abre aba padrão
+                if (pdfDocs.recurso) switchPdfTab('recurso');
+                else if (pdfDocs.autuacao) switchPdfTab('autuacao');
+                else switchPdfTab('recurso'); // placeholder
+            } else {
+                pdfPanel.classList.add('hidden');
+                pdfPanel.classList.remove('flex');
+                resizer.classList.add('hidden');
+                resizer.classList.remove('flex');
+                btnTogglePdf.classList.remove('bg-blue-600', 'text-white');
+                btnTogglePdf.classList.add('bg-blue-50', 'text-blue-600');
+                pdfPanel.style.width = '50%'; // Reseta width pro inicio se fechar e abrir
+            }
+        }
+
+        function switchPdfTab(tabName) {
+            const btnRecurso = document.getElementById('tab-recurso');
+            const btnAutuacao = document.getElementById('tab-autuacao');
+            
+            // Estilos visuais dinâmicos
+            if (tabName === 'recurso') {
+                btnRecurso.className = "px-4 py-1.5 text-sm font-semibold rounded-t-lg bg-white border-t border-l border-r border-gray-300 text-blue-700 shadow-sm transition-colors relative top-[1px]";
+                btnAutuacao.className = "px-4 py-1.5 text-sm font-medium rounded-t-lg bg-gray-200 text-gray-500 hover:bg-white hover:text-blue-700 border-t border-l border-r border-transparent hover:border-gray-300 transition-colors relative top-[1px]";
+                
+                if (pdfDocs.recurso) {
+                    pdfIframe.src = pdfDocs.recurso;
+                    pdfIframe.classList.remove('hidden');
+                    pdfPlaceholder.classList.add('hidden');
+                } else {
+                    pdfIframe.src = "";
+                    pdfIframe.classList.add('hidden');
+                    pdfPlaceholder.classList.remove('hidden');
+                }
+            } else {
+                btnAutuacao.className = "px-4 py-1.5 text-sm font-semibold rounded-t-lg bg-white border-t border-l border-r border-gray-300 text-blue-700 shadow-sm transition-colors relative top-[1px]";
+                btnRecurso.className = "px-4 py-1.5 text-sm font-medium rounded-t-lg bg-gray-200 text-gray-500 hover:bg-white hover:text-blue-700 border-t border-l border-r border-transparent hover:border-gray-300 transition-colors relative top-[1px]";
+                
+                if (pdfDocs.autuacao) {
+                    pdfIframe.src = pdfDocs.autuacao;
+                    pdfIframe.classList.remove('hidden');
+                    pdfPlaceholder.classList.add('hidden');
+                } else {
+                    pdfIframe.src = "";
+                    pdfIframe.classList.add('hidden');
+                    pdfPlaceholder.classList.remove('hidden');
+                }
+            }
+        }
+
+        // --- Lógica de Arrastar (Resizer) ---
+        let isResizing = false;
+        
+        if (resizer) {
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                document.body.style.cursor = 'col-resize';
+                // Remove pointer events do iframe para ele não "roubar" o evento do mouse
+                if (pdfIframe) pdfIframe.style.pointerEvents = 'none';
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const containerRect = splitContainer.getBoundingClientRect();
+            // Limita a largura entre 20% e 80% do espaco
+            let newWidth = e.clientX - containerRect.left;
+            if (newWidth < containerRect.width * 0.2) newWidth = containerRect.width * 0.2;
+            if (newWidth > containerRect.width * 0.8) newWidth = containerRect.width * 0.8;
+            
+            pdfPanel.style.width = newWidth + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = '';
+                if (pdfIframe) pdfIframe.style.pointerEvents = 'auto'; // Devolve para clicar no PDF
+            }
+        });
+        // --- FIM DO CÓDIGO DO SPLIT SCREEN ---
     </script>
 
     <!-- Modal Integrado de Citações -->

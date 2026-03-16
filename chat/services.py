@@ -41,7 +41,22 @@ class ChatService:
             reply += f"\n\n<div style='margin-top: 20px;'><a href='/parecer/{p.id}/editor/' style='display:inline-block; padding:8px 16px; background-color:#2563eb !important; border-radius:8px; text-decoration:none !important; font-weight:600;'><span style='color:#ffffff !important; font-size:14px;'>✏️ Abrir Editor de Parecer Final</span></a></div>\n\n"
         else:
             reply += "*(Sem parecer gerado)*\n\n"
-        return JsonResponse({'reply': reply})
+            
+        autuacao_url = None
+        consolidado_url = None
+        try:
+            if p.autuacao_pdf_path and default_storage.exists(p.autuacao_pdf_path):
+                autuacao_url = default_storage.url(p.autuacao_pdf_path)
+            if p.consolidado_pdf_path and default_storage.exists(p.consolidado_pdf_path):
+                consolidado_url = default_storage.url(p.consolidado_pdf_path)
+        except Exception as e:
+            print(f"Erro ao buscar URLs de media PDFs: {e}")
+            
+        return JsonResponse({
+            'reply': reply,
+            'autuacao_url': autuacao_url,
+            'consolidado_url': consolidado_url
+        })
 
     @staticmethod
     def handle_iniciar(request, filter_kwargs):
