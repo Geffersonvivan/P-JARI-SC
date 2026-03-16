@@ -431,7 +431,7 @@
                     class="text-lg font-medium md:hidden hover:text-blue-600 transition">P-JARI/SC</a>
             </div>
             <div class="flex items-center gap-4">
-                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm text-sm font-medium">
+                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm text-sm font-medium">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
@@ -448,7 +448,7 @@
         <div class="flex-1 flex flex-row overflow-hidden relative" id="split-container">
             
             <!-- Painel Esquerdo: PDF Viewer (Escondido por Padrão) -->
-            <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-gray-300 bg-gray-50 z-10" style="width: 50%;">
+            <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-gray-300 bg-gray-50 z-10 flex-1 min-w-[300px]">
                 
                 <!-- PDF Tabs/Header -->
                 <div class="flex items-center justify-between px-3 py-2 bg-gray-100 border-b border-gray-300">
@@ -477,7 +477,7 @@
             </div>
 
             <!-- Painel Direito: Chat Main Area -->
-            <div id="chat-split-panel" class="flex-1 flex flex-col overflow-hidden relative min-w-[300px]">
+            <div id="chat-split-panel" class="flex flex-col overflow-hidden relative" style="width: 45%; min-width: 400px; max-width: 800px;">
                 <section id="chat-window" class="flex-1 overflow-y-auto p-4 flex flex-col">
             <div id="home-screen" class="flex-1 flex flex-col items-center justify-center">
                 <div class="content-container text-center mb-12">
@@ -991,10 +991,14 @@
                             pdfDocs.autuacao = null;
                         }
                         
-                        // Na seleção do Histórico, o status sempre será > 1, então pode abrir.
+                        // Na seleção do Histórico, o status sempre será > 1, então pode abrir e exibir o toggle button no Header
                         if (pdfDocs.recurso || pdfDocs.autuacao) {
+                            btnTogglePdf.classList.remove('hidden');
+                            btnTogglePdf.classList.add('md:flex');
                             togglePdfViewer(true);
                         } else {
+                            btnTogglePdf.classList.add('hidden');
+                            btnTogglePdf.classList.remove('md:flex');
                             togglePdfViewer(false);
                             document.getElementById('tab-recurso').innerText = "Defesa/Recurso";
                             document.getElementById('tab-autuacao').innerText = "Auto de Infração";
@@ -1535,8 +1539,14 @@
                     }
 
                     // Carregar o PDF na tela apenas a partir da Fase 2 (Após o upload na pergunta 07)
-                    if (shouldOpenPdf && data.status_fase >= 2 && !pdfViewerActive) {
-                        togglePdfViewer(true);
+                    if (shouldOpenPdf && data.status_fase >= 2) {
+                        btnTogglePdf.classList.remove('hidden');
+                        btnTogglePdf.classList.add('md:flex');
+                        
+                        if (!pdfViewerActive) togglePdfViewer(true);
+                    } else if (data.status_fase < 2) {
+                        btnTogglePdf.classList.add('hidden');
+                        btnTogglePdf.classList.remove('md:flex');
                     }
 
                     // Se o processo chegou ao fim (salvo na pasta), mostra Toast e reinicia o layout
@@ -1847,6 +1857,12 @@
                 pdfPanel.classList.add('flex');
                 resizer.classList.remove('hidden');
                 resizer.classList.add('flex');
+                
+                // Em modo Split ativo: o chat deixa de ser flex-1 e passa pro width configurado,
+                // enquanto o PDF se torna flex-1 (tela cheia/resto do espaço).
+                chatPanel.classList.remove('flex-1');
+                chatPanel.style.width = '45%';
+                
                 btnTogglePdf.classList.add('bg-blue-600', 'text-white');
                 btnTogglePdf.classList.remove('bg-blue-50', 'text-blue-600');
                 
@@ -1864,9 +1880,13 @@
                 pdfPanel.classList.remove('flex');
                 resizer.classList.add('hidden');
                 resizer.classList.remove('flex');
+                
+                // Se fechou, o Chat volta a ser 100% (flex-1)
+                chatPanel.classList.add('flex-1');
+                chatPanel.style.width = '100%';
+                
                 btnTogglePdf.classList.remove('bg-blue-600', 'text-white');
                 btnTogglePdf.classList.add('bg-blue-50', 'text-blue-600');
-                pdfPanel.style.width = '50%'; // Reseta width pro inicio se fechar e abrir
             }
         }
 
@@ -1926,12 +1946,15 @@
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
             const containerRect = splitContainer.getBoundingClientRect();
-            // Limita a largura entre 20% e 80% do espaco
-            let newWidth = e.clientX - containerRect.left;
-            if (newWidth < containerRect.width * 0.2) newWidth = containerRect.width * 0.2;
-            if (newWidth > containerRect.width * 0.8) newWidth = containerRect.width * 0.8;
             
-            pdfPanel.style.width = newWidth + 'px';
+            // Agora manipulamos a largura do painel do CHAT (lado direito)
+            // de modo inverso, e o PDF (flex-1) se ajusta automaticamente para tomar o resto
+            let newChatWidth = containerRect.right - e.clientX;
+            
+            if (newChatWidth < containerRect.width * 0.25) newChatWidth = containerRect.width * 0.25;
+            if (newChatWidth > containerRect.width * 0.8) newChatWidth = containerRect.width * 0.8;
+            
+            chatPanel.style.width = newChatWidth + 'px';
         });
 
         document.addEventListener('mouseup', () => {
