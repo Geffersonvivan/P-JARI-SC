@@ -956,36 +956,60 @@
 
             // Injeta botões interativos dinâmicos para a Fase 4 do JARI
             let hasDecisionButtons = false;
-            rawHtml = rawHtml.replace(/\[DECISAO_TESE_(\d+)\]/g, function (match, teseNum) {
+            rawHtml = rawHtml.replace(/\[DECISAO_TESE_(\d+)\]/g, function (match, teseNum, offset, string) {
                 hasDecisionButtons = true;
-                return `
-                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseNum}">
+                
+                // Tenta extrair o título da tese (ex: "Tese 4 - Síntese da alegação:" ou "**Tese 4 – TEMPESTIVIDADE:**")
+                // Vamos procurar o texto que vem logo após "Tese X - " ou "Tese X – " no contexto anterior à tag
+                let teseNome = \`Tese \${teseNum}\`;
+                
+                // Regex para buscar o cabeçalho mais próximo antes desta decisão. 
+                // Exemplo gerado pelo LLM: **Tese 4 – TEMPESTIVIDADE:** ou **Tese 4 - Síntese da alegação:**
+                // Vamos tentar capturar a string que o LLM usou para dar nome à Tese X.
+                const regexTitulo = new RegExp(\`(?:\\\\*\\\\*|<strong|<b>|>\\\\s*)Tese\\\\s+\${teseNum}\\\\s*[-–:]\\\\s*([^<\\\\*]+?)(?:\\\\*\\\\*|<\\\\/strong|<\\\\/b>|:)\`, 'i');
+                const contextBefore = string.substring(Math.max(0, offset - 1000), offset);
+                const matchTitulo = contextBefore.match(regexTitulo);
+                
+                if (matchTitulo && matchTitulo[1]) {
+                    const extractedName = matchTitulo[1].trim();
+                    // Se o nome capturado for algo genérico como "Síntese da alegação", mantemos "Tese X" ou tentamos capturar antes
+                    if (!extractedName.toLowerCase().includes('síntese')) {
+                        teseNome = extractedName.toUpperCase();
+                    } else {
+                        teseNome = \`TESE \${teseNum}\`;
+                    }
+                } else {
+                    teseNome = \`TESE \${teseNum}\`;
+                }
+
+                return \`
+                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="\${teseNum}">
                     <div class="flex items-center gap-2 mb-1 pb-2 border-b border-gray-100">
-                        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">${teseNum}</div>
-                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para Tese ${teseNum}</span>
+                        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">\${teseNum}</div>
+                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para \${teseNome}</span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, \${teseNum}, 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                             <div class="flex items-center gap-3">
                                 <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
-                                <span class="font-semibold tracking-wide text-xs group-hover:text-emerald-700 transition-colors">ACOLHER (A)</span>
+                                <span class="font-semibold tracking-wide text-xs group-hover:text-emerald-700 transition-colors">ACOLHER</span>
                             </div>
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-emerald-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                         
-                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, \${teseNum}, 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                              <div class="flex items-center gap-3">
                                 <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-rose-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </div>
-                                <span class="font-semibold tracking-wide text-xs group-hover:text-rose-700 transition-colors">NÃO ACOLHER (B)</span>
+                                <span class="font-semibold tracking-wide text-xs group-hover:text-rose-700 transition-colors">NÃO ACOLHER</span>
                             </div>
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-rose-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                     </div>
-                </div>`;
+                </div>\`;
             });
 
             if (hasDecisionButtons) {
