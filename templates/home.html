@@ -976,14 +976,28 @@
                         messagesContainer.appendChild(rDiv);
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
                         
-                        // Atualiza as opções do Leitor de PDF e abre automaticamente se existir
-                        if (data.consolidado_url) pdfDocs.recurso = data.consolidado_url; else pdfDocs.recurso = null;
-                        if (data.autuacao_url) pdfDocs.autuacao = data.autuacao_url; else pdfDocs.autuacao = null;
+                        // Atualiza as opções do Leitor de PDF e abre automaticamente se existir e se passou da fase 1
+                        if (data.consolidado_url) {
+                            pdfDocs.recurso = data.consolidado_url;
+                            if (data.consolidado_name) document.getElementById('tab-recurso').innerText = data.consolidado_name;
+                        } else {
+                            pdfDocs.recurso = null;
+                        }
                         
+                        if (data.autuacao_url) {
+                            pdfDocs.autuacao = data.autuacao_url;
+                            if (data.autuacao_name) document.getElementById('tab-autuacao').innerText = data.autuacao_name;
+                        } else {
+                            pdfDocs.autuacao = null;
+                        }
+                        
+                        // Na seleção do Histórico, o status sempre será > 1, então pode abrir.
                         if (pdfDocs.recurso || pdfDocs.autuacao) {
                             togglePdfViewer(true);
                         } else {
                             togglePdfViewer(false);
+                            document.getElementById('tab-recurso').innerText = "Defesa/Recurso";
+                            document.getElementById('tab-autuacao').innerText = "Auto de Infração";
                         }
                         
                         // Atualiza as sugestões do Agente Lateral (Dynamic Context Chips)
@@ -1494,6 +1508,37 @@
                         <div class="text-[#444746] leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
                     `;
 
+                    // Lógica para abrir/atualizar PDF e Nomes de Abas dinamicamente
+                    let shouldOpenPdf = false;
+                    
+                    if (data.consolidado_url) {
+                        pdfDocs.recurso = data.consolidado_url;
+                        if (data.status_fase >= 2 && data.consolidado_name) {
+                            document.getElementById('tab-recurso').innerText = data.consolidado_name;
+                        }
+                        shouldOpenPdf = true;
+                    } else if (data.status_fase === 1) {
+                        // Reset if we are initiating
+                        pdfDocs.recurso = null;
+                        document.getElementById('tab-recurso').innerText = "Defesa/Recurso";
+                    }
+                    
+                    if (data.autuacao_url) {
+                        pdfDocs.autuacao = data.autuacao_url;
+                        if (data.status_fase >= 2 && data.autuacao_name) {
+                            document.getElementById('tab-autuacao').innerText = data.autuacao_name;
+                        }
+                        shouldOpenPdf = true;
+                    } else if (data.status_fase === 1) {
+                        pdfDocs.autuacao = null;
+                        document.getElementById('tab-autuacao').innerText = "Auto de Infração";
+                    }
+
+                    // Carregar o PDF na tela apenas a partir da Fase 2 (Após o upload na pergunta 07)
+                    if (shouldOpenPdf && data.status_fase >= 2 && !pdfViewerActive) {
+                        togglePdfViewer(true);
+                    }
+
                     // Se o processo chegou ao fim (salvo na pasta), mostra Toast e reinicia o layout
                     if (data.status_fase === 8) {
                         currentParecerId = null;
@@ -1805,10 +1850,15 @@
                 btnTogglePdf.classList.add('bg-blue-600', 'text-white');
                 btnTogglePdf.classList.remove('bg-blue-50', 'text-blue-600');
                 
-                // Abre aba padrão
-                if (pdfDocs.recurso) switchPdfTab('recurso');
-                else if (pdfDocs.autuacao) switchPdfTab('autuacao');
-                else switchPdfTab('recurso'); // placeholder
+                // Abre a primeira aba que tiver documento, com prioridade para Defesa/Recurso
+                if (pdfDocs.recurso) {
+                    switchPdfTab('recurso');
+                } else if (pdfDocs.autuacao) {
+                    switchPdfTab('autuacao');
+                } else {
+                    // Fallback
+                    switchPdfTab('recurso');
+                }
             } else {
                 pdfPanel.classList.add('hidden');
                 pdfPanel.classList.remove('flex');
@@ -1824,33 +1874,40 @@
             const btnRecurso = document.getElementById('tab-recurso');
             const btnAutuacao = document.getElementById('tab-autuacao');
             
-            // Estilos visuais dinâmicos
-            if (tabName === 'recurso') {
-                btnRecurso.className = "px-4 py-1.5 text-sm font-semibold rounded-t-lg bg-white border-t border-l border-r border-gray-300 text-blue-700 shadow-sm transition-colors relative top-[1px]";
-                btnAutuacao.className = "px-4 py-1.5 text-sm font-medium rounded-t-lg bg-gray-200 text-gray-500 hover:bg-white hover:text-blue-700 border-t border-l border-r border-transparent hover:border-gray-300 transition-colors relative top-[1px]";
+            // Define active and inactive generic classes
+            const activeClasses = ['bg-white', 'text-blue-700', 'font-semibold', 'border-gray-300'];
+            const inactiveClasses = ['bg-gray-200', 'text-gray-500', 'font-medium', 'border-transparent', 'hover:bg-white', 'hover:text-blue-700', 'hover:border-gray-300'];
+            
+            // Reset both tabs to inactive first
+            btnRecurso.classList.remove(...activeClasses);
+            btnRecurso.classList.add(...inactiveClasses);
+            btnAutuacao.classList.remove(...activeClasses);
+            btnAutuacao.classList.add(...inactiveClasses);
+
+            // Ocultar/Exibir abas se tiver/não tiver documento
+            if (!pdfDocs.recurso) btnRecurso.classList.add('hidden'); else btnRecurso.classList.remove('hidden');
+            if (!pdfDocs.autuacao) btnAutuacao.classList.add('hidden'); else btnAutuacao.classList.remove('hidden');
+
+            if (tabName === 'recurso' && pdfDocs.recurso) {
+                // Set Recurso as Active
+                btnRecurso.classList.remove(...inactiveClasses);
+                btnRecurso.classList.add(...activeClasses);
                 
-                if (pdfDocs.recurso) {
-                    pdfIframe.src = pdfDocs.recurso;
-                    pdfIframe.classList.remove('hidden');
-                    pdfPlaceholder.classList.add('hidden');
-                } else {
-                    pdfIframe.src = "";
-                    pdfIframe.classList.add('hidden');
-                    pdfPlaceholder.classList.remove('hidden');
-                }
+                pdfIframe.src = pdfDocs.recurso;
+                pdfIframe.classList.remove('hidden');
+                pdfPlaceholder.classList.add('hidden');
+            } else if (tabName === 'autuacao' && pdfDocs.autuacao) {
+                // Set Autuacao as Active
+                btnAutuacao.classList.remove(...inactiveClasses);
+                btnAutuacao.classList.add(...activeClasses);
+                
+                pdfIframe.src = pdfDocs.autuacao;
+                pdfIframe.classList.remove('hidden');
+                pdfPlaceholder.classList.add('hidden');
             } else {
-                btnAutuacao.className = "px-4 py-1.5 text-sm font-semibold rounded-t-lg bg-white border-t border-l border-r border-gray-300 text-blue-700 shadow-sm transition-colors relative top-[1px]";
-                btnRecurso.className = "px-4 py-1.5 text-sm font-medium rounded-t-lg bg-gray-200 text-gray-500 hover:bg-white hover:text-blue-700 border-t border-l border-r border-transparent hover:border-gray-300 transition-colors relative top-[1px]";
-                
-                if (pdfDocs.autuacao) {
-                    pdfIframe.src = pdfDocs.autuacao;
-                    pdfIframe.classList.remove('hidden');
-                    pdfPlaceholder.classList.add('hidden');
-                } else {
-                    pdfIframe.src = "";
-                    pdfIframe.classList.add('hidden');
-                    pdfPlaceholder.classList.remove('hidden');
-                }
+                pdfIframe.src = "";
+                pdfIframe.classList.add('hidden');
+                pdfPlaceholder.classList.remove('hidden');
             }
         }
 

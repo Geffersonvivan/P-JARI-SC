@@ -6,6 +6,7 @@ from .jari_engine import JariEngine
 import json
 import re
 import os
+import urllib.parse
 from django.core.files.storage import default_storage
 
 class ChatService:
@@ -117,7 +118,27 @@ class ChatService:
             except Exception:
                 pass
         
+        autuacao_url = None
+        consolidado_url = None
+        autuacao_name = "Auto de Infração"
+        consolidado_name = "Defesa/Recurso"
+        
+        try:
+            if parecer.autuacao_pdf_path and default_storage.exists(parecer.autuacao_pdf_path):
+                autuacao_url = default_storage.url(parecer.autuacao_pdf_path)
+                autuacao_name = urllib.parse.unquote(os.path.basename(parecer.autuacao_pdf_path))
+                
+            if parecer.consolidado_pdf_path and default_storage.exists(parecer.consolidado_pdf_path):
+                consolidado_url = default_storage.url(parecer.consolidado_pdf_path)
+                consolidado_name = urllib.parse.unquote(os.path.basename(parecer.consolidado_pdf_path))
+        except Exception:
+            pass
+            
         return JsonResponse({
             'reply': reply,
-            'status_fase': parecer.status_fase
+            'status_fase': parecer.status_fase,
+            'autuacao_url': autuacao_url,
+            'consolidado_url': consolidado_url,
+            'autuacao_name': autuacao_name,
+            'consolidado_name': consolidado_name
         })
