@@ -431,8 +431,8 @@
                     class="text-lg font-medium md:hidden hover:text-blue-600 transition">P-JARI/SC</a>
             </div>
             <div class="flex items-center gap-4">
-                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm text-sm font-medium">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md text-blue-700 hover:bg-white border border-white/50 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all duration-300 ring-1 ring-black/5 text-sm font-semibold z-50">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
                         <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -448,32 +448,35 @@
         <div class="flex-1 flex flex-row overflow-hidden relative" id="split-container">
             
             <!-- Painel Esquerdo: PDF Viewer (Escondido por Padrão) -->
-            <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-gray-300 bg-gray-50 z-10 flex-1 min-w-[300px]">
+            <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-gray-200 bg-slate-50 z-10 flex-1 min-w-[300px] shadow-inner">
                 
-                <!-- PDF Tabs/Header -->
-                <div class="flex items-center justify-between px-3 py-2 bg-gray-100 border-b border-gray-300">
-                    <div class="flex gap-2">
-                        <button id="tab-recurso" onclick="switchPdfTab('recurso')" class="px-4 py-1.5 text-sm font-semibold rounded-t-lg bg-white border-t border-l border-r border-gray-300 text-blue-700 shadow-sm transition-colors relative top-[1px]">Defesa/Recurso</button>
-                        <button id="tab-autuacao" onclick="switchPdfTab('autuacao')" class="px-4 py-1.5 text-sm font-medium rounded-t-lg bg-gray-200 text-gray-500 hover:bg-white hover:text-blue-700 border-t border-l border-r border-transparent hover:border-gray-300 transition-colors relative top-[1px]">Auto de Infração</button>
+                <!-- PDF Tabs/Header Premium -->
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200/60 bg-white/50 backdrop-blur-sm">
+                    <!-- Segmented Control background -->
+                    <div class="flex gap-1 bg-gray-200/80 p-1 rounded-xl shadow-inner border border-gray-100">
+                        <button id="tab-recurso" onclick="switchPdfTab('recurso')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300">Defesa/Recurso</button>
+                        <button id="tab-autuacao" onclick="switchPdfTab('autuacao')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300">Auto de Infração</button>
                     </div>
-                    <button onclick="togglePdfViewer()" class="text-gray-400 hover:text-gray-700 p-1 rounded-full hover:bg-gray-200 transition-colors" title="Fechar Visualizador">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <button onclick="togglePdfViewer()" class="flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all duration-200 ml-2" title="Fechar Visualizador">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
                 
-                <!-- Iframe Container -->
-                <div class="flex-1 relative bg-gray-200 flex items-center justify-center">
-                    <iframe id="pdf-iframe" src="" class="absolute inset-0 w-full h-full border-none"></iframe>
-                    <div id="pdf-placeholder" class="text-center p-6 flex flex-col items-center justify-center text-gray-400">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mb-4 opacity-50"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                        <p class="text-sm font-medium">Nenhum documento disponível ou a URL expirou.</p>
+                <!-- Iframe Container com Soft Framing -->
+                <div class="flex-1 relative p-3 md:p-4 lg:p-5 flex items-center justify-center overflow-hidden">
+                    <div class="w-full h-full relative rounded-2xl shadow-xl border border-gray-200/80 bg-white overflow-hidden ring-1 ring-black/5">
+                        <iframe id="pdf-iframe" src="" class="absolute inset-0 w-full h-full border-none rounded-2xl bg-white"></iframe>
+                        <div id="pdf-placeholder" class="text-center p-6 flex flex-col items-center justify-center text-gray-400 absolute inset-0 bg-gray-50/80 backdrop-blur-sm z-10">
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-5 opacity-40 text-blue-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <p class="text-base font-medium text-gray-500">Nenhum documento disponível ou a URL expirou.</p>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Resizer Handle -->
-            <div id="split-resizer" class="hidden w-1.5 cursor-col-resize bg-gray-300 hover:bg-blue-400 transition-colors z-20 flex-shrink-0 flex items-center justify-center">
-                <div class="h-8 w-0.5 bg-gray-400 rounded-full pointer-events-none"></div>
+            <!-- Resizer Handle Premium -->
+            <div id="split-resizer" class="hidden w-[6px] cursor-col-resize bg-transparent hover:bg-blue-400 group transition-colors z-20 flex-shrink-0 flex items-center justify-center">
+                <div class="h-10 w-[3px] bg-gray-300 rounded-full pointer-events-none group-hover:bg-white transition-colors"></div>
             </div>
 
             <!-- Painel Direito: Chat Main Area -->
@@ -1904,9 +1907,9 @@
             const btnRecurso = document.getElementById('tab-recurso');
             const btnAutuacao = document.getElementById('tab-autuacao');
             
-            // Define active and inactive generic classes
-            const activeClasses = ['bg-white', 'text-blue-700', 'font-semibold', 'border-gray-300'];
-            const inactiveClasses = ['bg-gray-200', 'text-gray-500', 'font-medium', 'border-transparent', 'hover:bg-white', 'hover:text-blue-700', 'hover:border-gray-300'];
+            // Define active and inactive logic for the new Segmented Control
+            const activeClasses = ['bg-white', 'text-blue-700', 'font-semibold', 'shadow-sm', 'ring-1', 'ring-black/5'];
+            const inactiveClasses = ['text-gray-500', 'hover:text-gray-700', 'font-medium', 'bg-transparent'];
             
             // Reset both tabs to inactive first
             btnRecurso.classList.remove(...activeClasses);
