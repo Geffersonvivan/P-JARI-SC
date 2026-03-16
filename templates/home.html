@@ -979,17 +979,17 @@
                         teseNome = \`TESE \${teseNum}\`;
                     }
                 } else {
-                    teseNome = \`TESE \${teseNum}\`;
+                    teseNome = `TESE ${teseNum}`;
                 }
 
-                return \`
-                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="\${teseNum}">
+                return `
+                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseNum}">
                     <div class="flex items-center gap-2 mb-1 pb-2 border-b border-gray-100">
-                        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">\${teseNum}</div>
-                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para \${teseNome}</span>
+                        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">${teseNum}</div>
+                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para ${teseNome}</span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="window.selectTeseOption(this, \${teseNum}, 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                             <div class="flex items-center gap-3">
                                 <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
@@ -999,7 +999,7 @@
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-emerald-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                         
-                        <button onclick="window.selectTeseOption(this, \${teseNum}, 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                              <div class="flex items-center gap-3">
                                 <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-rose-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -1009,7 +1009,7 @@
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-rose-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                     </div>
-                </div>\`;
+                </div>`;
             });
 
             // Injeta botões interativos para a Fase 3 (Admissibilidade)
@@ -1029,14 +1029,14 @@
                 // Vou setar data-tese="ADM_${tipo}"
                 const teseIdAttr = `ADM_${tipo}`;
 
-                return \`
-                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="\${teseIdAttr}">
+                return `
+                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseIdAttr}">
                     <div class="flex items-center gap-2 mb-1 pb-2 border-b border-gray-100">
                         <div class="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs"><svg fill="none" class="w-4 h-4" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para \${teseNome}</span>
+                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para ${teseNome}</span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="window.selectTeseOption(this, '\${teseIdAttr}', 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                             <div class="flex items-center gap-3">
                                 <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
@@ -1046,7 +1046,7 @@
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-emerald-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                         
-                        <button onclick="window.selectTeseOption(this, '\${teseIdAttr}', 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                              <div class="flex items-center gap-3">
                                 <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-rose-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -1056,7 +1056,7 @@
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-rose-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                     </div>
-                </div>\`;
+                </div>`;
             });
 
             if (hasDecisionButtons) {
@@ -1669,14 +1669,17 @@
                 return;
             }
 
-            // Formatar a string "1 a, 2 b"
+            // Formatar a string de saída, suportando Fase 3 (ADM_...) e Fase 4 (1, 2, ...)
             let choiceArray = [];
-            for (let i = 1; i <= totalTeses; i++) {
-                if (window.currentTeseDecisions[i]) {
-                    choiceArray.push(`${i} ${window.currentTeseDecisions[i]}`);
+            for (const [key, value] of Object.entries(window.currentTeseDecisions)) {
+                if (String(key).startsWith('ADM_')) {
+                    const admName = key.replace('ADM_', '');
+                    choiceArray.push(`${admName} ${value.toUpperCase()}`);
+                } else {
+                    choiceArray.push(`${key} ${value}`);
                 }
             }
-            const finalString = choiceArray.join(', ');
+            const finalString = choiceArray.join('; ');
 
             // Limpar memória
             window.currentTeseDecisions = {};
