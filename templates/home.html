@@ -132,13 +132,13 @@
                             <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-4 top-8 w-[260px] p-2.5 bg-gray-900 text-white text-[11px] font-medium leading-tight rounded-xl shadow-2xl z-[100] whitespace-normal pointer-events-none border border-gray-700">
                                 {{ p.nome_processo }}
                             </div>
-                            <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
+                            <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition z-10"
                                 onclick="event.stopPropagation()">
                                 <button onclick="openMoveModal('{{ p.id }}', '{{ pasta_outros.id }}')"
-                                    class="text-blue-400 hover:text-blue-600 font-bold transition"
+                                    class="text-blue-400 hover:text-blue-600 font-bold transition px-1"
                                     title="Mover Parecer">📁</button>
                                 <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
-                                    class="text-red-400 hover:text-red-600 font-bold transition">×</button>
+                                    class="text-red-400 hover:text-red-600 font-bold transition px-1">×</button>
                             </div>
                         </div>
                         {% empty %}
@@ -178,13 +178,13 @@
                                 <div class="relative flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200 transition group"
                                     onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
                                     <span class="flex-1 truncate mr-2">• {{ p.nome_processo }}</span>
-                                    <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition"
+                                    <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition z-10"
                                         onclick="event.stopPropagation()">
                                         <button onclick="openMoveModal('{{ p.id }}', '{{ pasta.id }}')"
-                                            class="text-blue-400 hover:text-blue-600 font-bold transition"
+                                            class="text-blue-400 hover:text-blue-600 font-bold transition px-1"
                                             title="Mover Parecer">📁</button>
                                         <button onclick="deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
-                                            class="text-red-400 hover:text-red-600 font-bold transition">×</button>
+                                            class="text-red-400 hover:text-red-600 font-bold transition px-1">×</button>
                                     </div>
                                 </div>
                                 {% empty %}
