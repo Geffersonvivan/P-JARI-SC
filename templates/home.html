@@ -1423,10 +1423,10 @@
 
         async function sendMessage(e) {
             if (e && typeof e.preventDefault === 'function') e.preventDefault();
-            {% if not request.user.is_authenticated %}
-            showLoginModal();
-            return;
-            {% endif %}
+            if (!isUserAuthenticated) {
+                showLoginModal();
+                return;
+            }
 
             const text = userInput.value.trim();
             if (text === "" && selectedFiles.length === 0) return;
