@@ -1445,7 +1445,15 @@
 
             const userDiv = document.createElement('div');
             userDiv.className = "flex justify-end mt-4";
-            userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatMessage(text)}</div>`;
+            
+            let userContent = "";
+            if (text) userContent += formatMessage(text);
+            if (selectedFiles.length > 0) {
+                userContent += `<div class="mt-2 text-xs font-semibold text-blue-800 bg-blue-100 px-3 py-1 rounded-md inline-block">📎 ${selectedFiles.length} arquivo(s) anexado(s)</div>`;
+            }
+            if(!userContent) userContent = "[Anexo]";
+            
+            userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${userContent}</div>`;
             messagesContainer.appendChild(userDiv);
 
             userInput.value = "";
@@ -1498,6 +1506,12 @@
                 }
 
                 const response = await fetch('/chat/message/', fetchOptions);
+
+                // Limpa anexos da interface imediatamente após disparo
+                if (selectedFiles.length > 0) {
+                    selectedFiles = [];
+                    renderFilePreview();
+                }
 
                 if (response.ok) {
                     const data = await response.json();

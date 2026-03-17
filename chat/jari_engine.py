@@ -90,7 +90,7 @@ class JariEngine:
         fase = self.parecer.status_fase
 
         if fase == 1:
-            val = message.strip()
+            val = message.strip() if message else ""
             
             # Limpa qualquer possibilidade de 'corrigir' ter deixado dados errados pra trás
             if val.lower() == 'corrigir':
