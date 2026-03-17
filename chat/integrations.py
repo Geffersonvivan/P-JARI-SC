@@ -343,8 +343,15 @@ class GeminiClient:
             "d) Proibido: Criar tese não alegada, presumir argumento implícito, completar lacuna defensiva."
         )
         
+        admissibilidade_julgador = parecer_obj.admissibilidade_texto or "Não informada."
         prompt_text = (
-            f"Localize a defesa nas páginas indicadas: {parecer_obj.paginas_defesa}.\n\n"
+            f"--- DECISÃO DE ADMISSIBILIDADE E PRAZOS (FASE 3) ---\n"
+            f"Os resultados abaixo refletem a escolha SOBERANA do membro julgador. Você NÃO pode contrariá-los:\n"
+            f"{admissibilidade_julgador}\n\n"
+            f"--- INSTRUÇÃO DE EXTRAÇÃO ---\n"
+            f"Verifique o resultado acima. Se a decisão do julgador apontar que o recurso é INTEMPESTIVO, PRESCRITO ou DECADENTE (resultado SIM para prescrição/decadência e NÃO para tempestividade), você DEVE ABORTAR a leitura do recurso e responder APENAS E EXATAMENTE:\n"
+            f"'MÉRITO PREJUDICADO. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.'\n\n"
+            f"Caso contrário (Tempestivo=SIM, Prescrições/Decadência=NÃO), localize a defesa nas páginas indicadas: {parecer_obj.paginas_defesa}.\n\n"
             "Liste AS TESES jurídicas apresentadas de forma isolada e em tópicos (bullet points). "
             "Apenas descreva o que foi pedido, detalhando cada ponto separadamente. Reforçando: não gere respostas, julgamentos ou mérito agora, apenas a LISTAGEM e classificação das teses alegadas no Recurso."
         )
@@ -580,8 +587,8 @@ class GeminiClient:
             "**ADMISSIBILIDADE**\n\n"
             "Conclusão expressa: tempestivo/intempestivo + explicação normativa.\n\n"
             "**TESES DEFENSIVAS**\n\n"
-            "Se recurso for prejudicial por prescrição/decadência/intempestivo: 'Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.'\n\n"
-            "Caso contrário: Análise isolada de cada tese, com norma hierarquizada e conclusão individual baseada estritamente nas opções já decididas e enviadas a você.\n\n"
+            "Se o pacote de Admissibilidade/Prazos apontar de forma peremptória que o recurso é intempestivo, prescrito ou decadente (resultado SIM para prescrição/decadência e NÃO para tempestividade): 'Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.'\n\n"
+            "Caso contrário: Análise isolada de cada tese, com norma hierarquizada e conclusão individual baseada estritamente nas opções já decididas e enviadas a você (Evite criar fundamentação inédita, atenha-se aos dados da Fase 4).\n\n"
             "**PRESCRIÇÃO E DECADÊNCIA**\n\n"
             "**3.1 Prescrição punitiva**\n\n"
             "Infração: XXX\n\n"
@@ -613,7 +620,8 @@ class GeminiClient:
             f"SGPE: {parecer_obj.sgpe}\n"
             f"RECORRENTE (Interessado): {parecer_obj.recorrente}\n"
             f"DATA SESSÃO: {parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else ''}\n\n"
-            f"---- PACOTE DE FLAGS MATEMÁTICAS (Soberanas para o Resultado e Capítulos 3.1 a 3.3) ----\n"
+            f"---- PACOTE DE FLAGS MATEMÁTICAS E ADMISSIBILIDADE (Soberanas para o Resultado e Capítulos 3.1 a 3.3) ----\n"
+            f"A T E N Ç Ã O: Os resultados abaixo refletem a escolha exclusiva do MEMBRO JULGADOR. Você está ESTRITAMENTE VINCULADO a usar estas conclusões e NÃO pode contrariá-las em nenhuma hipótese.\n"
             f"{parecer_obj.admissibilidade_texto}\n\n"
             f"---- RESUMO FÁTICO (Para o Relatório e Datas da Prescrição) ----\n"
             f"{getattr(parecer_obj, 'tabela_datas_sensiveis', '') or 'Vazio.'}\n\n"

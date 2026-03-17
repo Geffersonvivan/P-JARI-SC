@@ -361,7 +361,12 @@ Resultado escolhido pelo membro julgador:
  Decadência: [SIM/NÃO]
 Registre internamente essa combinação para envio à fase seguinte.
 
+**Ressalva importante:** os resultados técnicos e os cálculos automáticos aqui apresentados têm natureza meramente opinativa e auxiliar, não substituindo a competência decisória do membro julgador, de modo que PREVALECEM, para todas as fases seguintes, as opções expressamente escolhidas pelo julgador em cada item (tempestividade, prescrição punitiva, prescrição intercorrente e decadência), ainda que em sentido diverso da conclusão técnica do sistema.
+
 Fase 4 — TESES
+A Fase 4 toma como premissa exclusiva os RESULTADOS ESCOLHIDOS PELO MEMBRO JULGADOR na Fase 3, e não as conclusões técnicas automáticas, de forma que a existência ou não de intempestividade, prescrição punitiva, prescrição intercorrente e decadência será considerada exatamente conforme definido pelo julgador.
+Assim, somente quando o RESULTADO ESCOLHIDO PELO MEMBRO JULGADOR indicar a configuração de intempestividade, prescrição punitiva, prescrição intercorrente ou decadência é que serão consideradas prejudicadas as teses defensivas por extinção da pretensão punitiva ou inadmissibilidade recursal.
+
 **REGRA DE MEMÓRIA:** Toda a Análise de Admissibilidade e Prazos calculada na Fase 3 deve ser anexada na memória do Prompt desta fase.
 
 Se intempestivo, prescrito ou decadênte, não analisar mérito: teses defensivas prejudicadas. Caso contrário, ler apenas a defesa recursal JARI (páginas pergunta 6), identificar todas teses, analisar prova e responder cruzando a norma hierarquicamente suprema do “RAG Inventário Normativo vertx google” com dados subsidiários do "Perplexity”.
