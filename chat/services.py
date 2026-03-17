@@ -59,6 +59,8 @@ class ChatService:
             
         return JsonResponse({
             'reply': reply,
+            'is_saved': p.is_saved,
+            'status_fase': p.status_fase,
             'autuacao_url': autuacao_url,
             'consolidado_url': consolidado_url,
             'chat_history': chat_history

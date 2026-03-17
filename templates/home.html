@@ -1005,6 +1005,12 @@
                         messagesContainer.appendChild(rDiv);
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
                     }
+                    
+                    // Se o projeto já foi salvo e finalizado, não permite o usuário digitar mais nada no chat.
+                    if (data.is_saved || data.status_fase >= 8) {
+                        const footer = document.getElementById('chat-footer');
+                        if (footer) footer.classList.add('hidden');
+                    }
                         
                         // Atualiza as opções do Leitor de PDF e abre automaticamente se existir e se passou da fase 1
                         if (data.consolidado_url) {
@@ -1178,12 +1184,6 @@
 
             // Adiciona classes do Tailwind para formatar as tabelas dinâmicas do Gemini
             // Para injetar Tailwind Typography (prose) precisaríamos do plugin, então aplicamos CSS base aos elementos gerados
-            if (hasDecisionButtons) {
-                setTimeout(() => {
-                    const footer = document.getElementById('chat-footer');
-                    if (footer) footer.classList.add('hidden');
-                }, 100);
-            }
 
             return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
                 <style>
@@ -1908,9 +1908,6 @@
 
             const input = document.getElementById('user-input');
             input.value = finalString;
-
-            const footer = document.getElementById('chat-footer');
-            if (footer) footer.classList.remove('hidden');
 
             sendMessage();
         };
