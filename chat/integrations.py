@@ -198,6 +198,14 @@ class GeminiClient:
                         if file_consolidado:
                             contents.insert(0, file_consolidado)
             except Exception: pass
+            
+        if parecer_obj.ata_pdf_path and "upload_simulado" not in parecer_obj.ata_pdf_path:
+            try:
+                if default_storage.exists(parecer_obj.ata_pdf_path):
+                    file_ata = self.upload_file(parecer_obj.ata_pdf_path)
+                    if file_ata:
+                        contents.insert(0, file_ata)
+            except Exception: pass
 
         try:
             start_time = time.time()

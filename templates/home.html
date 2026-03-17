@@ -454,6 +454,7 @@
                     <div class="flex gap-1 bg-gray-200/80 p-1 rounded-xl shadow-inner border border-gray-100">
                         <button id="tab-recurso" onclick="switchPdfTab('recurso')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300">Defesa/Recurso</button>
                         <button id="tab-autuacao" onclick="switchPdfTab('autuacao')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300">Auto de Infração</button>
+                        <button id="tab-ata" onclick="switchPdfTab('ata')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300 hidden">Ata</button>
                     </div>
                     <button onclick="togglePdfViewer()" class="flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all duration-200 ml-2" title="Fechar Visualizador">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1177,6 +1178,13 @@
 
             // Adiciona classes do Tailwind para formatar as tabelas dinâmicas do Gemini
             // Para injetar Tailwind Typography (prose) precisaríamos do plugin, então aplicamos CSS base aos elementos gerados
+            if (hasDecisionButtons) {
+                setTimeout(() => {
+                    const footer = document.getElementById('chat-footer');
+                    if (footer) footer.classList.add('hidden');
+                }, 100);
+            }
+
             return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
                 <style>
                     .markdown-content table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; font-size: 13px; }
@@ -1584,6 +1592,17 @@
                         document.getElementById('tab-autuacao').innerText = "Auto de Infração";
                     }
 
+                    if (data.ata_url) {
+                        pdfDocs.ata = data.ata_url;
+                        if (data.ata_name) {
+                            document.getElementById('tab-ata').innerText = data.ata_name;
+                        }
+                        shouldOpenPdf = true;
+                    } else if (data.status_fase === 1) {
+                        pdfDocs.ata = null;
+                        document.getElementById('tab-ata').innerText = "Ata";
+                    }
+
                     // Carregar o PDF na tela assim que os arquivos forem submetidos
                     if (shouldOpenPdf) {
                         btnTogglePdf.classList.remove('hidden');
@@ -1874,21 +1893,30 @@
             // Limpar memória
             window.currentTeseDecisions = {};
 
-            // Fade out and remove the entire decision container to clean up the chat UI
+            // Ocultar apenas o botão de confirmar, para evitar duplo clique, mas mantém o painel inteiro visível
+            if (btn) {
+                btn.style.transition = 'opacity 0.3s ease';
+                btn.style.opacity = '0';
+                setTimeout(() => btn.remove(), 300);
+            }
+            
+            // Travar os botões clicados (desabilitar interatividade)
             if (messageContainer) {
-                messageContainer.style.transition = 'opacity 0.5s ease, height 0.5s ease';
-                messageContainer.style.opacity = '0';
                 messageContainer.style.pointerEvents = 'none';
-                setTimeout(() => messageContainer.remove(), 500);
+                messageContainer.classList.add('opacity-80'); // Opcional: deixar as teses um pouco apagadas mas presentes
             }
 
             const input = document.getElementById('user-input');
             input.value = finalString;
+
+            const footer = document.getElementById('chat-footer');
+            if (footer) footer.classList.remove('hidden');
+
             sendMessage();
         };
 
         // --- INÍCIO DO CÓDIGO DO SPLIT SCREEN (PDF VIEWER) ---
-        let pdfDocs = { recurso: null, autuacao: null };
+        let pdfDocs = { recurso: null, autuacao: null, ata: null };
         let pdfViewerActive = false;
         
         const splitContainer = document.getElementById('split-container');
@@ -1931,6 +1959,8 @@
                     switchPdfTab('recurso');
                 } else if (pdfDocs.autuacao) {
                     switchPdfTab('autuacao');
+                } else if (pdfDocs.ata) {
+                    switchPdfTab('ata');
                 } else {
                     // Fallback
                     switchPdfTab('recurso');
@@ -1958,6 +1988,7 @@
         function switchPdfTab(tabName) {
             const btnRecurso = document.getElementById('tab-recurso');
             const btnAutuacao = document.getElementById('tab-autuacao');
+            const btnAta = document.getElementById('tab-ata');
             
             // Define active and inactive logic for the new Segmented Control
             const activeClasses = ['bg-white', 'text-blue-700', 'font-semibold', 'shadow-sm', 'ring-1', 'ring-black/5'];
@@ -1968,10 +1999,17 @@
             btnRecurso.classList.add(...inactiveClasses);
             btnAutuacao.classList.remove(...activeClasses);
             btnAutuacao.classList.add(...inactiveClasses);
+            if(btnAta) {
+                btnAta.classList.remove(...activeClasses);
+                btnAta.classList.add(...inactiveClasses);
+            }
 
             // Ocultar/Exibir abas se tiver/não tiver documento
             if (!pdfDocs.recurso) btnRecurso.classList.add('hidden'); else btnRecurso.classList.remove('hidden');
             if (!pdfDocs.autuacao) btnAutuacao.classList.add('hidden'); else btnAutuacao.classList.remove('hidden');
+            if (btnAta) {
+                 if (!pdfDocs.ata) btnAta.classList.add('hidden'); else btnAta.classList.remove('hidden');
+            }
 
             if (tabName === 'recurso' && pdfDocs.recurso) {
                 // Set Recurso as Active
@@ -1987,6 +2025,16 @@
                 btnAutuacao.classList.add(...activeClasses);
                 
                 pdfIframe.src = pdfDocs.autuacao;
+                pdfIframe.classList.remove('hidden');
+                pdfPlaceholder.classList.add('hidden');
+            } else if (tabName === 'ata' && pdfDocs.ata) {
+                // Set Ata as Active
+                if(btnAta) {
+                    btnAta.classList.remove(...inactiveClasses);
+                    btnAta.classList.add(...activeClasses);
+                }
+                
+                pdfIframe.src = pdfDocs.ata;
                 pdfIframe.classList.remove('hidden');
                 pdfPlaceholder.classList.add('hidden');
             } else {

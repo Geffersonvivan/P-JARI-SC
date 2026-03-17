@@ -43,6 +43,7 @@ class Parecer(models.Model):
     # Arquivos (Uso temporário para não quebrar; idealmente devem ir para S3 ou MEDIA_ROOT)
     autuacao_pdf_path = models.CharField(max_length=500, blank=True, null=True)
     consolidado_pdf_path = models.CharField(max_length=500, blank=True, null=True)
+    ata_pdf_path = models.CharField(max_length=500, blank=True, null=True)
     
     # Flags Booleanas Calculadas (Regras de Ouro - Fase 3 do Motor)
     is_tempestivo = models.BooleanField(null=True, blank=True)

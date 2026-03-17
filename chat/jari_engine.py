@@ -14,7 +14,7 @@ class JariEngine:
             prefix = ""
                 
             if not self.parecer.autuacao_pdf_path:
-                return prefix + "1. Faça o upload dos arquivos **'Autuação' e 'Consolidado'** juntos."
+                return prefix + "1. Faça o upload dos arquivos **'Autuação', 'Consolidado' e 'Ata'**. (Envie no mínimo Autuação e Consolidado juntos)"
             elif not self.parecer.data_sessao:
                 return prefix + "2. Informe a **Data da Sessão de Julgamento** (DD/MM/AAAA):"
             elif not self.parecer.pa:
@@ -38,10 +38,7 @@ class JariEngine:
         elif fase == 3:
             return "Processando Prazos e Admissibilidade... (Simulando loading)"
         elif fase == 31: # Aguardando OK Admissibilidade
-            return (
-                f"{self.parecer.admissibilidade_texto}\n"
-                f"Digite **'ok'** para prosseguir."
-            )
+            return self.parecer.admissibilidade_texto
         elif fase == 4:
             return (
                 f"**Extração da Tese da Defesa**\n\n"
@@ -99,37 +96,28 @@ class JariEngine:
             # 1. Verifica PRIORITARIAMENTE se são os PDFs/comando ok da FASE 1 (Uploaded Files)
             if not self.parecer.autuacao_pdf_path:
                 if uploaded_files and len(uploaded_files) > 0:
+                    file_autuacao = file_consolidado = file_ata = None
+                    
                     if len(uploaded_files) == 1:
-                        file_autuacao = uploaded_files[0]
-                        file_consolidado = uploaded_files[0]
+                        file_autuacao = file_consolidado = uploaded_files[0]
                     else:
-                        f1 = uploaded_files[0]
-                        f2 = uploaded_files[1]
-                        f1_lower = f1.lower()
-                        f2_lower = f2.lower()
+                        for f in uploaded_files:
+                            f_lower = f.lower()
+                            if any(term in f_lower for term in ["ata"]):
+                                file_ata = f
+                            elif any(term in f_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
+                                file_consolidado = f
+                            elif any(term in f_lower for term in ["autua", "ait", "termo"]):
+                                file_autuacao = f
+                                
+                        # Fallback se a heurística não preencher Autuação ou Consolidado (pois Ata é opcional)
+                        if not file_autuacao and uploaded_files: file_autuacao = uploaded_files[0]
+                        if not file_consolidado and len(uploaded_files) > 1: file_consolidado = uploaded_files[1]
                         
-                        if any(term in f1_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
-                            file_consolidado = f1; file_autuacao = f2
-                        elif any(term in f2_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
-                            file_consolidado = f2; file_autuacao = f1
-                        elif any(term in f1_lower for term in ["autua", "ait", "termo"]):
-                            file_autuacao = f1; file_consolidado = f2
-                        elif any(term in f2_lower for term in ["autua", "ait", "termo"]):
-                            file_autuacao = f2; file_consolidado = f1
-                        else:
-                            try:
-                                from django.core.files.storage import default_storage
-                                size1 = default_storage.size(f1) if default_storage.exists(f1) else 0
-                                size2 = default_storage.size(f2) if default_storage.exists(f2) else 0
-                            except Exception:
-                                size1, size2 = 0, 0
-                            if size1 > size2:
-                                file_consolidado = f1; file_autuacao = f2
-                            else:
-                                file_consolidado = f2; file_autuacao = f1
-                            
                     self.parecer.autuacao_pdf_path = file_autuacao
                     self.parecer.consolidado_pdf_path = file_consolidado
+                    if file_ata:
+                        self.parecer.ata_pdf_path = file_ata
                     
                     # Lemos o PDF agora para gravar a infração no banco nua e crua
                     if file_consolidado:
@@ -218,28 +206,26 @@ class JariEngine:
             return self.run_phase_3()
             
         elif fase == 31:
-            if message.lower().strip() == 'ok':
-                # Aqui traduzimos as flags matemáticas estritas do BD para roteamento
-                if self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia or not self.parecer.is_tempestivo:
-                    self.parecer.status_fase = 5 # Pula pra Fase 5 de resultado prejudicado, não analisa mérito
-                    
-                    motivo = []
-                    if self.parecer.has_prescricao_punitiva: motivo.append("PRESCRIÇÃO PUNITIVA")
-                    if self.parecer.has_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE")
-                    if self.parecer.has_decadencia: motivo.append("DECADÊNCIA")
-                    if not self.parecer.is_tempestivo: motivo.append("INTEMPESTIVIDADE")
-                    
-                    self.parecer.tese = f"MÉRITO PREJUDICADO ({' / '.join(motivo)})."
-                    self.parecer.save()
-                    
-                    from chat.tasks import gerar_parecer_task
-                    task = gerar_parecer_task.delay(self.parecer.id)
-                    import json
-                    return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
-                else:
-                    return self.run_phase_4_extraction()
+            # A submissão sempre avança. Botões disparam uma string com as opções (ex: TEMPESTIVIDADE ACOLHER)
+            # Aqui traduzimos as flags matemáticas estritas do BD para roteamento
+            if self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia or not self.parecer.is_tempestivo:
+                self.parecer.status_fase = 5 # Pula pra Fase 5 de resultado prejudicado, não analisa mérito
+                
+                motivo = []
+                if self.parecer.has_prescricao_punitiva: motivo.append("PRESCRIÇÃO PUNITIVA")
+                if self.parecer.has_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE")
+                if self.parecer.has_decadencia: motivo.append("DECADÊNCIA")
+                if not self.parecer.is_tempestivo: motivo.append("INTEMPESTIVIDADE")
+                
+                self.parecer.tese = f"MÉRITO PREJUDICADO ({' / '.join(motivo)})."
+                self.parecer.save()
+                
+                from chat.tasks import gerar_parecer_task
+                task = gerar_parecer_task.delay(self.parecer.id)
+                import json
+                return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
             else:
-                return "Responda 'ok' para prosseguir. Em caso de divergência real, recomece ou modifique manualmente depois."
+                return self.run_phase_4_extraction()
 
         elif fase == 4:
             if message.lower().strip() != 'ok':

@@ -138,8 +138,10 @@ class ChatService:
         
         autuacao_url = None
         consolidado_url = None
+        ata_url = None
         autuacao_name = "Auto de Infração"
         consolidado_name = "Defesa/Recurso"
+        ata_name = "Ata"
         
         try:
             if parecer.autuacao_pdf_path and default_storage.exists(parecer.autuacao_pdf_path):
@@ -149,6 +151,10 @@ class ChatService:
             if parecer.consolidado_pdf_path and default_storage.exists(parecer.consolidado_pdf_path):
                 consolidado_url = default_storage.url(parecer.consolidado_pdf_path)
                 consolidado_name = urllib.parse.unquote(os.path.basename(parecer.consolidado_pdf_path))
+                
+            if parecer.ata_pdf_path and default_storage.exists(parecer.ata_pdf_path):
+                ata_url = default_storage.url(parecer.ata_pdf_path)
+                ata_name = urllib.parse.unquote(os.path.basename(parecer.ata_pdf_path))
         except Exception:
             pass
             
@@ -157,6 +163,8 @@ class ChatService:
             'status_fase': parecer.status_fase,
             'autuacao_url': autuacao_url,
             'consolidado_url': consolidado_url,
+            'ata_url': ata_url,
             'autuacao_name': autuacao_name,
-            'consolidado_name': consolidado_name
+            'consolidado_name': consolidado_name,
+            'ata_name': ata_name
         })
