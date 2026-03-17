@@ -729,6 +729,10 @@
 
             const footer = document.getElementById('chat-footer');
             if (footer) footer.classList.remove('hidden-home');
+            
+            // Limpa as referências do processo/pasta anterior para o backend entender que é uma requisição nova
+            currentParecerId = null;
+            currentPastaId = null;
 
             // Simular o envio da palavra "Iniciar"
             userInput.value = "Iniciar";
@@ -1004,8 +1008,9 @@
                                 `;
                                 messagesContainer.appendChild(rDiv);
                             }
-                        });
-                        chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                        setTimeout(() => {
+                            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                        }, 100);
                     } else if (data.reply) {
                         const rDiv = document.createElement('div');
                         rDiv.className = "flex justify-start items-start gap-3 mt-4 w-full";
@@ -1014,7 +1019,9 @@
                           <div class="text-[#444746] leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
                         `;
                         messagesContainer.appendChild(rDiv);
-                        chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                        setTimeout(() => {
+                            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                        }, 100);
                     }
                     
                     // Se o projeto já foi salvo e finalizado, não permite o usuário digitar mais nada no chat.
