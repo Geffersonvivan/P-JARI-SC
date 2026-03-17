@@ -1,0 +1,20 @@
+Line 666: return;
+Line 702: if (!filePreviewContainer) return;
+Line 706: return;
+Line 751: return;
+Line 771: return;
+Line 775: return;
+Line 950: return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline" ${title ? `title="${title}"` : ''}>${text}</a>`;
+Line 985: return `
+Line 1032: return `
+Line 1074: return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
+Line 1203: if (!confirm("Tem certeza que deseja excluir permanentemente esta citação do seu banco?")) return;
+Line 1224: return;
+Line 1292: return;
+Line 1296: if (text === "" && selectedFiles.length === 0) return;
+Line 1302: return;
+Line 1373: return;
+Line 1377: return;
+Line 1398: return;
+Line 1531: if (!parecerId || !novaPastaId) return;
+Line 1669: return;
