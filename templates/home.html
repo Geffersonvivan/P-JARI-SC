@@ -456,9 +456,20 @@
                         <button id="tab-autuacao" onclick="switchPdfTab('autuacao')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300">Auto de Infração</button>
                         <button id="tab-ata" onclick="switchPdfTab('ata')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300 hidden">Ata</button>
                     </div>
-                    <button onclick="togglePdfViewer()" class="flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all duration-200 ml-2" title="Fechar Visualizador">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
+                    
+                    <div class="flex items-center gap-2 ml-2">
+                        <!-- Lupa de Busca -->
+                        <button onclick="searchInPdf()" class="flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-all duration-200" title="Buscar no Documento (Ctrl+F)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+                        <!-- Botão Fechar -->
+                        <button onclick="togglePdfViewer()" class="flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all duration-200" title="Fechar Visualizador">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Iframe Container com Soft Framing -->
@@ -2038,6 +2049,22 @@
                 pdfIframe.src = "";
                 pdfIframe.classList.add('hidden');
                 pdfPlaceholder.classList.remove('hidden');
+            }
+        }
+
+        // --- Lógica de Busca no PDF ---
+        function searchInPdf() {
+            const pdfIframe = document.getElementById('pdf-iframe');
+            if (!pdfIframe.src || pdfIframe.src === "" || pdfIframe.classList.contains('hidden')) {
+                alert("Nenhum documento está aberto para busca.");
+                return;
+            }
+
+            const termo = prompt("O que deseja buscar neste documento?");
+            if (termo && termo.trim() !== "") {
+                const currentUrl = pdfIframe.src.split('#')[0]; // Remove hash anterior
+                // Injeta o comando #search= do visualizador nativo dos browsers
+                pdfIframe.src = currentUrl + '#search=' + encodeURIComponent(termo.trim());
             }
         }
 
