@@ -1563,7 +1563,7 @@
                     
                     if (data.consolidado_url) {
                         pdfDocs.recurso = data.consolidado_url;
-                        if (data.status_fase >= 2 && data.consolidado_name) {
+                        if (data.consolidado_name) {
                             document.getElementById('tab-recurso').innerText = data.consolidado_name;
                         }
                         shouldOpenPdf = true;
@@ -1575,7 +1575,7 @@
                     
                     if (data.autuacao_url) {
                         pdfDocs.autuacao = data.autuacao_url;
-                        if (data.status_fase >= 2 && data.autuacao_name) {
+                        if (data.autuacao_name) {
                             document.getElementById('tab-autuacao').innerText = data.autuacao_name;
                         }
                         shouldOpenPdf = true;
@@ -1584,15 +1584,15 @@
                         document.getElementById('tab-autuacao').innerText = "Auto de Infração";
                     }
 
-                    // Carregar o PDF na tela apenas a partir da Fase 2 (Após o upload na pergunta 07)
-                    if (shouldOpenPdf && data.status_fase >= 2) {
+                    // Carregar o PDF na tela assim que os arquivos forem submetidos
+                    if (shouldOpenPdf) {
                         btnTogglePdf.classList.remove('hidden');
                         btnTogglePdf.classList.add('md:flex');
                         document.getElementById('main-header').classList.remove('md:hidden');
                         document.getElementById('main-header').classList.add('md:flex');
                         
                         if (!pdfViewerActive) togglePdfViewer(true);
-                    } else if (data.status_fase < 2 || !shouldOpenPdf) {
+                    } else if (!shouldOpenPdf) {
                         btnTogglePdf.classList.add('hidden');
                         btnTogglePdf.classList.remove('md:flex');
                         document.getElementById('main-header').classList.remove('md:flex');
