@@ -2108,10 +2108,13 @@
                 if (pdfIframe) pdfIframe.style.pointerEvents = 'auto'; // Devolve para clicar no PDF
             }
         });
+    </script>
+    <script type="module">
+        import { ptBR } from 'https://cdn.jsdelivr.net/npm/@clerk/localizations@4/dist/pt-BR.mjs';
 
         // Sync Vanilla UI with Clerk SDK Headless
         window.addEventListener('load', async function () {
-            await Clerk.load();
+            await Clerk.load({ localization: ptBR });
             
             if (Clerk.user) {
                 // Se o Django tiver renderizado Unauthenticated (não teve tempo de ler o cookie __session),
