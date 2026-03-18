@@ -382,6 +382,13 @@
         window.addEventListener('load', async function () {
             await Clerk.load({ localization: ptBR });
             
+            // Handle SSO Callback (Google Login Return)
+            if (window.location.hash.includes('sso-callback') || window.location.search.includes('sso-callback')) {
+                // Show a loading state or just keep the modal open
+                showLoginModal();
+                await Clerk.handleRedirectCallback();
+            }
+
             // Redirect to App if already logged in!
             if (Clerk.user) {
                 // Remove the button "Entrar" and change it to "Acessar App"
@@ -390,6 +397,11 @@
                     btn.innerHTML = "Acessar App <i class='fas fa-arrow-right text-sm ml-2'></i>";
                     btn.onclick = () => window.location.href = "/app/";
                 });
+                
+                // If we just finished SSO, we should actually redirect them to the app
+                if (window.location.hash.includes('sso-callback') || window.location.search.includes('sso-callback')) {
+                    window.location.href = "/app/";
+                }
             }
 
             const signInDiv = document.getElementById('clerk-sign-in');
