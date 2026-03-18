@@ -379,6 +379,14 @@
 
             // Redirect to App if already logged in!
             if (Clerk.user) {
+                // Sync Token to Cookie for Django
+                try {
+                    const token = await Clerk.session.getToken();
+                    if (token) {
+                        document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax; Secure`;
+                    }
+                } catch(e) {}
+
                 // Remove the button "Entrar" and change it to "Acessar App"
                 const buttons = document.querySelectorAll("button[onclick='showLoginModal()'], a[onclick='showLoginModal()']");
                 buttons.forEach(btn => {

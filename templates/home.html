@@ -2117,11 +2117,26 @@
             await Clerk.load({ localization: ptBR });
             
             if (Clerk.user) {
+                // Sync Token to First-Party Cookie for Django Middleware
+                try {
+                    const token = await Clerk.session.getToken();
+                    if (token) {
+                        document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax; Secure`;
+                    }
+                } catch(e) { console.error("Error syncing clerk token", e); }
+
                 // Se o Django tiver renderizado Unauthenticated (não teve tempo de ler o cookie __session),
                 // só forçamos o reload SE estivermos na URL de retorno do handshake do Clerk, evitando Infinite Loops!
-                const btnEntrar = document.querySelector("button[onclick='showLoginModal()']");
+                const btnEntrar = document.querySelector("button[onclick='showLoginModal()'], button[onclick='window.Clerk.openSignIn()']");
                 if (btnEntrar && window.location.search.includes('__clerk_')) {
                     window.location.href = '/app/';
+                    return;
+                }
+                
+                // Se o django falhou em renderizar mas temos o token agora, recarregamos a página 1x para o Django ler o cookie real fresh
+                if (btnEntrar && !window.location.hash.includes('reloaded')) {
+                    window.location.hash = 'reloaded';
+                    window.location.reload();
                     return;
                 }
 
