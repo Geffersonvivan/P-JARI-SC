@@ -1427,7 +1427,7 @@ def proxy_image_view(request):
         url = request.build_absolute_uri(url)
         
     try:
-        r = requests.get(url, timeout=5)
+        r = requests.get(url, timeout=15, verify=False)
         response = HttpResponse(r.content, content_type=r.headers.get('Content-Type', 'image/jpeg'))
         response['Access-Control-Allow-Origin'] = '*'
         return response

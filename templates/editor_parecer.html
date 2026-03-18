@@ -414,6 +414,10 @@
                     try {
                         const proxyUrl = '/api/proxy-image/?url=' + encodeURIComponent(originalSrc);
                         const response = await fetch(proxyUrl);
+                        if (!response.ok) {
+                            console.warn("Proxy falhou para " + originalSrc + ", mantendo link original no Word.");
+                            continue; 
+                        }
                         const blob = await response.blob();
                         const reader = new FileReader();
                         const base64data = await new Promise((resolve) => {
@@ -526,6 +530,10 @@
                     try {
                         const proxyUrl = '/api/proxy-image/?url=' + encodeURIComponent(originalSrc);
                         const response = await fetch(proxyUrl);
+                        if (!response.ok) {
+                            console.warn("Proxy falhou para o PDF, usando URL original com CORS direto.", originalSrc);
+                            continue;
+                        }
                         const blob = await response.blob();
                         const reader = new FileReader();
                         const base64data = await new Promise((resolve) => {
