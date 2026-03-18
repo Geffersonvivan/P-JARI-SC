@@ -8,11 +8,9 @@ class RequireTermsAcceptanceMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
-            # Lista de URLs permitidas sem aceite (evita loop infinito)
             allowed_urls = [
                 reverse('aceitar_termos'),
                 reverse('termos'),
-                reverse('account_logout'),
                 '/admin/',
                 '/static/',
                 '/media/'
