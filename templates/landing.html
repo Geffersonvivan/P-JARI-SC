@@ -358,8 +358,8 @@
         function showLoginModal() {
             if (window.Clerk) {
                 window.Clerk.openSignIn({
-                    forceRedirectUrl: '/app/',
-                    signUpForceRedirectUrl: '/app/'
+                    forceRedirectUrl: '/auth-sync/',
+                    signUpForceRedirectUrl: '/auth-sync/'
                 });
             }
         }

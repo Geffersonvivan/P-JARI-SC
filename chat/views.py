@@ -1511,3 +1511,21 @@ def visualizar_termos_view(request):
         'somente_visualizacao': True # Flag para o template esconder o form de aceite
     }
     return render(request, 'termos.html', context)
+
+def env_debug_view(request):
+    import os
+    from django.http import JsonResponse
+    keys = list(os.environ.keys())
+    clerk_keys = {k: os.environ.get(k) for k in keys if "CLERK" in k}
+    return JsonResponse({'env_keys': keys, 'clerk_keys': clerk_keys})
+
+def auth_sync_view(request):
+    """
+    Página interceptora leve: recebe o redirecionamento logo após o Clerk finalizar o login OAuth.
+    Seu único papel é renderizar um spinner, o Clerk JS pegar o Token atualizado, 
+    gravar no Cookie __session de primeira-pessoa (pjarisc.com.br) e mandar direto para o /app/.
+    """
+    from django.conf import settings
+    return render(request, 'auth_sync.html', {
+        'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', '')
+    })
