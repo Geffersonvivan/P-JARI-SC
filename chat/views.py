@@ -1511,9 +1511,3 @@ def visualizar_termos_view(request):
         'somente_visualizacao': True # Flag para o template esconder o form de aceite
     }
     return render(request, 'termos.html', context)
-
-def env_debug_view(request):
-    import os
-    keys = list(os.environ.keys())
-    clerk_keys = {k: os.environ.get(k) for k in keys if b"CLERK" in k.encode('utf-8') or "CLERK" in k}
-    return JsonResponse({'env_keys': keys, 'clerk_specific': clerk_keys})
