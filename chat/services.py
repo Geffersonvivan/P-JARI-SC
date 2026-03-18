@@ -56,7 +56,11 @@ class ChatService:
         from .models import ChatMessage
         historico = ChatMessage.objects.filter(parecer=p).order_by('created_at')
         chat_history = [{'role': m.role, 'content': m.content} for m in historico]
+        
+        if p.parecer_final or not chat_history:
+            chat_history.append({'role': 'assistant', 'content': reply})
             
+
         return JsonResponse({
             'reply': reply,
             'is_saved': p.is_saved,
