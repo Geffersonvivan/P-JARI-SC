@@ -66,6 +66,38 @@ class ClerkAuthenticationMiddleware:
                     clerk_user_id = payload.get("sub")
                     if clerk_user_id:
                         user = User.objects.filter(username=clerk_user_id).first()
+                        
+                        # Fallback Just-In-Time (JIT): Se o usuário não existe no Django (webhook falhou ou é legado)
+                        if not user:
+                            # Busca os dados do Clerk
+                            user_url = f"https://api.clerk.com/v1/users/{clerk_user_id}"
+                            headers = {"Authorization": f"Bearer {self.clerk_secret_key}"}
+                            response = requests.get(user_url, headers=headers, timeout=5)
+                            if response.status_code == 200:
+                                clerk_data = response.json()
+                                email_addresses = clerk_data.get("email_addresses", [])
+                                email = email_addresses[0].get("email_address") if email_addresses else ""
+                                first_name = clerk_data.get("first_name") or ""
+                                last_name = clerk_data.get("last_name") or ""
+                                
+                                # Verifica se já existe um usuário com esse email (Legado do django-allauth)
+                                old_user = User.objects.filter(email=email).first() if email else None
+                                if old_user and old_user.username != clerk_user_id:
+                                    # Migra o usuário antigo mudando apenas o username para o ID do Clerk
+                                    old_user.username = clerk_user_id
+                                    old_user.save()
+                                    user = old_user
+                                else:
+                                    # Cria um usuário local totalmente novo atrelado ao Clerk
+                                    user = User.objects.create(
+                                        username=clerk_user_id, 
+                                        email=email, 
+                                        first_name=first_name[:30], 
+                                        last_name=last_name[:30]
+                                    )
+                                    user.set_unusable_password()
+                                    user.save()
+
                         if user:
                             request.user = user  # Injeta no ciclo do Django
 
