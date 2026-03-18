@@ -70,10 +70,19 @@ class ClerkAuthenticationMiddleware:
                             request.user = user  # Injeta no ciclo do Django
 
             except Exception as e:
-                # Falha silenciosamente, o usuário continuará como AnonymousUser
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Erro ao validar token do Clerk: {e}")
+                
+                # Falha: se não for admin, força usuário anônimo
+                if not request.path.startswith('/admin/'):
+                    from django.contrib.auth.models import AnonymousUser
+                    request.user = AnonymousUser()
+        else:
+            # Sem token presente: ignora qualquer sessão legado se não for painel admin
+            if not request.path.startswith('/admin/'):
+                from django.contrib.auth.models import AnonymousUser
+                request.user = AnonymousUser()
 
         response = self.get_response(request)
         return response
