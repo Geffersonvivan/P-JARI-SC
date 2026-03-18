@@ -13,7 +13,9 @@ from .models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
 def landing_page_view(request):
     if request.user.is_authenticated:
         return redirect('home')
-    return render(request, 'landing.html')
+    return render(request, 'landing.html', {
+        'CLERK_PUBLISHABLE_KEY': os.getenv("CLERK_PUBLISHABLE_KEY", "")
+    })
 
 def home_view(request):
     if not request.session.session_key:
@@ -55,7 +57,10 @@ def home_view(request):
         teses_comunidade = []
         tem_novidade_forum = False
     
+    import os
+    
     return render(request, 'home.html', {
+        'CLERK_PUBLISHABLE_KEY': os.getenv("CLERK_PUBLISHABLE_KEY", ""),
         'pasta_outros': pasta_outros,
         'pastas': pastas,
         'total_julgados': total_julgados,
