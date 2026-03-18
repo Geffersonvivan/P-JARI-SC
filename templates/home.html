@@ -2118,10 +2118,10 @@
             });
             
             if (Clerk.user) {
-                // Se o Django tiver renderizado o botão "Entrar/Cadastrar" por não ter tido tempo de ler o cookie __session
-                // durante o Clerk Handshake, forçamos um reload limpo para o Django renderizar a Navbar Correta.
+                // Se o Django tiver renderizado Unauthenticated (não teve tempo de ler o cookie __session),
+                // só forçamos o reload SE estivermos na URL de retorno do handshake do Clerk, evitando Infinite Loops!
                 const btnEntrar = document.querySelector("button[onclick='showLoginModal()']");
-                if (btnEntrar) {
+                if (btnEntrar && window.location.search.includes('__clerk_')) {
                     window.location.href = '/app/';
                     return;
                 }
