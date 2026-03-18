@@ -22,9 +22,12 @@ from django.conf.urls.static import static
 from django.urls import re_path
 from django.views.static import serve
 
+from chat.webhooks_clerk import clerk_webhook_view
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('chat.urls')),
+    path('api/webhooks/clerk/', clerk_webhook_view, name='clerk_webhook'),
     path('accounts/', include('allauth.urls')),
     path('tinymce/', include('tinymce.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),

@@ -104,6 +104,9 @@ MIDDLEWARE = [
     
     # Termos de Uso Middleware
     'chat.middleware.RequireTermsAcceptanceMiddleware',
+
+    # Clerk Auth Middleware
+    'chat.middleware_clerk.ClerkAuthenticationMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
