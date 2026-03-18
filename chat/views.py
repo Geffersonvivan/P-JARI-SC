@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
@@ -56,8 +57,6 @@ def home_view(request):
         banco_teses = []
         teses_comunidade = []
         tem_novidade_forum = False
-    
-    import os
     
     return render(request, 'home.html', {
         'CLERK_PUBLISHABLE_KEY': os.getenv("CLERK_PUBLISHABLE_KEY", ""),
