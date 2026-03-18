@@ -232,9 +232,9 @@ Erros na Notificação de Autuação (NA) ou no AR (como “número inexistente�
 A decadência do art. 282 CTB e da legislação superveniente refere‑se exclusivamente ao atraso na expedição da Notificação de Penalidade (NP) ou na instauração do processo de suspensão/cassação, conforme o filtro temporal aplicável (1, 2 ou 3).planalto+1
 
 CAMADA EXTRA: VINCULAÇÃO DO RESULTADO DE DECADÊNCIA À FASE 5
-O resultado final da análise de decadência na Fase 3 (Filtros 1, 2 e 3) deve ser reproduzido, sem inovação, no item 3.3 “Decadência” da Fase 5 – PARECER.
-É proibido, na Fase 5, alterar a natureza (prescrição x decadência), o filtro temporal ou a conclusão numérica obtida na Fase 3.
-Qualquer tentativa de reclassificar prazos prescricionais como decadenciais (ou o inverso) deve ser bloqueada e substituída pela fórmula definida para o filtro correspondente (especialmente a cláusula fixa de “Decadência: NÃO SE APLICA” no FILTRO 1).
+O resultado final de decadência considerado na Fase 5 será sempre o ‘Resultado escolhido pelo membro julgador’ na Fase 3, e não o resultado técnico automático, devendo ser reproduzido, sem inovação, no item 3.3 ‘Decadência’ da Fase 5 – PARECER.
+
+1‑A. As flags de tempestividade, prescrição punitiva, prescrição intercorrente e decadência utilizadas na Fase 5 devem ser idênticas aos ‘Resultados escolhidos pelo membro julgador’ na Fase 3, sendo vedado ao Python ou ao LLM utilizar, nessas fases, os resultados técnicos automáticos como referência principal.
 
 RESULTADO FINAL
 Você recebe, já prontos e calculados pelo Python:
@@ -363,6 +363,8 @@ Registre internamente essa combinação para envio à fase seguinte.
 
 **Ressalva importante:** os resultados técnicos e os cálculos automáticos aqui apresentados têm natureza meramente opinativa e auxiliar, não substituindo a competência decisória do membro julgador, de modo que PREVALECEM, para todas as fases seguintes, as opções expressamente escolhidas pelo julgador em cada item (tempestividade, prescrição punitiva, prescrição intercorrente e decadência), ainda que em sentido diverso da conclusão técnica do sistema.
 
+5. Regras importantes
+Os valores de ‘Resultado escolhido pelo membro julgador’ (Tempestivo, Prescrição Punitiva, Prescrição Intercorrente e Decadência) devem ser enviados ao Python como flags oficiais de saída da Fase 3, substituindo integralmente os resultados técnicos automáticos. Essas flags serão a única referência válida para todas as fases seguintes (Fase 4 – Teses e Fase 5 – Parecer).
 Fase 4 — TESES
 A Fase 4 toma como premissa exclusiva os RESULTADOS ESCOLHIDOS PELO MEMBRO JULGADOR na Fase 3, e não as conclusões técnicas automáticas, de forma que a existência ou não de intempestividade, prescrição punitiva, prescrição intercorrente e decadência será considerada exatamente conforme definido pelo julgador.
 Assim, somente quando o RESULTADO ESCOLHIDO PELO MEMBRO JULGADOR indicar a configuração de intempestividade, prescrição punitiva, prescrição intercorrente ou decadência é que serão consideradas prejudicadas as teses defensivas por extinção da pretensão punitiva ou inadmissibilidade recursal.
@@ -438,3 +440,6 @@ Cada tese deve ser analisada isoladamente, conforme P2, com base normativa e con
 [Notificações e prazos + contraditório/ampla defesa.]
 
 Esta é a fundamentação.
+
+Fase 6 — AUDITORIA EM TELA
+Obs. Python: entrega ao LLM, para a Fase 5 – PARECER, um pacote contendo: (a) flags exatamente iguais aos ‘Resultados escolhidos pelo membro julgador’ na Fase 3 (tempestivo S/N, prescrição punitiva S/N, prescrição intercorrente S/N, decadência S/N); (b) a indicação de deferimento/indeferimento gerada a partir das escolhas de teses na Fase 4; e (c) os dados do cabeçalho. O LLM é proibido de usar, na Fase 5, os resultados técnicos automáticos da Fase 3 como base para o parecer, devendo seguir exclusivamente as flags escolhidas pelo membro julgador.
