@@ -36,4 +36,5 @@ urlpatterns = [
     path('api/proxy-image/', views.proxy_image_view, name='proxy_image'),
     path('aceite-termos/', views.aceitar_termos_view, name='aceitar_termos'),
     path('termos/', views.visualizar_termos_view, name='termos'),
+    path('env-debug/', views.env_debug_view, name='env_debug'),
 ]
