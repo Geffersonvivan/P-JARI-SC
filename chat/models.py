@@ -80,10 +80,8 @@ class Parecer(models.Model):
         ordering = ['-created_at']
 
 class ConfiguracaoParecer(models.Model):
-    # Cabeçalho
-    logo = models.ImageField(upload_to='assets/logos/', help_text="Logo em PNG")
-    titulo_cabecalho = models.TextField(default="ESTADO DE SANTA CATARINA\nDEPARTAMENTO ESTADUAL DE TRÂNSITO")
-    subtitulo_cabecalho = models.TextField(blank=True, default="JUNTA ADMINISTRATIVA DE RECURSOS DE INFRAÇÃO –\nJARI REGIONAL DE CHAPECÓ")
+    # Cabeçalho (Imagem Única / Banner)
+    cabecalho_imagem = models.ImageField(upload_to='assets/logos/', help_text="Faça o upload do banner completo em arquivo de imagem PNG ou JPG. Recomendado conter o texto e logos nas extremidades com proporção wide (painel).", null=True, blank=True)
     
     # Rodapés Condicionais
     rodape_deferido = models.TextField(help_text="HTML para caso de Deferimento")

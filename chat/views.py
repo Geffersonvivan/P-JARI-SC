@@ -113,38 +113,19 @@ def editar_parecer_view(request, id):
             from django.core.files.storage import default_storage
             from django.contrib.staticfiles.storage import staticfiles_storage
             
-            if config.logo and default_storage.exists(config.logo.name):
-                logo_absolute_url = request.build_absolute_uri(config.logo.url)
-                logo_html = f"<img src='{logo_absolute_url}' width='110' style='width: 110px; max-width: 110px; height: auto;'>"
-            else:
-                static_url = staticfiles_storage.url('img/DETRAN.png')
-                logo_absolute_url = request.build_absolute_uri(static_url)
-                logo_html = f"<img src='{logo_absolute_url}' width='110' style='width: 110px; max-width: 110px; height: auto;'>"
-            
-            tit_raw = getattr(config, 'titulo_cabecalho', '') or ""
-            sub_raw = getattr(config, 'subtitulo_cabecalho', '') or ""
-            tit = tit_raw.replace('\n', '<br>') if tit_raw else ""
-            sub = sub_raw.replace('\n', '<br>') if sub_raw else ""
-            
-            cabecalho_html = f"""
-                <div style="text-align: center; width: 100%; margin-bottom: 50px;">
-                    <table style="border: none; border-collapse: collapse; margin: 0 auto; width: auto;">
-                        <tbody>
-                            <tr>
-                                <td style="border: none; padding: 0 20px 0 0; vertical-align: middle; text-align: right;">
-                                    <div style="width: 110px; overflow: hidden; display: inline-block;">
-                                        {logo_html}
-                                    </div>
-                                </td>
-                                <td style="border: none; padding: 0; vertical-align: middle; text-align: left; font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; line-height: 1.3;">
-                                    {tit}<br>
-                                    {sub}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            if config.cabecalho_imagem and default_storage.exists(config.cabecalho_imagem.name):
+                banner_absolute_url = request.build_absolute_uri(config.cabecalho_imagem.url)
+                cabecalho_html = f"""
+                <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 10px;">
+                    <img src='{banner_absolute_url}' style='width: 100%; max-width: 800px; height: auto;'>
                 </div>
-            """
+                """
+            else:
+                cabecalho_html = f"""
+                <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 20px; height: 80px; border: 1px dashed #ccc;">
+                    <span style="color: #999; font-family: Arial, sans-serif; font-size: 12px;">[ Banner do Cabeçalho P-JARI não configurado no Admin ]</span>
+                </div>
+                """
             
             # Converter markdown para HTML
             import markdown
