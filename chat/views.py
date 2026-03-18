@@ -15,7 +15,7 @@ def landing_page_view(request):
     if request.user.is_authenticated:
         return redirect('home')
     return render(request, 'landing.html', {
-        'CLERK_PUBLISHABLE_KEY': os.getenv("CLERK_PUBLISHABLE_KEY", "")
+        'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', '')
     })
 
 def home_view(request):
@@ -59,7 +59,7 @@ def home_view(request):
         tem_novidade_forum = False
     
     return render(request, 'home.html', {
-        'CLERK_PUBLISHABLE_KEY': os.getenv("CLERK_PUBLISHABLE_KEY", ""),
+        'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', ''),
         'pasta_outros': pasta_outros,
         'pastas': pastas,
         'total_julgados': total_julgados,
