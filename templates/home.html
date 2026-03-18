@@ -2008,8 +2008,15 @@
             const termo = prompt("O que deseja buscar neste documento?");
             if (termo && termo.trim() !== "") {
                 const currentUrl = pdfIframe.src.split('#')[0]; // Remove hash anterior
-                // Injeta o comando #search= do visualizador nativo dos browsers
-                pdfIframe.src = currentUrl + '#search=' + encodeURIComponent(termo.trim());
+                const newUrl = currentUrl + '#search=' + encodeURIComponent(termo.trim());
+                
+                // Hack para navegadores (Chrome/Edge): a simples troca do fragmento url#hash
+                // nem sempre recarrega o visualizador nativo de PDF no Iframe. 
+                // Forçamos o recarregamento limpando o src rapidamente:
+                pdfIframe.src = 'about:blank';
+                setTimeout(() => {
+                    pdfIframe.src = newUrl;
+                }, 50);
             }
         }
 
