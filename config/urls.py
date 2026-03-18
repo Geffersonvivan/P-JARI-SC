@@ -28,7 +28,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('chat.urls')),
     path('api/webhooks/clerk/', clerk_webhook_view, name='clerk_webhook'),
-    path('accounts/', include('allauth.urls')),
+    # path('accounts/', include('allauth.urls')), # Removing django-allauth routing
     path('tinymce/', include('tinymce.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
