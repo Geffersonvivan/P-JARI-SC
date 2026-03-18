@@ -2116,8 +2116,17 @@
             await Clerk.load({
                 localization: localizationObj
             });
+            
             if (Clerk.user) {
-                // Atualiza o avatar
+                // Se o Django tiver renderizado o botão "Entrar/Cadastrar" por não ter tido tempo de ler o cookie __session
+                // durante o Clerk Handshake, forçamos um reload limpo para o Django renderizar a Navbar Correta.
+                const btnEntrar = document.querySelector("button[onclick='showLoginModal()']");
+                if (btnEntrar) {
+                    window.location.href = '/app/';
+                    return;
+                }
+
+                // Atualiza o avatar se o Django já estiver renderizando o UI autenticado
                 const fallbackAvatar = document.getElementById('fallback-avatar');
                 const clerkAvatar = document.getElementById('clerk-avatar');
                 if (Clerk.user.imageUrl && clerkAvatar) {
