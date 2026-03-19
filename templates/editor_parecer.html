@@ -411,11 +411,47 @@
                     let img = images[i];
                     let originalSrc = img.src;
 
+                    // =========================================================
+                    // 1. SANITIZAÇÃO ABSOLUTA (BLINDAGEM CONTRA FALHA DE PROXY)
+                    // =========================================================
+                    // Ocultamos a lógica de ajuste de tamanho ANTES do fetch,
+                    // pois se o servidor falhar na conversão Base64 e der 'continue',
+                    // o Word ainda precisa receber a tag <img> purificada, sem
+                    // 'max-width' ou atributos percentuais que explodem no Mac.
+                    try {
+                        let natW = 2000, natH = 500;
+                        const origNode = editorInstance.dom.select('img')[i];
+                        if (origNode) {
+                            natW = origNode.naturalWidth || 2000;
+                            natH = origNode.naturalHeight || 500;
+                        }
+
+                        img.style.cssText = '';
+                        
+                        let base_val = 430; // ~15.1cm (Margem a Margem no A4)
+                        if (natW / natH < 2.5) {
+                            let temp_val = natW * 0.75;
+                            base_val = temp_val > 430 ? 430 : temp_val;
+                        }
+                        
+                        let h_val = Math.round(base_val * (natH / natW));
+                        
+                        img.setAttribute('width', base_val);
+                        img.setAttribute('height', h_val);
+                        img.style.width = base_val + 'pt';
+                        img.style.height = h_val + 'pt';
+                    } catch (e) {
+                        console.error('Falha ao sanitizar medidas da imagem MHTML', e);
+                    }
+
+                    // =========================================================
+                    // 2. EMBUTIR BINÁRIO DA IMAGEM
+                    // =========================================================
                     try {
                         const proxyUrl = '/api/proxy-image/?url=' + encodeURIComponent(originalSrc);
                         const response = await fetch(proxyUrl);
                         if (!response.ok) {
-                            console.warn("Proxy falhou para " + originalSrc + ", mantendo link original no Word.");
+                            console.warn("Proxy falhou para " + originalSrc + ", mantendo link original no Word com dimensões restritas.");
                             continue; 
                         }
                         const blob = await response.blob();
@@ -430,38 +466,8 @@
                             let contentType = b64Match[1];
                             let rawData = b64Match[2];
                             let contentId = "image_" + i + "@jari.sc";
-
-                            let w = 110, h = 110;
                             
-                            // Mede as dimensões reais EXATAS do payload base64 que acabamos de baixar
-                            let tempImg = new Image();
-                            await new Promise((resolve) => {
-                                tempImg.onload = resolve;
-                                tempImg.onerror = resolve;
-                                tempImg.src = base64data;
-                            });
-                            
-                            // Limpamos o CSS tóxico que vem do editor (max-width, height:auto)
-                            // pois isso faz a engine do Word (MHTML) ignorar o dimensionamento
-                            img.style.cssText = '';
-                            
-                            // Como no Backend (views.py) nós acabamos de envelopar o banner
-                            // dentro de uma <table width="100%"> (a estrutura que o Word mais respeita no mundo),
-                            // basta dizermos para a imagem ocupar 100% do espaço da célula da tabela!
-                            if (natW / natH > 2.5) {
-                                img.setAttribute('width', '100%'); // Magia da Tabela
-                                img.removeAttribute('height');
-                            } else {
-                                // Se for imagem não-panorâmica (ex: Brasão local pequeno isolado)
-                                let w_pt = 430;
-                                let natW_pt = natW * 0.75; // converte pixel pra pt
-                                w_pt = natW_pt > 430 ? 430 : natW_pt;
-                                let h_pt = w_pt * (natH / natW);
-                                
-                                img.style.width = w_pt.toFixed(1) + 'pt';
-                                img.style.height = h_pt.toFixed(1) + 'pt';
-                            }
-                            
+                            // Apenas vinculamos os dados binários. As dimensões perfeitas já foram aplicadas acima!
                             img.setAttribute('src', 'cid:' + contentId);
 
                             mhtmlBottom += "--NEXT.PART\n";
