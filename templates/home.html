@@ -1414,14 +1414,14 @@
             }
         }
 
-        async function sendMessage(e) {
+        async function sendMessage(e, programmaticText = null) {
             if (e && typeof e.preventDefault === 'function') e.preventDefault();
             if (!isUserAuthenticated) {
                 showLoginModal();
                 return;
             }
 
-            const text = userInput.value.trim();
+            const text = programmaticText !== null ? programmaticText : userInput.value.trim();
             if (text === "" && selectedFiles.length === 0) return;
 
             const isIniciar = text.toLowerCase() === 'iniciar';
@@ -1881,8 +1881,8 @@
                     choiceArray.push(`Tese ${key} – Síntese da alegação: ${suffix}`);
                 }
             }
-            // Usa '  \n' (Markdown hard break) ou '<br>' para forçar quebra visual na UI e no output textual
-            const finalString = choiceArray.join('<br>');
+            // Usa '\n\n' (Markdown paragraph break duplo) para forçar quebra visual segura que não é apagada pelo DOM
+            const finalString = choiceArray.join('\n\n');
 
             // Limpar memória
             window.currentTeseDecisions = {};
@@ -1900,10 +1900,7 @@
                 messageContainer.classList.add('opacity-80'); // Opcional: deixar as teses um pouco apagadas mas presentes
             }
 
-            const input = document.getElementById('user-input');
-            input.value = finalString;
-
-            sendMessage();
+            sendMessage(null, finalString);
         };
 
         // --- INÍCIO DO CÓDIGO DO SPLIT SCREEN (PDF VIEWER) ---

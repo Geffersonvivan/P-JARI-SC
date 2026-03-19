@@ -1,4 +1,5 @@
 import base64
+import re
 from chat.models import Parecer
 from chat.jari_math import JariMath
 
