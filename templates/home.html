@@ -1149,6 +1149,46 @@
                 </div>`;
             }
 
+            // Injeta Formulário de Avaliação (NPS/Score)
+            rawHtml = rawHtml.replace(/\[FEEDBACK_FORM\]/g, function () {
+                return `
+                <div id="feedback-container" class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl mb-6 shadow-sm relative overflow-hidden mt-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-brand-accent/20 flex items-center justify-center text-brand-accent">
+                            <i class="ph-fill ph-star text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-bold text-base">Avalie o Parecer da IA</h4>
+                            <p class="text-slate-400 text-xs mt-0.5">O quão preciso e útil foi este resultado?</p>
+                        </div>
+                    </div>
+                    <div class="px-2 mb-6">
+                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-2">
+                            <span>0% (Refazer)</span>
+                            <span id="feedback-score-display" class="text-brand-accent font-bold text-sm">100% (Perfeito)</span>
+                        </div>
+                        <input type="range" id="feedback-slider" min="0" max="100" value="100" step="10" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-accent" oninput="updateFeedbackUI(this.value)">
+                    </div>
+                    <div id="feedback-details" class="hidden flex-col gap-4 animate-fade-in mt-4 pt-4 border-t border-slate-700">
+                        <p class="text-sm text-slate-300 font-medium">O que a IA deixou passar? (Opcional)</p>
+                        <div class="flex flex-wrap gap-2" id="feedback-tags-container">
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Errou Data/Cálculo</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Faltou Jurisprudência</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Alucinou Fatos</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Tom Inadequado</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Outros</button>
+                        </div>
+                        <textarea id="feedback-notes" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent/50 resize-none" placeholder="Detalhes (ex: Faltou citar o Artigo 281)..."></textarea>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button id="btn-submit-feedback" onclick="submitFeedback()" class="bg-brand-accent hover:bg-green-600 text-space-950 font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-green-500/20 text-sm flex items-center gap-2">
+                            <i class="ph-bold ph-check"></i> Enviar Avaliação
+                        </button>
+                    </div>
+                </div>
+                `;
+            });
+
             // Injeta cards de Pastas (Fase 7)
             rawHtml = rawHtml.replace(/\[FOLDER_SELECT:(.*?)\]/g, function (match, folderData) {
                 const folders = folderData.split('|');
@@ -2103,6 +2143,85 @@
                 if (pdfIframe) pdfIframe.style.pointerEvents = 'auto'; // Devolve para clicar no PDF
             }
         });
+
+        // ================= Feedback UI Handlers =================
+        function updateFeedbackUI(val) {
+            const display = document.getElementById('feedback-score-display');
+            const details = document.getElementById('feedback-details');
+            
+            if (val == 100) {
+                display.innerText = '100% (Perfeito)';
+                display.className = 'text-brand-accent font-bold text-sm';
+                details.classList.add('hidden');
+                details.classList.remove('flex');
+            } else {
+                display.innerText = val + '%';
+                if (val >= 70) display.className = 'text-yellow-400 font-bold text-sm';
+                else display.className = 'text-red-400 font-bold text-sm';
+                
+                details.classList.remove('hidden');
+                details.classList.add('flex');
+            }
+        }
+
+        function toggleFeedbackTag(btn) {
+            btn.classList.toggle('bg-brand-accent/20');
+            btn.classList.toggle('border-brand-accent');
+            btn.classList.toggle('text-brand-accent');
+            if (btn.hasAttribute('data-active')) {
+                btn.removeAttribute('data-active');
+            } else {
+                btn.setAttribute('data-active', 'true');
+            }
+        }
+
+        async function submitFeedback() {
+            if (!currentParecerId) return;
+            
+            const btn = document.getElementById('btn-submit-feedback');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph animate-spin ph-spinner"></i> Salvando...';
+            
+            const score = document.getElementById('feedback-slider').value;
+            const notes = document.getElementById('feedback-notes') ? document.getElementById('feedback-notes').value : '';
+            
+            const tags = [];
+            const tagBtns = document.querySelectorAll('#feedback-tags-container button[data-active="true"]');
+            tagBtns.forEach(b => tags.push(b.innerText.trim()));
+            
+            try {
+                const res = await fetch(`/api/parecer/${currentParecerId}/feedback/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ score, tags, notes })
+                });
+                
+                if (res.ok) {
+                    const container = document.getElementById('feedback-container');
+                    container.innerHTML = `
+                        <div class="flex items-center gap-3 justify-center py-4">
+                            <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
+                                <i class="ph-fill ph-check-circle text-2xl"></i>
+                            </div>
+                            <span class="text-green-400 font-semibold">Avaliação salva! Obrigado pelo feedback.</span>
+                        </div>
+                    `;
+                } else {
+                    alert("Erro ao salvar avaliação.");
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviar Avaliação';
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erro de conexão.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviar Avaliação';
+            }
+        }
+
     </script>
     <script type="module">
         import { ptBR } from 'https://cdn.jsdelivr.net/npm/@clerk/localizations/dist/pt-BR.mjs';

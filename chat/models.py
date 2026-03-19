@@ -68,6 +68,11 @@ class Parecer(models.Model):
     blindagem_detalhes = models.TextField(blank=True, null=True)
     tempo_julgamento_segundos = models.IntegerField(null=True, blank=True)
     
+    # Fase 8 - Feedback Contínuo do Usuário
+    feedback_score = models.IntegerField(null=True, blank=True, help_text="Nota de 0 a 100 dada pelo usuário sobre o parecer gerado")
+    feedback_tags = models.CharField(max_length=500, blank=True, null=True, help_text="Tags de erro pontuadas (ex: erro-de-data, erro-jurisprudencia)")
+    feedback_notes = models.TextField(blank=True, null=True, help_text="Comentário livre do usuário sobre o que faltou na IA")
+    
     # Meta dados
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1172,12 +1172,44 @@ def estatisticas_gerais_view(request):
     if processos_com_datas['avg_diff']:
         avg_dias_funil = processos_com_datas['avg_diff'].days
 
+    # 10. Feedback Contínuo da IA (NPS e Tags)
+    feedbacks = Parecer.objects.filter(
+        is_saved=True, created_at__year=ano, created_at__month=mes, feedback_score__isnull=False
+    )
+    
+    media_nps_ia = feedbacks.aggregate(avg_score=Avg('feedback_score'))['avg_score']
+    nps_ia_fmt = f"{int(media_nps_ia)}%" if media_nps_ia is not None else "N/A"
+    
+    tags_contagem = {}
+    feedbacks_com_texto = []
+    
+    for fb in feedbacks:
+        if fb.feedback_tags:
+            tags_list = [t.strip() for t in fb.feedback_tags.split(',') if t.strip()]
+            for tag in tags_list:
+                tags_contagem[tag] = tags_contagem.get(tag, 0) + 1
+                
+        if fb.feedback_notes:
+            feedbacks_com_texto.append({
+                'id': fb.id,
+                'processo': fb.nome_processo,
+                'nota': fb.feedback_score,
+                'tags': fb.feedback_tags,
+                'texto': fb.feedback_notes,
+                'data': fb.created_at.strftime('%d/%m/%Y')
+            })
+            
+    tags_ranking = sorted(tags_contagem.items(), key=lambda x: x[1], reverse=True)
+
     context = {
         'total_julgados': total_julgados_global,
         'tempo_poupado_horas': tempo_poupado_horas,
         'tempo_total_julgamento': tempo_total_julgamento,
         'media_tempo_julgamento': media_tempo_julgamento,
         'taxa_deferimento': taxa_deferimento,
+        'nps_ia_fmt': nps_ia_fmt,
+        'tags_ranking': tags_ranking,
+        'feedbacks_com_texto': feedbacks_com_texto,
         'taxa_indeferimento': taxa_indeferimento,
         'deferidos_count': deferidos,
         'indeferidos_count': indeferidos,
@@ -1520,3 +1552,34 @@ def auth_sync_view(request):
     return render(request, 'auth_sync.html', {
         'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', '')
     })
+
+@require_POST
+def salvar_feedback_parecer_view(request, parecer_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Não autenticado'}, status=403)
+        
+    parecer = get_object_or_404(Parecer, id=parecer_id, user=request.user)
+    
+    try:
+        data = json.loads(request.body)
+        score = data.get('score')
+        tags = data.get('tags', [])
+        notes = data.get('notes', '')
+        
+        if score is not None:
+            parecer.feedback_score = int(score)
+        
+        if tags is not None:
+            if isinstance(tags, list):
+                parecer.feedback_tags = ','.join(tags)
+            else:
+                parecer.feedback_tags = str(tags)
+                
+        if notes:
+            parecer.feedback_notes = str(notes)
+            
+        parecer.save(update_fields=['feedback_score', 'feedback_tags', 'feedback_notes'])
+        
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
