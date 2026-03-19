@@ -177,6 +177,8 @@ class JariEngine:
             try:
                 self.parecer.save()
             except Exception as e:
+                import sentry_sdk
+                sentry_sdk.capture_exception(e)
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Erro ao salvar dado na Fase 1 do JariEngine: {e}")
@@ -696,6 +698,8 @@ class JariEngine:
                      fail_silently=True,
                  )
              except Exception as e:
+                 import sentry_sdk
+                 sentry_sdk.capture_exception(e)
                  print(f"Erro ao disparar email de auditoria Fase 6: {str(e)}")
              
         self.parecer.status_fase = 7

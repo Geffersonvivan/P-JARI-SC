@@ -320,6 +320,8 @@ def chat_message_view(request):
         
         return JsonResponse({'error': 'Mensagem inválida'}, status=400)
     except Exception as e:
+        import sentry_sdk
+        sentry_sdk.capture_exception(e)
         import traceback
         import logging
         logger = logging.getLogger(__name__)
@@ -407,6 +409,8 @@ def chat_agent_message_view(request):
         return JsonResponse({'reply': response.text, 'status': 'success'})
         
     except Exception as e:
+        import sentry_sdk
+        sentry_sdk.capture_exception(e)
         import traceback
         trace = traceback.format_exc()
         return JsonResponse({'error': str(e), 'trace': trace}, status=500)
@@ -455,6 +459,8 @@ def stream_task_status_view(request, task_id):
             channel_name = f"stream_{task_id}"
             pubsub.subscribe(channel_name)
         except Exception as e:
+            import sentry_sdk
+            sentry_sdk.capture_exception(e)
             yield f"data: {json.dumps({'status': 'FAILURE', 'error': 'Redis Inoperante', 'details': str(e)})}\n\n"
             return
             
