@@ -234,7 +234,7 @@
         
         <!-- Header CTA -->
         <div>
-            <button class="glass-panel px-6 py-2 rounded-full text-sm font-semibold tracking-wide text-white flex items-center gap-2 hover:bg-white/5 hover:border-white/20 transition-colors" onclick="if(window.Clerk) window.Clerk.openSignIn(); return false;">
+            <button class="glass-panel px-6 py-2 rounded-full text-sm font-semibold tracking-wide text-white flex items-center gap-2 hover:bg-white/5 hover:border-white/20 transition-colors" onclick="showLoginModal(); return false;">
                 Área do Cliente <i class="ph ph-sign-in"></i>
             </button>
         </div>
@@ -272,7 +272,7 @@
             <div class="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-3xl">
                 <!-- CTA Principal -->
                 <div class="flex flex-col items-center gap-3 w-full sm:w-auto">
-                    <button class="shiny-cta px-8 py-4 rounded-full text-base font-semibold tracking-wide flex items-center gap-3 w-full sm:w-auto justify-center group animate-glow-pulse" onclick="if(window.Clerk) window.Clerk.openSignUp(); return false;">
+                    <button class="shiny-cta px-8 py-4 rounded-full text-base font-semibold tracking-wide flex items-center gap-3 w-full sm:w-auto justify-center group animate-glow-pulse" onclick="showSignUpModal(); return false;">
                         Quero testar em um processo real
                         <i class="ph-bold ph-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </button>
@@ -571,7 +571,7 @@
                 
                 <div class="relative w-full rounded-xl overflow-hidden p-[1px] group mt-auto shadow-lg shadow-green-900/20 focus-within:ring-2 focus-within:ring-green-400">
                     <div class="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_70%,rgba(255,255,255,0.6)_100%)] animate-[spin_3s_linear_infinite] group-hover:bg-[conic-gradient(from_0deg,transparent_40%,rgba(255,255,255,0.9)_100%)] opacity-70 group-hover:opacity-100 transition-all duration-300 pointer-events-none"></div>
-                    <button class="relative w-full py-3.5 text-white font-medium text-[13px] bg-green-600 rounded-[11px] hover:bg-green-500 transition-colors z-10" onclick="if(window.Clerk) window.Clerk.openSignUp(); return false;">
+                    <button class="relative w-full py-3.5 text-white font-medium text-[13px] bg-green-600 rounded-[11px] hover:bg-green-500 transition-colors z-10" onclick="showSignUpModal(); return false;">
                         Assinar Plano Básico
                     </button>
                 </div>
@@ -624,7 +624,7 @@
                     
                     <div class="relative w-full rounded-xl overflow-hidden p-[2px] group mt-auto shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.7)] z-10 transition-shadow duration-300">
                         <div class="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_40%,rgba(34,197,94,1)_80%,rgba(255,255,255,1)_100%)] animate-[spin_2.5s_linear_infinite] pointer-events-none"></div>
-                        <button class="relative w-full py-3.5 text-white font-bold text-[13px] bg-green-500 rounded-[10px] flex justify-center items-center gap-2 hover:bg-green-400 transition-colors z-10" onclick="if(window.Clerk) window.Clerk.openSignUp(); return false;">
+                        <button class="relative w-full py-3.5 text-white font-bold text-[13px] bg-green-500 rounded-[10px] flex justify-center items-center gap-2 hover:bg-green-400 transition-colors z-10" onclick="showSignUpModal(); return false;">
                             Assinar Plano Profissional <i class="ph-bold ph-arrow-right group-hover:translate-x-1 transition-transform"></i>
                         </button>
                     </div>
@@ -657,7 +657,7 @@
                 
                 <div class="relative w-full rounded-xl overflow-hidden p-[1px] group mt-auto shadow-lg shadow-green-900/20 focus-within:ring-2 focus-within:ring-green-400">
                     <div class="absolute inset-0 bg-[conic-gradient(from_0deg,transparent_70%,rgba(255,255,255,0.6)_100%)] animate-[spin_3s_linear_infinite] group-hover:bg-[conic-gradient(from_0deg,transparent_40%,rgba(255,255,255,0.9)_100%)] opacity-70 group-hover:opacity-100 transition-all duration-300 pointer-events-none"></div>
-                    <button class="relative w-full py-3.5 text-white font-medium text-[13px] bg-green-600 rounded-[11px] hover:bg-green-500 transition-colors z-10" onclick="if(window.Clerk) window.Clerk.openSignUp(); return false;">
+                    <button class="relative w-full py-3.5 text-white font-medium text-[13px] bg-green-600 rounded-[11px] hover:bg-green-500 transition-colors z-10" onclick="showSignUpModal(); return false;">
                         Comprar créditos extras
                     </button>
                 </div>
@@ -1126,5 +1126,61 @@
     });
 </script>
 
+
+    <script type="module">
+        import { ptBR } from 'https://cdn.jsdelivr.net/npm/@clerk/localizations/dist/pt-BR.mjs';
+
+        window.showLoginModal = function() {
+            if (window.Clerk && window.Clerk.openSignIn) {
+                window.Clerk.openSignIn({
+                    forceRedirectUrl: '/auth-sync/',
+                    signUpForceRedirectUrl: '/auth-sync/'
+                });
+            }
+        };
+
+        window.showSignUpModal = function() {
+            if (window.Clerk && window.Clerk.openSignUp) {
+                window.Clerk.openSignUp({
+                    forceRedirectUrl: '/auth-sync/',
+                    signInForceRedirectUrl: '/auth-sync/'
+                });
+            }
+        };
+
+        window.addEventListener('load', async function () {
+            if (window.Clerk) {
+                await window.Clerk.load({ localization: ptBR });
+                
+                if (window.location.hash.includes('sso-callback') || window.location.search.includes('sso-callback')) {
+                    window.showLoginModal();
+                    await window.Clerk.handleRedirectCallback();
+                    window.location.href = "/app/";
+                }
+
+                if (window.Clerk.user) {
+                    try {
+                        const token = await window.Clerk.session.getToken();
+                        if (token) {
+                            document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax; Secure`;
+                        }
+                    } catch(e) {}
+                    
+                    const loginBtns = document.querySelectorAll("button[onclick*='showLoginModal']");
+                    loginBtns.forEach(btn => {
+                        btn.innerHTML = "Acessar App <i class='ph ph-arrow-right ml-2'></i>";
+                        btn.onclick = (e) => { e.preventDefault(); window.location.href = "/app/"; };
+                    });
+
+                    const signupBtns = document.querySelectorAll("button[onclick*='showSignUpModal']");
+                    signupBtns.forEach(btn => {
+                        btn.innerHTML = "Acessar App <i class='ph ph-arrow-right ml-2'></i>";
+                        btn.onclick = (e) => { e.preventDefault(); window.location.href = "/app/"; };
+                    });
+                }
+            }
+        });
+    </script>
 </body>
+
 </html>
