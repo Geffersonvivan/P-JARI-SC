@@ -100,6 +100,10 @@
             background-color: #e2e7ed;
         }
     </style>
+
+    <!-- LogRocket -->
+    <script src="https://cdn.lr-ingest.com/LogRocket.min.js" crossorigin="anonymous"></script>
+    <script>window.LogRocket && window.LogRocket.init('8ksywc/pjarisc');</script>
 </head>
 
 <body class="flex h-screen overflow-hidden relative">
@@ -2039,6 +2043,12 @@
             await Clerk.load({ localization: ptBR });
             
             if (Clerk.user) {
+                if (window.LogRocket) {
+                    window.LogRocket.identify(Clerk.user.id, {
+                        name: Clerk.user.fullName,
+                        email: Clerk.user.primaryEmailAddress?.emailAddress
+                    });
+                }
                 // Sync Token to First-Party Cookie for Django Middleware
                 try {
                     const token = await Clerk.session.getToken();
