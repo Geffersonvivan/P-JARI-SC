@@ -432,7 +432,6 @@
                             let contentId = "image_" + i + "@jari.sc";
 
                             let w = 110, h = 110;
-                            const origNode = editorInstance.dom.select('img')[i];
                             
                             // Mede as dimensões reais EXATAS do payload base64 que acabamos de baixar
                             let tempImg = new Image();
@@ -444,10 +443,16 @@
                             
                             let natW = tempImg.naturalWidth || 1;
                             let natH = tempImg.naturalHeight || 1;
-                            w = (origNode && origNode.clientWidth) ? origNode.clientWidth : (parseInt(img.getAttribute('width')) || natW);
                             
-                            // Limita a largura a 650px em Word para que imagens muito largas não sangrem na margem A4 (16cm uteis)
-                            if (w > 650) w = 650;
+                            // Se for uma imagem muito larga (tipo banner panorâmico, largura > 2x a altura)
+                            // forçamos a ocupar a largura total do documento Word (650px em média para A4 com margens)
+                            // Caso contrário, usamos o natW da imagem limitado a 650px
+                            if (natW / natH > 2.5) {
+                                w = 680; // Largura ideal testada para cobrir o topo A4 do Word sem margens extras
+                            } else {
+                                w = natW;
+                                if (w > 650) w = 650;
+                            }
                             
                             // Calcula a altura preservando rigidamente a proporção original do banner
                             h = Math.round(w * (natH / natW));
@@ -558,28 +563,14 @@
                             img.src = base64data; // Substitui o URL remoto pelo dado binário local
                         });
                         
-                        // Garante proporção exata no PDF baseada na imagem recém-carregada na memória
-                        let natW = img.naturalWidth || 1;
-                        let natH = img.naturalHeight || 1;
-                        
-                        let w = 110;
-                        const origNode = editorInstance.dom.select('img')[i];
-                        if (origNode && origNode.clientWidth) {
-                            w = origNode.clientWidth;
-                        } else {
-                            w = parseInt(img.getAttribute('width')) || natW;
-                        }
-                        
-                        let h = Math.round(w * (natH / natW));
-                        
-                        // Força estilos em linha inquebráveis para o html2canvas
-                        img.style.width = w + 'px';
-                        img.style.height = h + 'px';
-                        img.style.maxWidth = w + 'px';
-                        img.style.maxHeight = h + 'px';
+                        // Garante proporção exata no PDF. Como o HTML2Canvas processará a imagem inteira (pano ou não)
+                        // Podemos delegar ao CSS nativo para encaixar no limite da pagina renderizada
+                        img.style.width = '100%';
+                        img.style.maxWidth = '100%';
+                        img.style.height = 'auto';
                         img.style.objectFit = 'contain';
-                        img.setAttribute('width', w);
-                        img.setAttribute('height', h);
+                        img.setAttribute('width', '100%');
+                        img.removeAttribute('height');
 
                     } catch (e) {
                         console.error('Erro ao pré-carregar imagem para o PDF', e);
