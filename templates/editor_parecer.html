@@ -445,13 +445,14 @@
                             let natH = tempImg.naturalHeight || 1;
                             
                             // Se for uma imagem muito larga (tipo banner panorâmico, largura > 2x a altura)
-                            // forçamos a ocupar a largura total do documento Word (650px em média para A4 com margens)
-                            // Caso contrário, usamos o natW da imagem limitado a 650px
+                            // Na conversão MHTML do Word (96 DPI), a largura útil de uma folha A4 padrão ABNT 
+                            // (3cm esq, 2cm dir = 16cm úteis) equivale a exatos 604 pixels.
+                            // Se definimos 680px, a imagem "estoura" a margem direita e corta parte da logo.
                             if (natW / natH > 2.5) {
-                                w = 680; // Largura ideal testada para cobrir o topo A4 do Word sem margens extras
+                                w = 600; // Máximo matemático seguro que cabe dentro da folha no Word
                             } else {
                                 w = natW;
-                                if (w > 650) w = 650;
+                                if (w > 600) w = 600;
                             }
                             
                             // Calcula a altura preservando rigidamente a proporção original do banner
