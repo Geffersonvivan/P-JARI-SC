@@ -19,18 +19,16 @@ load_dotenv()
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
-sentry_dsn = os.environ.get('SENTRY_DSN')
+sentry_dsn = os.environ.get('SENTRY_DSN', 'https://97610ce44a786ac454b8b0188cb48630@o4511071430901760.ingest.us.sentry.io/4511071433785344')
 if sentry_dsn:
     sentry_sdk.init(
         dsn=sentry_dsn,
         integrations=[DjangoIntegration()],
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
+        send_default_pii=True,
+        enable_logs=True,
         traces_sample_rate=1.0,
-        # Set profiles_sample_rate to 1.0 to profile 100%
-        # of sampled transactions.
-        profiles_sample_rate=1.0,
-        send_default_pii=True
+        profile_session_sample_rate=1.0,
+        profile_lifecycle="trace",
     )
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
