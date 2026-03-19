@@ -444,27 +444,31 @@
                             let natW = tempImg.naturalWidth || 1;
                             let natH = tempImg.naturalHeight || 1;
                             
-                            // Se for uma imagem muito larga (tipo banner panorâmico, largura > 2x a altura)
-                            // Na conversão MHTML do Word (96 DPI), a largura útil de uma folha A4 padrão ABNT 
-                            // (3cm esq, 2cm dir = 16cm úteis) equivale a exatos 604 pixels.
-                            // Se definimos 680px, a imagem "estoura" a margem direita e corta parte da logo.
+                            // A prova de balas definitiva para o Microsoft Word: 
+                            // Parar de calcular em "pixels", que mudam dependendo se é Mac (72dpi) ou Windows (96dpi).
+                            // Vamos ditar o tamanho em FÍSICO (Centímetros).
+                            // Uma página A4 (21cm) com margens ABNT tem 15.5 a 16cm úteis.
+                            let w_cm = 15.5;
+                            
                             if (natW / natH > 2.5) {
-                                w = 600; // Máximo matemático seguro que cabe dentro da folha no Word
+                                w_cm = 15.5; // Banner largo: ocupa 100% do espaço físico útil
                             } else {
-                                w = natW;
-                                if (w > 600) w = 600;
+                                // Se for uma logo pequena comum (ex: Brasão quadrado)
+                                let natW_cm = natW * 0.02645; // converte pixel real pra cm
+                                w_cm = natW_cm > 15.5 ? 15.5 : natW_cm;
                             }
                             
-                            // Calcula a altura preservando rigidamente a proporção original do banner
-                            h = Math.round(w * (natH / natW));
+                            let h_cm = w_cm * (natH / natW);
 
-                            // Força dimensões exatas no HTML p/ o Word não esticar
+                            // Limpa atributos HTML que o Word usa pra "adivinhar" em pixels
+                            img.removeAttribute('width');
+                            img.removeAttribute('height');
+                            
+                            // Força a regra CSS Absoluta
                             img.setAttribute('src', 'cid:' + contentId);
-                            img.setAttribute('width', w);
-                            img.setAttribute('height', h);
-                            img.style.width = w + 'px';
-                            img.style.height = h + 'px';
-                            img.style.maxWidth = w + 'px';
+                            img.style.width = w_cm.toFixed(2) + 'cm';
+                            img.style.height = h_cm.toFixed(2) + 'cm';
+                            img.style.maxWidth = '15.5cm';
 
                             mhtmlBottom += "--NEXT.PART\n";
                             mhtmlBottom += "Content-Location: " + contentId + "\n";
