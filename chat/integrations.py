@@ -608,6 +608,7 @@ class GeminiClient:
             "Verificação de notificações e respeito ao contraditório + explicação normativa.\n\n"
             "Esta é a fundamentação.\n\n"
             "**PARECER FINAL**\n\n"
+            "<br>\n"
             "<div style=\"text-align: center;\">\n"
             "Diante do exposto, voto pelo <b>INDEFERIMENTO</b> (ou <b>DEFERIMENTO</b>) do presente recurso,<br>\n"
             "<b>MANTENDO</b> (ou <b>ANULANDO</b>) a penalidade aplicada pela autoridade de trânsito.\n"
