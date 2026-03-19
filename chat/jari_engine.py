@@ -236,12 +236,15 @@ class JariEngine:
             escolhas = message.lower().strip()
             
             if not escolhas:
-                return "Por favor, informe a opção escolhida para cada tese (Ex: 1 a, 2 b)."
+                return "Por favor, informe a opção escolhida para cada tese."
                 
-            if "a" not in escolhas and "b" not in escolhas:
-                return "Não identifiquei as opções 'a' ou 'b' na sua resposta. Digite no formato: 1 a, 2 b"
+            has_acolhida = "acolhida; " in escolhas.replace("não acolhida", "") or re.search(r'\b[a]\b', escolhas) or "acolhida;" in escolhas.replace("não acolhida", "")
+            has_nao = "não acolhida" in escolhas or "nao acolhida" in escolhas or re.search(r'\b[b]\b', escolhas) or "não acolher" in escolhas
             
-            resultado_marcado = "DEFERIDO" if "a" in escolhas else "INDEFERIDO"
+            if not has_acolhida and not has_nao:
+                return "Não identifiquei as opções de Acolhimento na sua resposta."
+            
+            resultado_marcado = "DEFERIDO" if has_acolhida else "INDEFERIDO"
             
             # Anexar as escolhas do julgador à tese para municiar a Fase 5
             self.parecer.analise_tese_texto += (
@@ -249,8 +252,8 @@ class JariEngine:
                 f"Escolhas informadas: {escolhas}\n"
                 f"RESULTADO EXIGIDO NESTE PARECER: {resultado_marcado}\n"
                 f"DIRETRIZ FASE 5: Você DEVE acatar as alternativas escolhidas ("
-                f"se o julgador escolheu 'a', transcreva a linha de raciocínio da Alternativa A de acolhimento; "
-                f"se escolheu 'b', transcreva a Alternativa B de não acolhimento). "
+                f"se o julgador escolheu 'Acolhida'/'A', transcreva a linha de raciocínio da Alternativa A de acolhimento; "
+                f"se escolheu 'Não Acolhida'/'B', transcreva a Alternativa B de não acolhimento). "
                 f"Ignore a alternativa descartada. O resultado final deve ser {resultado_marcado}."
             )
             

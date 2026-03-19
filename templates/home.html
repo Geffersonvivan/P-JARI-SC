@@ -1836,17 +1836,24 @@
                 return;
             }
 
-            // Formatar a string de saída, suportando Fase 3 (ADM_...) e Fase 4 (1, 2, ...)
+            // Formatar a string de saída com quebras de linha e texto claro
             let choiceArray = [];
             for (const [key, value] of Object.entries(window.currentTeseDecisions)) {
+                let suffix = '';
+                if (value.toLowerCase() === 'a') {
+                    suffix = 'Acolhida; ✔️';
+                } else {
+                    suffix = 'Não Acolhida; X';
+                }
+
                 if (String(key).startsWith('ADM_')) {
                     const admName = key.replace('ADM_', '');
-                    choiceArray.push(`${admName} ${value.toUpperCase()}`);
+                    choiceArray.push(`${admName} - ${suffix}`);
                 } else {
-                    choiceArray.push(`${key} ${value}`);
+                    choiceArray.push(`Tese ${key} - ${suffix}`);
                 }
             }
-            const finalString = choiceArray.join('; ');
+            const finalString = choiceArray.join('\n');
 
             // Limpar memória
             window.currentTeseDecisions = {};
