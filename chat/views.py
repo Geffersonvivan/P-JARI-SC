@@ -1416,7 +1416,6 @@ def import_citacao_comunidade_view(request, id):
 
 import requests
 
-@login_required
 def proxy_image_view(request):
     url = request.GET.get('url')
     if not url:

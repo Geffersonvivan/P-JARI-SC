@@ -446,6 +446,9 @@
                             let natH = tempImg.naturalHeight || 1;
                             w = (origNode && origNode.clientWidth) ? origNode.clientWidth : (parseInt(img.getAttribute('width')) || natW);
                             
+                            // Limita a largura a 650px em Word para que imagens muito largas não sangrem na margem A4 (16cm uteis)
+                            if (w > 650) w = 650;
+                            
                             // Calcula a altura preservando rigidamente a proporção original do banner
                             h = Math.round(w * (natH / natW));
 
