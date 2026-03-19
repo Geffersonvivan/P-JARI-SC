@@ -1140,6 +1140,31 @@
                 </div>`;
             }
 
+            // Injeta cards de Pastas (Fase 7)
+            rawHtml = rawHtml.replace(/\[FOLDER_SELECT:(.*?)\]/g, function (match, folderData) {
+                const folders = folderData.split('|');
+                let html = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">';
+                
+                folders.forEach(f => {
+                    const parts = f.split('::');
+                    if (parts.length === 2) {
+                        const idx = parts[0];
+                        const name = parts[1];
+                        
+                        html += `
+                        <div onclick="window.sendMessage('${idx}')" class="cursor-pointer group relative bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center gap-3 hover:border-blue-400 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="bg-blue-50 text-blue-500 w-12 h-12 rounded-full flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300 shadow-sm">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-700 text-center line-clamp-2">${name}</span>
+                        </div>`;
+                    }
+                });
+                
+                html += '</div>';
+                return html;
+            });
+
             // Adiciona classes do Tailwind para formatar as tabelas dinâmicas do Gemini
             // Para injetar Tailwind Typography (prose) precisaríamos do plugin, então aplicamos CSS base aos elementos gerados
 

@@ -60,9 +60,13 @@ class JariEngine:
             # Monta lista final para exibição na mesma ordem que será lida no process_message
             pastas = [pasta_outros] + pastas_dinamicas
                 
-            prompt = "**Salvamento do Projeto**\n\nSelecione qual pasta você deseja usar para salvar esta análise. Digite o número correspondente:\n\n"
+            prompt = "**Salvamento do Projeto**\n\nSelecione qual pasta você deseja usar para salvar esta análise clicando no card correspondente:\n\n"
+            
+            folder_payloads = []
             for i, p in enumerate(pastas, 1):
-                prompt += f"{i}. {p.nome_pasta}\n"
+                folder_payloads.append(f"{i}::{p.nome_pasta}")
+                
+            prompt += f"[FOLDER_SELECT:{'|'.join(folder_payloads)}]"
             return prompt
         elif fase == 8:
             res = f"**{self.parecer.nome_processo} - Parecer Finalizado**\n\n"
