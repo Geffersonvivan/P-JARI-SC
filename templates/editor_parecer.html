@@ -441,31 +441,33 @@
                                 tempImg.src = base64data;
                             });
                             
-                            // O Word no Mac ignora limites físicos definidos no "img.style" (CSS) caso 
-                            // as dimensões originais da imagem base64 superem o limite brutal do layout.
-                            // A única trava absoluta universal que a engine vetusta do Word MHTML obedece 
-                            // para preencher o banner perfeitamente de margem a margem é o atributo HTML 'width="100%"'.
-                            if (natW / natH > 2.5) {
-                                // Banner panorâmico: força 100% da área de texto
-                                img.setAttribute('width', '100%');
-                                img.removeAttribute('height'); // O Word auto-calcula a altura se fornecermos só width em %
-                                img.style.width = '100%';
-                                img.style.height = 'auto'; // evita esticamento vertical bizarro
-                            } else {
-                                // Se for imagem pequena (ex: Assinatura ou Brasão antigo)
-                                let w = natW;
-                                // Trava universal rígida de 430 pixels. (Em Mac 72dpi = 15cm; Em Win 96dpi = 11cm).
-                                // 100% seguro contra "sangramentos" fora da folha em ambos!
-                                if (w > 430) w = 430;
-                                let h = Math.round(w * (natH / natW));
-                                
-                                img.setAttribute('width', w);
-                                img.setAttribute('height', h);
-                                img.style.width = w + 'px';
-                                img.style.height = h + 'px';
+                            // O grande vilão detectado: as propriedades CSS "max-width: 800px" e "height: auto" 
+                            // que vêm penduradas no HTML do Editor fazem a engine do Word (MHTML) "vomitar" 
+                            // o bloco de estilo inteiro, caindo para o tamanho bruto da imagem!
+                            // Portanto, devemos DESTRUIR todos os estilos anteriores e injetar apenas absolutos.
+                            img.style.cssText = '';
+                            
+                            // A proporção infalível para MS Word é medida em Pontos Tipográficos (pt).
+                            // 1 polegada = 72 pontos. 16cm (tamanho A4) = ~453 pontos.
+                            // Vamos usar 430pt (exatos 15.1 cm) para garantir respiro nas margens sem NUNCA estourar.
+                            let w_pt = 430;
+                            
+                            if (natW / natH < 2.5) {
+                                // Se for imagem não-panorâmica (ex: Brasão local pequeno)
+                                let natW_pt = natW * 0.75; // converte pixel pra pt
+                                w_pt = natW_pt > 430 ? 430 : natW_pt;
                             }
                             
+                            let h_pt = w_pt * (natH / natW);
+                            
+                            // Removemos explicitamente os atributos numéricos vulneráveis a DPI
+                            img.removeAttribute('width');
+                            img.removeAttribute('height');
+
+                            // Injetamos apenas o estilo purificado tipográfico
                             img.setAttribute('src', 'cid:' + contentId);
+                            img.style.width = w_pt.toFixed(1) + 'pt';
+                            img.style.height = h_pt.toFixed(1) + 'pt';
 
                             mhtmlBottom += "--NEXT.PART\n";
                             mhtmlBottom += "Content-Location: " + contentId + "\n";
