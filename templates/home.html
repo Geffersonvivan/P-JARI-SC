@@ -1209,7 +1209,7 @@
                         const name = parts[1];
                         
                         html += `
-                        <button onclick="window.sendMessage(null, '${idx}')" class="cursor-pointer group flex items-center gap-3 bg-slate-800/80 border border-slate-700 hover:border-brand-accent hover:bg-slate-800 py-3 px-5 rounded-xl transition-all duration-200">
+                        <button onclick="document.getElementById('feedback-container')?.remove(); window.sendMessage(null, '${idx}')" class="cursor-pointer group flex items-center gap-3 bg-slate-800/80 border border-slate-700 hover:border-brand-accent hover:bg-slate-800 py-3 px-5 rounded-xl transition-all duration-200">
                             <i class="ph-fill ph-folder text-brand-accent text-xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
                             <span class="text-sm font-semibold tracking-wide text-slate-300 group-hover:text-white transition-colors">${name}</span>
                         </button>`;
