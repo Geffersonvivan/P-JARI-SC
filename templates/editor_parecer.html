@@ -441,34 +441,31 @@
                                 tempImg.src = base64data;
                             });
                             
-                            let natW = tempImg.naturalWidth || 1;
-                            let natH = tempImg.naturalHeight || 1;
-                            
-                            // A prova de balas definitiva para o Microsoft Word: 
-                            // Parar de calcular em "pixels", que mudam dependendo se é Mac (72dpi) ou Windows (96dpi).
-                            // Vamos ditar o tamanho em FÍSICO (Centímetros).
-                            // Uma página A4 (21cm) com margens ABNT tem 15.5 a 16cm úteis.
-                            let w_cm = 15.5;
-                            
+                            // O Word no Mac ignora limites físicos definidos no "img.style" (CSS) caso 
+                            // as dimensões originais da imagem base64 superem o limite brutal do layout.
+                            // A única trava absoluta universal que a engine vetusta do Word MHTML obedece 
+                            // para preencher o banner perfeitamente de margem a margem é o atributo HTML 'width="100%"'.
                             if (natW / natH > 2.5) {
-                                w_cm = 15.5; // Banner largo: ocupa 100% do espaço físico útil
+                                // Banner panorâmico: força 100% da área de texto
+                                img.setAttribute('width', '100%');
+                                img.removeAttribute('height'); // O Word auto-calcula a altura se fornecermos só width em %
+                                img.style.width = '100%';
+                                img.style.height = 'auto'; // evita esticamento vertical bizarro
                             } else {
-                                // Se for uma logo pequena comum (ex: Brasão quadrado)
-                                let natW_cm = natW * 0.02645; // converte pixel real pra cm
-                                w_cm = natW_cm > 15.5 ? 15.5 : natW_cm;
+                                // Se for imagem pequena (ex: Assinatura ou Brasão antigo)
+                                let w = natW;
+                                // Trava universal rígida de 430 pixels. (Em Mac 72dpi = 15cm; Em Win 96dpi = 11cm).
+                                // 100% seguro contra "sangramentos" fora da folha em ambos!
+                                if (w > 430) w = 430;
+                                let h = Math.round(w * (natH / natW));
+                                
+                                img.setAttribute('width', w);
+                                img.setAttribute('height', h);
+                                img.style.width = w + 'px';
+                                img.style.height = h + 'px';
                             }
                             
-                            let h_cm = w_cm * (natH / natW);
-
-                            // Limpa atributos HTML que o Word usa pra "adivinhar" em pixels
-                            img.removeAttribute('width');
-                            img.removeAttribute('height');
-                            
-                            // Força a regra CSS Absoluta
                             img.setAttribute('src', 'cid:' + contentId);
-                            img.style.width = w_cm.toFixed(2) + 'cm';
-                            img.style.height = h_cm.toFixed(2) + 'cm';
-                            img.style.maxWidth = '15.5cm';
 
                             mhtmlBottom += "--NEXT.PART\n";
                             mhtmlBottom += "Content-Location: " + contentId + "\n";
