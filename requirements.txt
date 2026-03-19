@@ -38,3 +38,4 @@ oauthlib>=3.2.0
 markdown>=3.6.0
 django-tinymce>=5.0.0
 svix>=1.21.0
+sentry-sdk==2.55.0
