@@ -668,10 +668,22 @@ class GeminiClient:
                 except Exception as e:
                     print(f"Erro de conexão com Redis: {e}")
 
+            # Definir limiares de segurança explícitos para BLOCK_NONE (Gemini V1beta/V1)
+            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+
             response_stream = self.client.models.generate_content_stream(
                 model=model_to_use,
                 contents=contents,
-                config={'system_instruction': system_instruction}
+                config={
+                    'system_instruction': system_instruction,
+                    'safety_settings': safety_settings
+                }
             )
             
             full_text = []

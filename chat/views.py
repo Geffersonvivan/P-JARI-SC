@@ -115,15 +115,11 @@ def editar_parecer_view(request, id):
             
             if config.cabecalho_imagem and default_storage.exists(config.cabecalho_imagem.name):
                 banner_absolute_url = request.build_absolute_uri(config.cabecalho_imagem.url)
-                # Envolver em Tabela é o truque de ouro para o Word Desktop respeitar os limites de margem!
+                # Removemos a tabela cruzada porque o Word no Mac pode bugar com tabelas em 100%
                 cabecalho_html = f"""
-                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 40px; margin-top: 10px; width: 100%;">
-                    <tr>
-                        <td align="center" style="width: 100%; text-align: center;">
-                            <img src='{banner_absolute_url}' style='width: 100%; max-width: 800px; height: auto;' alt="Cabeçalho">
-                        </td>
-                    </tr>
-                </table>
+                <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 10px;">
+                    <img src='{banner_absolute_url}' style='width: 100%; max-width: 800px; height: auto;' alt="Cabeçalho">
+                </div>
                 """
             else:
                 cabecalho_html = f"""
@@ -470,29 +466,33 @@ def stream_task_status_view(request, task_id):
                 yield f"data: {data_str}\n\n"
             else:
                 # Se não chegou mensagem nova num prazo, ou se a task terminou rápido:
-                task = AsyncResult(task_id)
-                if task.state in ['SUCCESS', 'FAILURE', 'REVOKED']:
-                    if task.state == 'SUCCESS':
-                        try:
-                            parecer_id = request.GET.get('parecer_id')
-                            if parecer_id:
-                                from .models import Parecer
-                                p = Parecer.objects.get(id=parecer_id)
-                                reply = (
-                                    f"**Parecer Técnico Gerado com Sucesso!**\n\n"
-                                    f"{p.parecer_final}\n\n"
-                                    f"---\n\n"
-                                    f"Digite **'ok'** para prosseguir."
-                                )
-                                final_data = json.dumps({'status': 'SUCCESS', 'reply': reply, 'status_fase': p.status_fase})
-                            else:
-                                final_data = json.dumps({'status': 'SUCCESS', 'reply': "Tarefa concluída, mas Parecer ID não fornecido.", 'status_fase': 6})
-                        except Exception as e:
-                            final_data = json.dumps({'status': 'FAILURE', 'error': f"Parecer não encontrado. {e}"})
-                    else:
-                        final_data = json.dumps({'status': 'FAILURE', 'error': str(getattr(task, 'info', 'Falha Celery'))})
-                        
-                    yield f"data: {final_data}\n\n"
+                try:
+                    task = AsyncResult(task_id)
+                    if task.state in ['SUCCESS', 'FAILURE', 'REVOKED']:
+                        if task.state == 'SUCCESS':
+                            try:
+                                parecer_id = request.GET.get('parecer_id')
+                                if parecer_id:
+                                    from .models import Parecer
+                                    p = Parecer.objects.get(id=parecer_id)
+                                    reply = (
+                                        f"**Parecer Técnico Gerado com Sucesso!**\n\n"
+                                        f"{p.parecer_final}\n\n"
+                                        f"---\n\n"
+                                        f"Digite **'ok'** para prosseguir."
+                                    )
+                                    final_data = json.dumps({'status': 'SUCCESS', 'reply': reply, 'status_fase': p.status_fase})
+                                else:
+                                    final_data = json.dumps({'status': 'SUCCESS', 'reply': "Tarefa concluída, mas Parecer ID não fornecido.", 'status_fase': 6})
+                            except Exception as db_err:
+                                final_data = json.dumps({'status': 'FAILURE', 'error': f"Parecer não encontrado. {str(db_err)}"})
+                        else:
+                            final_data = json.dumps({'status': 'FAILURE', 'error': str(getattr(task, 'info', 'Falha Celery'))})
+                            
+                        yield f"data: {final_data}\n\n"
+                        break
+                except Exception as eval_err:
+                    yield f"data: {json.dumps({'status': 'FAILURE', 'error': f'Falha Crítica ao ler Task State: {str(eval_err)}'})}\n\n"
                     break
                     
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
