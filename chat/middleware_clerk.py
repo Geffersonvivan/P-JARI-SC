@@ -68,7 +68,8 @@ class ClerkAuthenticationMiddleware:
                         user = User.objects.filter(username=clerk_user_id).first()
                         
                         # Fallback Just-In-Time (JIT): Se o usuário não existe no Django (webhook falhou ou é legado)
-                        if not user:
+                        # Self-healing: Se o usuário existe mas está sem nome (ex: Google SSO sync issue)
+                        if not user or not user.first_name:
                             # Busca os dados do Clerk
                             user_url = f"https://api.clerk.com/v1/users/{clerk_user_id}"
                             headers = {"Authorization": f"Bearer {self.clerk_secret_key}"}
@@ -81,21 +82,29 @@ class ClerkAuthenticationMiddleware:
                                 last_name = clerk_data.get("last_name") or ""
                                 
                                 # Verifica se já existe um usuário com esse email (Legado do django-allauth)
-                                old_user = User.objects.filter(email=email).first() if email else None
-                                if old_user and old_user.username != clerk_user_id:
-                                    # Migra o usuário antigo mudando apenas o username para o ID do Clerk
-                                    old_user.username = clerk_user_id
-                                    old_user.save()
-                                    user = old_user
-                                else:
-                                    # Cria um usuário local totalmente novo atrelado ao Clerk
-                                    user = User.objects.create(
-                                        username=clerk_user_id, 
-                                        email=email, 
-                                        first_name=first_name[:30], 
-                                        last_name=last_name[:30]
-                                    )
-                                    user.set_unusable_password()
+                                if not user:
+                                    old_user = User.objects.filter(email=email).first() if email else None
+                                    if old_user and old_user.username != clerk_user_id:
+                                        # Migra o usuário antigo mudando apenas o username para o ID do Clerk
+                                        old_user.username = clerk_user_id
+                                        old_user.first_name = first_name[:30] if first_name else old_user.first_name
+                                        old_user.last_name = last_name[:30] if last_name else old_user.last_name
+                                        old_user.save()
+                                        user = old_user
+                                    else:
+                                        # Cria um usuário local totalmente novo atrelado ao Clerk
+                                        user = User.objects.create(
+                                            username=clerk_user_id, 
+                                            email=email, 
+                                            first_name=first_name[:30], 
+                                            last_name=last_name[:30]
+                                        )
+                                        user.set_unusable_password()
+                                        user.save()
+                                elif user and not user.first_name:
+                                    # Self-healing: User already exists but has no name
+                                    user.first_name = first_name[:30]
+                                    user.last_name = last_name[:30]
                                     user.save()
 
                         if user:
