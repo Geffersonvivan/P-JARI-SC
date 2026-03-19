@@ -407,6 +407,23 @@
                 tempDiv.innerHTML = editorInstance.getContent();
 
                 let mhtmlBottom = "\n";
+                
+                // =========================================================
+                // FIX: LINHAS DE ASSINATURA (<hr>) ESTOURANDO NO WORD
+                // O parser nativo do MS Word ignora CSS em hr e estica
+                // para 100% da página. Impomos larguras HTML clássicas (pt).
+                // =========================================================
+                const hrs = tempDiv.querySelectorAll('hr');
+                hrs.forEach(hr => {
+                    hr.style.cssText = ''; // Purifica o CSS
+                    hr.setAttribute('size', '1');
+                    hr.setAttribute('width', '250'); 
+                    hr.setAttribute('align', 'center');
+                    hr.style.width = '200pt'; // Ponderação rigorosa (aprox 7cm)
+                    hr.style.borderTop = '1px solid #1f1f1f';
+                    hr.style.margin = '20px auto';
+                });
+
                 const images = tempDiv.querySelectorAll('img');
 
                 for (let i = 0; i < images.length; i++) {
