@@ -1152,7 +1152,7 @@
             // Injeta cards de Pastas (Fase 7)
             rawHtml = rawHtml.replace(/\[FOLDER_SELECT:(.*?)\]/g, function (match, folderData) {
                 const folders = folderData.split('|');
-                let html = '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">';
+                let html = '<div class="flex flex-wrap gap-3 mt-4">';
                 
                 folders.forEach(f => {
                     const parts = f.split('::');
@@ -1161,12 +1161,10 @@
                         const name = parts[1];
                         
                         html += `
-                        <div onclick="window.sendMessage('${idx}')" class="cursor-pointer group relative bg-slate-800 border border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center gap-3 hover:border-green-400 hover:shadow-md transition-all duration-300 transform hover:-translate-y-1">
-                            <div class="bg-green-50 text-green-500 w-12 h-12 rounded-full flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-colors duration-300 shadow-sm">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-                            </div>
-                            <span class="text-sm font-semibold text-slate-300 text-center line-clamp-2">${name}</span>
-                        </div>`;
+                        <button onclick="window.sendMessage(null, '${idx}')" class="cursor-pointer group flex items-center gap-3 bg-slate-800/80 border border-slate-700 hover:border-brand-accent hover:bg-slate-800 py-3 px-5 rounded-xl transition-all duration-200">
+                            <i class="ph-fill ph-folder text-brand-accent text-xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <span class="text-sm font-semibold tracking-wide text-slate-300 group-hover:text-white transition-colors">${name}</span>
+                        </button>`;
                     }
                 });
                 
