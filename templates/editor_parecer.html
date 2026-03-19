@@ -431,16 +431,23 @@
                             let rawData = b64Match[2];
                             let contentId = "image_" + i + "@jari.sc";
 
-                            // Busca a proporção original real evitando estouro de altura no Word
                             let w = 110, h = 110;
                             const origNode = editorInstance.dom.select('img')[i];
-                            if (origNode) {
-                                let natW = origNode.naturalWidth || 1;
-                                let natH = origNode.naturalHeight || 1;
-                                w = origNode.clientWidth || parseInt(origNode.getAttribute('width')) || 110;
-                                // Calcula a altura preservando rigidamente a proporção original
-                                h = Math.round(w * (natH / natW));
-                            }
+                            
+                            // Mede as dimensões reais EXATAS do payload base64 que acabamos de baixar
+                            let tempImg = new Image();
+                            await new Promise((resolve) => {
+                                tempImg.onload = resolve;
+                                tempImg.onerror = resolve;
+                                tempImg.src = base64data;
+                            });
+                            
+                            let natW = tempImg.naturalWidth || 1;
+                            let natH = tempImg.naturalHeight || 1;
+                            w = (origNode && origNode.clientWidth) ? origNode.clientWidth : (parseInt(img.getAttribute('width')) || natW);
+                            
+                            // Calcula a altura preservando rigidamente a proporção original do banner
+                            h = Math.round(w * (natH / natW));
 
                             // Força dimensões exatas no HTML p/ o Word não esticar
                             img.setAttribute('src', 'cid:' + contentId);
@@ -548,15 +555,19 @@
                             img.src = base64data; // Substitui o URL remoto pelo dado binário local
                         });
                         
-                        // Garante proporção exata no PDF
-                        let w = 110, h = 110;
+                        // Garante proporção exata no PDF baseada na imagem recém-carregada na memória
+                        let natW = img.naturalWidth || 1;
+                        let natH = img.naturalHeight || 1;
+                        
+                        let w = 110;
                         const origNode = editorInstance.dom.select('img')[i];
-                        if (origNode) {
-                            let natW = origNode.naturalWidth || 1;
-                            let natH = origNode.naturalHeight || 1;
-                            w = origNode.clientWidth || parseInt(origNode.getAttribute('width')) || 110;
-                            h = Math.round(w * (natH / natW));
+                        if (origNode && origNode.clientWidth) {
+                            w = origNode.clientWidth;
+                        } else {
+                            w = parseInt(img.getAttribute('width')) || natW;
                         }
+                        
+                        let h = Math.round(w * (natH / natW));
                         
                         // Força estilos em linha inquebráveis para o html2canvas
                         img.style.width = w + 'px';
