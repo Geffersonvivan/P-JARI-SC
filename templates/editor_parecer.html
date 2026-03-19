@@ -325,12 +325,12 @@
         tinymce.init({
             selector: '#editor',
             plugins: 'table lists link',
-            toolbar: 'blocks | bold italic | bullist numlist | alignleft aligncenter alignright | table | link | undo redo',
+            toolbar: 'blocks | bold italic | bullist numlist | alignleft aligncenter alignright alignjustify | table | link | undo redo',
             default_link_target: '_blank',
             menubar: false,
             statusbar: false,
             height: 800,
-            content_style: "body { font-family: 'Outfit', sans-serif; line-height: 1.5; font-size: 14px; }",
+            content_style: "body { font-family: 'Outfit', sans-serif; line-height: 1.5; font-size: 14px; text-align: justify; }",
             setup: function (editor) {
                 editor.on('BeforeSetContent', function (e) {
                     // Força links injetados a terem target="_blank"
@@ -402,6 +402,8 @@
 
             try {
                 const tempDiv = document.createElement('div');
+                // Garante que o documento Word herde a justificação por padrão, a menos que haja um alinhamento inline específico
+                tempDiv.style.textAlign = 'justify';
                 tempDiv.innerHTML = editorInstance.getContent();
 
                 let mhtmlBottom = "\n";
@@ -537,6 +539,7 @@
                 printElement.style.lineHeight = '1.6'; // Linhas mais espaçadas ajudam a biblioteca a não fatiar palavras ao meio
                 printElement.style.color = '#000';
                 printElement.style.backgroundColor = '#fff';
+                printElement.style.textAlign = 'justify'; // Puxa preenchimento total lateral como padrão
 
                 // Buscar e converter todas as imagens para Base64 para garantir a renderização no PDF pelo html2canvas
                 const images = printElement.querySelectorAll('img');
