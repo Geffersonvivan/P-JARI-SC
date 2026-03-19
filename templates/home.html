@@ -1,4 +1,5 @@
 {% load socialaccount %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 
@@ -25,11 +26,11 @@
             },
             colors: {
               space: {
-                950: '#010205',
-                900: '#02040A',
-                850: '#04060E',
-                800: '#060913',
-                700: '#0B1120',
+                950: '#092d47',
+                900: '#0f4a73',
+                850: '#156196',
+                800: '#1b78b9',
+                700: '#238acc',
               },
               brand: {
                 primary: '#ffffff',
@@ -62,12 +63,12 @@
     <style>
         /* Cores fixadas conforme o layout definido */
         :root {
-            --bg-main: #0f172a;
-            --bg-sidebar: #02040A;
-            --bg-input: #1e293b;
-            --text-primary: #e2e8f0;
-            --text-secondary: #cbd5e1;
-            --border-color: #334155;
+            --bg-main: #f0f4f9;
+            --bg-sidebar: #eff3f9;
+            --bg-input: #ffffff;
+            --text-primary: #1f1f1f;
+            --text-secondary: #444746;
+            --border-color: #dde3ea;
         }
 
         body {
@@ -163,23 +164,20 @@
     <script>window.LogRocket && window.LogRocket.init('8ksywc/pjarisc');</script>
 </head>
 
-<body class="bg-slate-900 text-slate-200 flex h-screen overflow-hidden relative">
+<body class="flex h-screen overflow-hidden relative">
 
     <!-- Mobile Sidebar Overlay -->
     <div id="sidebar-overlay" onclick="toggleSidebar()"
         class="fixed inset-0 bg-black/40 z-40 hidden md:hidden backdrop-blur-sm transition-opacity"></div>
 
-    <aside id="sidebar" class="sidebar w-80 flex flex-col p-4 flex-shrink-0 border-r border-white/5 bg-space-900 text-slate-600">
+    <aside id="sidebar" class="sidebar w-80 flex flex-col p-4 flex-shrink-0 border-r border-white/5 bg-space-900 text-gray-300">
         <!-- Header & Logo -->
         <div class="flex items-center gap-3 mb-8 p-1">
-            <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-800/5 rounded-full text-slate-500 hover:text-white transition">
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition">
                 <i class="ph ph-list text-xl"></i>
             </button>
             <a href="/" class="flex items-center gap-3 no-underline">
-                <div class="w-10 h-10 rounded-xl flex flex-shrink-0 items-center justify-center bg-gradient-to-br from-green-400 to-green-600 shadow-[0_0_15px_rgba(34,197,94,0.4)] relative">
-                    <i class="ph ph-scales text-white text-xl"></i>
-                </div>
-                <span class="font-display font-bold text-xl tracking-widest text-brand-accent">P-JARI</span>
+                <img src="{% static 'images/Jari-Bolinha.png' %}" alt="P-JARI Logo" class="h-10 w-auto sidebar-logo transition-transform duration-300 hover:scale-105">
             </a>
         </div>
 
@@ -425,21 +423,16 @@
 
     <main class="flex-1 flex flex-col relative overflow-hidden">
 
-        <header id="main-header" class="p-4 flex md:hidden justify-between items-center z-10 bg-slate-900 shadow-sm border-b border-slate-800">
+        <header id="main-header" class="p-4 flex md:hidden justify-between items-center z-10 bg-slate-50 shadow-none border-none">
             <div class="flex items-center gap-2">
                 <button id="btn-open-sidebar" onclick="toggleSidebar()"
-                    class="p-2 hover:bg-slate-600 rounded-full md:hidden">☰</button>
+                    class="p-2 hover:bg-gray-200 rounded-full md:hidden">☰</button>
                 <a href="/" id="header-title" class="flex items-center gap-2 md:hidden">
-                    <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex flex-shrink-0 items-center justify-center border border-brand-accent/30 shadow-[0_0_15px_rgba(34,197,94,0.3)]">
-                        <i class="ph-fill ph-scales text-brand-accent text-lg"></i>
-                    </div>
-                    <span class="font-display font-bold text-xl tracking-tight text-brand-accent">
-                        P-JARI
-                    </span>
+                    <img src="{% static 'images/Jari-Bolinha.png' %}" alt="P-JARI" class="h-8 w-auto">
                 </a>
             </div>
             <div class="flex items-center gap-4">
-                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden items-center gap-2 px-4 py-2 rounded-full bg-slate-800/70 backdrop-blur-md text-green-700 hover:bg-slate-800 border border-white/50 shadow-lg shadow-green-500/10 hover:shadow-green-500/20 hover:-translate-y-0.5 transition-all duration-300 ring-1 ring-black/5 text-sm font-semibold z-50">
+                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md text-blue-700 hover:bg-white border border-white/50 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all duration-300 ring-1 ring-black/5 text-sm font-semibold z-50">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
@@ -456,25 +449,25 @@
         <div class="flex-1 flex flex-row overflow-hidden relative" id="split-container">
             
             <!-- Painel Esquerdo: PDF Viewer (Escondido por Padrão) -->
-            <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-slate-700 bg-slate-900 z-10 flex-1 min-w-[300px] shadow-inner">
+            <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-gray-200 bg-slate-50 z-10 flex-1 min-w-[300px] shadow-inner">
                 
                 <!-- PDF Tabs/Header Premium -->
-                <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700/60 bg-slate-800/50 backdrop-blur-sm">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200/60 bg-white/50 backdrop-blur-sm">
                     <!-- Segmented Control background -->
-                    <div class="flex gap-1 bg-gray-200/80 p-1 rounded-xl shadow-inner border border-slate-800">
-                        <button id="tab-recurso" onclick="switchPdfTab('recurso')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-slate-400 hover:text-slate-300 transition-all duration-300">Defesa/Recurso</button>
-                        <button id="tab-autuacao" onclick="switchPdfTab('autuacao')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-slate-400 hover:text-slate-300 transition-all duration-300">Auto de Infração</button>
-                        <button id="tab-ata" onclick="switchPdfTab('ata')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-slate-400 hover:text-slate-300 transition-all duration-300 hidden">Ata</button>
+                    <div class="flex gap-1 bg-gray-200/80 p-1 rounded-xl shadow-inner border border-gray-100">
+                        <button id="tab-recurso" onclick="switchPdfTab('recurso')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300">Defesa/Recurso</button>
+                        <button id="tab-autuacao" onclick="switchPdfTab('autuacao')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300">Auto de Infração</button>
+                        <button id="tab-ata" onclick="switchPdfTab('ata')" class="px-5 py-1.5 text-sm font-medium rounded-lg text-gray-500 hover:text-gray-700 transition-all duration-300 hidden">Ata</button>
                     </div>
                     
                     <div class="flex items-center gap-2 ml-2">
                         <!-- Dica de Busca -->
-                        <span class="hidden md:flex items-center gap-1.5 px-3 py-1 bg-slate-800/80 text-slate-400 text-xs font-medium rounded-lg border border-slate-700/60 shadow-sm transition-colors hover:bg-slate-600" title="Para localizar palavras nativamente, clique dentro do documento e use o atalho">
+                        <span class="hidden md:flex items-center gap-1.5 px-3 py-1 bg-gray-100/80 text-gray-500 text-xs font-medium rounded-lg border border-gray-200/60 shadow-sm transition-colors hover:bg-gray-200" title="Para localizar palavras nativamente, clique dentro do documento e use o atalho">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                             Buscar: Ctrl+F ou ⌘+F
                         </span>
                         <!-- Botão Fechar -->
-                        <button onclick="togglePdfViewer()" class="flex items-center justify-center text-slate-500 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all duration-200" title="Fechar Visualizador">
+                        <button onclick="togglePdfViewer()" class="flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-full transition-all duration-200" title="Fechar Visualizador">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
@@ -482,19 +475,19 @@
                 
                 <!-- Iframe Container com Soft Framing -->
                 <div class="flex-1 relative p-3 md:p-4 lg:p-5 flex items-center justify-center overflow-hidden">
-                    <div class="w-full h-full relative rounded-2xl shadow-xl border border-slate-700/80 bg-slate-800 overflow-hidden ring-1 ring-black/5">
-                        <iframe id="pdf-iframe" src="" class="absolute inset-0 w-full h-full border-none rounded-2xl bg-slate-800"></iframe>
-                        <div id="pdf-placeholder" class="text-center p-6 flex flex-col items-center justify-center text-slate-500 absolute inset-0 bg-slate-800/50/80 backdrop-blur-sm z-10">
-                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-5 opacity-40 text-green-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                            <p class="text-base font-medium text-slate-400">Nenhum documento disponível ou a URL expirou.</p>
+                    <div class="w-full h-full relative rounded-2xl shadow-xl border border-gray-200/80 bg-white overflow-hidden ring-1 ring-black/5">
+                        <iframe id="pdf-iframe" src="" class="absolute inset-0 w-full h-full border-none rounded-2xl bg-white"></iframe>
+                        <div id="pdf-placeholder" class="text-center p-6 flex flex-col items-center justify-center text-gray-400 absolute inset-0 bg-gray-50/80 backdrop-blur-sm z-10">
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="mb-5 opacity-40 text-blue-500"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <p class="text-base font-medium text-gray-500">Nenhum documento disponível ou a URL expirou.</p>
                         </div>
                     </div>
                 </div>
             </div>
             
             <!-- Resizer Handle Premium -->
-            <div id="split-resizer" class="hidden w-[6px] cursor-col-resize bg-transparent hover:bg-green-400 group transition-colors z-20 flex-shrink-0 flex items-center justify-center">
-                <div class="h-10 w-[3px] bg-gray-300 rounded-full pointer-events-none group-hover:bg-slate-800 transition-colors"></div>
+            <div id="split-resizer" class="hidden w-[6px] cursor-col-resize bg-transparent hover:bg-blue-400 group transition-colors z-20 flex-shrink-0 flex items-center justify-center">
+                <div class="h-10 w-[3px] bg-gray-300 rounded-full pointer-events-none group-hover:bg-white transition-colors"></div>
             </div>
 
             <!-- Painel Direito: Chat Main Area -->
@@ -502,14 +495,14 @@
                 <section id="chat-window" class="flex-1 overflow-y-auto p-4 flex flex-col">
             <div id="home-screen" class="flex-1 flex flex-col items-center justify-center">
                 <div class="content-container text-center mb-12">
-                    <h1 class="text-2xl font-light mb-8 text-slate-400 leading-[1.4]">
-                        Seja bem-vindo(a) ao <span class="font-bold text-slate-400">P‑JARI/SC!</span><br />
+                    <h1 class="text-2xl font-light mb-8 text-gray-500 leading-[1.4]">
+                        Seja bem-vindo(a) ao <span class="font-bold text-gray-600">P‑JARI/SC!</span><br />
                         Sistema de apoio técnico aos Membros Julgadores da<br />
                         Junta Administrativa de Recursos de Infrações (JARI) de Santa Catarina.
                     </h1>
                     {% if request.user.is_authenticated %}
                     <button type="button" id="btn-iniciar-processo"
-                        class="bg-brand-accent text-[#02040A] px-8 py-3 rounded-full hover:bg-green-200 focus:outline-none transition font-medium text-lg shadow-sm flex items-center justify-center gap-3 mx-auto"
+                        class="bg-[#e4f0fc] text-blue-600 px-8 py-3 rounded-full hover:bg-blue-200 focus:outline-none transition font-medium text-lg shadow-sm flex items-center justify-center gap-3 mx-auto"
                         onclick="iniciarNovoProcesso()">
                         Iniciar nova análise
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -525,26 +518,26 @@
         <footer id="chat-footer" class="p-6 pb-[5vh] hidden-home">
             <div class="content-container relative">
                 {% if not request.user.is_authenticated %}
-                <div class="input-bar flex items-center p-4 opacity-60 cursor-pointer bg-slate-800/50"
+                <div class="input-bar flex items-center p-4 opacity-60 cursor-pointer bg-gray-50"
                     onclick="showLoginModal()">
-                    <button class="px-2 text-slate-400 hover:text-black font-light text-2xl" disabled>+</button>
+                    <button class="px-2 text-gray-500 hover:text-black font-light text-2xl" disabled>+</button>
                     <input type="text" id="user-input" placeholder="Faça login para começar análises"
                         class="flex-1 bg-transparent border-none outline-none px-4 text-lg cursor-pointer pointer-events-none"
                         readonly>
-                    <div class="flex gap-4 px-2 text-slate-400">
-                        <button id="btn-send" class="hover:text-green-600 pointer-events-none" disabled>➤</button>
+                    <div class="flex gap-4 px-2 text-gray-500">
+                        <button id="btn-send" class="hover:text-blue-600 pointer-events-none" disabled>➤</button>
                     </div>
                 </div>
                 {% else %}
                 <div class="input-bar flex flex-col p-2 gap-2 relative">
                     <!-- Preview de Arquivos Selecionados -->
                     <div id="file-preview-container"
-                        class="hidden flex flex-wrap gap-2 px-4 py-2 border-b border-slate-800"></div>
+                        class="hidden flex flex-wrap gap-2 px-4 py-2 border-b border-gray-100"></div>
 
                     <div class="flex items-center w-full relative">
                         <!-- Botão Anexar (Clip) -->
                         <button type="button" onclick="document.getElementById('file-upload').click()"
-                            class="px-3 text-slate-400 hover:text-green-600 transition flex items-center justify-center p-2 rounded-full hover:bg-green-50 focus:outline-none"
+                            class="px-3 text-gray-500 hover:text-blue-600 transition flex items-center justify-center p-2 rounded-full hover:bg-blue-50 focus:outline-none"
                             title="Anexar Autuação e Consolidado">
                             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -558,9 +551,9 @@
                         <input type="text" id="user-input" placeholder='Digite "Iniciar" para julgar um novo processo'
                             class="flex-1 bg-transparent border-none outline-none px-2 text-lg">
 
-                        <div class="flex gap-4 px-2 text-slate-400">
+                        <div class="flex gap-4 px-2 text-gray-500">
                             <button type="button" id="btn-send"
-                                class="bg-brand-accent text-[#02040A] p-2.5 rounded-full hover:bg-green-200 focus:outline-none transition flex items-center justify-center"
+                                class="bg-[#e4f0fc] text-blue-600 p-2.5 rounded-full hover:bg-blue-200 focus:outline-none transition flex items-center justify-center"
                                 title="Enviar Mensagem">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="ml-0.5"
                                     xmlns="http://www.w3.org/2000/svg">
@@ -592,9 +585,9 @@
     <!-- Move Parecer Modal -->
     <div id="move-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
         <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" onclick="closeMoveModal()"></div>
-        <div class="relative bg-slate-800 rounded-2xl w-full max-w-sm mx-4 p-6 shadow-xl flex flex-col">
-            <h2 class="text-xl font-bold text-slate-100 mb-4">Mover Parecer</h2>
-            <p class="text-sm text-slate-400 mb-4">Selecione para qual pasta deseja mover este parecer:</p>
+        <div class="relative bg-white rounded-2xl w-full max-w-sm mx-4 p-6 shadow-xl flex flex-col">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Mover Parecer</h2>
+            <p class="text-sm text-gray-500 mb-4">Selecione para qual pasta deseja mover este parecer:</p>
 
             <input type="hidden" id="move-parecer-id">
             <input type="hidden" id="move-pasta-select">
@@ -602,18 +595,18 @@
             <div class="max-h-60 overflow-y-auto mb-6 pr-2 space-y-2 custom-scrollbar" id="move-pasta-list">
                 {% for p in pastas %}
                 <div data-pasta-id="{{ p.id }}" onclick="selectMovePasta('{{ p.id }}', this)"
-                    class="pasta-option cursor-pointer flex items-center gap-3 p-3 rounded-xl border border-slate-700 hover:border-green-500 hover:bg-green-50 transition-all select-none">
+                    class="pasta-option cursor-pointer flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all select-none">
                     <div class="text-xl">📁</div>
-                    <div class="font-medium text-slate-300">{{ p.nome_pasta }}</div>
+                    <div class="font-medium text-gray-700">{{ p.nome_pasta }}</div>
                 </div>
                 {% endfor %}
             </div>
 
             <div class="flex justify-end gap-3 w-full">
                 <button onclick="closeMoveModal()"
-                    class="px-4 py-2 bg-slate-800 text-slate-400 rounded-lg hover:bg-slate-600 transition font-medium">Cancelar</button>
+                    class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition font-medium">Cancelar</button>
                 <button onclick="submitMoveParecer()"
-                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">Mover</button>
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">Mover</button>
             </div>
         </div>
     </div>
@@ -626,12 +619,12 @@
 
         <!-- Modal Content -->
         <div
-            class="relative bg-slate-800 rounded-3xl w-full max-w-lg mx-4 p-10 shadow-2xl flex flex-col items-center transform transition-all scale-100 opacity-100">
+            class="relative bg-white rounded-3xl w-full max-w-lg mx-4 p-10 shadow-2xl flex flex-col items-center transform transition-all scale-100 opacity-100">
             <div
-                class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mb-6 shadow-inner">
+                class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-6 shadow-inner">
                 👋</div>
-            <h2 class="text-3xl font-bold text-slate-100 text-center mb-4">Bem-vindo(a) ao P-JARI/SC!</h2>
-            <p class="text-slate-400 text-center text-base mb-8 leading-relaxed">
+            <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Bem-vindo(a) ao P-JARI/SC!</h2>
+            <p class="text-gray-500 text-center text-base mb-8 leading-relaxed">
                 Eu sou o seu motor inteligente de análise de infrações. Estou aqui para te ajudar a organizar seus
                 processos, cruzar dados com as legislações de trânsito e gerar fundamentos e pareceres automáticos com
                 alta precisão.
@@ -876,8 +869,8 @@
         function selectFolder(id, element) {
             currentPastaId = id;
             currentParecerId = null;
-            document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('bg-[#e2e7ed]'));
-            if (element) element.classList.add('bg-[#e2e7ed]');
+            document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('bg-white/10'));
+            if (element) element.classList.add('bg-white/10');
 
             // Limpa chat
             messagesContainer.innerHTML = '';
@@ -889,7 +882,7 @@
             welcomeDiv.className = "flex justify-start items-start gap-3 mt-4";
             welcomeDiv.innerHTML = `
                 <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                <div class="text-slate-300 leading-relaxed pt-1">Pasta selecionada. Carregando visão geral...</div>
+                <div class="text-[#444746] leading-relaxed pt-1">Pasta selecionada. Carregando visão geral...</div>
             `;
             messagesContainer.appendChild(welcomeDiv);
 
@@ -909,7 +902,7 @@
                         rDiv.className = "flex justify-start items-start gap-3 mt-4";
                         rDiv.innerHTML = `
                           <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                          <div class="text-slate-300 leading-relaxed pt-1">${formatMessage(data.reply)}</div>
+                          <div class="text-[#444746] leading-relaxed pt-1">${formatMessage(data.reply)}</div>
                       `;
                         messagesContainer.appendChild(rDiv);
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
@@ -933,7 +926,7 @@
             welcomeDiv.className = "flex justify-start items-start gap-3 mt-4";
             welcomeDiv.innerHTML = `
                 <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                <div class="text-slate-300 leading-relaxed pt-1 animate-pulse">Carregando processo e buscando relatório na base...</div>
+                <div class="text-[#444746] leading-relaxed pt-1 animate-pulse">Carregando processo e buscando relatório na base...</div>
             `;
             messagesContainer.appendChild(welcomeDiv);
 
@@ -953,14 +946,14 @@
                             if (msg.role === 'user') {
                                 const userDiv = document.createElement('div');
                                 userDiv.className = "flex justify-end mt-4";
-                                userDiv.innerHTML = `<div class="bg-brand-accent/10 p-4 rounded-2xl max-w-[80%] text-slate-200 shadow-sm">${formatMessage(msg.content)}</div>`;
+                                userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatMessage(msg.content)}</div>`;
                                 messagesContainer.appendChild(userDiv);
                             } else {
                                 const rDiv = document.createElement('div');
                                 rDiv.className = "flex justify-start items-start gap-3 mt-4 w-full";
                                 rDiv.innerHTML = `
                                   <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                                  <div class="text-slate-300 leading-relaxed pt-1 w-full">${formatMessage(msg.content)}</div>
+                                  <div class="text-[#444746] leading-relaxed pt-1 w-full">${formatMessage(msg.content)}</div>
                                 `;
                                 messagesContainer.appendChild(rDiv);
                             }
@@ -973,7 +966,7 @@
                         rDiv.className = "flex justify-start items-start gap-3 mt-4 w-full";
                         rDiv.innerHTML = `
                           <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                          <div class="text-slate-300 leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
+                          <div class="text-[#444746] leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
                         `;
                         messagesContainer.appendChild(rDiv);
                         setTimeout(() => {
@@ -1071,15 +1064,15 @@
                 }
 
                 return `
-                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-slate-800 border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseNum}">
-                    <div class="flex items-center gap-2 mb-1 pb-2 border-b border-slate-800">
-                        <div class="w-6 h-6 rounded-full bg-green-50 text-green-600 flex items-center justify-center font-bold text-xs">${teseNum}</div>
-                        <span class="font-semibold text-slate-100 text-sm">Decisão Exigida para ${teseNome}</span>
+                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseNum}">
+                    <div class="flex items-center gap-2 mb-1 pb-2 border-b border-gray-100">
+                        <div class="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">${teseNum}</div>
+                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para ${teseNome}</span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-900 hover:bg-slate-800 hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                             <div class="flex items-center gap-3">
-                                <div class="w-7 h-7 rounded-full bg-slate-800 shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-colors icon-container">
+                                <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
                                 <span class="font-semibold tracking-wide text-xs group-hover:text-emerald-700 transition-colors">ACOLHER</span>
@@ -1087,9 +1080,9 @@
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-emerald-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                         
-                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-900 hover:bg-slate-800 hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, ${teseNum}, 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                              <div class="flex items-center gap-3">
-                                <div class="w-7 h-7 rounded-full bg-slate-800 shadow-sm flex items-center justify-center group-hover:bg-rose-50 transition-colors icon-container">
+                                <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-rose-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </div>
                                 <span class="font-semibold tracking-wide text-xs group-hover:text-rose-700 transition-colors">NÃO ACOLHER</span>
@@ -1118,15 +1111,15 @@
                 const teseIdAttr = `ADM_${tipo}`;
 
                 return `
-                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-slate-800 border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseIdAttr}">
-                    <div class="flex items-center gap-2 mb-1 pb-2 border-b border-slate-800">
-                        <div class="w-6 h-6 rounded-full bg-brand-accent/10 text-brand-accent flex items-center justify-center font-bold text-xs"><svg fill="none" class="w-4 h-4" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                        <span class="font-semibold text-slate-100 text-sm">Decisão Exigida para ${teseNome}</span>
+                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseIdAttr}">
+                    <div class="flex items-center gap-2 mb-1 pb-2 border-b border-gray-100">
+                        <div class="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs"><svg fill="none" class="w-4 h-4" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                        <span class="font-semibold text-gray-800 text-sm">Decisão Exigida para ${teseNome}</span>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-900 hover:bg-slate-800 hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'a')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                             <div class="flex items-center gap-3">
-                                <div class="w-7 h-7 rounded-full bg-slate-800 shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-colors icon-container">
+                                <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
                                 </div>
                                 <span class="font-semibold tracking-wide text-xs group-hover:text-emerald-700 transition-colors">ACOLHER</span>
@@ -1134,9 +1127,9 @@
                             <div class="w-4 h-4 rounded-full border-2 border-slate-300 group-hover:border-emerald-400 transition-colors indicator flex items-center justify-center"></div>
                         </button>
                         
-                        <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-900 hover:bg-slate-800 hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
+                        <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'b')" type="button" class="btn-tese-option group relative w-full flex items-center justify-between px-4 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                              <div class="flex items-center gap-3">
-                                <div class="w-7 h-7 rounded-full bg-slate-800 shadow-sm flex items-center justify-center group-hover:bg-rose-50 transition-colors icon-container">
+                                <div class="w-7 h-7 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-rose-50 transition-colors icon-container">
                                     <svg class="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </div>
                                 <span class="font-semibold tracking-wide text-xs group-hover:text-rose-700 transition-colors">NÃO ACOLHER</span>
@@ -1150,7 +1143,7 @@
             if (hasDecisionButtons) {
                 rawHtml += `
                 <div class="mt-4 pt-4 border-t border-[#dde3ea] flex justify-center sm:justify-end">
-                    <button onclick="window.submitTeseDecisions(this)" type="button" class="group relative overflow-hidden rounded-lg bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-medium py-2.5 px-6 shadow hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 text-sm">
+                    <button onclick="window.submitTeseDecisions(this)" type="button" class="group relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium py-2.5 px-6 shadow hover:shadow-md transition-all duration-300 flex items-center justify-center gap-2 transform hover:-translate-y-0.5 text-sm">
                         <span class="relative z-10 tracking-wide">Confirmar e Gerar Parecer</span>
                         <svg class="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                     </button>
@@ -1209,9 +1202,9 @@
                         const name = parts[1];
                         
                         html += `
-                        <button onclick="document.getElementById('feedback-container')?.remove(); window.sendMessage(null, '${idx}')" class="cursor-pointer group flex items-center gap-3 bg-slate-800/80 border border-slate-700 hover:border-brand-accent hover:bg-slate-800 py-3 px-5 rounded-xl transition-all duration-200">
-                            <i class="ph-fill ph-folder text-brand-accent text-xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
-                            <span class="text-sm font-semibold tracking-wide text-slate-300 group-hover:text-white transition-colors">${name}</span>
+                        <button onclick="document.getElementById('feedback-container')?.remove(); window.sendMessage(null, '${idx}')" class="cursor-pointer group flex items-center gap-3 bg-white border border-gray-200 hover:border-blue-400 hover:bg-gray-50 py-3 px-5 rounded-xl transition-all duration-200 shadow-sm">
+                            <i class="ph-fill ph-folder text-blue-500 text-xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <span class="text-sm font-semibold tracking-wide text-gray-700 group-hover:text-blue-700 transition-colors">${name}</span>
                         </button>`;
                     }
                 });
@@ -1223,18 +1216,18 @@
             // Adiciona classes do Tailwind para formatar as tabelas dinâmicas do Gemini
             // Para injetar Tailwind Typography (prose) precisaríamos do plugin, então aplicamos CSS base aos elementos gerados
 
-            return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-slate-300 leading-relaxed break-words">
+            return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
                 <style>
                     .markdown-content table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; font-size: 13px; }
-                    .markdown-content th, .markdown-content td { border: 1px solid #334155; padding: 8px 12px; text-align: left; }
-                    .markdown-content th { background-color: #0f172a; font-weight: 600; color: #f8fafc; }
-                    .markdown-content tr:nth-child(even) { background-color: #1e293b; }
+                    .markdown-content th, .markdown-content td { border: 1px solid #dde3ea; padding: 8px 12px; text-align: left; }
+                    .markdown-content th { background-color: #eff3f9; font-weight: 600; color: #1f1f1f; }
+                    .markdown-content tr:nth-child(even) { background-color: #fafbfc; }
                     .markdown-content ul { list-style-type: disc; padding-left: 20px; }
                     .markdown-content ol { list-style-type: decimal; padding-left: 20px; }
-                    .markdown-content a:not(.bg-green-600) { color: #60a5fa; text-decoration: underline; font-weight: 500; }
-                    .markdown-content a:not(.bg-green-600):hover { color: #93c5fd; }
-                    .markdown-content strong { color: #f8fafc; font-weight: 700; }
-                    .markdown-content hr { border-color: #334155; margin: 15px 0; }
+                    .markdown-content a:not(.bg-blue-600) { color: #2563eb; text-decoration: underline; font-weight: 500; }
+                    .markdown-content a:not(.bg-blue-600):hover { color: #1e40af; }
+                    .markdown-content strong { color: #1f1f1f; font-weight: 700; }
+                    .markdown-content hr { border-color: #dde3ea; margin: 15px 0; }
                 </style>
                 ${rawHtml}
             </div>`;
@@ -1275,7 +1268,7 @@
                         if (msgContainer) {
                             msgContainer.innerHTML = `
                                 <div class="w-8 h-8 rounded-full bg-green-500 shadow-md shadow-green-200 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">✓</div>
-                                <div class="text-slate-300 leading-relaxed pt-1 w-full bg-slate-800 p-6 rounded-xl shadow-lg shadow-black/50 border border-green-100/50 transition-opacity duration-500">${formatMessage(data.reply)}</div>
+                                <div class="text-[#444746] leading-relaxed pt-1 w-full bg-slate-800 p-6 rounded-xl shadow-lg shadow-black/50 border border-green-100/50 transition-opacity duration-500">${formatMessage(data.reply)}</div>
                             `;
                             try {
                                 const audio = new Audio('data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
@@ -1288,7 +1281,8 @@
                             // Em caso de streaming bem sucedido é seguro deixar as atualizações de Fase prosseguirem como originalmente o FrontEnd fazia.
                             // O FrontEnd habilita o input se 'status_fase' vem na resposta, mas só dentro do submitMessage.
                             // Vamos habilitar de volta os inputs, por garantia.
-                            document.getElementById('status-dots').classList.add('hidden');
+                            const sDots = document.getElementById('status-dots');
+                            if (sDots) sDots.classList.add('hidden');
                             if (typeof enableInput === "function") enableInput();
                         }
                     } else if (data.status === 'FAILURE') {
@@ -1502,7 +1496,7 @@
             }
             if(!userContent) userContent = "[Anexo]";
             
-            userDiv.innerHTML = `<div class="bg-brand-accent/10 p-4 rounded-2xl max-w-[80%] text-slate-200 shadow-sm">${userContent}</div>`;
+            userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${userContent}</div>`;
             messagesContainer.appendChild(userDiv);
 
             userInput.value = "";
@@ -1640,17 +1634,27 @@
 
                     // Carregar o PDF na tela assim que os arquivos forem submetidos
                     if (shouldOpenPdf) {
-                        btnTogglePdf.classList.remove('hidden');
-                        btnTogglePdf.classList.add('md:flex');
-                        document.getElementById('main-header').classList.remove('md:hidden');
-                        document.getElementById('main-header').classList.add('md:flex');
+                        if (btnTogglePdf) {
+                            btnTogglePdf.classList.remove('hidden');
+                            btnTogglePdf.classList.add('md:flex');
+                        }
+                        const mh = document.getElementById('main-header');
+                        if (mh) {
+                            mh.classList.remove('md:hidden');
+                            mh.classList.add('md:flex');
+                        }
                         
                         if (!pdfViewerActive) togglePdfViewer(true);
                     } else if (!shouldOpenPdf) {
-                        btnTogglePdf.classList.add('hidden');
-                        btnTogglePdf.classList.remove('md:flex');
-                        document.getElementById('main-header').classList.remove('md:flex');
-                        document.getElementById('main-header').classList.add('md:hidden');
+                        if (btnTogglePdf) {
+                            btnTogglePdf.classList.add('hidden');
+                            btnTogglePdf.classList.remove('md:flex');
+                        }
+                        const mh = document.getElementById('main-header');
+                        if (mh) {
+                            mh.classList.remove('md:flex');
+                            mh.classList.add('md:hidden');
+                        }
                     }
 
                     // Se o processo chegou ao fim (salvo na pasta), mostra Toast e reinicia o layout
@@ -1968,28 +1972,36 @@
             pdfViewerActive = forceState !== null ? forceState : !pdfViewerActive;
             
             if (pdfViewerActive) {
-                pdfPanel.classList.remove('hidden');
-                pdfPanel.classList.add('flex');
-                resizer.classList.remove('hidden');
-                resizer.classList.add('flex');
+                if(pdfPanel) {
+                    pdfPanel.classList.remove('hidden');
+                    pdfPanel.classList.add('flex');
+                }
+                if(resizer) {
+                    resizer.classList.remove('hidden');
+                    resizer.classList.add('flex');
+                }
                 
                 // Em modo Split ativo: o chat deixa de ser flex-1 e passa pro width configurado,
                 // enquanto o PDF se torna flex-1 (tela cheia/resto do espaço).
-                chatPanel.classList.remove('flex-1');
-                chatPanel.style.maxWidth = '800px';
-                chatPanel.style.width = '45%';
+                if(chatPanel) {
+                    chatPanel.classList.remove('flex-1');
+                    chatPanel.style.maxWidth = '800px';
+                    chatPanel.style.width = '45%';
+                }
                 
                 // FECHA A SIDEBAR AO ABRIR O PDF AUTOMATICAMENTE (Se estiver aberta e em Desktop)
-                if (window.innerWidth >= 768 && !sidebar.classList.contains('sidebar-hidden')) {
+                if (window.innerWidth >= 768 && sidebar && !sidebar.classList.contains('sidebar-condensed')) {
                     toggleSidebar();
                 }
                 
                 // Define Glassmorphism and Active Classes
-                const inactiveClasses = ['bg-slate-800/70', 'backdrop-blur-md', 'text-green-700', 'hover:bg-slate-800', 'border', 'border-white/50', 'shadow-lg', 'shadow-green-500/10', 'hover:shadow-green-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];
-                const activeClasses = ['bg-green-600', 'text-white', 'shadow-inner'];
+                const inactiveClasses = ['bg-white/70', 'backdrop-blur-md', 'text-blue-700', 'hover:bg-white', 'border', 'border-white/50', 'shadow-lg', 'shadow-blue-500/10', 'hover:shadow-blue-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];
+                const activeClasses = ['bg-blue-600', 'text-white', 'shadow-inner'];
                 
-                btnTogglePdf.classList.remove(...inactiveClasses);
-                btnTogglePdf.classList.add(...activeClasses);
+                if (btnTogglePdf) {
+                    btnTogglePdf.classList.remove(...inactiveClasses);
+                    btnTogglePdf.classList.add(...activeClasses);
+                }
                 
                 // Abre a primeira aba que tiver documento, com prioridade para Defesa/Recurso
                 if (pdfDocs.recurso) {
@@ -2003,22 +2015,30 @@
                     switchPdfTab('recurso');
                 }
             } else {
-                pdfPanel.classList.add('hidden');
-                pdfPanel.classList.remove('flex');
-                resizer.classList.add('hidden');
-                resizer.classList.remove('flex');
+                if(pdfPanel) {
+                    pdfPanel.classList.add('hidden');
+                    pdfPanel.classList.remove('flex');
+                }
+                if(resizer) {
+                    resizer.classList.add('hidden');
+                    resizer.classList.remove('flex');
+                }
                 
                 // Se fechou, o Chat volta a ser 100% via Layout do Tailwind nativo (flex-1 devolve comportamento fluido)
-                chatPanel.classList.add('flex-1');
-                chatPanel.style.maxWidth = '';
-                chatPanel.style.width = '';
+                if(chatPanel) {
+                    chatPanel.classList.add('flex-1');
+                    chatPanel.style.maxWidth = '';
+                    chatPanel.style.width = '';
+                }
                 
                 // Define Glassmorphism and Active Classes
-                const inactiveClasses = ['bg-slate-800/70', 'backdrop-blur-md', 'text-green-700', 'hover:bg-slate-800', 'border', 'border-white/50', 'shadow-lg', 'shadow-green-500/10', 'hover:shadow-green-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];
-                const activeClasses = ['bg-green-600', 'text-white', 'shadow-inner'];
+                const inactiveClasses = ['bg-white/70', 'backdrop-blur-md', 'text-blue-700', 'hover:bg-white', 'border', 'border-white/50', 'shadow-lg', 'shadow-blue-500/10', 'hover:shadow-blue-500/20', 'hover:-translate-y-0.5', 'ring-1', 'ring-black/5'];
+                const activeClasses = ['bg-blue-600', 'text-white', 'shadow-inner'];
                 
-                btnTogglePdf.classList.remove(...activeClasses);
-                btnTogglePdf.classList.add(...inactiveClasses);
+                if(btnTogglePdf) {
+                    btnTogglePdf.classList.remove(...activeClasses);
+                    btnTogglePdf.classList.add(...inactiveClasses);
+                }
             }
         }
 
@@ -2028,14 +2048,18 @@
             const btnAta = document.getElementById('tab-ata');
             
             // Define active and inactive logic for the new Segmented Control
-            const activeClasses = ['bg-slate-800', 'text-green-700', 'font-semibold', 'shadow-sm', 'ring-1', 'ring-black/5'];
-            const inactiveClasses = ['text-slate-400', 'hover:text-slate-300', 'font-medium', 'bg-transparent'];
+            const activeClasses = ['bg-white', 'text-blue-700', 'font-semibold', 'shadow-sm', 'ring-1', 'ring-black/5'];
+            const inactiveClasses = ['text-gray-500', 'hover:text-gray-700', 'font-medium', 'bg-transparent'];
             
             // Reset both tabs to inactive first
-            btnRecurso.classList.remove(...activeClasses);
-            btnRecurso.classList.add(...inactiveClasses);
-            btnAutuacao.classList.remove(...activeClasses);
-            btnAutuacao.classList.add(...inactiveClasses);
+            if (btnRecurso) {
+                btnRecurso.classList.remove(...activeClasses);
+                btnRecurso.classList.add(...inactiveClasses);
+            }
+            if (btnAutuacao) {
+                btnAutuacao.classList.remove(...activeClasses);
+                btnAutuacao.classList.add(...inactiveClasses);
+            }
             if(btnAta) {
                 btnAta.classList.remove(...activeClasses);
                 btnAta.classList.add(...inactiveClasses);
