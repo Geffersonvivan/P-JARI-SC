@@ -441,33 +441,28 @@
                                 tempImg.src = base64data;
                             });
                             
-                            // O grande vilão detectado: as propriedades CSS "max-width: 800px" e "height: auto" 
-                            // que vêm penduradas no HTML do Editor fazem a engine do Word (MHTML) "vomitar" 
-                            // o bloco de estilo inteiro, caindo para o tamanho bruto da imagem!
-                            // Portanto, devemos DESTRUIR todos os estilos anteriores e injetar apenas absolutos.
+                            // Limpamos o CSS tóxico que vem do editor (max-width, height:auto)
+                            // pois isso faz a engine do Word (MHTML) ignorar o dimensionamento
                             img.style.cssText = '';
                             
-                            // A proporção infalível para MS Word é medida em Pontos Tipográficos (pt).
-                            // 1 polegada = 72 pontos. 16cm (tamanho A4) = ~453 pontos.
-                            // Vamos usar 430pt (exatos 15.1 cm) para garantir respiro nas margens sem NUNCA estourar.
-                            let w_pt = 430;
-                            
-                            if (natW / natH < 2.5) {
-                                // Se for imagem não-panorâmica (ex: Brasão local pequeno)
+                            // Como no Backend (views.py) nós acabamos de envelopar o banner
+                            // dentro de uma <table width="100%"> (a estrutura que o Word mais respeita no mundo),
+                            // basta dizermos para a imagem ocupar 100% do espaço da célula da tabela!
+                            if (natW / natH > 2.5) {
+                                img.setAttribute('width', '100%'); // Magia da Tabela
+                                img.removeAttribute('height');
+                            } else {
+                                // Se for imagem não-panorâmica (ex: Brasão local pequeno isolado)
+                                let w_pt = 430;
                                 let natW_pt = natW * 0.75; // converte pixel pra pt
                                 w_pt = natW_pt > 430 ? 430 : natW_pt;
+                                let h_pt = w_pt * (natH / natW);
+                                
+                                img.style.width = w_pt.toFixed(1) + 'pt';
+                                img.style.height = h_pt.toFixed(1) + 'pt';
                             }
                             
-                            let h_pt = w_pt * (natH / natW);
-                            
-                            // Removemos explicitamente os atributos numéricos vulneráveis a DPI
-                            img.removeAttribute('width');
-                            img.removeAttribute('height');
-
-                            // Injetamos apenas o estilo purificado tipográfico
                             img.setAttribute('src', 'cid:' + contentId);
-                            img.style.width = w_pt.toFixed(1) + 'pt';
-                            img.style.height = h_pt.toFixed(1) + 'pt';
 
                             mhtmlBottom += "--NEXT.PART\n";
                             mhtmlBottom += "Content-Location: " + contentId + "\n";

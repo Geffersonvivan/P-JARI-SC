@@ -115,10 +115,15 @@ def editar_parecer_view(request, id):
             
             if config.cabecalho_imagem and default_storage.exists(config.cabecalho_imagem.name):
                 banner_absolute_url = request.build_absolute_uri(config.cabecalho_imagem.url)
+                # Envolver em Tabela é o truque de ouro para o Word Desktop respeitar os limites de margem!
                 cabecalho_html = f"""
-                <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 10px;">
-                    <img src='{banner_absolute_url}' style='width: 100%; max-width: 800px; height: auto;'>
-                </div>
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 40px; margin-top: 10px; width: 100%;">
+                    <tr>
+                        <td align="center" style="width: 100%; text-align: center;">
+                            <img src='{banner_absolute_url}' style='width: 100%; max-width: 800px; height: auto;' alt="Cabeçalho">
+                        </td>
+                    </tr>
+                </table>
                 """
             else:
                 cabecalho_html = f"""
