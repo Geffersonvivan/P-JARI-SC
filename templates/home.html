@@ -369,7 +369,7 @@
                             Estatísticas
                         </a>
 
-                        {% if request.user.profile.can_view_global_stats or request.user.is_superuser %}
+                        {% if request.user.is_authenticated and request.user.profile.can_view_global_stats or request.user.is_superuser %}
                         <a href="{% url 'estatisticas_gerais' %}"
                             class="px-3 py-2.5 rounded-xl hover:bg-slate-800/5 transition flex items-center gap-4 text-slate-600 hover:text-white font-medium text-[14px]">
                             <i class="ph ph-chart-line-up text-xl text-brand-accent"></i>
