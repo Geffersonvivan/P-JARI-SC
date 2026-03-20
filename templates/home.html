@@ -1481,8 +1481,16 @@
 
             const isIniciar = text.toLowerCase() === 'iniciar';
 
-            if (!currentParecerId && !isIniciar && !currentPastaId) {
-                alert("Por favor, digite 'iniciar' para começar um novo processo ou selecione uma pasta na barra lateral.");
+            // If there's no active Process (Parecer), the ONLY permitted action is to type "iniciar"
+            if (!currentParecerId && !isIniciar) {
+                if (selectedFiles.length > 0) {
+                    alert("⚠️ Processo não iniciado!\n\nPor favor, digite apenas 'iniciar' para criar a nova solicitação. Após o assistente responder, você poderá anexar os seus arquivos no novo processo.");
+                    // Optional: remove files to avoid confusion
+                    selectedFiles = [];
+                    updateFilePreview();
+                } else {
+                    alert("Por favor, digite 'iniciar' para começar uma nova análise de processo.");
+                }
                 return;
             }
 
