@@ -25,7 +25,7 @@ def home_view(request):
     if request.user.is_authenticated:
         filter_kwargs = {'user': request.user}
     else:
-        filter_kwargs = {'user__isnull': True, 'session_key': request.session.session_key}
+        filter_kwargs = {'user': None, 'session_key': request.session.session_key}
 
     # Garante que a pasta fixa 'Outros' exista, e pré-carrega seus projetos
     projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
