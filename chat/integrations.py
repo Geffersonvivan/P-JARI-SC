@@ -884,3 +884,228 @@ class VertexAIClient:
             except Exception:
                 pass
             return f"Erro ao buscar no Vertex AI: {str(e)}"
+
+
+
+import base64
+try:
+    from anthropic import Anthropic
+except ImportError:
+    Anthropic = None
+
+class AnthropicClient:
+    def __init__(self):
+        self.api_key = os.environ.get('ANTHROPIC_API_KEY')
+        self.client = Anthropic(api_key=self.api_key) if self.api_key else None
+
+    def _log_tokens(self, parecer_obj, input_tokens, output_tokens, fase_nome, model_name=None, start_time=None):
+        if not parecer_obj: return
+        try:
+            from .models import AiRequestLog
+            import time
+            latency_ms = 0
+            if start_time:
+                latency_ms = int((time.time() - start_time) * 1000)
+
+            AiRequestLog.objects.create(
+                parecer_referencia=parecer_obj,
+                user=parecer_obj.user,
+                provider='Anthropic',
+                fase=fase_nome,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                latency_ms=latency_ms,
+                model_name=model_name
+            )
+        except Exception as e:
+            print(f"Erro ao logar tokens Anthropic: {e}")
+
+    def get_pdf_content(self, file_path):
+        if not file_path: return None
+        from django.core.files.storage import default_storage
+        try:
+            with default_storage.open(file_path, 'rb') as f:
+                pdf_data = base64.b64encode(f.read()).decode("utf-8")
+                return {
+                    "type": "document",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "application/pdf",
+                        "data": pdf_data
+                    }
+                }
+        except Exception as e:
+            print(f"Anthropic PDF encoding error: {e}")
+            return None
+
+    def validate_and_generate_parecer(self, parecer_obj, tese, perplexity_result, vertex_result="", task_id=None):
+        relator_name = "NÃO INFORMADO"
+        if parecer_obj.user:
+            relator_name = f"{parecer_obj.user.first_name} {parecer_obj.user.last_name}".strip()
+            if not relator_name:
+                relator_name = parecer_obj.user.username
+        relator_name = relator_name.upper()
+
+        if not self.client:
+            return "**RESULTADO SIMULADO:** DEFERIDO (Anthropic)"
+
+        system_instruction = (
+            "Você é o Assessor P-JARI/SC (Fase 5 - PARECER PROTOCOLO DEFINITIVO).\n"
+            "REGRAS DE OURO (IMUTÁVEIS):\n"
+            "1. NÃO INOVE: Não crie tese, não crie fato, não crie fundamento probatório não comprovado, não supra lacuna probatória. Seja 100% restrito ao RAG e aos relatórios recebidos.\n"
+            "2. CITAÇÃO NORMATIVA: Utilize exclusivamente normas do RAG e Perplexity (CF, CTB, Leis Federais, Resoluções CONTRAN, Pareceres CETRAN e Banco de Teses). Exija citação expressa e hierarquizada.\n"
+            "3. PROSA E SINTAXE OBRIGATÓRIA: Gerar o parecer em texto contínuo único. SEM emojis, SEM referências a fases internas do sistema, SEM comandos textuais de IA.\n"
+            "4. RESULTADO LÓGICO: O RESULTADO deve ser OBRIGATORIAMENTE compatível com Admissibilidade, Prescrições e Análise de Teses.\n"
+            "   - Se configurada prescrição ou decadência = DEFERIDO.\n"
+            "   - Se intempestivo (e não prescrito/decadente) = INDEFERIDO.\n"
+            "5. Para Pareceres Deferidos por Decadência ou Ilegitimidade, as Teses de Mérito restam Prejudicadas.\n\n"
+            "FORMATAÇÃO OBRIGATÓRIA DO PARECER\n"
+            "A partir deste ponto, SEMPRE devolva o parecer em português, em formato de texto simples com marcadores de negrito, obedecendo às seguintes regras de formatação, independentemente de o resultado ser deferido ou indeferido:\n"
+            "Use negrito apenas em:\n"
+            "  - Título parecer (**PARECER JARI**) sem nenhuma linha em branco embaixo.\n"
+            "  - Campos de identificação superior: **PROCESSO:**, **SGPE:**, **RECORRENTE:**, **RELATOR:**, **DATA DA SESSÃO:** (Crie todos em bloco único superior, com apenas uma quebra de linha simples, SEM linhas em branco entre eles).\n"
+            "  - Títulos e subtítulos das seções (ex.: **EMENTA**, **RELATÓRIO**, **FUNDAMENTAÇÃO JURÍDICA**, **ADMISSIBILIDADE**, **TESES DEFENSIVAS**, **PRESCRIÇÃO E DECADÊNCIA**, **3.1 Prescrição punitiva**, **3.2 Prescrição intercorrente**, **3.3 Decadência**, **MATERIALIDADE**, **GARANTIAS PROCESSUAIS**, **PARECER FINAL**).\n"
+            "  - Palavras-chave de resultado no PARECER FINAL: **DEFERIMENTO**, **ANULANDO**, **INDEFERIMENTO**, **MANTENDO** (sempre em maiúsculas e em negrito).\n"
+            "Separe cada parágrafo por UMA linha em branco.\n"
+            "Não junte parágrafos diferentes na mesma linha.\n"
+            "Não insira linhas em branco dentro do mesmo parágrafo.\n"
+            "Não use linhas com '---' para separar seções, use apenas linha em branco.\n"
+            "Não utilize caracteres especiais como &nbsp;, apenas quebras de linha comuns.\n"
+            "Para 'Este é o relatório.' e 'Esta é a fundamentação.': Sempre linha nova, fechando a seção.\n\n"
+            "GERAR O PARECER SEGUINDO ESTRITAMENTE ESTA ESTRUTURA FIXA:\n\n"
+            "**PARECER JARI**\n"
+            "**PROCESSO:** {O PA deve ser preenchido aqui via prompt}\n"
+            "**SGPE:** {O SGPE deve ser preenchido aqui via prompt}\n"
+            "**RECORRENTE:** {O Recorrente deve ser preenchido aqui via prompt}\n"
+            f"**RELATOR:** {relator_name}\n"
+            "**DATA DA SESSÃO:** {{A Data de Sessão deve ser preenchida aqui via prompt}}\n\n"
+            "**RESULTADO:** {{O Resultado (DEFERIDO/INDEFERIDO) baseando-se estritamente nas bandeiras matemáticas}}\n\n"
+            "**EMENTA**\n\n"
+            "Texto em MAIÚSCULO, objetivo, contendo: infração + tese(s) + admissibilidade + prescrição/decadência + resultado.\n\n"
+            "**RELATÓRIO**\n\n"
+            "Síntese objetiva dos fatos, notificações e recursos.\n\n"
+            "Este é o relatório.\n\n"
+            "**FUNDAMENTAÇÃO JURÍDICA**\n\n"
+            "**ADMISSIBILIDADE**\n\n"
+            "Conclusão expressa: tempestivo/intempestivo + explicação normativa.\n\n"
+            "**TESES DEFENSIVAS**\n\n"
+            "Se o pacote de Admissibilidade/Prazos apontar de forma peremptória que o recurso é intempestivo, prescrito ou decadente (resultado SIM para prescrição/decadência e NÃO para tempestividade): 'Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.'\n\n"
+            "Caso contrário: Análise isolada de cada tese, com norma hierarquizada e conclusão individual baseada estritamente nas opções já decididas e enviadas a você (Evite criar fundamentação inédita, atenha-se aos dados da Fase 4).\n\n"
+            "**PRESCRIÇÃO E DECADÊNCIA**\n\n"
+            "**3.1 Prescrição punitiva**\n\n"
+            "Infração: XXX\n\n"
+            "Instauração do processo administrativo: XXX\n\n"
+            "O intervalo entre os marcos é (inferior, igual, superior) ao prazo de cinco anos previsto para prescrição da pretensão punitiva da Administração.\n\n"
+            "+ explicação normativa e Conclusão (configurada / não configurada).\n\n"
+            "**3.2 Prescrição intercorrente**\n\n"
+            "Data do protocolo do recurso JARI (início do prazo): XXX\n\n"
+            "Data da sessão de julgamento JARI: XXX\n\n"
+            "Identificado o aniversário de 3 anos da data do protocolo, constatou-se que o julgamento ocorreu em momento posterior à expiração exata do prazo, de modo que a prescrição intercorrente está configurada. (ou: Se dia e mês iguais e ano com menos ou exatos 3 anos de diferença, declarar: 'Prescrição intercorrente não configurada.')\n\n"
+            "+ conclusão (configurada / não configurada).\n\n"
+            "**3.3 Decadência**\n\n"
+            "Regime temporal aplicado e Conclusão. ATENÇÃO MÁXIMA: É proibido alterar a natureza (prescrição x decadência) ou inovar. Reproduza estritamente a conclusão obtida na análise obrigatória da Fase 3. Se a Fase 3 apontar 'NÃO SE APLICA' (Filtro 1), escreva exatamente isso.\n\n"
+            "**MATERIALIDADE**\n\n"
+            "Explicação normativa sobre a materialidade da infração ancorada na presunção de legitimidade dos atos.\n\n"
+            "**GARANTIAS PROCESSUAIS**\n\n"
+            "Verificação de notificações e respeito ao contraditório + explicação normativa.\n\n"
+            "Esta é a fundamentação.\n\n"
+            "**PARECER FINAL**\n\n"
+            "<div style=\"text-align: center; margin-top: 30px;\">\n"
+            "Diante do exposto, voto pelo <b>INDEFERIMENTO</b> (ou <b>DEFERIMENTO</b>) do presente recurso,<br>\n"
+            "<b>MANTENDO</b> (ou <b>ANULANDO</b>) a penalidade aplicada pela autoridade de trânsito.\n"
+            "</div>"
+        )
+        
+        prompt = (
+            f"---- DADOS PARA PREENCHER O CABEÇALHO (Obrigatório) ----\n"
+            f"PROCESSO (PA): {parecer_obj.pa}\n"
+            f"SGPE: {parecer_obj.sgpe}\n"
+            f"RECORRENTE (Interessado): {parecer_obj.recorrente}\n"
+            f"DATA SESSÃO: {parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else ''}\n\n"
+            f"---- PACOTE DE FLAGS MATEMÁTICAS E ADMISSIBILIDADE (Soberanas para o Resultado e Capítulos 3.1 a 3.3) ----\n"
+            f"A T E N Ç Ã O: Os resultados abaixo refletem a escolha exclusiva do MEMBRO JULGADOR. Você está ESTRITAMENTE VINCULADO a usar estas conclusões e NÃO pode contrariá-las em nenhuma hipótese.\n"
+            f"{parecer_obj.admissibilidade_texto}\n\n"
+            f"---- RESUMO FÁTICO (Para o Relatório e Datas da Prescrição) ----\n"
+            f"{getattr(parecer_obj, 'tabela_datas_sensiveis', '') or 'Vazio.'}\n\n"
+            f"---- ANÁLISE DAS TESES E DECISÃO EXIGIDA (Para 'Teses Defensivas') ----\n"
+            f"{parecer_obj.analise_tese_texto}\n"
+            f"Tese(s) Inicialmente Alegada(s): {tese}\n\n"
+            f"---- BASES NORMATIVAS ----\n"
+            f"RAG VERTEX: {vertex_result}\n"
+            f"PERPLEXITY: {perplexity_result}\n\n"
+            f"Crie o Parecer englobando as seções listadas no sistema EXACTAMENTE com a formatação exigida."
+        )
+
+        content = []
+        
+        # Add PDFs if available
+        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in parecer_obj.autuacao_pdf_path:
+            pdf_data = self.get_pdf_content(parecer_obj.autuacao_pdf_path)
+            if pdf_data: content.append(pdf_data)
+            
+        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in parecer_obj.consolidado_pdf_path and parecer_obj.consolidado_pdf_path != parecer_obj.autuacao_pdf_path:
+            pdf_data = self.get_pdf_content(parecer_obj.consolidado_pdf_path)
+            if pdf_data: content.append(pdf_data)
+
+        content.append({
+            "type": "text",
+            "text": prompt
+        })
+
+        import time
+        try:
+            start_time = time.time()
+            model_to_use = "claude-3-5-sonnet-20241022"
+            
+            redis_client = None
+            if task_id:
+                import redis
+                import json
+                try:
+                    from django.conf import settings
+                    redis_client = redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'))
+                except Exception as e:
+                    print(f"Erro de conexão com Redis: {e}")
+
+            full_text = []
+            
+            with self.client.messages.stream(
+                model=model_to_use,
+                max_tokens=4096,
+                system=system_instruction,
+                messages=[{"role": "user", "content": content}]
+            ) as stream:
+                for text_chunk in stream.text_stream:
+                    if text_chunk:
+                        full_text.append(text_chunk)
+                        if redis_client:
+                            redis_client.publish(f"stream_{task_id}", json.dumps({
+                                'status': 'CHUNK',
+                                'text': text_chunk
+                            }))
+                            
+            message = stream.get_final_message()
+            final_text = "".join(full_text)
+            
+            # Log usage
+            input_tokens = message.usage.input_tokens
+            output_tokens = message.usage.output_tokens
+            self._log_tokens(parecer_obj, input_tokens, output_tokens, 'Fase 5 (Parecer)', model_name=model_to_use, start_time=start_time)
+            
+            return final_text
+        except Exception as e:
+            err_str = str(e)
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                send_mail(
+                    subject='🚨 JARI ALERTA (FALHA CLAUDE 3.5)',
+                    message=f'A API da Anthropic retornou erro na Fase 5: {err_str}',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['geffersonvivan@gmail.com'],
+                    fail_silently=True
+                )
+            except Exception:
+                pass
+            return f"Erro ao acessar Claude 3.5: {str(e)}\nFalha ao gerar parecer via LLM."
+
