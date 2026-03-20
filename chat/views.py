@@ -43,7 +43,7 @@ def home_view(request):
     # Calcula o total de pareceres finalizados pelo usuário logado
     total_julgados = Parecer.objects.filter(**filter_kwargs, is_saved=True).count()
     
-    from .models import BancoTese, PostForum
+    from .models import BancoTese, PostForum, ComentarioForum
     if request.user.is_authenticated:
         banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
         teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
@@ -65,7 +65,12 @@ def home_view(request):
         'total_julgados': total_julgados,
         'banco_teses': banco_teses,
         'teses_comunidade': teses_comunidade,
-        'posts_forum': PostForum.objects.all().order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
+        'posts_forum': PostForum.objects.select_related(
+            'autor', 'autor__profile'
+        ).prefetch_related(
+            'curtidas',
+            Prefetch('comentarios', queryset=ComentarioForum.objects.select_related('autor', 'autor__profile').order_by('data_criacao'))
+        ).order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
         'tem_novidade_forum': tem_novidade_forum,
     })
 
