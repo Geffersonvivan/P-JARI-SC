@@ -1249,8 +1249,8 @@
                     <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center">
                         <i class="ph-fill ph-scales text-brand-accent text-lg"></i>
                     </div>
-                    <div id="stream-content-${msgId}" class="text-slate-300 w-full bg-slate-800 p-6 rounded-xl shadow-lg shadow-black/50 border border-brand-accent/20 transition-all duration-300 min-h-[60px] flex flex-col items-center justify-center gap-4 mt-2">
-                        <div class="w-full max-w-sm h-[3px] bg-slate-900 rounded-full overflow-hidden relative shadow-inner">
+                    <div id="stream-content-${msgId}" class="text-[#444746] w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300 min-h-[60px] flex flex-col items-center justify-center gap-4 mt-2">
+                        <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
                             <div class="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-brand-accent to-transparent animate-shimmer-cylon"></div>
                         </div>
                         <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold mt-1">Sintetizando Conhecimento...</div>
@@ -1274,7 +1274,7 @@
                         if (msgContainer) {
                             msgContainer.innerHTML = `
                                 <div class="w-8 h-8 rounded-full bg-green-500 shadow-md shadow-green-200 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">✓</div>
-                                <div class="text-[#444746] leading-relaxed pt-1 w-full bg-slate-800 p-6 rounded-xl shadow-lg shadow-black/50 border border-green-100/50 transition-opacity duration-500">${formatMessage(data.reply)}</div>
+                                <div class="text-[#444746] leading-relaxed pt-1 w-full bg-white p-6 rounded-2xl shadow-sm border border-green-200 transition-opacity duration-500">${formatMessage(data.reply)}</div>
                             `;
                             try {
                                 const audio = new Audio('data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
@@ -1583,10 +1583,10 @@
                         const msgContainer = document.getElementById(`msg-${tempId}`);
                         msgContainer.innerHTML = `
                             <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                            <div class="text-slate-300 w-full bg-slate-900/50 p-6 rounded-xl border border-brand-accent/20 mt-2">
+                            <div class="text-[#444746] w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-2">
                                 ${formatMessage(data.reply)}
                                 <div class="mt-8 flex flex-col items-center justify-center gap-4 w-full">
-                                    <div class="w-full max-w-sm h-[3px] bg-slate-900 rounded-full overflow-hidden relative shadow-inner">
+                                    <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
                                         <div class="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-brand-accent to-transparent animate-shimmer-cylon"></div>
                                     </div>
                                     <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold" id="status-${data.task_id}">PENSANDO PROFUNDAMENTE...</div>
