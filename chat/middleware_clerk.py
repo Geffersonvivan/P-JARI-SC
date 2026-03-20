@@ -115,10 +115,11 @@ class ClerkAuthenticationMiddleware:
                 logger = logging.getLogger(__name__)
                 logger.error(f"Erro ao validar token do Clerk: {e}")
                 
-                # TEMPORARY DEBUG: Mostrar o erro no navegador em ambiente de prod
+                # Em vez de travar o app com erro 401, redireciona o usuário para a Home.
+                # A tela Home possui o ClerkJS injetado, que cuidará de renovar o cookie silenciosamente
                 if request.path.startswith('/app/'):
-                    from django.http import HttpResponse
-                    return HttpResponse(f"<h1>Erro de Autenticação Clerk</h1><p><b>Exception:</b> {str(e)}</p><p>Secret Key Length: {len(self.clerk_secret_key) if self.clerk_secret_key else 'None'}</p><p>Verifique o terminal ou variáveis no Railway.</p>", status=401)
+                    from django.shortcuts import redirect
+                    return redirect('/')
                 
                 # Falha: se não for admin, força usuário anônimo
                 if not request.path.startswith('/admin/'):
