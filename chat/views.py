@@ -604,8 +604,8 @@ def stripe_webhook(request):
         try:
             event_type = event.get('type') if isinstance(event, dict) else event.type
             
-            # Se for uma notificação de pagamento concluído
-            if event_type == 'checkout.session.completed':
+            # Se for uma notificação de pagamento concluído (imediato ou assíncrono via Boleto)
+            if event_type in ['checkout.session.completed', 'checkout.session.async_payment_succeeded']:
                 session = event.get('data', {}).get('object', {}) if isinstance(event, dict) else event.data.object
                 
                 if session.get('payment_status') == 'paid':
