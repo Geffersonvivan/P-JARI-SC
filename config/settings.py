@@ -19,12 +19,12 @@ load_dotenv()
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
-sentry_dsn = os.environ.get('SENTRY_DSN', 'https://97610ce44a786ac454b8b0188cb48630@o4511071430901760.ingest.us.sentry.io/4511071433785344')
+sentry_dsn = os.environ.get('SENTRY_DSN')
 if sentry_dsn:
     sentry_sdk.init(
         dsn=sentry_dsn,
         integrations=[DjangoIntegration()],
-        send_default_pii=True,
+        send_default_pii=False,
         enable_logs=True,
         traces_sample_rate=1.0,
         profile_session_sample_rate=1.0,
@@ -47,8 +47,7 @@ allowed_hosts = os.environ.get('ALLOWED_HOSTS')
 if allowed_hosts:
     ALLOWED_HOSTS = allowed_hosts.split(',')
 else:
-    # Fallback for Railway if not explicitly set
-    ALLOWED_HOSTS = ['*']
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.railway.app', 'pjarisc.com.br', 'www.pjarisc.com.br']
 
 csrf_trusted = os.environ.get('CSRF_TRUSTED_ORIGINS')
 if csrf_trusted:
@@ -83,12 +82,13 @@ if not DEBUG:
     # Permitir sessão através do root e do www
     SESSION_COOKIE_DOMAIN = '.pjarisc.com.br'
     CSRF_COOKIE_DOMAIN = '.pjarisc.com.br'
-    # Fix for social logins cross-origin validation
-    SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 # Stripe Settings
 STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
 
 # Application definition
 
@@ -149,6 +149,11 @@ ACCOUNT_SIGNUP_FORM_CLASS = 'chat.adapters.CustomSignupForm'
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 SOCIALACCOUNT_ADAPTER = 'chat.adapters.CustomSocialAccountAdapter'
 
+# Redirects de autenticação padrão do Django
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
 if DEBUG:
     # Envio de e-mail para o terminal (Simulação de envio p/ Dev Local)
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
@@ -166,7 +171,7 @@ else:
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # Permitir logout com cliques simples em Links e Views cacheadas sem necessitar forms POST + CSRF ativo.
-ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_LOGOUT_ON_GET = False
 
 # Permite conectar direto e não exige verificação dupla para quem loga com redes sociais
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
@@ -306,6 +311,15 @@ LOGIN_REDIRECT_URL = '/'
 
 # Celery & Redis Configuration
 _redis_url = os.environ.get('REDIS_PRIVATE_URL') or os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': _redis_url,
+        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+    }
+}
+
 CELERY_BROKER_URL = _redis_url
 CELERY_RESULT_BACKEND = _redis_url
 CELERY_ACCEPT_CONTENT = ['json']
