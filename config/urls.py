@@ -19,24 +19,31 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-from django.urls import re_path
-from django.views.static import serve
+
+from django.contrib.auth.decorators import user_passes_test
 
 def trigger_error(request):
     division_by_zero = 1 / 0
 
 from chat.webhooks_clerk import clerk_webhook_view
 
+from django.http import JsonResponse
+
+def health_check(request):
+    return JsonResponse({'status': 'ok'})
+
 urlpatterns = [
+    path('health/', health_check, name='health_check'),
     path('admin/', admin.site.urls),
     path('', include('chat.urls')),
     path('api/webhooks/clerk/', clerk_webhook_view, name='clerk_webhook'),
-    path('sentry-debug/', trigger_error),
     # path('accounts/', include('allauth.urls')), # Removing django-allauth routing
     path('tinymce/', include('tinymce.urls')),
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += [
+        path('sentry-debug/', user_passes_test(lambda u: u.is_superuser)(trigger_error)),
+    ]
 

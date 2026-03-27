@@ -9,7 +9,13 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import stripe
+from django_ratelimit.decorators import ratelimit
 from .models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
+
+def _get_filter_kwargs(request):
+    if request.user.is_authenticated:
+        return {'user': request.user}
+    return {'user': None, 'session_key': request.session.session_key}
 
 PLANS = {
     'extra':       {'title': 'P-JARI/SC 1 Crédito Extra',          'price': 20.00,   'credits': 1,  'is_pro': False},
@@ -28,10 +34,7 @@ def home_view(request):
     if not request.session.session_key:
         request.session.create()
         
-    if request.user.is_authenticated:
-        filter_kwargs = {'user': request.user}
-    else:
-        filter_kwargs = {'user': None, 'session_key': request.session.session_key}
+    filter_kwargs = _get_filter_kwargs(request)
 
     # Garante que a pasta fixa 'Outros' exista, e pré-carrega seus projetos
     projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
@@ -53,17 +56,22 @@ def home_view(request):
     if request.user.is_authenticated:
         banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
         teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
-        
-        tem_novidade_forum = False
+        posts_forum = list(PostForum.objects.select_related(
+            'autor', 'autor__profile'
+        ).prefetch_related(
+            'curtidas',
+            Prefetch('comentarios', queryset=ComentarioForum.objects.select_related('autor', 'autor__profile').order_by('data_criacao'))
+        ).order_by('-data_criacao')[:50])
         ultimo_acesso = request.user.profile.ultimo_acesso_forum
-        ultimo_post = PostForum.objects.all().order_by('-data_criacao').first()
-        if ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso):
-            tem_novidade_forum = True
+        tem_novidade_forum = bool(
+            posts_forum and (not ultimo_acesso or posts_forum[0].data_criacao > ultimo_acesso)
+        )
     else:
         banco_teses = []
         teses_comunidade = []
+        posts_forum = []
         tem_novidade_forum = False
-    
+
     return render(request, 'home.html', {
         'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', ''),
         'pasta_outros': pasta_outros,
@@ -71,17 +79,13 @@ def home_view(request):
         'total_julgados': total_julgados,
         'banco_teses': banco_teses,
         'teses_comunidade': teses_comunidade,
-        'posts_forum': PostForum.objects.select_related(
-            'autor', 'autor__profile'
-        ).prefetch_related(
-            'curtidas',
-            Prefetch('comentarios', queryset=ComentarioForum.objects.select_related('autor', 'autor__profile').order_by('data_criacao'))
-        ).order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
+        'posts_forum': posts_forum,
         'tem_novidade_forum': tem_novidade_forum,
     })
 
+@login_required
 def editar_parecer_view(request, id):
-    parecer = get_object_or_404(Parecer, id=id)
+    parecer = get_object_or_404(Parecer, id=id, user=request.user)
     config = ConfiguracaoParecer.objects.first()
     
     parecer_final_db = parecer.pareceres_finais.last()
@@ -200,9 +204,10 @@ def editar_parecer_view(request, id):
         'dynamic_chips': dynamic_chips
     })
 
+@login_required
 @require_POST
 def salvar_parecer_view(request, id):
-    parecer = get_object_or_404(Parecer, id=id)
+    parecer = get_object_or_404(Parecer, id=id, user=request.user)
     conteudo_final = request.POST.get('conteudo_final')
     
     if conteudo_final:
@@ -216,6 +221,7 @@ def salvar_parecer_view(request, id):
         
     return redirect('home')
 
+@ratelimit(key='ip', rate='20/h', method='POST', block=True)
 @require_POST
 def create_parecer_view(request):
     if not request.session.session_key:
@@ -248,7 +254,7 @@ def create_parecer_view(request):
 def delete_parecer_view(request, id):
     if not request.session.session_key:
         request.session.create()
-    filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+    filter_kwargs = _get_filter_kwargs(request)
 
     pasta = get_object_or_404(Pasta, id=id, **filter_kwargs)
     if pasta.nome_pasta == "Outros":
@@ -260,7 +266,7 @@ def delete_parecer_view(request, id):
 def delete_projeto_view(request, id):
     if not request.session.session_key:
         request.session.create()
-    filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+    filter_kwargs = _get_filter_kwargs(request)
 
     projeto = get_object_or_404(Parecer, id=id, **filter_kwargs)
     projeto.delete()
@@ -270,7 +276,7 @@ def delete_projeto_view(request, id):
 def mover_parecer_view(request, id):
     if not request.session.session_key:
         request.session.create()
-    filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+    filter_kwargs = _get_filter_kwargs(request)
 
     projeto = get_object_or_404(Parecer, id=id, **filter_kwargs)
     
@@ -289,12 +295,13 @@ def mover_parecer_view(request, id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@ratelimit(key='user_or_ip', rate='60/m', method='POST', block=True)
 @require_POST
 def chat_message_view(request):
     if not request.session.session_key:
         request.session.create()
         
-    filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+    filter_kwargs = _get_filter_kwargs(request)
     
     try:
         from .services import ChatService
@@ -333,11 +340,7 @@ def chat_message_view(request):
     except Exception as e:
         import sentry_sdk
         sentry_sdk.capture_exception(e)
-        import traceback
-        import logging
-        logger = logging.getLogger(__name__)
-        trace = traceback.format_exc()
-        return JsonResponse({'error': str(e), 'trace': trace}, status=500)
+        return JsonResponse({'error': 'Erro interno. Tente novamente.'}, status=500)
 
 @require_POST
 def chat_agent_message_view(request):
@@ -345,7 +348,7 @@ def chat_agent_message_view(request):
     if not request.session.session_key:
         request.session.create()
         
-    filter_kwargs = {'user': request.user} if request.user.is_authenticated else {'user__isnull': True, 'session_key': request.session.session_key}
+    filter_kwargs = _get_filter_kwargs(request)
     
     try:
         import json
@@ -376,12 +379,16 @@ def chat_agent_message_view(request):
             except Parecer.DoesNotExist:
                 pass
                 
-        # Le a instrução magna do Agente Lateral
-        logica_path = os.path.join(settings.BASE_DIR, 'logica_jari_perguntas.md')
-        system_instruction = "Você é um Consultor de Rito JARI."
-        if os.path.exists(logica_path):
-            with open(logica_path, 'r') as f:
-                system_instruction = f.read()
+        # Le a instrução magna do Agente Lateral (com cache Redis por 1h)
+        from django.core.cache import cache
+        system_instruction = cache.get('logica_jari_perguntas')
+        if system_instruction is None:
+            logica_path = os.path.join(settings.BASE_DIR, 'logica_jari_perguntas.md')
+            system_instruction = "Você é um Consultor de Rito JARI."
+            if os.path.exists(logica_path):
+                with open(logica_path, 'r') as f:
+                    system_instruction = f.read()
+            cache.set('logica_jari_perguntas', system_instruction, timeout=3600)
                 
         # RAG orquestrado e simples
         vertex_results = ""
@@ -422,9 +429,7 @@ def chat_agent_message_view(request):
     except Exception as e:
         import sentry_sdk
         sentry_sdk.capture_exception(e)
-        import traceback
-        trace = traceback.format_exc()
-        return JsonResponse({'error': str(e), 'trace': trace}, status=500)
+        return JsonResponse({'error': 'Erro interno. Tente novamente.'}, status=500)
 
 def check_task_status_view(request, task_id):
     """View endpoint para o frontend perguntar (poll) a cada x segundos se a tarefa pesada de IA no Celery acabou."""
@@ -531,6 +536,7 @@ def planos_view(request):
     }
     return render(request, 'planos.html', context)
 
+@ratelimit(key='user', rate='10/h', method='GET', block=True)
 @login_required
 def checkout_view(request):
     try:
@@ -569,12 +575,12 @@ def checkout_view(request):
 @csrf_exempt
 def stripe_webhook(request):
     if request.method == 'POST':
-        stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', None)
+        stripe.api_key = settings.STRIPE_SECRET_KEY
         endpoint_secret = getattr(settings, 'STRIPE_WEBHOOK_SECRET', None)
-        
+
         payload = request.body
         sig_header = request.headers.get('STRIPE_SIGNATURE')
-        
+
         if not endpoint_secret:
             return HttpResponse(status=400)
 
@@ -586,39 +592,34 @@ def stripe_webhook(request):
             return HttpResponse(status=400)
         except stripe.error.SignatureVerificationError:
             return HttpResponse(status=400)
-            
+
         try:
             event_type = event.get('type') if isinstance(event, dict) else event.type
-            
+
             # Se for uma notificação de pagamento concluído (imediato ou assíncrono via Boleto)
             if event_type in ['checkout.session.completed', 'checkout.session.async_payment_succeeded']:
                 session = event.get('data', {}).get('object', {}) if isinstance(event, dict) else event.data.object
-                
+
                 if session.get('payment_status') == 'paid':
                     user_id = session.get('client_reference_id')
                     trans_amount_cents = session.get('amount_total', 0)
                     trans_amount = trans_amount_cents / 100.0
-                    
-                    if user_id:
+
+                    plan = next((p for p in PLANS.values() if p['price'] == trans_amount), None)
+
+                    if user_id and plan:
                         from django.db import transaction
                         with transaction.atomic():
                             user = User.objects.select_for_update().get(id=user_id)
-                            
-                            if trans_amount == 20.00:
-                                user.profile.credits += 1
-                            elif trans_amount == 720.00:
-                                user.profile.credits += 40
+
+                            update_fields = ['credits']
+                            user.profile.credits += plan['credits']
+                            if plan['is_pro']:
                                 user.profile.is_pro = True
                                 user.profile.subscription_status = "active"
-                            elif trans_amount == 1440.00:
-                                user.profile.credits += 80
-                                user.profile.is_pro = True
-                                user.profile.subscription_status = "active"
-                            else:
-                                user.profile.credits += 40
-                                user.profile.is_pro = True
-                                
-                            user.profile.save()
+                                update_fields += ['is_pro', 'subscription_status']
+
+                            user.profile.save(update_fields=update_fields)
                             print(f"Usuário {user.username} - Pagamento processado Stripe: {trans_amount}")
                         
                         # Disparar Email de notificação
@@ -740,7 +741,7 @@ def estatisticas_view(request):
         
     indeferidos = 0
     # Precisamos iterar os IDs pra somar e dar preferencia ao override (Painel do Editor)
-    ids_base = pareceres_base.values_list('id', flat=True)
+    ids_base = list(pareceres_base.values_list('id', flat=True))
     for pid in ids_base:
         if pid in final_overrides:
             if final_overrides[pid]:
@@ -869,8 +870,9 @@ def estatisticas_view(request):
     
     if request.user.is_authenticated:
         ultimo_acesso = request.user.profile.ultimo_acesso_forum
-        ultimo_post = PostForum.objects.all().order_by('-data_criacao').first()
-        context['tem_novidade_forum'] = bool(ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso))
+        posts = context.get('posts_forum') or []
+        primeiro_post = posts[0] if posts else None
+        context['tem_novidade_forum'] = bool(primeiro_post and (not ultimo_acesso or primeiro_post.data_criacao > ultimo_acesso))
     
     return render(request, 'dashboard.html', context)
 
@@ -884,7 +886,7 @@ def dismiss_onboarding_view(request):
     try:
         profile, created = UserProfile.objects.get_or_create(user=request.user)
         profile.viu_boas_vindas = True
-        profile.save()
+        profile.save(update_fields=['viu_boas_vindas'])
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -896,12 +898,19 @@ def reorder_folders_view(request):
         data = json.loads(request.body)
         order_list = data.get('order', [])
         
-        for item in order_list:
-            pasta_id = int(item.get('id', 0))
-            posicao = int(item.get('posicao', 0))
-            
-            if pasta_id > 0:
-                Pasta.objects.filter(id=pasta_id, user=request.user).update(posicao=posicao)
+        from django.db.models import Case, When, IntegerField
+        cases = {
+            int(item['id']): int(item['posicao'])
+            for item in order_list
+            if int(item.get('id', 0)) > 0
+        }
+        if cases:
+            Pasta.objects.filter(id__in=cases.keys(), user=request.user).update(
+                posicao=Case(
+                    *[When(id=pk, then=pos) for pk, pos in cases.items()],
+                    output_field=IntegerField()
+                )
+            )
                 
         return JsonResponse({'status': 'success'})
     except Exception as e:
@@ -918,7 +927,7 @@ def estatisticas_gerais_view(request):
     from django.db.models.functions import TruncDate
     import calendar
     from datetime import date
-    from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig, BancoTese, PostForum, SystemHealthCheck
+    from .models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig, BancoTese, PostForum, SystemHealthCheck, TestRun
     from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
     
     hoje = timezone.localtime(timezone.now()).date()
@@ -1002,7 +1011,7 @@ def estatisticas_gerais_view(request):
         final_overrides[pid] = is_indef
         
     indeferidos = 0
-    ids_base = pareceres_base.values_list('id', flat=True)
+    ids_base = list(pareceres_base.values_list('id', flat=True))
     for pid in ids_base:
         if pid in final_overrides:
             if final_overrides[pid]:
@@ -1222,6 +1231,10 @@ def estatisticas_gerais_view(request):
         
         # Novas métricas context
         'health_check': SystemHealthCheck.objects.first(),
+        'ultimo_test_run': TestRun.objects.first(),
+        'historico_test_runs': list(
+            TestRun.objects.values('executado_em', 'passou', 'falhou', 'total', 'duracao_ms')[:10]
+        ),
         'hit_rate': hit_rate,
         'total_economia': total_economia,
         'taxa_interceptacao': taxa_interceptacao,
@@ -1236,8 +1249,9 @@ def estatisticas_gerais_view(request):
     
     if request.user.is_authenticated:
         ultimo_acesso = request.user.profile.ultimo_acesso_forum
-        ultimo_post = PostForum.objects.all().order_by('-data_criacao').first()
-        context['tem_novidade_forum'] = bool(ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso))
+        posts = context.get('posts_forum') or []
+        primeiro_post = posts[0] if posts else None
+        context['tem_novidade_forum'] = bool(primeiro_post and (not ultimo_acesso or primeiro_post.data_criacao > ultimo_acesso))
         
     return render(request, 'dashboard_global.html', context)
 
@@ -1359,7 +1373,7 @@ def curtir_post_forum_view(request, post_id):
     from .models import PostForum
     try:
         post = PostForum.objects.get(id=post_id)
-        if request.user in post.curtidas.all():
+        if post.curtidas.filter(id=request.user.id).exists():
             post.curtidas.remove(request.user)
             curtiu = False
         else:
@@ -1379,7 +1393,7 @@ def get_comentarios_forum_view(request, post_id):
     from .models import PostForum
     try:
         post = PostForum.objects.get(id=post_id)
-        comentarios = post.comentarios.all()
+        comentarios = post.comentarios.select_related('autor').all()
         dados = [{
             'id': c.id,
             'autor': c.autor.first_name or c.autor.username,
@@ -1398,7 +1412,7 @@ def update_forum_access_view(request):
         from django.utils import timezone
         profile = request.user.profile
         profile.ultimo_acesso_forum = timezone.now()
-        profile.save()
+        profile.save(update_fields=['ultimo_acesso_forum'])
         return JsonResponse({'status': 'success'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -1409,10 +1423,12 @@ def update_forum_access_view(request):
 def increment_citacao_usage_view(request, id):
     from .models import BancoTese
     try:
-        citacao = BancoTese.objects.get(id=id)
-        citacao.usage_count += 1
-        citacao.save()
-        return JsonResponse({'success': True, 'usage_count': citacao.usage_count})
+        from django.db.models import F
+        updated = BancoTese.objects.filter(id=id).update(usage_count=F('usage_count') + 1)
+        if not updated:
+            return JsonResponse({'error': 'Citação não encontrada.'}, status=404)
+        usage_count = BancoTese.objects.values_list('usage_count', flat=True).get(id=id)
+        return JsonResponse({'success': True, 'usage_count': usage_count})
     except BancoTese.DoesNotExist:
         return JsonResponse({'error': 'Citação não encontrada.'}, status=404)
 
@@ -1431,8 +1447,8 @@ def import_citacao_comunidade_view(request, id):
             usage_count=0
         )
         
-        citacao_original.usage_count += 1
-        citacao_original.save()
+        from django.db.models import F
+        BancoTese.objects.filter(id=id).update(usage_count=F('usage_count') + 1)
         
         return JsonResponse({'success': True, 'id': nova_citacao.id, 'titulo': nova_citacao.titulo})
     except BancoTese.DoesNotExist:

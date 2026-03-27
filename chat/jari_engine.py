@@ -3,6 +3,24 @@ import re
 from chat.models import Parecer
 from chat.jari_math import JariMath
 
+def _p(field):
+    """Normaliza FileField para string de caminho, ou None."""
+    if not field:
+        return None
+    return field.name if hasattr(field, 'name') else (str(field) or None)
+
+# Status de fase do parecer (espelha o mapping documentado em Parecer.status_fase)
+FASE_COLETA = 1
+FASE_DIR = 2
+FASE_ADMISSIBILIDADE_GERADA = 3
+FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE = 31
+FASE_MERITO = 4
+FASE_AGUARDA_CONFIRMACAO_MERITO = 41
+FASE_RESULTADO = 5
+FASE_AUDITORIA = 6
+FASE_SELECAO_PASTA = 7
+FASE_FINALIZADO = 8
+
 class JariEngine:
     def __init__(self, parecer: Parecer):
         self.parecer = parecer
@@ -170,7 +188,7 @@ class JariEngine:
                 self.parecer.paginas_defesa = val
                 
                 # Checa se esse era o último dado pendente e então avança para FASE 2
-                self.parecer.status_fase = 2
+                self.parecer.status_fase = FASE_DIR
                 self.parecer.save()
                 return self.run_phase_2()
             
@@ -188,11 +206,11 @@ class JariEngine:
 
         elif fase == 2:
             if message.lower().strip() == 'ok':
-                self.parecer.status_fase = 3
+                self.parecer.status_fase = FASE_ADMISSIBILIDADE_GERADA
                 self.parecer.save()
                 return self.run_phase_3()
             elif message.lower().strip() == 'corrigir':
-                self.parecer.status_fase = 1
+                self.parecer.status_fase = FASE_COLETA
                 
                 # Reseta dados
                 self.parecer.data_sessao = None
@@ -216,7 +234,7 @@ class JariEngine:
             # A submissão sempre avança. Botões disparam uma string com as opções (ex: TEMPESTIVIDADE ACOLHER)
             # Aqui traduzimos as flags matemáticas estritas do BD para roteamento
             if self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia or not self.parecer.is_tempestivo:
-                self.parecer.status_fase = 5 # Pula pra Fase 5 de resultado prejudicado, não analisa mérito
+                self.parecer.status_fase = FASE_RESULTADO  # Pula pra Fase 5 de resultado prejudicado, não analisa mérito
                 
                 motivo = []
                 if self.parecer.has_prescricao_punitiva: motivo.append("PRESCRIÇÃO PUNITIVA")
@@ -264,7 +282,7 @@ class JariEngine:
                 f"Ignore a alternativa descartada. O resultado final deve ser {resultado_marcado}."
             )
             
-            self.parecer.status_fase = 5
+            self.parecer.status_fase = FASE_RESULTADO
             self.parecer.save()
             
             from chat.tasks import gerar_parecer_task
@@ -302,7 +320,7 @@ class JariEngine:
                     recorrente_nome = self.parecer.recorrente if self.parecer.recorrente else 'Recorrente Não Informado'
                     self.parecer.nome_processo = f"Parecer {recorrente_nome} - {sgpe}".strip(' -')
                     self.parecer.is_saved = True
-                    self.parecer.status_fase = 8
+                    self.parecer.status_fase = FASE_FINALIZADO
                     self.parecer.save()
                     
                     folder_name = target_folder.nome_pasta
@@ -329,14 +347,16 @@ class JariEngine:
         datas_consolidado = []
         
         # Tenta extrair a autuação se houver e não for simulada
-        if self.parecer.autuacao_pdf_path and "upload_simulado" not in self.parecer.autuacao_pdf_path:
-            datas_autuacao = PDFExtractor.extract_dates_from_pdf(self.parecer.autuacao_pdf_path, "Autuação")
-            
+        _aut = _p(self.parecer.autuacao_pdf_path)
+        _con = _p(self.parecer.consolidado_pdf_path)
+        if _aut and "upload_simulado" not in _aut:
+            datas_autuacao = PDFExtractor.extract_dates_from_pdf(_aut, "Autuação")
+
         # Tenta extrair o consolidado se houver e não for simulado
-        if self.parecer.consolidado_pdf_path and "upload_simulado" not in self.parecer.consolidado_pdf_path:
+        if _con and "upload_simulado" not in _con:
             # Se forem o mesmo arquivo, pode ser bom evitar extração dupla, mas pro MVP mantemos igual
-            if self.parecer.autuacao_pdf_path != self.parecer.consolidado_pdf_path:
-                datas_consolidado = PDFExtractor.extract_dates_from_pdf(self.parecer.consolidado_pdf_path, "Consolidado")
+            if _aut != _con:
+                datas_consolidado = PDFExtractor.extract_dates_from_pdf(_con, "Consolidado")
             else:
                  datas_consolidado = [] # Não extrai duplicado
                  
@@ -397,12 +417,19 @@ class JariEngine:
         
         # 3. Execução EXATA das restrições (Roteiro Fase 3)
         self.parecer.is_tempestivo = JariMath.check_tempestividade(self.parecer.data_protocolo, self.parecer.prazo_final)
-        self.parecer.has_prescricao_punitiva = JariMath.check_prescription_punitiva(data_infracao, self.parecer.data_sessao, datas_processadas)
-        
+        # Marcos interruptivos: apenas datas estritamente entre a infração e a sessão
+        # (exclui a própria data de infração e datas futuras à sessão, evitando falsos resets)
+        marcos_validos = [
+            d for d in datas_processadas
+            if data_infracao < d < self.parecer.data_sessao
+        ] if self.parecer.data_sessao else []
+        self.parecer.has_prescricao_punitiva = JariMath.check_prescription_punitiva(data_infracao, self.parecer.data_sessao, marcos_validos or None)
+
         inter_bool, relatorio_intercorrente = JariMath.check_prescription_intercorrente(self.parecer.data_protocolo, self.parecer.data_sessao)
         self.parecer.has_prescricao_intercorrente = inter_bool
-        
-        decadencia_bool, relatorio_decadencia = JariMath.check_decadencia(data_infracao, data_notificacao_autuacao, None)
+
+        # data_sessao como proxy de decisão final — garante avaliação dos 360 dias (FILTRO 2/3)
+        decadencia_bool, relatorio_decadencia = JariMath.check_decadencia(data_infracao, data_notificacao_autuacao, self.parecer.data_sessao)
         self.parecer.has_decadencia = decadencia_bool
         
         # 4. Texto visual para o usuário confirmando
@@ -415,9 +442,12 @@ class JariEngine:
         if self.parecer.data_sessao:
              dias_punitiva = JariMath.calculate_days_diff(ultimo_marco, self.parecer.data_sessao)
         
-        decadencia_final = "SIM" if self.parecer.has_decadencia else "NÃO"
-        if "Antes 12/04" in relatorio_decadencia and not self.parecer.has_decadencia:
+        if "NÃO SE APLICA" in relatorio_decadencia:
             decadencia_final = "NÃO SE APLICA"
+        elif self.parecer.has_decadencia:
+            decadencia_final = "SIM"
+        else:
+            decadencia_final = "NÃO"
             
         matematica_detalhes = (
             f"- Tempestividade: Diferença em dias corridos (Protocolo x Prazo Final) = {dias_tempestividade} dias de atraso (valores positivos indicam atraso). (Valor final exigido pelo sistema JariMath: {'SIM' if self.parecer.is_tempestivo else 'NÃO'}).\n"
@@ -431,7 +461,7 @@ class JariEngine:
         texto_status = gemini.generate_phase3_report(self.parecer, matematica_detalhes)
         
         self.parecer.admissibilidade_texto = texto_status
-        self.parecer.status_fase = 31 # Aguarda confirmação
+        self.parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
         self.parecer.save()
 
         return self.get_current_prompt()
@@ -444,7 +474,7 @@ class JariEngine:
         tese_extraida = gemini.extract_tese(self.parecer)
         
         self.parecer.tese = tese_extraida
-        self.parecer.status_fase = 4 # Aguarda confirmacao ou correcao da tese por parte do Assessor
+        self.parecer.status_fase = FASE_MERITO
         self.parecer.save()
         
         return self.get_current_prompt()
@@ -529,7 +559,7 @@ class JariEngine:
         self.parecer.analise_tese_texto = analise_resultado
         self.parecer.vertex_result = vertex_result
         self.parecer.perplexity_result = perplexity_result
-        self.parecer.status_fase = 41 # Aguarda Confirmação
+        self.parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_MERITO
         self.parecer.save()
         
         return self.get_current_prompt()
@@ -599,25 +629,27 @@ class JariEngine:
         from django.core.files.storage import default_storage
         
         # Deleta Autuacao se existir e nao for simulada
-        if self.parecer.autuacao_pdf_path and "upload_simulado" not in self.parecer.autuacao_pdf_path:
+        _aut_path = _p(self.parecer.autuacao_pdf_path)
+        if _aut_path and "upload_simulado" not in _aut_path:
             try:
-                if default_storage.exists(self.parecer.autuacao_pdf_path):
-                    default_storage.delete(self.parecer.autuacao_pdf_path)
+                if default_storage.exists(_aut_path):
+                    default_storage.delete(_aut_path)
             except Exception as e:
                 print(f"Erro ao deletar autuação PDF do storage: {e}")
             self.parecer.autuacao_pdf_path = None
-            
+
         # Deleta Consolidado se existir, nao for repetido, e nao for simulada
-        if self.parecer.consolidado_pdf_path and "upload_simulado" not in self.parecer.consolidado_pdf_path:
+        _con_path = _p(self.parecer.consolidado_pdf_path)
+        if _con_path and "upload_simulado" not in _con_path:
             try:
-                if default_storage.exists(self.parecer.consolidado_pdf_path):
-                    default_storage.delete(self.parecer.consolidado_pdf_path)
+                if default_storage.exists(_con_path):
+                    default_storage.delete(_con_path)
             except Exception as e:
                 print(f"Erro ao deletar consolidado PDF do storage: {e}")
             self.parecer.consolidado_pdf_path = None
 
         # Avança para Fase 6 de Blindagem e Auditoria
-        self.parecer.status_fase = 6
+        self.parecer.status_fase = FASE_AUDITORIA
         self.parecer.save()
         
         return (
@@ -703,7 +735,7 @@ class JariEngine:
                  sentry_sdk.capture_exception(e)
                  print(f"Erro ao disparar email de auditoria Fase 6: {str(e)}")
              
-        self.parecer.status_fase = 7
+        self.parecer.status_fase = FASE_SELECAO_PASTA
         self.parecer.save()
         
         from chat.integrations import GeminiClient

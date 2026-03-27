@@ -2,6 +2,8 @@
 set -e
 
 echo "Starting migrations..."
+# ATENÇÃO: em deploy com múltiplas réplicas, rodar migrate aqui pode causar race condition.
+# Idealmente, mover para um Release Command separado no Railway (Settings > Deploy > Release Command).
 python manage.py migrate --noinput
 
 echo "Collecting static files..."

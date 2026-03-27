@@ -15,32 +15,22 @@ def clerk_webhook_view(request):
 
     clerk_webhook_secret = os.getenv("CLERK_WEBHOOK_SECRET")
 
-    # Caso a chave secreta ainda seja apenas um placeholder (durante o setup)
-    # Permite passar temporariamente ou recusa. Em produção, recusa se não for válido.
     if not clerk_webhook_secret or clerk_webhook_secret == 'PLACEHOLDER_FOR_WEBHOOK_SECRET':
-        # Bypass temporário caso queiram apenas ver o hit bater (não recomendado em prod!)
-        pass
+        return HttpResponseForbidden("Webhook secret not configured")
 
     headers = {
         "svix-id": request.headers.get("svix-id"),
         "svix-timestamp": request.headers.get("svix-timestamp"),
         "svix-signature": request.headers.get("svix-signature")
     }
-    
+
     payload = request.body.decode('utf-8')
 
-    if clerk_webhook_secret and clerk_webhook_secret != 'PLACEHOLDER_FOR_WEBHOOK_SECRET':
-        try:
-            wh = Webhook(clerk_webhook_secret)
-            evt = wh.verify(payload, headers)
-        except WebhookVerificationError as e:
-            return HttpResponseForbidden(f"Invalid webhook signature: {e}")
-    else:
-        # Se estamos no modo placeholder, fazemos o parse manual só pra testar.
-        try:
-            evt = json.loads(payload)
-        except Exception:
-            return HttpResponse("Bad Request", status=400)
+    try:
+        wh = Webhook(clerk_webhook_secret)
+        evt = wh.verify(payload, headers)
+    except WebhookVerificationError as e:
+        return HttpResponseForbidden(f"Invalid webhook signature: {e}")
 
     # Processar o evento do Clerk
     event_type = evt.get("type")

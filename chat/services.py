@@ -9,12 +9,19 @@ import os
 import urllib.parse
 from django.core.files.storage import default_storage
 
+def _p(field):
+    """Normaliza FileField para string de caminho, ou None."""
+    if not field:
+        return None
+    return field.name if hasattr(field, 'name') else (str(field) or None)
+
 class ChatService:
     @staticmethod
     def save_uploaded_files(files_dict):
         files = []
         for key, f in files_dict.items():
-            if f.name.endswith('.pdf'):
+            if f.name.endswith('.pdf') and f.read(4) == b'%PDF':
+                f.seek(0)
                 base_name = os.path.basename(f.name)
                 path = default_storage.save(f'uploads/{base_name}', f)
                 files.append(path)
@@ -46,10 +53,12 @@ class ChatService:
         autuacao_url = None
         consolidado_url = None
         try:
-            if p.autuacao_pdf_path and default_storage.exists(p.autuacao_pdf_path):
-                autuacao_url = default_storage.url(p.autuacao_pdf_path)
-            if p.consolidado_pdf_path and default_storage.exists(p.consolidado_pdf_path):
-                consolidado_url = default_storage.url(p.consolidado_pdf_path)
+            _aut = _p(p.autuacao_pdf_path)
+            _con = _p(p.consolidado_pdf_path)
+            if _aut and default_storage.exists(_aut):
+                autuacao_url = default_storage.url(_aut)
+            if _con and default_storage.exists(_con):
+                consolidado_url = default_storage.url(_con)
         except Exception as e:
             print(f"Erro ao buscar URLs de media PDFs: {e}")
             
@@ -150,17 +159,18 @@ class ChatService:
         ata_name = "Ata"
         
         try:
-            if parecer.autuacao_pdf_path and default_storage.exists(parecer.autuacao_pdf_path):
-                autuacao_url = default_storage.url(parecer.autuacao_pdf_path)
-                autuacao_name = urllib.parse.unquote(os.path.basename(parecer.autuacao_pdf_path))
-                
-            if parecer.consolidado_pdf_path and default_storage.exists(parecer.consolidado_pdf_path):
-                consolidado_url = default_storage.url(parecer.consolidado_pdf_path)
-                consolidado_name = urllib.parse.unquote(os.path.basename(parecer.consolidado_pdf_path))
-                
-            if parecer.ata_pdf_path and default_storage.exists(parecer.ata_pdf_path):
-                ata_url = default_storage.url(parecer.ata_pdf_path)
-                ata_name = urllib.parse.unquote(os.path.basename(parecer.ata_pdf_path))
+            _aut = _p(parecer.autuacao_pdf_path)
+            _con = _p(parecer.consolidado_pdf_path)
+            _ata = _p(parecer.ata_pdf_path)
+            if _aut and default_storage.exists(_aut):
+                autuacao_url = default_storage.url(_aut)
+                autuacao_name = urllib.parse.unquote(os.path.basename(_aut))
+            if _con and default_storage.exists(_con):
+                consolidado_url = default_storage.url(_con)
+                consolidado_name = urllib.parse.unquote(os.path.basename(_con))
+            if _ata and default_storage.exists(_ata):
+                ata_url = default_storage.url(_ata)
+                ata_name = urllib.parse.unquote(os.path.basename(_ata))
         except Exception:
             pass
             

@@ -167,16 +167,18 @@ class JariMath:
             else:
                 detalhe_calculo = f"Dentro do limite de 180 dias para notificação ({dias_infracao_notificacao} dias transcorridos)."
             
-        # A) Infrações anteriores a 12/04/2021
+        # A) Infrações anteriores a 12/04/2021 — FILTRO 1
+        # HARD STOP (Parecer CETRAN/SC 381/2022): decadência de 180/360 dias é PROIBIDA
+        # para este período. Resultado sempre "NÃO SE APLICA".
         else:
             faixa_temporal = "Antes 12/04/2021"
-            regra_aplicada = "Lei 9.873 / Art. 281 CTB (Limiar 30 dias para notificação)"
-            
-            if dias_infracao_notificacao > 30:
-                decadencia_encontrada = True
-                detalhe_calculo = f"Notificação excedeu 30 dias ({dias_infracao_notificacao} dias contabilizados pós-descontos)."
-            else:
-                detalhe_calculo = f"Dentro do limite de 30 dias para notificação ({dias_infracao_notificacao} dias transcorridos)."
+            regra_aplicada = "NÃO SE APLICA — Blindagem CETRAN/SC 381/2022"
+            decadencia_encontrada = False  # Hard stop: nunca True para FILTRO 1
+            detalhe_calculo = (
+                "Infração anterior a 12/04/2021 (Filtro 1). "
+                "Decadência de 180/360 dias expressamente proibida pelo Parecer CETRAN/SC 381/2022. "
+                "Análise encaminhada exclusivamente à Prescrição Punitiva (Lei 9.873/1999)."
+            )
 
         relatorio_decadencia = (
             f"  - **Data da Infração**: {data_infracao.strftime('%d/%m/%Y')}\n"

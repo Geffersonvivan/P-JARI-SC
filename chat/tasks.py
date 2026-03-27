@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@shared_task(bind=True)
+@shared_task(bind=True, time_limit=600, soft_time_limit=540)
 def gerar_parecer_task(self, parecer_id, tese=None):
     """
     Worker task que roda as pesadas Fases 5 e 6 do motor JARI.
@@ -45,6 +45,6 @@ def send_payment_notification_task(nome_cliente, email_cliente, trans_amount, pa
         subject=f'✅ Nova Venda Confirmada: {nome_cliente}',
         message=f'Sucesso! Um pagamento de R$ {trans_amount} foi aprovado no Mercado Pago e os créditos foram liberados.\n\nDetalhes do Cliente:\nNome: {nome_cliente}\nEmail: {email_cliente}\nID do Pagamento: {payment_id}',
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br'),
-        recipient_list=['geffersonvivan@gmail.com'],
+        recipient_list=[getattr(settings, 'ADMIN_EMAIL', settings.DEFAULT_FROM_EMAIL)],
         fail_silently=True,
     )

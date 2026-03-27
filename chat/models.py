@@ -40,16 +40,22 @@ class Parecer(models.Model):
     prazo_final = models.DateField(blank=True, null=True)
     paginas_defesa = models.CharField(max_length=100, blank=True, null=True)
     
-    # Arquivos (Uso temporário para não quebrar; idealmente devem ir para S3 ou MEDIA_ROOT)
-    autuacao_pdf_path = models.CharField(max_length=500, blank=True, null=True)
-    consolidado_pdf_path = models.CharField(max_length=500, blank=True, null=True)
-    ata_pdf_path = models.CharField(max_length=500, blank=True, null=True)
+    # Arquivos — armazenados via default_storage (GCS em produção, local em dev)
+    autuacao_pdf_path = models.FileField(upload_to='uploads/', max_length=500, blank=True, null=True)
+    consolidado_pdf_path = models.FileField(upload_to='uploads/', max_length=500, blank=True, null=True)
+    ata_pdf_path = models.FileField(upload_to='uploads/', max_length=500, blank=True, null=True)
     
     # Flags Booleanas Calculadas (Regras de Ouro - Fase 3 do Motor)
     is_tempestivo = models.BooleanField(null=True, blank=True)
     has_prescricao_punitiva = models.BooleanField(null=True, blank=True)
     has_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
     has_decadencia = models.BooleanField(null=True, blank=True)
+
+    # Escolhas do julgador (Fase 31 — A/B) — substituem as flags automáticas em todas as fases seguintes
+    julgador_tempestivo = models.BooleanField(null=True, blank=True)
+    julgador_prescricao_punitiva = models.BooleanField(null=True, blank=True)
+    julgador_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
+    julgador_decadencia = models.BooleanField(null=True, blank=True)
     
     # Textos gerados pelas IAs nas Fases 3 a 6, ou extraidos do documento de origem (Fase 7)
     infracao_documento = models.CharField(max_length=255, blank=True, null=True)
@@ -203,10 +209,6 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
 
-@receiver(post_save, sender=User)
-def save_user_profile(sender, instance, **kwargs):
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
 
 from allauth.account.signals import user_signed_up
 from django.core.mail import send_mail
@@ -227,13 +229,15 @@ def notify_admin_on_signup(request, user, **kwargs):
     )
     
     try:
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            ['geffersonvivan@gmail.com'],
-            fail_silently=True,
-        )
+        admin_email = getattr(settings, 'ADMIN_EMAIL', None)
+        if admin_email:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [admin_email],
+                fail_silently=True,
+            )
     except Exception as e:
         print(f"Erro ao enviar email de notificação de signup: {e}")
 
@@ -308,6 +312,21 @@ class SystemHealthCheck(models.Model):
         status = "OK" if self.status_operacional else "FALHA"
         return f"HealthCheck [{status}] - {self.data_execucao.strftime('%d/%m/%Y %H:%M')}"
 
+class TestRun(models.Model):
+    executado_em  = models.DateTimeField(auto_now_add=True)
+    total         = models.IntegerField(default=0)
+    passou        = models.IntegerField(default=0)
+    falhou        = models.IntegerField(default=0)
+    duracao_ms    = models.IntegerField(default=0)
+    detalhes_json = models.JSONField(default=list)
+
+    class Meta:
+        ordering = ['-executado_em']
+
+    def __str__(self):
+        return f"TestRun {self.executado_em.strftime('%d/%m/%Y %H:%M')} — {self.passou}/{self.total}"
+
+
 class PjariVersion(models.Model):
     major = models.IntegerField(default=1, verbose_name="Major (Paradigma)")
     minor = models.IntegerField(default=2, verbose_name="Minor (Raciocínio/Lógica)")
@@ -325,5 +344,5 @@ class PjariVersion(models.Model):
     def save(self, *args, **kwargs):
         # Garante que seja um Singleton (apenas um registro na tabela)
         if not self.pk and PjariVersion.objects.exists():
-            return PjariVersion.objects.first()
+            raise ValueError("PjariVersion é um singleton — já existe um registro. Use PjariVersion.objects.first() para atualizar.")
         super().save(*args, **kwargs)

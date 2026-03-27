@@ -105,7 +105,7 @@ class ClerkAuthenticationMiddleware:
                                     # Self-healing: User already exists but has no name
                                     user.first_name = first_name[:30]
                                     user.last_name = last_name[:30]
-                                    user.save()
+                                    user.save(update_fields=['first_name', 'last_name'])
 
                         if user:
                             request.user = user  # Injeta no ciclo do Django

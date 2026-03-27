@@ -39,3 +39,5 @@ markdown>=3.6.0
 django-tinymce>=5.0.0
 svix>=1.21.0
 sentry-sdk==2.55.0
+django-ratelimit>=4.1.0
+django-redis>=5.4.0
