@@ -54,7 +54,7 @@
 
         @media (min-width: 768px) {
             .sidebar-hidden {
-                margin-left: -25%;
+                margin-left: -320px !important;
             }
         }
 
@@ -549,6 +549,64 @@
                     {% else %}
                     <div class="text-2xl lg:text-3xl font-bold text-red-500 truncate mt-1">S/ DADOS</div>
                     <p class="text-[10px] lg:text-xs text-gray-500 mt-2 font-medium">Aguardando Cron</p>
+                    {% endif %}
+                </div>
+
+                <!-- 7: Testes do Engine (Unit Tests) -->
+                <div class="relative group bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-800 flex flex-col justify-between transition hover:shadow-md">
+                    <h3 class="text-gray-400 font-medium text-[11px] lg:text-xs mb-2 uppercase tracking-wider flex items-center justify-between cursor-help">
+                        Testes do Engine <span class="text-gray-500">🧪</span>
+                    </h3>
+                    <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute top-full right-0 mt-2 w-72 p-3 bg-white text-gray-800 text-xs rounded-xl shadow-xl z-50 text-center border border-gray-200 leading-relaxed">
+                        Resultado da última execução automática dos testes de unidade do JariEngine. Atualizado a cada 6h ou a cada 10 pareceres gerados.
+                        <div class="absolute right-6 -top-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
+                    </div>
+                    {% if ultimo_test_run %}
+                        {% if ultimo_test_run.falhou == 0 %}
+                            <div class="text-2xl lg:text-3xl font-bold text-emerald-400">{{ ultimo_test_run.passou }}/{{ ultimo_test_run.total }} OK</div>
+                            <p class="text-[10px] lg:text-xs text-gray-500 mt-2 font-medium">{{ ultimo_test_run.duracao_ms }}ms · {{ ultimo_test_run.executado_em|date:"d/m H:i" }}</p>
+                        {% else %}
+                            <div class="text-2xl lg:text-3xl font-bold text-red-400">{{ ultimo_test_run.falhou }} FALHA{% if ultimo_test_run.falhou > 1 %}S{% endif %}</div>
+                            <p class="text-[10px] lg:text-xs text-gray-500 mt-2 font-medium">{{ ultimo_test_run.passou }}/{{ ultimo_test_run.total }} · {{ ultimo_test_run.executado_em|date:"d/m H:i" }}</p>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-2xl lg:text-3xl font-bold text-gray-600">S/ DADOS</div>
+                        <p class="text-[10px] lg:text-xs text-gray-500 mt-2 font-medium">Aguardando 1ª execução</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Saúde do Código -->
+            <h2 class="text-xl font-bold text-gray-700 mb-4 px-4 w-full max-w-7xl mx-auto mt-8">Saúde do Código</h2>
+            <div class="grid grid-cols-1 gap-6 mb-10 w-full max-w-7xl mx-auto px-4">
+                <div class="bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-800">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-gray-300 font-semibold text-sm uppercase tracking-wider">Histórico de Execuções — JariEngine Tests</h3>
+                            <p class="text-gray-500 text-xs mt-1">Últimas 10 execuções automáticas · Verde = passou · Vermelho = falhou</p>
+                        </div>
+                    </div>
+                    {% if historico_test_runs %}
+                        <div id="test-runs-chart"></div>
+                    {% else %}
+                        <div class="flex flex-col items-center justify-center py-16 text-gray-600">
+                            <span class="text-4xl mb-3 opacity-30">🧪</span>
+                            <p class="text-sm font-medium">Sem execuções registradas ainda.</p>
+                        </div>
+                    {% endif %}
+                    {% if ultimo_test_run and ultimo_test_run.detalhes_json %}
+                    <div class="mt-6 border-t border-gray-800 pt-4">
+                        <p class="text-gray-400 text-xs uppercase tracking-wider mb-3">Falhas no último run</p>
+                        {% for item in ultimo_test_run.detalhes_json %}
+                        <div class="flex items-start gap-3 mb-2 bg-red-950/40 rounded-xl p-3">
+                            <span class="text-red-400 text-xs font-mono mt-0.5 shrink-0">FALHOU</span>
+                            <div>
+                                <p class="text-gray-300 text-xs font-medium">{{ item.nome }}</p>
+                                <p class="text-gray-500 text-xs mt-1 font-mono">{{ item.mensagem|truncatechars:150 }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -1322,6 +1380,74 @@
             } else {
                 const donutChart = new ApexCharts(donutChartContainer, donutOptions);
                 donutChart.render();
+            }
+
+            // --- Test Runs Chart ---
+            const testRunsRaw = {{ historico_test_runs|safe }};
+            if (testRunsRaw && testRunsRaw.length > 0) {
+                const trLabels  = testRunsRaw.map(r => {
+                    const d = new Date(r.executado_em);
+                    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                           + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }).reverse();
+                const trPassou  = testRunsRaw.map(r => r.passou).reverse();
+                const trFalhou  = testRunsRaw.map(r => r.falhou).reverse();
+                const trDuracao = testRunsRaw.map(r => r.duracao_ms).reverse();
+                const trTotal   = testRunsRaw.map(r => r.total).reverse();
+
+                const testRunsOptions = {
+                    series: [
+                        { name: 'Passou', data: trPassou },
+                        { name: 'Falhou', data: trFalhou },
+                    ],
+                    chart: {
+                        type: 'bar',
+                        height: 220,
+                        stacked: true,
+                        background: 'transparent',
+                        toolbar: { show: false },
+                        animations: { enabled: true },
+                    },
+                    colors: ['#34d399', '#f87171'],
+                    plotOptions: {
+                        bar: { borderRadius: 6, columnWidth: '40%' }
+                    },
+                    xaxis: {
+                        categories: trLabels,
+                        labels: { style: { colors: '#6b7280', fontSize: '11px' } },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false },
+                    },
+                    yaxis: {
+                        labels: { style: { colors: '#6b7280' } },
+                        min: 0,
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        custom: function({ dataPointIndex }) {
+                            const p   = trPassou[dataPointIndex];
+                            const f   = trFalhou[dataPointIndex];
+                            const tot = trTotal[dataPointIndex];
+                            const dur = trDuracao[dataPointIndex];
+                            const cor = f === 0 ? '#34d399' : '#f87171';
+                            return `<div style="padding:10px 14px;font-size:12px;line-height:1.8">
+                                <b style="color:${cor}">${trLabels[dataPointIndex]}</b><br>
+                                ✅ Passou: <b>${p}/${tot}</b><br>
+                                ❌ Falhou: <b>${f}</b><br>
+                                ⏱ Duração: <b>${dur}ms</b>
+                            </div>`;
+                        }
+                    },
+                    legend: { show: true, position: 'top', labels: { colors: '#9ca3af' } },
+                    grid: { borderColor: '#1f2937', strokeDashArray: 4 },
+                    theme: { mode: 'dark' },
+                    dataLabels: { enabled: false },
+                };
+
+                const testRunsContainer = document.querySelector('#test-runs-chart');
+                if (testRunsContainer) {
+                    new ApexCharts(testRunsContainer, testRunsOptions).render();
+                }
             }
 
         });
