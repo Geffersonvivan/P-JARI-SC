@@ -11,6 +11,12 @@ from django.conf import settings
 import stripe
 from .models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
 
+PLANS = {
+    'extra':       {'title': 'P-JARI/SC 1 Crédito Extra',          'price': 20.00,   'credits': 1,  'is_pro': False},
+    'basic':       {'title': 'P-JARI/SC Básico (40 Pareceres)',     'price': 720.00,  'credits': 40, 'is_pro': True},
+    'pro':         {'title': 'P-JARI/SC Profissional (80 Pareceres)','price': 1440.00,'credits': 80, 'is_pro': True},
+}
+
 def landing_page_view(request):
     if request.user.is_authenticated:
         return redirect('home')
@@ -528,40 +534,25 @@ def planos_view(request):
 @login_required
 def checkout_view(request):
     try:
-        # Configurar chave do Stripe
-        stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', None)
-        
-        # Recupera qual plano foi selecionado
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+
         plan_type = request.GET.get('plan', 'pro')
-        
-        if plan_type == 'basic':
-            item_title = "P-JARI/SC Básico (40 Pareceres)"
-            item_price = 720.00
-            price_in_cents = int(720.00 * 100)
-        elif plan_type == 'extra':
-            item_title = "P-JARI/SC 1 Crédito Extra"
-            item_price = 20.00
-            price_in_cents = int(20.00 * 100)
-        else:
-            item_title = "P-JARI/SC Profissional (80 Pareceres)"
-            item_price = 1440.00
-            price_in_cents = int(1440.00 * 100)
+        plan = PLANS.get(plan_type, PLANS['pro'])
 
         payer_email = request.user.email or f"user_{request.user.id}@pjari.com.br"
-        
-        # Cria a sessão de Checkout da Stripe
+
         session = stripe.checkout.Session.create(
-            payment_method_types=['card', 'boleto', 'pix'],
+            payment_method_types=['card', 'pix'],
             customer_email=payer_email,
             client_reference_id=str(request.user.id),
             line_items=[{
                 'price_data': {
                     'currency': 'brl',
                     'product_data': {
-                        'name': item_title,
+                        'name': plan['title'],
                         'description': 'Créditos de sistema',
                     },
-                    'unit_amount': price_in_cents,
+                    'unit_amount': int(plan['price'] * 100),
                 },
                 'quantity': 1,
             }],
@@ -569,8 +560,6 @@ def checkout_view(request):
             success_url=request.build_absolute_uri("/planos/?success=1"),
             cancel_url=request.build_absolute_uri("/planos/?failure=1"),
         )
-        
-        # Redireciona o usuário para o ambiente seguro do Stripe
         return redirect(session.url)
     except Exception as e:
         import traceback
@@ -586,19 +575,16 @@ def stripe_webhook(request):
         payload = request.body
         sig_header = request.headers.get('STRIPE_SIGNATURE')
         
-        try:
-            if endpoint_secret and sig_header:
-                event = stripe.Webhook.construct_event(
-                    payload, sig_header, endpoint_secret
-                )
-            else:
-                # Caso esteja rodando sem Webhook secret via Dev test tools
-                event = json.loads(payload)
-        except ValueError as e:
-            # Invalid payload
+        if not endpoint_secret:
             return HttpResponse(status=400)
-        except stripe.error.SignatureVerificationError as e:
-            # Invalid signature
+
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, endpoint_secret
+            )
+        except ValueError:
+            return HttpResponse(status=400)
+        except stripe.error.SignatureVerificationError:
             return HttpResponse(status=400)
             
         try:
