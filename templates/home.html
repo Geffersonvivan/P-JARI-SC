@@ -310,7 +310,7 @@
 
                 <!-- User Popover Menu (Dark Style) -->
                 <div id="user-menu"
-                    class="hidden absolute bottom-14 left-0 w-72 bg-space-800 rounded-2xl shadow-2xl border border-white/10 p-4 z-50 flex flex-col text-white">
+                    class="hidden absolute bottom-14 left-0 w-72 bg-[#595959] rounded-3xl shadow-2xl border border-[#666] p-4 z-50 flex flex-col text-white">
 
                     <!-- Avatar & Info -->
                     <div class="flex items-center gap-3 mb-4 mt-2 px-1">
@@ -322,30 +322,36 @@
                             <span class="text-base font-bold text-white truncate font-display">
                                 {{ request.user.first_name|default:request.user.username }}
                             </span>
-                            <span class="text-sm text-slate-500 font-medium truncate">
+                            <span class="text-sm text-gray-300 font-medium truncate">
                                 {{ request.user.last_name|default:"" }}
                             </span>
                         </div>
                     </div>
 
-                    <hr class="border-white/10 mb-4 opacity-50" />
+                    <hr class="border-gray-400 mb-4 opacity-50" />
 
                     <!-- Plans & Credits -->
                     <div class="space-y-2 mb-4">
                         <a href="{% url 'planos' %}" target="_blank"
-                            class="w-full flex items-center justify-between py-3 px-4 rounded-xl bg-space-950 hover:bg-black transition cursor-pointer text-white shadow-sm border border-white/5">
-                            <span class="font-bold text-[15px] italic tracking-tight text-white flex gap-2"><i class="ph ph-crown text-brand-warning text-xl"></i> Ver Plano</span>
-                            <div class="w-6 h-6 rounded-full bg-brand-warning/20 border border-brand-warning/30 flex items-center justify-center text-brand-warning shadow-sm">
-                                <i class="ph ph-arrow-right text-sm"></i>
+                            class="w-full flex items-center justify-between py-3 px-4 rounded-xl bg-[#343046] hover:bg-[#2b273a] transition cursor-pointer text-white shadow-sm border border-[#443e5c]">
+                            <span class="font-bold text-[16px] italic tracking-tight text-[#b8a5fc] font-sans">Ver Plano</span>
+                            <div
+                                class="w-6 h-6 rounded-full bg-[#8363ff] flex items-center justify-center text-white shadow-sm">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
                             </div>
                         </a>
 
-                        <div class="w-full flex items-center py-3 px-4 rounded-xl bg-space-950 text-white shadow-sm border border-white/5">
-                            <span class="font-bold text-[14px] text-slate-500 tracking-tight flex items-center gap-2"><i class="ph ph-coins text-brand-accent text-xl"></i> Créditos:
+                        <div
+                            class="w-full flex items-center py-3 px-4 rounded-xl bg-[#343046] text-white shadow-sm border border-[#443e5c]">
+                            <span class="font-bold text-[16px] text-[#b8a5fc] tracking-tight font-sans">Créditos:
                                 <span class="text-white ml-2">
                                     {% if request.user.is_authenticated %}
                                     {% if request.user.profile.is_pro %}
-                                    <span class="text-brand-accent font-extrabold" title="Acesso Vitalício">∞ Ilimitado</span>
+                                    <span class="text-green-400 font-extrabold" title="Acesso Vitalício">∞ Ilimitado</span>
                                     {% else %}
                                     {{ total_julgados }}/{{ request.user.profile.credits|stringformat:"02d" }}
                                     {% endif %}
@@ -357,54 +363,54 @@
                         </div>
                     </div>
 
-                    <hr class="border-white/10 mb-4 opacity-50" />
+                    <hr class="border-gray-400 mb-4 opacity-50" />
 
                     <!-- Action Links -->
                     <div class="flex flex-col space-y-1">
                         <a href="https://wa.me/5549991031516?text=Olá, sou {{ request.user.first_name|default:'um visitante' }} e gostaria de falar sobre o P-JARI/SC!" target="_blank"
-                            class="px-3 py-2.5 rounded-xl hover:bg-slate-800/5 transition flex items-center gap-4 text-slate-600 hover:text-white font-medium text-[14px]">
+                            class="px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
                             <i class="ph ph-whatsapp-logo text-xl"></i>
                             Suporte WhatsApp
                         </a>
 
                         <a href="{% url 'estatisticas' %}"
-                            class="px-3 py-2.5 rounded-xl hover:bg-slate-800/5 transition flex items-center gap-4 text-slate-600 hover:text-white font-medium text-[14px]">
+                            class="px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
                             <i class="ph ph-chart-bar text-xl"></i>
                             Estatísticas
                         </a>
 
                         {% if request.user.is_authenticated and request.user.profile.can_view_global_stats or request.user.is_superuser %}
                         <a href="{% url 'estatisticas_gerais' %}"
-                            class="px-3 py-2.5 rounded-xl hover:bg-slate-800/5 transition flex items-center gap-4 text-slate-600 hover:text-white font-medium text-[14px]">
+                            class="px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
                             <i class="ph ph-chart-line-up text-xl text-brand-accent"></i>
                             Estatística Geral
                         </a>
                         {% endif %}
 
-                        <hr class="border-white/10 my-2 opacity-50" />
+                        <hr class="border-gray-400 my-2 opacity-50" />
 
                         <button id="btn-parecer"
-                            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800/5 transition flex items-center gap-4 text-slate-600 hover:text-white font-medium text-[14px]">
+                            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
                             <i class="ph ph-plus-circle text-xl text-green-400"></i>
                             Pastas Pareceres
                         </button>
 
                         <button onclick="document.getElementById('citacaoModal').classList.remove('hidden'); toggleUserMenu();"
-                            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800/5 transition flex items-center gap-4 text-slate-600 hover:text-white font-medium text-[14px]">
+                            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
                             <i class="ph ph-books text-xl"></i>
                             Gerenciar Citações
                         </button>
 
-                        <hr class="border-white/10 my-2 opacity-50" />
+                        <hr class="border-gray-400 my-2 opacity-50" />
 
                         <a href="{% url 'termos' %}" target="_blank"
-                            class="px-3 py-2.5 rounded-xl hover:bg-slate-800/5 transition flex items-center gap-4 text-slate-600 hover:text-white font-medium text-[14px]">
+                            class="px-3 py-2.5 rounded-xl hover:bg-[#666] transition flex items-center gap-4 text-white font-medium text-[15px]">
                             <i class="ph ph-shield-check text-xl"></i>
                             Termos e Privacidade
                         </a>
 
                         <button type="button" onclick="window.Clerk.signOut({ redirectUrl: '/' })"
-                            class="w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-red-400 hover:text-red-300 transition flex items-center gap-4 font-medium text-[14px]">
+                            class="w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-red-400 hover:text-red-300 transition flex items-center gap-4 font-medium text-[15px]">
                             <i class="ph ph-sign-out text-xl"></i>
                             Sair
                         </button>
