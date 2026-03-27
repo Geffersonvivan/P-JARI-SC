@@ -85,10 +85,10 @@ if not DEBUG:
     CSRF_COOKIE_DOMAIN = '.pjarisc.com.br'
     # Fix for social logins cross-origin validation
     SECURE_CROSS_ORIGIN_OPENER_POLICY = None
-# Mercado Pago Settings
-MERCADOPAGO_ACCESS_TOKEN = os.environ.get('MERCADOPAGO_ACCESS_TOKEN')
-MERCADOPAGO_PUBLIC_KEY = os.environ.get('MERCADOPAGO_PUBLIC_KEY')
-MERCADOPAGO_WEBHOOK_SECRET = os.environ.get('MERCADOPAGO_WEBHOOK_SECRET')
+# Stripe Settings
+STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
 
 # Application definition
 

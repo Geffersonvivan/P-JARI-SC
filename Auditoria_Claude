@@ -1,0 +1,762 @@
+1 segurança                                                                    
+
+  Searched for 8 patterns, read 7 files (ctrl+o to expand)
+
+⏺ Bash(git -C /Volumes/D/P-Jari log --oneline --all -- "gcp-credentials.json"
+      "google-credentials.json" "*.json" | head -10)
+  ⎿  60e06b6 chore: push pending changes
+     3cf0af3 fix: reescreve controle de fluxo da fase 1 do chat priorizando
+     campos de arquivo e palavra chave para blindar o parse de string no dat
+     … +6 lines (ctrl+o to expand)
+
+  Searched for 3 patterns (ctrl+o to expand)
+
+⏺ Tenho o suficiente para um relatório completo. Aqui está a auditoria de
+  segurança:
+
+  ---
+  Auditoria de Segurança — P-JARI
+
+  ---
+  🔴 CRÍTICO
+
+  1. Webhook do MercadoPago sem verificação de assinatura
+  chat/views.py:604 — O endpoint @csrf_exempt mercadopago_webhook processa
+  pagamentos sem validar a assinatura HMAC da notificação. Qualquer um pode fazer
+   um POST forjado com "status": "approved" e conceder créditos/plano pro a
+  qualquer usuário.
+  - MERCADOPAGO_WEBHOOK_SECRET existe em settings mas nunca é usado no webhook.
+
+  2. editar_parecer_view e salvar_parecer_view sem autenticação
+  chat/views.py:77 e 198 — Nenhum dos dois tem @login_required. Qualquer pessoa
+  com o ID de um parecer pode ler e sobrescrever o conteúdo dele. O editor de
+  pareceres é acessível sem login via /parecer/<id>/editor/.
+
+  3. Traceback completo exposto em produção
+  chat/views.py:334 e 421:
+  return JsonResponse({'error': str(e), 'trace': trace}, status=500)
+  Stack traces completos são retornados ao cliente em respostas JSON públicas,
+  incluindo caminhos de arquivos, nomes de variáveis e estrutura interna da
+  aplicação.
+
+  ---
+  🟠 ALTO
+
+  4. Webhook do Clerk sem secret = bypass total
+  chat/webhooks_clerk.py:20-22 — Se CLERK_WEBHOOK_SECRET não estiver configurado
+  em produção, o endpoint aceita qualquer payload sem verificação e processa como
+   legítimo. O código tem um comentário explícito: "Bypass temporário... não
+  recomendado em prod!" — mas o bypass permanece no código.
+
+  5. Upload de arquivos valida apenas extensão, não conteúdo
+  chat/services.py:17:
+  if f.name.endswith('.pdf'):
+  Valida só o nome do arquivo. Um arquivo malicioso renomeado como .pdf passa sem
+   filtro. Não há verificação de MIME type real (python-magic), limite de tamanho
+   por arquivo, nem sanitização do base_name (path traversal possível se
+  os.path.basename falhar em edge cases).
+
+  6. ALLOWED_HOSTS = ['*'] como fallback
+  config/settings.py:51 — Se a variável ALLOWED_HOSTS não estiver setada no
+  ambiente, aceita qualquer host. Em produção no Railway isso pode já estar
+  configurado, mas o fallback é perigoso e não deveria existir.
+
+  7. DSN do Sentry hardcoded no código-fonte
+  config/settings.py:22 — O DSN está exposto no repositório. Qualquer pessoa com
+  acesso ao repo pode enviar eventos falsos ao seu projeto Sentry, poluir logs ou
+   causar overuse de cota.
+
+  ---
+  🟡 MÉDIO
+
+  8. send_default_pii=True no Sentry
+  config/settings.py:28 — Envia IP, cookies e headers de usuários autenticados ao
+   Sentry (terceiro). Pode ser um problema de compliance com LGPD dependendo da
+  interpretação.
+
+  9. ACCOUNT_LOGOUT_ON_GET = True + SOCIALACCOUNT_LOGIN_ON_GET = True
+  config/settings.py:169,166 — Logout por GET permite ataques CSRF passivos (um
+  link de imagem ou iframe pode deslogar o usuário). O LOGIN_ON_GET também
+  facilita ataques de login CSRF.
+
+  10. SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+  config/settings.py:87 — Desabilitado explicitamente em produção. Reduz proteção
+   contra ataques de Spectre e cross-origin data leaks.
+
+  11. Sem rate limiting em nenhum endpoint
+  Não existe nenhuma proteção contra brute force ou abuso nos endpoints de chat,
+  upload, login ou pagamento. Nenhuma dependência de throttling foi encontrada.
+
+  12. db.sqlite3 e debug.log presentes na raiz do repo
+  Estão no .gitignore mas fisicamente existem no diretório. O debug.log pode
+  conter dados sensíveis de usuários. O db.sqlite3 é o banco local de dev mas
+  pode conter dados reais se alguém rodar localmente com dados de produção.
+
+  ---
+  🔵 BAIXO / ATENÇÃO
+
+  13. gcp-credentials.json.json (note o .json.json) existe na raiz. Está no
+  .gitignore mas é um arquivo de credencial de serviço GCP em disco — deve ser
+  deletado e a chave rotacionada se ela foi usada localmente.
+
+  14. cookies.txt na raiz do repo — Arquivo que provavelmente contém cookies de
+  sessão de debug. Deve ser deletado.
+
+  15. SECRET_KEY com fallback inseguro — 'django-insecure-default-key' como
+  fallback. Em teoria só ativa se a env var não estiver setada, mas vale garantir
+   que o servidor sempre a force.
+
+  ---
+  Resumo
+
+  ┌────────────┬────────────┐
+  │ Severidade │ Quantidade │
+  ├────────────┼────────────┤
+  │ 🔴 Crítico │ 3          │
+  ├────────────┼────────────┤
+  │ 🟠 Alto    │ 4          │
+  ├────────────┼────────────┤
+  │ 🟡 Médio   │ 4          │
+  ├────────────┼────────────┤
+  │ 🔵 Baixo   │ 4          │
+  └────────────┴────────────┘
+
+  Prioridade imediata: itens 1, 2 e 3 — os dois primeiros permitem fraude
+  financeira e acesso não autorizado a dados; o terceiro vaza a estrutura interna
+   da aplicação.
+
+  Quer que eu detalhe como corrigir algum item específico?
+
+✻ Cooked for 1m 23s
+
+❯ $ 2. Performance / queries N+1                                                 
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Tenho o suficiente. Aqui está o relatório completo de performance:
+
+  ---
+  Auditoria de Performance — Queries N+1
+
+  ---
+  🔴 CRÍTICO
+
+  1. proxy_image_view — SSRF sem autenticação
+  chat/views.py:1467 — Isso é um achado bônus que cabe aqui: qualquer pessoa (sem
+   login) pode fazer GET /proxy/?url=http://redis:6379 ou
+  url=http://169.254.169.254 e usar o servidor como proxy para acessar serviços
+  internos da rede do Railway. Também verify=False ignora SSL.
+
+  2. env_debug_view — expõe variáveis de ambiente em produção
+  chat/views.py:1543 — Sem autenticação alguma, retorna todas as chaves de
+  ambiente E os valores das chaves CLERK em texto puro. Deve ser removida
+  imediatamente em produção.
+
+  ---
+  🟠 ALTO — N+1 confirmados
+
+  3. reorder_folders_view — N queries para N pastas
+  chat/views.py:922-928:
+  for item in order_list:
+      Pasta.objects.filter(id=pasta_id,
+  user=request.user).update(posicao=posicao)
+  Se o usuário tem 15 pastas → 15 UPDATEs separados. Deveria usar bulk_update ou
+  Case/When em query única.
+
+  4. curtir_post_forum_view — carrega todos os curtidores na memória
+  chat/views.py:1386:
+  if request.user in post.curtidas.all():
+  post.curtidas.all() traz todos os usuários que curtiram aquele post para a RAM
+  e faz o in em Python. Se um post tem 500 curtidas, traz 500 registros. Deveria
+  ser post.curtidas.filter(id=request.user.id).exists().
+
+  5. get_comentarios_forum_view — N+1 no autor de cada comentário
+  chat/views.py:1406-1412:
+  comentarios = post.comentarios.all()
+  dados = [{'autor': c.autor.first_name ...} for c in comentarios]
+  Sem select_related('autor') → 1 query para buscar comentários + 1 query por
+  comentário para buscar o autor. Com 30 comentários = 31 queries.
+
+  6. increment_citacao_usage_view e import_citacao_comunidade_view — race
+  condition + query desnecessária
+  chat/views.py:1437-1438 e 1458-1459:
+  citacao.usage_count += 1
+  citacao.save()
+  Dois problemas: (a) dois requests simultâneos perdem incremento; (b) save() sem
+   update_fields persiste todos os campos do modelo. Deveria ser
+  BancoTese.objects.filter(id=id).update(usage_count=F('usage_count') + 1).
+
+  ---
+  🟡 MÉDIO
+
+  7. get_or_create + query imediata duplicada — padrão repetido em 3 views
+  home_view:33-37, estatisticas_view:850-853, estatisticas_gerais_view:1101-1104
+  — todas fazem:
+  pasta_outros, _ = Pasta.objects.get_or_create(...)   # Query 1
+  pasta_outros =
+  Pasta.objects.filter(id=pasta_outros.id).prefetch_related(...).first()  # Query
+   2
+  A segunda query poderia ser eliminada aplicando o prefetch_related diretamente
+  após o get_or_create, ou extraindo em um método utilitário.
+
+  8. profile.save() sem update_fields em 3 lugares
+  - update_forum_access_view:1424 — só atualiza ultimo_acesso_forum, mas salva o
+  profile inteiro
+  - dismiss_onboarding_view:911 — só atualiza viu_boas_vindas, salva tudo
+  - middleware_clerk.py:107-108 — só atualiza nome, salva tudo
+
+  Em cada caso deveria ser profile.save(update_fields=['campo']).
+
+  9. estatisticas_gerais_view — 8+ queries separadas sobre o mesmo queryset logs
+  chat/views.py:1068-1097 — logs é filtrado 8 vezes em queries independentes
+  (tokens gemini, tokens perplexity, consultas vertex, misses, latência,
+  dispersão de modelo, fatigue, defects). Parte disso poderia ser consolidado em
+  um aggregate() único ou em annotate agrupado.
+
+  10. pareceres_base.values_list('id', flat=True) avaliado dentro de loop
+  chat/views.py:767-773 e equivalente em 1029-1035:
+  ids_base = pareceres_base.values_list('id', flat=True)
+  for pid in ids_base:  # executa a query aqui
+  O queryset deveria ser materializado antes do loop com list(...) ou set(...),
+  caso contrário cada iteração pode reavaliar.
+
+  11. PostForum carregado completo + query extra para "novidade"
+  Presente em home_view, estatisticas_view e estatisticas_gerais_view:
+  posts_forum: PostForum.objects.select_related(...).prefetch_related(...).order_
+  by('-data_criacao')[:50]
+  ultimo_post = PostForum.objects.all().order_by('-data_criacao').first()  #
+  query extra
+  A segunda query é redundante — ultimo_post já é posts_forum[0] se o resultado
+  não for vazio.
+
+  ---
+  🔵 BAIXO
+
+  12. Ausência de índices de banco de dados prováveis
+  Parecer é filtrado por user, is_saved, created_at__year/month em praticamente
+  toda view. Sem índice composto (user, is_saved, created_at), cada filtro faz
+  full scan. Verifique com EXPLAIN no banco de produção.
+
+  13. conn_max_age=0 em desenvolvimento
+  config/settings.py:213 — Em DEBUG=True, conn_max_age=0 fecha a conexão a cada
+  request. Em produção está 600s (correto), mas localmente pode mascarar
+  problemas de connection pool.
+
+  ---
+  Resumo
+
+  ┌────────────┬─────┬────────────────────────────────────────────┐
+  │ Severidade │ Qtd │             Impacto principal              │
+  ├────────────┼─────┼────────────────────────────────────────────┤
+  │ 🔴 Crítico │ 2   │ Segurança / exposição de infra             │
+  ├────────────┼─────┼────────────────────────────────────────────┤
+  │ 🟠 Alto    │ 4   │ N+1 confirmados em fluxos frequentes       │
+  ├────────────┼─────┼────────────────────────────────────────────┤
+  │ 🟡 Médio   │ 5   │ Queries redundantes / saves desnecessários │
+  ├────────────┼─────┼────────────────────────────────────────────┤
+  │ 🔵 Baixo   │ 2   │ Índices e config de dev                    │
+  └────────────┴─────┴────────────────────────────────────────────┘
+
+  Prioridade imediata: itens 1 e 2 são bugs de segurança descobertos durante a
+  análise de performance. Os itens 3, 4 e 5 são N+1 em rotas usadas
+  frequentemente e têm correção simples.
+
+  Quer continuar com 3. Qualidade de código / dívida técnica?
+
+✻ Cogitated for 1m 22s
+
+❯ sim                                                                            
+
+  Searched for 12 patterns, read 5 files (ctrl+o to expand)
+
+⏺ Tenho o suficiente. Relatório completo:
+
+  ---
+  Auditoria de Qualidade de Código / Dívida Técnica
+
+  ---
+  🔴 CRÍTICO — Bugs silenciosos
+
+  1. PjariVersion.save() silenciosamente descarta dados
+  chat/models.py:326-329:
+  def save(self, *args, **kwargs):
+      if not self.pk and PjariVersion.objects.exists():
+          return PjariVersion.objects.first()  # retorna sem salvar!
+      super().save(*args, **kwargs)
+  O método retorna sem chamar super().save(). Se alguém chamar version.save() com
+   uma instância nova enquanto já existe um registro, os dados são
+  silenciosamente descartados — sem erro, sem aviso. O chamador assume que
+  salvou.
+
+  2. Signal save_user_profile dispara save em cascata em todo user.save()
+  chat/models.py:206-209:
+  @receiver(post_save, sender=User)
+  def save_user_profile(sender, instance, **kwargs):
+      if hasattr(instance, 'profile'):
+          instance.profile.save()  # sempre, sem verificar se mudou
+  Toda vez que qualquer campo de User é salvo (incluindo
+  update_fields=['first_name'] no middleware), esse signal dispara um segundo
+  UPDATE completo na tabela UserProfile. Isso duplica writes desnecessariamente e
+   pode causar loop se profile tiver signal próprio.
+
+  3. checkout_view com token de teste hardcoded como fallback
+  chat/views.py:545 e 616:
+  access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', None) or
+  'APP_USR-TEST-000000'
+  Se a variável de ambiente não estiver configurada, o checkout silenciosamente
+  usa um token de teste em produção — sem erro, sem log. Transações reais parecem
+   funcionar mas não processam pagamento real.
+
+  ---
+  🟠 ALTO — Dívida técnica estrutural
+
+  4. views.py com 1590 linhas e 41 funções — God File
+  Um único arquivo concentra: views de landing, home, editor, pagamento, webhook,
+   fórum, estatísticas, proxy de imagem, termos, feedback, SSE streaming, etc.
+  Sem separação por domínio. Qualquer mudança exige navegar centenas de linhas.
+  Os imports do topo são reexportados no meio do arquivo (linha 901):
+  # linha 901 — no meio do arquivo
+  from django.views.decorators.http import require_POST
+  from django.http import JsonResponse
+
+  5. Padrão filter_kwargs duplicado 7 vezes sem abstração
+  chat/views.py:26,28,245,257,267,291,342 — a mesma lógica ternária de 1 linha:
+  filter_kwargs = {'user': request.user} if request.user.is_authenticated else \
+      {'user__isnull': True, 'session_key': request.session.session_key}
+  Repetida em 7 views sem nenhuma função auxiliar. Qualquer mudança na lógica de
+  sessão exige editar 7 lugares.
+
+  6. Números mágicos para status_fase espalhados pelo código
+  jari_engine.py:173,191,195,219,267,305,434,447,532,620,706 — valores como 2,
+  31, 41, 5, 7, 8 aparecem sem constante nomeada. O modelo documenta o mapeamento
+   em comentário no campo, mas o engine usa os inteiros direto. Um status_fase =
+  31 no meio do código é completamente opaco sem consultar o modelo.
+
+  7. Valores de planos e preços hardcoded em 3 lugares distintos
+  chat/views.py:536,539,542 (checkout) e 631,633,637 (webhook) — os preços R$20,
+  R$720, R$1440 e a lógica de créditos correspondente estão duplicados entre a
+  view de checkout e o handler de webhook. Uma mudança de preço exige atualizar
+  dois blocos separados sem nenhum teste garantindo consistência.
+
+  8. Email pessoal hardcoded em 3 arquivos
+  chat/models.py:222,234 e chat/tasks.py:48 — 'geffersonvivan@gmail.com' aparece
+  literal no código de produção. Deveria ser uma variável de ambiente
+  (ADMIN_EMAIL).
+
+  9. TermoAceiteLog (chat) e AceiteDocumentoLegal (legal) — modelos duplicados
+  chat/models.py:284 e legal/models.py:34 — dois modelos para o mesmo conceito de
+   "aceite de termos". TermoAceiteLog parece legado, mas ainda existe na base.
+  Cria confusão sobre qual é a fonte de verdade.
+
+  ---
+  🟡 MÉDIO — Problemas de manutenibilidade
+
+  10. 94 import statements em views.py, maioria dentro de funções
+  Imports como import json, import os, import traceback, from django.conf import
+  settings aparecem repetidamente dentro do corpo de funções ao longo do arquivo.
+   Python processa esses imports a cada chamada (com cache de módulo, mas ainda
+  assim é ruído). Padrão inconsistente com os imports do topo.
+
+  11. Lógica de negócio de pagamento sem abstração
+  A lógica de "quanto custa qual plano e quantos créditos liberar" está embutida
+  diretamente em checkout_view e mercadopago_webhook como if/elif de valores
+  float. Não há model, constante ou service para isso. Adicionar um novo plano
+  exige editar dois handlers diferentes e acertar os floats manualmente.
+
+  12. jari_engine.py com 744 linhas misturando orquestração e I/O de IA
+  O engine faz tudo: controle de estado da fase, parsing de input do usuário,
+  chamadas para múltiplas APIs de IA, salvamento no banco, geração de prompts,
+  lógica de cache. Sem separação entre orquestrador e executores.
+
+  13. logica_jari_perguntas.md lido do disco a cada request
+  chat/views.py:376-378:
+  with open(logica_path, 'r') as f:
+      system_instruction = f.read()
+  Arquivo lido do filesystem a cada requisição ao agente lateral, sem cache. Em
+  produção com múltiplos workers, isso é I/O desnecessário a cada mensagem
+  enviada.
+
+  14. Bloco try/except Exception engolindo tudo
+  Em pelo menos 12 views, o bloco inteiro da view está envolto em try/except
+  Exception as e devolvendo str(e) ao cliente. Isso impede que erros específicos
+  sejam tratados diferente (ex: ValidationError vs DatabaseError vs TimeoutError)
+   e mascara falhas que deveriam retornar status codes diferentes.
+
+  ---
+  🔵 BAIXO
+
+  15. Parecer.autuacao_pdf_path é CharField, não FileField
+  chat/models.py:44-46 — Os três campos de PDF são strings que guardam caminhos,
+  não FileField. Comentário no próprio modelo diz "uso temporário para não
+  quebrar". Isso existe desde a origem do projeto.
+
+  16. PostForum.numero_curtidas é property que faz query
+  chat/models.py:269-270:
+  @property
+  def numero_curtidas(self):
+      return self.curtidas.count()
+  Acessado em curtir_post_forum_view ao retornar o JSON. Se chamado em loop num
+  template, dispara 1 query por post. Deveria ser
+  annotate(num_curtidas=Count('curtidas')) na query.
+
+  17. Arquivos de script/debug na raiz do repositório
+  backfill_infracoes.py, bracket_check.py, lint_js.py, parse_js.py, parse_pdf.py,
+   patch_clerk.py, profile_sql.py, profile_view.py, update_landing.py — 9 scripts
+   avulsos na raiz, sem diretório dedicado, misturados com manage.py e arquivos
+  de config de deploy.
+
+  ---
+  Resumo
+
+  ┌────────────┬─────┬───────────────────────────────────────────────┐
+  │ Severidade │ Qtd │                   Natureza                    │
+  ├────────────┼─────┼───────────────────────────────────────────────┤
+  │ 🔴 Crítico │ 3   │ Bugs silenciosos com impacto em produção      │
+  ├────────────┼─────┼───────────────────────────────────────────────┤
+  │ 🟠 Alto    │ 6   │ Dívida estrutural — difícil de manter/escalar │
+  ├────────────┼─────┼───────────────────────────────────────────────┤
+  │ 🟡 Médio   │ 5   │ Manutenibilidade e legibilidade               │
+  ├────────────┼─────┼───────────────────────────────────────────────┤
+  │ 🔵 Baixo   │ 3   │ Limpeza e organização                         │
+  └────────────┴─────┴───────────────────────────────────────────────┘
+
+  O maior risco imediato é o item 3 (token de teste de pagamento sem fallback
+  seguro) e o item 1 (save silencioso). O maior gerador de bugs futuros é a
+  duplicação de lógica de preços (item 7) e o god file (item 4).
+
+  Quer continuar com 4. Arquitetura / escalabilidade?
+
+✻ Worked for 1m 50s
+
+❯ sim                                                                            
+
+  Searched for 12 patterns, read 6 files (ctrl+o to expand)
+
+⏺ Tenho o suficiente. Relatório:
+
+  ---
+  Auditoria de Arquitetura / Escalabilidade
+
+  ---
+  🔴 CRÍTICO
+
+  1. Celery worker e Gunicorn no mesmo container
+  start.sh:62-65:
+  celery -A config worker --loglevel=info &   # background
+  exec gunicorn config.wsgi ...               # foreground
+  O Celery roda como processo filho (&) do mesmo container que serve HTTP.
+  Problemas:
+  - Se o container cair ou reiniciar (Railway ON_FAILURE), o worker Celery não
+  tem supervisão — pode morrer silenciosamente sem restart.
+  - Não há como escalar workers e web independentemente.
+  - Logs do Celery e Gunicorn misturados.
+  - Se o Celery travar com uma task pesada de IA, compete por CPU/RAM com as
+  requests HTTP.
+
+  2. Migrações rodando em startup sem controle de concorrência
+  start.sh:5:
+  python manage.py migrate --noinput
+  Em um deploy com múltiplas réplicas (Railway pode reiniciar antes do deploy
+  verde), dois containers podem executar migrate simultaneamente, causando race
+  condition no banco. Deveria ser um job separado de pré-deploy ou usar lock
+  explícito.
+
+  3. sentry-debug/ sem autenticação em produção
+  config/urls.py:34:
+  path('sentry-debug/', trigger_error),
+  Qualquer pessoa pode fazer GET /sentry-debug/ e gerar eventos no Sentry à
+  vontade, consumindo cota e poluindo alertas. Sem @login_required ou proteção
+  por IP.
+
+  ---
+  🟠 ALTO
+
+  4. SSE com StreamingHttpResponse bloqueia workers Gunicorn
+  chat/views.py:451-512 — A view de streaming fica num loop infinito (while True)
+   segurando um thread do Gunicorn enquanto aguarda mensagens Redis. Com
+  --workers 3 --threads 4 = máximo de 12 conexões simultâneas. Se 12 usuários
+  iniciarem processamento ao mesmo tempo, o servidor para de responder para todos
+   os demais.
+
+  A solução adequada seria Django Channels (WebSocket/ASGI) ou um worker
+  assíncrono (Uvicorn + async views).
+
+  5. Cache Django sem backend configurado
+  Não existe CACHES em settings.py. Django usa o default: LocMemCache (memória
+  por processo). Consequências:
+  - O cache de JWKS do Clerk (middleware_clerk.py:37) é por worker — com 3
+  workers, são 3 caches separados, cada um fazendo sua própria request ao Clerk.
+  - PjariCacheConfig salvo no banco (não em cache real) para cada hit de cache.
+  - Nenhum dado é compartilhado entre workers.
+
+  Deveria ser configurado django-redis como backend de cache, aproveitando o
+  Redis que já existe para o Celery.
+
+  6. Arquivo temporário vaza se upload ao Gemini falhar
+  chat/integrations.py:124-132:
+  fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+  with os.fdopen(fd, 'wb') as f_out:
+      f_out.write(f_in.read())
+  gemini_file = self.client.files.upload(file=temp_path)  # se falhar aqui...
+  os.remove(temp_path)  # ...nunca é executado
+  Se o upload ao Gemini lançar exceção, temp_path fica no disco do container para
+   sempre. Em produção com múltiplos processos de análise, isso acumula arquivos
+  PDF que nunca são removidos — sem try/finally.
+
+  7. Django serve() servindo media em produção
+  config/urls.py:37:
+  re_path(r'^media/(?P<path>.*)$', serve, {'document_root':
+  settings.MEDIA_ROOT}),
+  Esta rota existe sempre (fora do bloco if DEBUG). A documentação do Django diz
+  explicitamente: "never use this in production". Qualquer arquivo em MEDIA_ROOT
+  é servido pelo Python/Gunicorn, bloqueando workers. Com GCS ativo isso é
+  inofensivo (o diretório local estará vazio), mas se GCS falhar, cai para esta
+  rota.
+
+  ---
+  🟡 MÉDIO
+
+  8. Pipeline de IA 100% síncrona e sem timeout
+  O fluxo principal (Fases 2→3→4→5) chama Gemini, Perplexity e Vertex AI em
+  sequência dentro de uma única Celery task. Não há:
+  - time_limit ou soft_time_limit na task (tasks.py — não configurado)
+  - Retry com backoff exponencial para falhas de API
+  - Timeout explícito por chamada de IA (além do timeout=5 do Clerk, as chamadas
+  de IA não têm timeout configurado)
+
+  Se o Gemini travar em uma resposta longa, a task fica presa indefinidamente.
+
+  9. Sem separação real entre apps — chat é um monolito
+  O app chat concentra: autenticação (middleware_clerk), pagamentos (views de
+  checkout/webhook), fórum (PostForum, ComentarioForum), banco de teses
+  (BancoTese), motor de IA (jari_engine), análise jurídica (jari_math),
+  estatísticas, gestão de pastas e pareceres. O app legal existe mas é mínimo.
+  Qualquer falha num módulo pode afetar todos os outros.
+
+  10. Nenhuma estratégia de retry no webhook do MercadoPago
+  chat/views.py:604 — Se o endpoint retornar erro 400 (ex: banco indisponível
+  temporariamente), o MercadoPago vai parar de tentar reenviar após algumas
+  tentativas. O pagamento aprovado ficará sem créditos liberados sem nenhum
+  mecanismo de recuperação.
+
+  11. 3 APIs de IA externas sem circuit breaker
+  Gemini, Perplexity e Vertex AI são chamadas diretamente. Se uma API ficar
+  degradada, o sistema não tem fallback automático nem degradação graciosa — o
+  usuário recebe erro genérico. O alerta de cota (email) existe, mas é reativo.
+
+  ---
+  🔵 BAIXO
+
+  12. conn_max_age=600 sem pool de conexões real
+  settings.py:214 — conn_max_age=600 reusa conexões por worker, mas com 3 workers
+   × N threads, o número de conexões abertas simultâneas pode surpreender em
+  escala. Sem django-db-geventpool ou pgBouncer, cada worker mantém suas próprias
+   conexões abertas.
+
+  13. --timeout 120 no Gunicorn pode ser curto para tasks síncronas de IA
+  start.sh:65 — O timeout de 120s mata requests que demorem mais. Se por algum
+  motivo uma view chamar IA diretamente (não via Celery), ela será cortada
+  silenciosamente com 502.
+
+  14. Sem health check endpoint real
+  SystemHealthCheck model existe no banco, mas não há endpoint /health/ ou /ping/
+   para o Railway monitorar. O Railway usa reinício ON_FAILURE mas não tem como
+  detectar que o app está respondendo 500 para tudo sem um health check HTTP
+  ativo.
+
+  ---
+  Diagrama do problema central
+
+  [Container Único Railway]
+  ├── Gunicorn (3 workers × 4 threads = 12 slots)
+  │   ├── HTTP requests normais
+  │   └── SSE streaming (bloqueia slots indefinidamente)
+  └── Celery worker (processo filho sem supervisão)
+      └── Pipeline IA: Gemini → Perplexity → Vertex (sem timeout)
+
+  O gargalo real é que um único container faz tudo: serve HTTP, faz streaming
+  SSE, processa IA pesada e serve arquivos estáticos de media. Qualquer pico em
+  uma área afeta as outras.
+
+  ---
+  Resumo
+
+  ┌────────────┬─────┬────────────────────────────────────────────────────────┐
+  │ Severidade │ Qtd │                        Impacto                         │
+  ├────────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 🔴 Crítico │ 3   │ Falha silenciosa de worker, race condition em deploy,  │
+  │            │     │ DoS no Sentry                                          │
+  ├────────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 🟠 Alto    │ 4   │ Esgotamento de workers, leak de memória/disco, cache   │
+  │            │     │ ineficaz                                               │
+  ├────────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 🟡 Médio   │ 4   │ Resiliência, separação de responsabilidades            │
+  ├────────────┼─────┼────────────────────────────────────────────────────────┤
+  │ 🔵 Baixo   │ 3   │ Tuning de produção                                     │
+  └────────────┴─────┴────────────────────────────────────────────────────────┘
+
+  A mudança de maior impacto seria separar o Celery worker em um serviço próprio
+  no Railway (já suportado nativamente) — resolve os itens 1, 4 e melhora 8 e 9
+  de uma vez.
+
+  Quer continuar com 5. Cobertura de testes?
+
+✻ Worked for 1m 50s
+
+❯ sim                                                                            
+
+  Searched for 9 patterns, read 6 files (ctrl+o to expand)
+
+⏺ Tenho tudo que preciso. Relatório:
+
+  ---
+  Auditoria de Cobertura de Testes
+
+  ---
+  Panorama geral
+
+  ┌─────────────────────┬────────┬───────────────────┬────────────────────┐
+  │     Componente      │ Linhas │ Testes existentes │ Cobertura estimada │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ jari_math.py        │ 206    │ 9 testes          │ ~60%               │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ jari_engine.py      │ 744    │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ views.py            │ 1590   │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ integrations.py     │ 1111   │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ services.py         │ 176    │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ models.py           │ 329    │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ middleware_clerk.py │ 136    │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ webhooks_clerk.py   │ 78     │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ legal/              │ ~100   │ 0                 │ 0%                 │
+  ├─────────────────────┼────────┼───────────────────┼────────────────────┤
+  │ Total               │ ~4470  │ 9                 │ ~3%                │
+  └─────────────────────┴────────┴───────────────────┴────────────────────┘
+
+  Não há pytest, factory_boy, faker, coverage ou qualquer ferramenta de teste no
+  requirements.txt. A suíte inteira roda só com django.test.TestCase e testa
+  exclusivamente JariMath.
+
+  ---
+  🔴 CRÍTICO — Sem nenhum teste nestas áreas
+
+  1. Motor de pagamento — zero testes
+  checkout_view e mercadopago_webhook processam dinheiro real, creditam planos e
+  enviam emails. Não há um único teste verificando que:
+  - O crédito correto é atribuído para cada valor de plano
+  - Um pagamento não aprovado não libera créditos
+  - Um user_id inválido no external_reference não quebra silenciosamente
+  - O webhook com assinatura inválida retorna 403
+
+  2. ClerkAuthenticationMiddleware — zero testes
+  O middleware que autentica todos os usuários do sistema não tem teste algum.
+  Cenários críticos sem cobertura:
+  - Token JWT expirado
+  - Token com kid não encontrado no JWKS
+  - Usuário Clerk sem equivalente Django (JIT creation)
+  - Migração de usuário legado allauth → Clerk
+  - Falha na chamada ao Clerk API durante JIT
+
+  3. JariEngine.process_message — zero testes
+  É o coração do produto — o fluxo de 8 fases que guia o usuário de ponta a
+  ponta. 744 linhas sem um único teste de unidade ou integração. Qualquer
+  refatoração é feita às cegas.
+
+  ---
+  🟠 ALTO — Lógica crítica de negócio sem cobertura
+
+  4. check_decadencia — cobertura parcial com lacunas graves
+  O método tem 3 regimes temporais distintos (antes de 12/04/2021, entre as duas
+  datas, depois de 22/10/2021) e o desconto COVID de 256 dias. Os testes
+  existentes em tests_jari_math.py cobrem apenas os regimes A e B, sem verificar:
+  - Regime C (infrações após 22/10/2021) — não testado
+  - Casos com desconto COVID ativo (infração ≤ 30/11/2020) — não testado
+  - Combinação de decadência de notificação + decisão final
+
+  5. check_prescription_punitiva com marcos interruptivos — não testado
+  O método aceita marcos_interruptivos que reiniciam a contagem de 1825 dias.
+  Toda a lógica do max(marcos_interruptivos) não tem nenhum teste. O único teste
+  verifica o caso sem marcos (cálculo direto).
+
+  6. Dois arquivos de teste para o mesmo módulo — duplicação e risco
+  chat/tests/test_jari_math.py e chat/tests_jari_math.py existem simultaneamente.
+   Quando manage.py test roda, quais são descobertos? O Django descobre o do
+  diretório tests/ mas o arquivo solto na raiz do app pode ou não ser incluído
+  dependendo da config. Dois arquivos com casos ligeiramente diferentes para a
+  mesma função (check_prescription_intercorrente aparece em ambos com datas
+  distintas) cria confusão sobre qual é canônico.
+
+  ---
+  🟡 MÉDIO — Infraestrutura ausente
+
+  7. Nenhum pytest, factory_boy ou coverage em requirements.txt
+  Não há como medir a cobertura real. Não há factories para criar Parecer, Pasta,
+   UserProfile em testes — cada teste precisaria fazer User.objects.create()
+  manualmente. Isso aumenta o custo de escrever novos testes e explica por que a
+  suíte cresceu tão pouco.
+
+  8. Os arquivos test_*.py na raiz não são testes Django
+  test_admin.py, test_browser.py, test_pdf.py, etc. são scripts manuais que fazem
+   django.setup() e manipulam o banco diretamente. Não herdam de TestCase, não
+  rodam com manage.py test, não têm assertions formais, não são isolados. São
+  ferramentas de debug disfarçadas de testes.
+
+  9. Zero testes de integração para views HTTP
+  django.test.Client nunca é usado em contexto de TestCase. Não há nenhum teste
+  verificando:
+  - Que uma view protegida retorna 302/403 para usuário não logado
+  - Que create_parecer_view respeita o limite de 2 pareceres para anônimos
+  - Que delete_parecer_view não deleta dados de outro usuário (IDOR)
+  - Que o webhook do Clerk cria o usuário corretamente
+
+  10. Nenhum teste de regressão para os bugs de segurança encontrados
+  Nenhum dos problemas identificados na auditoria de segurança (IDOR no editor,
+  MercadoPago sem assinatura, leak de traceback) tem um teste que falharia se o
+  bug voltasse. Sem isso, uma correção pode ser revertida acidentalmente em
+  qualquer merge futuro.
+
+  ---
+  O que testar primeiro
+
+  Pelo critério de risco × complexidade:
+
+  ┌────────────┬──────────────────────────────────────┬──────────────────────┐
+  │ Prioridade │             O que testar             │       Por quê        │
+  ├────────────┼──────────────────────────────────────┼──────────────────────┤
+  │ 1          │ mercadopago_webhook — créditos por   │ Dinheiro real, zero  │
+  │            │ valor                                │ cobertura            │
+  ├────────────┼──────────────────────────────────────┼──────────────────────┤
+  │ 2          │ ClerkAuthenticationMiddleware —      │ Autenticação de      │
+  │            │ token inválido/expirado              │ todos os usuários    │
+  ├────────────┼──────────────────────────────────────┼──────────────────────┤
+  │            │                                      │ Lógica jurídica      │
+  │ 3          │ check_decadencia regime C + COVID    │ usada em cada        │
+  │            │                                      │ parecer              │
+  ├────────────┼──────────────────────────────────────┼──────────────────────┤
+  │ 4          │ Views IDOR: editor/salvar sem dono   │ Bug de segurança sem │
+  │            │                                      │  teste de regressão  │
+  ├────────────┼──────────────────────────────────────┼──────────────────────┤
+  │ 5          │ JariEngine fase 1 — parse de datas   │ Maior fonte de erros │
+  │            │                                      │  reportados          │
+  └────────────┴──────────────────────────────────────┴──────────────────────┘
+
+  ---
+  Conclusão da auditoria completa
+
+  Ao longo das 5 áreas, o padrão que emerge é o de um produto funcional e
+  bem-intencionado, construído com velocidade, que acumulou dívida técnica em
+  camadas específicas:
+
+  - Segurança: 3 itens críticos corrigíveis em horas
+  - Performance: 4 N+1 confirmados corrigíveis em 1 dia
+  - Qualidade: 1 god file que precisa ser quebrado, 1 bug silencioso em
+  PjariVersion
+  - Arquitetura: 1 mudança de alto impacto (separar Celery no Railway)
+  - Testes: cobertura de ~3% num produto que toma decisões jurídicas com valor
+  legal

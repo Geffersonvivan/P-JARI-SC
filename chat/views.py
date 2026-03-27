@@ -8,7 +8,7 @@ from django.db.models import Prefetch, Count, Q
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-import mercadopago
+import stripe
 from .models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
 
 def landing_page_view(request):
@@ -528,105 +528,95 @@ def planos_view(request):
 @login_required
 def checkout_view(request):
     try:
+        # Configurar chave do Stripe
+        stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', None)
+        
         # Recupera qual plano foi selecionado
         plan_type = request.GET.get('plan', 'pro')
         
         if plan_type == 'basic':
             item_title = "P-JARI/SC Básico (40 Pareceres)"
             item_price = 720.00
+            price_in_cents = int(720.00 * 100)
         elif plan_type == 'extra':
             item_title = "P-JARI/SC 1 Crédito Extra"
             item_price = 20.00
+            price_in_cents = int(20.00 * 100)
         else:
             item_title = "P-JARI/SC Profissional (80 Pareceres)"
             item_price = 1440.00
+            price_in_cents = int(1440.00 * 100)
 
-        # Recupera o token de produção do env
-        access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', None) or 'APP_USR-TEST-000000'
-        
-        sdk = mercadopago.SDK(access_token)
-        
-        # Se estivermos em produção real, usamos o e-mail do usuário.
-        # Caso ocorram bloqueios do antifraude do Mercado Pago por testar a compra
-        # na mesma máquina/conta do recebedor, recomenda-se usar modo sandbox do SDK.
         payer_email = request.user.email or f"user_{request.user.id}@pjari.com.br"
-
-
-        preference_data = {
-            "items": [
-                {
-                    "title": item_title,
-                    "description": "Créditos de sistema",
-                    "quantity": 1,
-                    "currency_id": "BRL",
-                    "unit_price": float(item_price)
-                }
-            ],
-            "payer": {
-                "name": "Cliente",
-                "surname": "Teste",
-                "email": payer_email,
-            },
-            "back_urls": {
-                "success": request.build_absolute_uri("/planos/?success=1"),
-                "failure": request.build_absolute_uri("/planos/?failure=1"),
-                "pending": request.build_absolute_uri("/planos/?pending=1")
-            },
-            "payment_methods": {
-                "excluded_payment_types": [
-                    {"id": "ticket"},
-                    {"id": "atm"}
-                ],
-                "installments": 12 
-            },
-            "external_reference": str(request.user.id),
-        }
         
-        # Em algumas integrações modernas, passar um Header x-integrator-id isenta a UI de block local
-        request_options = mercadopago.config.RequestOptions()
-        request_options.custom_headers = {
-            'x-integrator-id': 'dev_24c65fb163bf11ea96500242ac130004' # ID Padrão Integrador Genérico
-        }
-        preference_response = sdk.preference().create(preference_data, request_options)
-        preference = preference_response["response"]
+        # Cria a sessão de Checkout da Stripe
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card', 'boleto', 'pix'],
+            customer_email=payer_email,
+            client_reference_id=str(request.user.id),
+            line_items=[{
+                'price_data': {
+                    'currency': 'brl',
+                    'product_data': {
+                        'name': item_title,
+                        'description': 'Créditos de sistema',
+                    },
+                    'unit_amount': price_in_cents,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=request.build_absolute_uri("/planos/?success=1"),
+            cancel_url=request.build_absolute_uri("/planos/?failure=1"),
+        )
         
-        if "init_point" not in preference:
-            import json
-            return HttpResponse(f"Erro da API do Mercado Pago: {json.dumps(preference_response)}", status=500)
-            
-        # Redireciona o usuário para o ambiente seguro do Mercado Pago
-        return redirect(preference["init_point"])
+        # Redireciona o usuário para o ambiente seguro do Stripe
+        return redirect(session.url)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return HttpResponse(f"Erro ao gerar checkout: {e}", status=500)
+        return HttpResponse(f"Erro ao gerar checkout da Stripe: {e}", status=500)
 
 @csrf_exempt
-def mercadopago_webhook(request):
+def stripe_webhook(request):
     if request.method == 'POST':
+        stripe.api_key = getattr(settings, 'STRIPE_SECRET_KEY', None)
+        endpoint_secret = getattr(settings, 'STRIPE_WEBHOOK_SECRET', None)
+        
+        payload = request.body
+        sig_header = request.headers.get('STRIPE_SIGNATURE')
+        
         try:
-            body = json.loads(request.body)
-            action = body.get('action')
-            type_ = body.get('type')
-            data = body.get('data', {})
+            if endpoint_secret and sig_header:
+                event = stripe.Webhook.construct_event(
+                    payload, sig_header, endpoint_secret
+                )
+            else:
+                # Caso esteja rodando sem Webhook secret via Dev test tools
+                event = json.loads(payload)
+        except ValueError as e:
+            # Invalid payload
+            return HttpResponse(status=400)
+        except stripe.error.SignatureVerificationError as e:
+            # Invalid signature
+            return HttpResponse(status=400)
             
-            # Se for uma notificação de pagamento
-            if action == 'payment.created' or type_ == 'payment':
-                payment_id = data.get('id')
-                access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', None) or 'APP_USR-TEST-000000'
-                sdk = mercadopago.SDK(access_token)
-                payment_info = sdk.payment().get(payment_id)
-                payment = payment_info.get("response", {})
+        try:
+            event_type = event.get('type') if isinstance(event, dict) else event.type
+            
+            # Se for uma notificação de pagamento concluído
+            if event_type == 'checkout.session.completed':
+                session = event.get('data', {}).get('object', {}) if isinstance(event, dict) else event.data.object
                 
-                # Se o pagamento foi aprovado
-                if payment.get("status") == "approved":
-                    user_id = payment.get("external_reference")
+                if session.get('payment_status') == 'paid':
+                    user_id = session.get('client_reference_id')
+                    trans_amount_cents = session.get('amount_total', 0)
+                    trans_amount = trans_amount_cents / 100.0
+                    
                     if user_id:
                         from django.db import transaction
                         with transaction.atomic():
                             user = User.objects.select_for_update().get(id=user_id)
-                            # Descobrir qual o plano comprado baseado pelo valor na notificação para creditar corretamente
-                            trans_amount = payment.get("transaction_amount", 0)
                             
                             if trans_amount == 20.00:
                                 user.profile.credits += 1
@@ -639,25 +629,25 @@ def mercadopago_webhook(request):
                                 user.profile.is_pro = True
                                 user.profile.subscription_status = "active"
                             else:
-                                # Caso padrão (se valor for diferente por algum desconto)
                                 user.profile.credits += 40
                                 user.profile.is_pro = True
                                 
                             user.profile.save()
-                            print(f"Usuário {user.username} - Pagamento processado: {trans_amount}")
+                            print(f"Usuário {user.username} - Pagamento processado Stripe: {trans_amount}")
                         
-                        # Disparar Email de notificação da compra para o Admin via Celery
+                        # Disparar Email de notificação
                         try:
                             from .tasks import send_payment_notification_task
+                            payment_id = session.get('payment_intent') or session.get('id')
                             nome_cliente = user.get_full_name() or user.username
                             email_cliente = user.email or 'N/A'
                             send_payment_notification_task.delay(nome_cliente, email_cliente, trans_amount, payment_id)
                         except Exception as em:
                             print(f"Erro disparando webhook email: {em}")
-                        
+                            
             return HttpResponse(status=200)
         except Exception as e:
-            print("Webhook Error:", e)
+            print("Stripe Webhook Handling Error:", e)
             return HttpResponse(status=400)
     return HttpResponse(status=405)
 
