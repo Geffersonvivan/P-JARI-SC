@@ -11,6 +11,7 @@ def _p(field):
 
 # Status de fase do parecer (espelha o mapping documentado em Parecer.status_fase)
 FASE_COLETA = 1
+FASE_AGUARDA_CONFIRMACAO_FASE1 = 10  # Auto-preenchimento: aguarda julgador confirmar campos extraídos
 FASE_DIR = 2
 FASE_ADMISSIBILIDADE_GERADA = 3
 FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE = 31
@@ -48,6 +49,11 @@ class JariEngine:
                 return prefix + "7. Informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
             
             return "Fase 1 concluída."
+
+        elif fase == 10:
+            import json as _json
+            dados = self.parecer.fase1_extracao_json or {}
+            return f"[FASE1_CONFIRM:{_json.dumps(dados, ensure_ascii=False)}]"
 
         elif fase == 2:
             return (
@@ -150,8 +156,8 @@ class JariEngine:
                             self.parecer.infracao_documento = infracao
                             
                     self.parecer.save()
-                    return self.get_current_prompt()
-                
+                    return self.run_fase1_autopreenchimento()
+
                 elif val.lower() == 'ok':
                     self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
                     self.parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
@@ -203,6 +209,65 @@ class JariEngine:
                 return f"❌ Erro ao processar a informação inserida. Verifique o formato e tente novamente (Erro: {str(e)[:50]})."
                 
             return self.get_current_prompt()
+
+        elif fase == 10:
+            # Confirmação do formulário de auto-preenchimento
+            # Mensagem esperada: "FASE1_CONFIRM:{...json...}"
+            import json as _json
+            import datetime as _dt
+            stripped = message.strip()
+            if not stripped.startswith("FASE1_CONFIRM:"):
+                return "❌ Resposta inesperada. Use o formulário acima para confirmar os dados."
+            try:
+                payload = _json.loads(stripped[len("FASE1_CONFIRM:"):])
+            except Exception:
+                return "❌ Erro ao processar formulário. Tente novamente."
+
+            # data_sessao é obrigatória e sempre manual
+            ds = payload.get("data_sessao", "").strip()
+            if not ds:
+                return "❌ A **Data da Sessão** é obrigatória. Preencha o campo e confirme novamente."
+            try:
+                self.parecer.data_sessao = _dt.datetime.strptime(ds, "%d/%m/%Y").date()
+            except ValueError:
+                return f"❌ Data da Sessão inválida: '{ds}'. Use o formato DD/MM/AAAA."
+
+            # Campos opcionais confirmados pelo julgador
+            self.parecer.pa = payload.get("pa") or self.parecer.pa
+            self.parecer.sgpe = payload.get("sgpe") or self.parecer.sgpe
+            self.parecer.recorrente = payload.get("recorrente") or self.parecer.recorrente
+
+            pf = payload.get("prazo_final", "").strip()
+            if pf:
+                try:
+                    self.parecer.prazo_final = _dt.datetime.strptime(pf, "%d/%m/%Y").date()
+                except ValueError:
+                    return f"❌ Prazo Final inválido: '{pf}'. Use DD/MM/AAAA."
+
+            dp = payload.get("data_protocolo", "").strip()
+            if dp:
+                try:
+                    self.parecer.data_protocolo = _dt.datetime.strptime(dp, "%d/%m/%Y").date()
+                except ValueError:
+                    return f"❌ Data de Protocolo inválida: '{dp}'. Use DD/MM/AAAA."
+
+            pg = payload.get("paginas_defesa", "").strip()
+            if pg:
+                self.parecer.paginas_defesa = pg
+
+            # Valida que os campos mínimos estão preenchidos
+            faltando = []
+            if not self.parecer.pa:             faltando.append("PA")
+            if not self.parecer.sgpe:           faltando.append("SGPE")
+            if not self.parecer.prazo_final:    faltando.append("Prazo Final")
+            if not self.parecer.data_protocolo: faltando.append("Data do Protocolo")
+            if not self.parecer.paginas_defesa: faltando.append("Páginas da Defesa")
+            if faltando:
+                return f"❌ Os seguintes campos são obrigatórios: **{', '.join(faltando)}**. Preencha e confirme novamente."
+
+            self.parecer.status_fase = FASE_DIR
+            self.parecer.save()
+            return self.run_phase_2()
 
         elif fase == 2:
             if message.lower().strip() == 'ok':
@@ -393,6 +458,57 @@ class JariEngine:
                 return "Por favor, digite apenas o **número** correspondente à pasta desejada."
 
         return "Processo encontra-se finalizado."
+
+    def run_fase1_autopreenchimento(self):
+        """
+        Fase 1 — Auto-preenchimento: chama Gemini para extrair campos do PDF.
+        Se bem-sucedido, avança para FASE_AGUARDA_CONFIRMACAO_FASE1 (10) e retorna
+        o formulário de confirmação ao julgador.
+        Se falhar (Gemini indisponível, PDF ilegível), cai de volta para o fluxo
+        manual sequencial (FASE_COLETA=1).
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            from chat.integrations import GeminiClient
+            dados = GeminiClient().extract_fase1_fields(self.parecer)
+        except Exception as e:
+            logger.warning(f"run_fase1_autopreenchimento: erro na extração ({e}). Fallback manual.")
+            dados = None
+
+        if not dados:
+            # Fallback: volta ao fluxo sequencial manual
+            return self.get_current_prompt()
+
+        # Pré-preenche campos no parecer (precedência: julgador sempre pode corrigir)
+        import datetime as _dt
+
+        def _parse_date(s):
+            try:
+                return _dt.datetime.strptime(s.strip(), "%d/%m/%Y").date() if s else None
+            except (ValueError, AttributeError):
+                return None
+
+        if dados.get("pa") and not self.parecer.pa:
+            self.parecer.pa = dados["pa"]
+        if dados.get("sgpe") and not self.parecer.sgpe:
+            self.parecer.sgpe = dados["sgpe"]
+        if dados.get("recorrente") and not self.parecer.recorrente:
+            self.parecer.recorrente = dados["recorrente"]
+        if dados.get("prazo_final") and not self.parecer.prazo_final:
+            self.parecer.prazo_final = _parse_date(dados["prazo_final"])
+        if dados.get("data_protocolo") and not self.parecer.data_protocolo:
+            self.parecer.data_protocolo = _parse_date(dados["data_protocolo"])
+        if dados.get("paginas_defesa") and not self.parecer.paginas_defesa:
+            self.parecer.paginas_defesa = dados["paginas_defesa"]
+
+        self.parecer.fase1_extracao_json = dados
+        self.parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_FASE1
+        self.parecer.save()
+
+        logger.info(f"[FASE1_AUTO] parecer={self.parecer.id} extração OK: {list(dados.keys())}")
+        return self.get_current_prompt()
 
     def run_phase_2(self):
         """Nova Fase 2: Extração Autônoma de Datas e Validação LLM"""

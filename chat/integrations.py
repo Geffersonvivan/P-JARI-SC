@@ -145,6 +145,77 @@ class GeminiClient:
             if temp_path and os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def extract_fase1_fields(self, parecer_obj):
+        """
+        Fase 1 — Auto-preenchimento: extrai campos estruturados dos PDFs via Gemini.
+        Retorna dict com campos + nível de confiança ('alta'|'baixa'|'nulo').
+        Retorna None se Gemini indisponível ou extração falhar.
+        """
+        if not self.client:
+            return None
+
+        system_instruction = (
+            "Você é um extrator de dados jurídicos para o sistema P-JARI/SC.\n"
+            "Analise os documentos PDF anexados e extraia EXCLUSIVAMENTE os campos solicitados.\n"
+            "REGRAS ABSOLUTAS:\n"
+            "1. NUNCA invente ou deduza valores — se não encontrar, use null.\n"
+            "2. Datas SEMPRE no formato DD/MM/AAAA. Se encontrar em outro formato, converta.\n"
+            "3. Confiança: 'alta' = encontrou explicitamente no documento; "
+            "'baixa' = inferido/ambíguo/múltiplos valores; 'nulo' = não encontrado.\n"
+            "4. Retorne EXCLUSIVAMENTE um JSON válido, sem texto adicional, sem markdown."
+        )
+
+        prompt_text = (
+            "Extraia dos documentos em anexo os seguintes campos e retorne um JSON com esta estrutura exata:\n\n"
+            "{\n"
+            '  "pa": "número do processo administrativo (ex: 2024/00123) ou null",\n'
+            '  "pa_conf": "alta|baixa|nulo",\n'
+            '  "sgpe": "número SGPE ou null",\n'
+            '  "sgpe_conf": "alta|baixa|nulo",\n'
+            '  "prazo_final": "data limite para protocolo do recurso JARI em DD/MM/AAAA ou null",\n'
+            '  "prazo_final_conf": "alta|baixa|nulo",\n'
+            '  "data_protocolo": "data em que o recurso foi protocolado em DD/MM/AAAA ou null",\n'
+            '  "data_protocolo_conf": "alta|baixa|nulo",\n'
+            '  "paginas_defesa": "intervalo de páginas da defesa recursal (ex: 15-24) ou null",\n'
+            '  "paginas_defesa_conf": "alta|baixa|nulo",\n'
+            '  "recorrente": "nome completo do condutor ou proprietário recorrente ou null",\n'
+            '  "recorrente_conf": "alta|baixa|nulo"\n'
+            "}\n\n"
+            "Não retorne nada além do JSON."
+        )
+
+        contents = [prompt_text]
+
+        from django.core.files.storage import default_storage
+        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
+            _path = _p(path_field)
+            if _path and "upload_simulado" not in _path:
+                try:
+                    if default_storage.exists(_path):
+                        f = self.upload_file(_path)
+                        if f:
+                            contents.insert(0, f)
+                except Exception:
+                    pass
+
+        try:
+            import json as _json
+            response = self.client.models.generate_content(
+                model='gemini-2.5-pro',
+                contents=contents,
+                config={'system_instruction': system_instruction},
+            )
+            raw = response.text.strip()
+            # Remove markdown code fences se o modelo as incluir
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[-1]
+                raw = raw.rsplit('```', 1)[0].strip()
+            return _json.loads(raw)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"extract_fase1_fields falhou: {e}")
+            return None
+
     def generate_phase2_report(self, parecer_obj, contexto_textual_datas):
         if not self.client:
              return "Simulação: Admissibilidade checada. Tempestivo. Prescrições Afastadas."

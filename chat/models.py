@@ -51,6 +51,9 @@ class Parecer(models.Model):
     has_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
     has_decadencia = models.BooleanField(null=True, blank=True)
 
+    # Fase 1 — Extração automática via Gemini (JSON com campos + confiança)
+    fase1_extracao_json = models.JSONField(blank=True, null=True)
+
     # Tipo de penalidade da autuação — determina regras de decadência FILTRO 2/3
     # Valores: 'multa', 'advertencia', 'suspensao', 'cassacao'
     tipo_penalidade = models.CharField(max_length=20, blank=True, null=True)

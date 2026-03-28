@@ -1239,6 +1239,90 @@
             });
 
             // Injeta cards de Pastas (Fase 7)
+            // ── FASE1_CONFIRM: Formulário de confirmação do auto-preenchimento ──
+            rawHtml = rawHtml.replace(/\[FASE1_CONFIRM:(.*?)\](?:<\/p>)?/gs, function (match, jsonStr) {
+                let dados = {};
+                try { dados = JSON.parse(jsonStr); } catch(e) {}
+
+                function confBadge(conf) {
+                    if (conf === 'alta')  return '<span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>Encontrado</span>';
+                    if (conf === 'baixa') return '<span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>Verificar</span>';
+                    return '<span class="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>Não encontrado</span>';
+                }
+
+                function field(id, label, value, conf, type='text', placeholder='') {
+                    const val = (value && value !== 'null') ? value : '';
+                    const isAlert = conf === 'baixa' || conf === 'nulo';
+                    const borderCls = conf === 'alta' ? 'border-emerald-200 focus:border-emerald-400' : conf === 'baixa' ? 'border-amber-200 focus:border-amber-400' : 'border-gray-200 focus:border-blue-400';
+                    return `
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center justify-between">
+                            <label for="f1_${id}" class="text-xs font-semibold text-gray-600 uppercase tracking-wide">${label}</label>
+                            ${confBadge(conf)}
+                        </div>
+                        <input id="f1_${id}" type="${type}" value="${val}" placeholder="${placeholder || 'Preencha manualmente'}"
+                            class="w-full px-3 py-2 text-sm rounded-lg border ${borderCls} bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors ${isAlert ? 'font-medium' : ''}">
+                    </div>`;
+                }
+
+                return `
+                <div class="mt-3 mb-2 rounded-xl border border-blue-100 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <div>
+                            <p class="text-sm font-bold text-gray-800">Dados extraídos automaticamente</p>
+                            <p class="text-xs text-gray-500">Revise, corrija se necessário e confirme para avançar.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3" id="fase1-form-fields">
+                        <div class="flex flex-col gap-1 sm:col-span-2">
+                            <div class="flex items-center justify-between">
+                                <label for="f1_data_sessao" class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Data da Sessão</label>
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">Preenchimento manual</span>
+                            </div>
+                            <input id="f1_data_sessao" type="text" placeholder="DD/MM/AAAA — obrigatório"
+                                class="w-full px-3 py-2 text-sm rounded-lg border border-blue-200 focus:border-blue-400 bg-blue-50/30 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-colors font-medium">
+                        </div>
+                        ${field('pa',             'Processo Administrativo (PA)', dados.pa,            dados.pa_conf,             'text', 'Ex: 2024/00123')}
+                        ${field('sgpe',           'SGPE',                         dados.sgpe,          dados.sgpe_conf,           'text', 'Ex: 987654')}
+                        ${field('recorrente',     'Recorrente',                   dados.recorrente,    dados.recorrente_conf,     'text', 'Nome completo')}
+                        ${field('prazo_final',    'Prazo Final para Protocolo',   dados.prazo_final,   dados.prazo_final_conf,    'text', 'DD/MM/AAAA')}
+                        ${field('data_protocolo', 'Data do Protocolo',            dados.data_protocolo,dados.data_protocolo_conf, 'text', 'DD/MM/AAAA')}
+                        ${field('paginas_defesa', 'Páginas da Defesa',            dados.paginas_defesa,dados.paginas_defesa_conf, 'text', 'Ex: 15-24')}
+                    </div>
+                    <div class="px-4 pb-4 flex flex-col sm:flex-row gap-2">
+                        <button onclick="window.confirmarFase1()" type="button"
+                            class="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-bold py-2.5 px-6 rounded-lg transition-all shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            Confirmar e Avançar
+                        </button>
+                    </div>
+                </div>`;
+            });
+
+            // Função global para confirmar Fase 1
+            if (typeof window.confirmarFase1 === 'undefined') {
+                window.confirmarFase1 = function() {
+                    const get = id => (document.getElementById('f1_' + id)?.value || '').trim();
+                    const sessao = (document.getElementById('f1_data_sessao')?.value || '').trim();
+                    if (!sessao) {
+                        document.getElementById('f1_data_sessao').focus();
+                        document.getElementById('f1_data_sessao').classList.add('border-red-400', 'bg-red-50');
+                        return;
+                    }
+                    const payload = {
+                        data_sessao:    sessao,
+                        pa:             get('pa'),
+                        sgpe:           get('sgpe'),
+                        recorrente:     get('recorrente'),
+                        prazo_final:    get('prazo_final'),
+                        data_protocolo: get('data_protocolo'),
+                        paginas_defesa: get('paginas_defesa'),
+                    };
+                    window.sendMessage(null, 'FASE1_CONFIRM:' + JSON.stringify(payload));
+                };
+            }
+
             rawHtml = rawHtml.replace(/\[FOLDER_SELECT:(.*?)\]/g, function (match, folderData) {
                 const folders = folderData.split('|');
                 let html = '<div class="flex flex-wrap gap-3 mt-4">';
