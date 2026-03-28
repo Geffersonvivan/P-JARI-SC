@@ -145,6 +145,7 @@ class ChatService:
                     'reply': msg,
                     'status_fase': parecer.status_fase,
                     'task_id': task_id,
+                    'task_type': tipo,
                     'is_processing': True
                 })
             except Exception:

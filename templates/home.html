@@ -1365,11 +1365,12 @@
             </div>`;
         }
 
-        function pollTaskStatus(taskId, msgId, parecerId) {
+        function pollTaskStatus(taskId, msgId, parecerId, taskType) {
             const eventSource = new EventSource(`/chat/stream/${taskId}/?parecer_id=${parecerId || ''}`);
             let streamedMarkdown = "";
             let msgContainer = document.getElementById(`msg-${msgId}`);
-            
+            const spinnerLabel = taskType === 'FASE1' ? 'Analisando Documentos...' : 'Sintetizando Conhecimento...';
+
             if (msgContainer) {
                 msgContainer.innerHTML = `
                     <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center">
@@ -1379,7 +1380,7 @@
                         <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
                             <div class="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-brand-accent to-transparent animate-shimmer-cylon"></div>
                         </div>
-                        <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold mt-1">Sintetizando Conhecimento...</div>
+                        <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold mt-1">${spinnerLabel}</div>
                     </div>
                 `;
             }
@@ -1734,7 +1735,7 @@
                             </div>
                         `;
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
-                        pollTaskStatus(data.task_id, tempId, currentParecerId);
+                        pollTaskStatus(data.task_id, tempId, currentParecerId, data.task_type);
                         return;
                     }
 
