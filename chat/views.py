@@ -498,6 +498,9 @@ def stream_task_status_view(request, task_id):
                 data_str = message['data'].decode('utf-8')
                 yield f"data: {data_str}\n\n"
             else:
+                # Keepalive SSE: envia comentário a cada ciclo para evitar que o proxy
+                # (Railway/Nginx/Gunicorn --timeout 120) encerre a conexão silenciosa
+                yield ": keepalive\n\n"
                 # Se não chegou mensagem nova num prazo, ou se a task terminou rápido:
                 try:
                     task = AsyncResult(task_id)
@@ -507,13 +510,19 @@ def stream_task_status_view(request, task_id):
                                 parecer_id = request.GET.get('parecer_id')
                                 if parecer_id:
                                     from .models import Parecer
+                                    from .jari_engine import JariEngine, FASE_AGUARDA_CONFIRMACAO_FASE1
                                     p = Parecer.objects.get(id=parecer_id)
-                                    reply = (
-                                        f"**Parecer Técnico Gerado com Sucesso!**\n\n"
-                                        f"{p.parecer_final}\n\n"
-                                        f"---\n\n"
-                                        f"Digite **'ok'** para prosseguir."
-                                    )
+                                    if p.status_fase == FASE_AGUARDA_CONFIRMACAO_FASE1:
+                                        # Fase 1: devolve o formulário de confirmação do auto-preenchimento
+                                        reply = JariEngine(p).get_current_prompt()
+                                    else:
+                                        # Fase 5: parecer gerado
+                                        reply = (
+                                            f"**Parecer Técnico Gerado com Sucesso!**\n\n"
+                                            f"{p.parecer_final}\n\n"
+                                            f"---\n\n"
+                                            f"Digite **'ok'** para prosseguir."
+                                        )
                                     final_data = json.dumps({'status': 'SUCCESS', 'reply': reply, 'status_fase': p.status_fase})
                                 else:
                                     final_data = json.dumps({'status': 'SUCCESS', 'reply': "Tarefa concluída, mas Parecer ID não fornecido.", 'status_fase': 6})

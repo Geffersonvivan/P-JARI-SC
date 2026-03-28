@@ -156,7 +156,10 @@ class JariEngine:
                             self.parecer.infracao_documento = infracao
                             
                     self.parecer.save()
-                    return self.run_fase1_autopreenchimento()
+                    from chat.tasks import processar_fase1_task
+                    task = processar_fase1_task.delay(self.parecer.id)
+                    import json as _json_fase1
+                    return _json_fase1.dumps({"status": "celery", "task_id": task.id, "type": "FASE1"})
 
                 elif val.lower() == 'ok':
                     self.parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
@@ -783,14 +786,18 @@ class JariEngine:
 
     def run_llm_phases(self, task_id=None):
         """Executa a Fase 5 (Parecer Bloco Único) e Fase 6 (Blindagem)."""
+        import time as _time
+        _t0 = _time.time()
+        print(f"[FASE5] START parecer={self.parecer.id} task={task_id}")
         from chat.integrations import PerplexityClient, GeminiClient, VertexAIClient, AnthropicClient
-        
+
         perplexity = PerplexityClient()
         gemini = GeminiClient()
         vertex = VertexAIClient()
         anthropic = AnthropicClient()
-        
+
         tese = self.parecer.tese or "MÉRITO PREJUDICADO."
+        print(f"[FASE5] tese={repr(tese[:80])}")
         
         if "PREJUDICADO" in tese:
             vertex_result = "Não aplicável."
@@ -798,21 +805,42 @@ class JariEngine:
         else:
             # OTIMIZAÇÃO: Executa ambas as inteligências pendentes ao mesmo tempo
             import concurrent.futures
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                v_future = None
-                p_future = None
-                
+
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+            v_future = None
+            p_future = None
+
+            try:
                 if not self.parecer.vertex_result:
                     v_future = executor.submit(vertex.search_documents, self.parecer, tese)
                 if not self.parecer.perplexity_result:
                     p_future = executor.submit(perplexity.search_tese, self.parecer, tese)
-                
-                vertex_result = v_future.result(timeout=90) if v_future else self.parecer.vertex_result
-                perplexity_result = p_future.result(timeout=90) if p_future else self.parecer.perplexity_result
+
+                try:
+                    vertex_result = v_future.result(timeout=90) if v_future else self.parecer.vertex_result
+                except concurrent.futures.TimeoutError:
+                    print(f"[FASE5] TIMEOUT Vertex AI (90s) — usando fallback")
+                    vertex_result = "Sistema RAG offline por timeout. Use conhecimento prévio do CTB."
+                except Exception as e:
+                    print(f"[FASE5] ERRO Vertex AI: {e}")
+                    vertex_result = f"Vertex AI indisponível: {e}"
+
+                try:
+                    perplexity_result = p_future.result(timeout=90) if p_future else self.parecer.perplexity_result
+                except concurrent.futures.TimeoutError:
+                    print(f"[FASE5] TIMEOUT Perplexity (90s) — usando fallback")
+                    perplexity_result = "Pesquisa jurisprudencial offline por timeout."
+                except Exception as e:
+                    print(f"[FASE5] ERRO Perplexity: {e}")
+                    perplexity_result = f"Perplexity indisponível: {e}"
+            finally:
+                # cancel_futures=True libera as threads presas imediatamente (Python 3.9+)
+                executor.shutdown(wait=False, cancel_futures=True)
             
         # Fase 5: Geração de Parecer Textual (Anthropic) Formatado
+        print(f"[FASE5] Vertex/Perplexity prontos em {_time.time()-_t0:.1f}s — chamando Anthropic...")
         parecer_text = anthropic.validate_and_generate_parecer(self.parecer, tese, perplexity_result, vertex_result, task_id=task_id)
+        print(f"[FASE5] Anthropic concluído em {_time.time()-_t0:.1f}s — len={len(parecer_text)}")
         
         # Extrair a Fundamentação Normativa (Dossiê) se existir
         # Usa regex pois o LLM às vezes perde os *** e escreve apenas DOSSIE_START

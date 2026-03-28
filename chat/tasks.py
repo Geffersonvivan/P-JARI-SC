@@ -6,6 +6,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+@shared_task(bind=True, time_limit=180, soft_time_limit=150)
+def processar_fase1_task(self, parecer_id):
+    """
+    Processa o auto-preenchimento da Fase 1 no worker Celery.
+    Evita que o upload + polling do Gemini (até 60s por PDF) bloqueie
+    o Gunicorn e cause WORKER TIMEOUT no Railway.
+    """
+    try:
+        parecer = Parecer.objects.get(id=parecer_id)
+        engine = JariEngine(parecer)
+        engine.run_fase1_autopreenchimento()
+        return "SUCCESS"
+    except Parecer.DoesNotExist:
+        return f"Processo ({parecer_id}) não encontrado."
+    except Exception as e:
+        trace = traceback.format_exc()
+        logger.error(f"ERRO CELERY FASE1 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
+        raise Exception(f"Erro na Fase 1 (Celery Worker): {str(e)}")
+
+
 @shared_task(bind=True, time_limit=600, soft_time_limit=540)
 def gerar_parecer_task(self, parecer_id, tese=None):
     """
