@@ -118,7 +118,10 @@ class GeminiClient:
             return None
 
         import tempfile
+        import logging
         from django.core.files.storage import default_storage
+
+        _log = logging.getLogger(__name__)
 
         # Normaliza FieldFile para string
         path_str = file_path.name if hasattr(file_path, 'name') else str(file_path)
@@ -128,18 +131,33 @@ class GeminiClient:
 
         temp_path = None
         try:
-            # Baixa do Google Cloud Storage ou do disco local via Django Storage para um arquivo temporário
+            # Baixa do Storage (local ou S3/GCS) para um arquivo temporário em disco
             with default_storage.open(path_str, 'rb') as f_in:
-                # O Gemini precisa de um caminho físico em disco, então criamos um temp local
                 fd, temp_path = tempfile.mkstemp(suffix=".pdf")
                 with os.fdopen(fd, 'wb') as f_out:
                     f_out.write(f_in.read())
 
-            # Faz o upload físico pro ecossistema do Gemini
-            gemini_file = self.client.files.upload(file=temp_path)
+            # Faz o upload pro ecossistema do Gemini com MIME type explícito
+            gemini_file = self.client.files.upload(
+                file=temp_path,
+                config={'mime_type': 'application/pdf'},
+            )
+
+            # Aguarda o arquivo ficar ACTIVE (processamento assíncrono do Gemini)
+            max_wait = 60  # segundos
+            waited = 0
+            while getattr(getattr(gemini_file, 'state', None), 'name', 'ACTIVE') == 'PROCESSING':
+                if waited >= max_wait:
+                    _log.warning(f"upload_file: arquivo {path_str} ainda PROCESSING após {max_wait}s — abortando")
+                    return None
+                time.sleep(2)
+                waited += 2
+                gemini_file = self.client.files.get(name=gemini_file.name)
+
+            _log.info(f"upload_file: {path_str} → Gemini file={gemini_file.name} state={getattr(getattr(gemini_file, 'state', None), 'name', '?')}")
             return gemini_file
         except Exception as e:
-            print(f"Erro ao subir arquivo pro Gemini a partir do Storage: {e}")
+            _log.warning(f"upload_file falhou para {path_str}: {e}")
             return None
         finally:
             if temp_path and os.path.exists(temp_path):
@@ -184,19 +202,27 @@ class GeminiClient:
             "Não retorne nada além do JSON."
         )
 
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+
         contents = [prompt_text]
 
-        from django.core.files.storage import default_storage
+        pdfs_anexados = 0
         for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
             _path = _p(path_field)
             if _path and "upload_simulado" not in _path:
-                try:
-                    if default_storage.exists(_path):
-                        f = self.upload_file(_path)
-                        if f:
-                            contents.insert(0, f)
-                except Exception:
-                    pass
+                f = self.upload_file(_path)
+                if f:
+                    contents.insert(0, f)
+                    pdfs_anexados += 1
+                else:
+                    _log.warning(f"extract_fase1_fields: upload falhou para {_path}")
+
+        if pdfs_anexados == 0:
+            _log.warning(f"extract_fase1_fields: nenhum PDF anexado para parecer={parecer_obj.id} — abortando")
+            return None
+
+        _log.info(f"extract_fase1_fields: {pdfs_anexados} PDF(s) anexado(s) para parecer={parecer_obj.id}")
 
         try:
             import json as _json
@@ -206,14 +232,20 @@ class GeminiClient:
                 config={'system_instruction': system_instruction},
             )
             raw = response.text.strip()
+            _log.info(f"extract_fase1_fields: Gemini raw response (100 chars): {raw[:100]}")
             # Remove markdown code fences se o modelo as incluir
             if raw.startswith('```'):
                 raw = raw.split('\n', 1)[-1]
                 raw = raw.rsplit('```', 1)[0].strip()
-            return _json.loads(raw)
+            dados = _json.loads(raw)
+            # Se todos os campos extraíveis são null, retorna None para não exibir form vazio
+            campos_extraiveis = ["pa", "sgpe", "prazo_final", "data_protocolo", "paginas_defesa", "recorrente"]
+            if all(dados.get(c) is None for c in campos_extraiveis):
+                _log.warning(f"extract_fase1_fields: todos os campos retornaram null para parecer={parecer_obj.id}")
+                return None
+            return dados
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).warning(f"extract_fase1_fields falhou: {e}")
+            _log.warning(f"extract_fase1_fields falhou: {e}")
             return None
 
     def generate_phase2_report(self, parecer_obj, contexto_textual_datas):
