@@ -42,7 +42,7 @@ class PerplexityClient:
         
         try:
             start_time = time.time()
-            response = requests.post(self.url, json=payload, headers=headers)
+            response = requests.post(self.url, json=payload, headers=headers, timeout=60)
             
             if response.status_code == 402:
                 send_mail(
@@ -821,7 +821,7 @@ class VertexAIClient:
                 )
             )
             
-            response = client.search(request)
+            response = client.search(request, timeout=60)
             
             resultados = []
             for result in response.results:

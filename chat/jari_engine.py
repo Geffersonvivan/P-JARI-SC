@@ -640,8 +640,8 @@ class JariEngine:
                 v_future = executor.submit(vertex.search_documents, self.parecer, tese)
                 p_future = executor.submit(perplexity.search_tese, self.parecer, tese)
                 
-                vertex_result = v_future.result()
-                perplexity_result = p_future.result()
+                vertex_result = v_future.result(timeout=90)
+                perplexity_result = p_future.result(timeout=90)
                 
             # Salva o novo resultado no cache para o próximo
             if cache_config.is_active and "erro" not in chave.lower():
@@ -692,8 +692,8 @@ class JariEngine:
                 if not self.parecer.perplexity_result:
                     p_future = executor.submit(perplexity.search_tese, self.parecer, tese)
                 
-                vertex_result = v_future.result() if v_future else self.parecer.vertex_result
-                perplexity_result = p_future.result() if p_future else self.parecer.perplexity_result
+                vertex_result = v_future.result(timeout=90) if v_future else self.parecer.vertex_result
+                perplexity_result = p_future.result(timeout=90) if p_future else self.parecer.perplexity_result
             
         # Fase 5: Geração de Parecer Textual (Anthropic) Formatado
         parecer_text = anthropic.validate_and_generate_parecer(self.parecer, tese, perplexity_result, vertex_result, task_id=task_id)
