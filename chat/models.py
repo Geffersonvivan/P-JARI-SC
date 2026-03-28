@@ -51,6 +51,17 @@ class Parecer(models.Model):
     has_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
     has_decadencia = models.BooleanField(null=True, blank=True)
 
+    # Tipo de penalidade da autuação — determina regras de decadência FILTRO 2/3
+    # Valores: 'multa', 'advertencia', 'suspensao', 'cassacao'
+    tipo_penalidade = models.CharField(max_length=20, blank=True, null=True)
+    # Data de conclusão do processo de multa que deu causa à suspensão/cassação (FILTRO 3)
+    data_conclusao_multa = models.DateField(blank=True, null=True)
+    # True = autuação em flagrante (marco = data_infracao); False = sem flagrante (marco = data_conhecimento_infracao)
+    # None = não determinado (fallback conservador: usa data_infracao)
+    tem_flagrante = models.BooleanField(blank=True, null=True)
+    # Data do conhecimento da infração pelo órgão — marco FILTRO 3 para multas SEM flagrante (art. 282 §6º-A CTB)
+    data_conhecimento_infracao = models.DateField(blank=True, null=True)
+
     # Escolhas do julgador (Fase 31 — A/B) — substituem as flags automáticas em todas as fases seguintes
     julgador_tempestivo = models.BooleanField(null=True, blank=True)
     julgador_prescricao_punitiva = models.BooleanField(null=True, blank=True)

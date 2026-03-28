@@ -278,7 +278,9 @@ class JariEngine:
             def _flag(acolhe, automatico):
                 if acolhe is None:
                     return automatico  # sem resposta explícita → mantém automático
-                return automatico if acolhe else (not automatico if automatico is not None else False)
+                if automatico is None:
+                    return None  # resultado técnico ausente (falha de cálculo) → não gera flag
+                return automatico if acolhe else (not automatico)
 
             self.parecer.julgador_tempestivo             = _flag(acolhe_temp,  self.parecer.is_tempestivo)
             self.parecer.julgador_prescricao_punitiva    = _flag(acolhe_punit, self.parecer.has_prescricao_punitiva)
@@ -426,12 +428,44 @@ class JariEngine:
         texto_tabela = gemini.generate_phase2_report(self.parecer, contexto_textual_datas)
         
         import re
+        import datetime as _dt2
+
         match_rec = re.search(r'RECORRENTE:\s*(.+)', texto_tabela, re.IGNORECASE)
         if match_rec:
             encontrado = match_rec.group(1).strip()
             if "NÃO LOCALIZADO" not in encontrado.upper() and "[NOME" not in encontrado.upper():
                 self.parecer.recorrente = encontrado[:250]
-                
+
+        match_tipo = re.search(r'TIPO_PENALIDADE:\s*(multa|advertencia|advertência|suspensao|suspensão|cassacao|cassação)', texto_tabela, re.IGNORECASE)
+        if match_tipo:
+            _tp = match_tipo.group(1).lower()
+            # Normaliza variantes acentuadas
+            _tp = _tp.replace('advertência', 'advertencia').replace('suspensão', 'suspensao').replace('cassação', 'cassacao')
+            self.parecer.tipo_penalidade = _tp
+
+        match_conclusao = re.search(r'DATA_CONCLUSAO_MULTA:\s*(\d{2}/\d{2}/\d{4})', texto_tabela, re.IGNORECASE)
+        if match_conclusao:
+            try:
+                self.parecer.data_conclusao_multa = _dt2.datetime.strptime(match_conclusao.group(1), "%d/%m/%Y").date()
+            except ValueError:
+                pass
+
+        match_flagrante = re.search(r'TEM_FLAGRANTE:\s*(SIM|NAO|NAO_DETERMINADO)', texto_tabela, re.IGNORECASE)
+        if match_flagrante:
+            val = match_flagrante.group(1).upper()
+            if val == 'SIM':
+                self.parecer.tem_flagrante = True
+            elif val == 'NAO':
+                self.parecer.tem_flagrante = False
+            # NAO_DETERMINADO → deixa None
+
+        match_conhecimento = re.search(r'DATA_CONHECIMENTO_INFRACAO:\s*(\d{2}/\d{2}/\d{4})', texto_tabela, re.IGNORECASE)
+        if match_conhecimento:
+            try:
+                self.parecer.data_conhecimento_infracao = _dt2.datetime.strptime(match_conhecimento.group(1), "%d/%m/%Y").date()
+            except ValueError:
+                pass
+
         self.parecer.tabela_datas_sensiveis = texto_tabela
         self.parecer.save()
         
@@ -488,7 +522,15 @@ class JariEngine:
         self.parecer.has_prescricao_intercorrente = inter_bool
 
         # data_sessao como proxy de decisão final — garante avaliação dos 360 dias (FILTRO 2/3)
-        decadencia_bool, relatorio_decadencia = JariMath.check_decadencia(data_infracao, data_notificacao_autuacao, self.parecer.data_sessao)
+        decadencia_bool, relatorio_decadencia = JariMath.check_decadencia(
+            data_infracao,
+            data_notificacao_autuacao,
+            self.parecer.data_sessao,
+            tipo_penalidade=self.parecer.tipo_penalidade,
+            data_conclusao_multa=self.parecer.data_conclusao_multa,
+            tem_flagrante=self.parecer.tem_flagrante,
+            data_conhecimento_infracao=self.parecer.data_conhecimento_infracao,
+        )
         self.parecer.has_decadencia = decadencia_bool
         
         # 4. Texto visual para o usuário confirmando
