@@ -468,6 +468,7 @@ def stream_task_status_view(request, task_id):
     from celery.result import AsyncResult
     
     def event_stream():
+        import time as _time
         # Conecta no Redis
         try:
             r = redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'))
@@ -479,9 +480,19 @@ def stream_task_status_view(request, task_id):
             sentry_sdk.capture_exception(e)
             yield f"data: {json.dumps({'status': 'FAILURE', 'error': 'Redis Inoperante', 'details': str(e)})}\n\n"
             return
-            
+
+        # Timeout máximo de espera: 660s (11 min) — Celery mata tasks em 600s
+        # Sem isso, o loop fica eterno se o worker crashar com task em PENDING
+        _start = _time.time()
+        _MAX_WAIT = 660
+
         # Loop de escuta com timeout para verificar se o Celery já acabou
         while True:
+            # Guarda-tempo: encerra se o worker não responder em 11 minutos
+            if _time.time() - _start > _MAX_WAIT:
+                yield f"data: {json.dumps({'status': 'FAILURE', 'error': 'O processamento excedeu o tempo limite (11 min). O worker pode ter reiniciado. Abra o processo novamente e tente de novo.'})}\n\n"
+                break
+
             message = pubsub.get_message(timeout=1.0)
             if message and message['type'] == 'message':
                 data_str = message['data'].decode('utf-8')
