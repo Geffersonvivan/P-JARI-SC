@@ -533,11 +533,6 @@
   estatísticas, gestão de pastas e pareceres. O app legal existe mas é mínimo.
   Qualquer falha num módulo pode afetar todos os outros.
 
-  10. Nenhuma estratégia de retry no webhook do MercadoPago
-  chat/views.py:604 — Se o endpoint retornar erro 400 (ex: banco indisponível
-  temporariamente), o MercadoPago vai parar de tentar reenviar após algumas
-  tentativas. O pagamento aprovado ficará sem créditos liberados sem nenhum
-  mecanismo de recuperação.
 
   11. 3 APIs de IA externas sem circuit breaker
   Gemini, Perplexity e Vertex AI são chamadas diretamente. Se uma API ficar
@@ -759,4 +754,32 @@
   PjariVersion
   - Arquitetura: 1 mudança de alto impacto (separar Celery no Railway)
   - Testes: cobertura de ~3% num produto que toma decisões jurídicas com valor
-  legal
+  legibilidade
+
+
+  Total estimado                                                                 
+                
+  ┌─────────────────────────────────┬────────┬───────────────────────────┐       
+  │             Cenário             │ Tokens │ Custo aprox. (Sonnet 4.6) │       
+  ├─────────────────────────────────┼────────┼───────────────────────────┤
+  │ Só correções rápidas (35 itens) │ ~260k  │ ~$1.20                    │       
+  ├─────────────────────────────────┼────────┼───────────────────────────┤    
+  │ Rápidas + médias (50 itens)     │ ~540k  │ ~$3.00                    │       
+  ├─────────────────────────────────┼────────┼───────────────────────────┤
+  │ Tudo (69 itens)                 │ ~1.3M  │ ~$9–12                    │       
+  └─────────────────────────────────┴────────┴───────────────────────────┘       
+  
+  ---                                                                            
+  Recomendação prática                                                        
+                                                                                 
+  As grandes refatorações (god file, engine, SSE, app separation) consomem ~60%
+  dos tokens por sozinhas. Elas têm muito mais custo do que impacto imediato — e 
+  resultam em PRs enormes difíceis de revisar.                                
+                                                                                 
+  Sugiro priorizar por ROI:                                                   
+  1. Segurança crítica (itens 1-3) — poucas horas, alto impacto, baixo custo
+  2. Performance N+1 (5 fixes pontuais) — 1 dia, correções cirúrgicas            
+  3. Bugs silenciosos (PjariVersion.save, token de teste) — triviais de corrigir
+  4. Testes dos 3 fluxos críticos (pagamento, auth, engine fase 1)               
+                                                                                 
+  Esses 4 grupos cobrem os riscos reais com ~300k tokens (~$2.50).         

@@ -362,6 +362,52 @@ class TestFase31(unittest.TestCase):
             )
         self.assertEqual(result, "fase4")
 
+    def test_formato_frontend_real_nao_acolhida_avanca_merito(self):
+        """Formato real do frontend: 'KEYWORD - Não Acolhida; X' deve ser parseado corretamente."""
+        # Simula o exact string que submitTeseDecisions() envia quando o julgador
+        # rejeita intempestividade e prescrições (automáticas = True), mas aceita sem bloqueio
+        engine = self._engine(
+            is_tempestivo=False,
+            has_prescricao_punitiva=True,
+            has_prescricao_intercorrente=True,
+            has_decadencia=False,
+        )
+        msg_real = (
+            "TEMPESTIVIDADE - Não Acolhida; X\n\n"
+            "PUNITIVA - Não Acolhida; X\n\n"
+            "INTERCORRENTE - Não Acolhida; X\n\n"
+            "DECADENCIA - Acolhida; ✔️"
+        )
+        with patch.object(engine, 'run_phase_4_extraction', return_value="fase4"):
+            result = engine.process_message(msg_real)
+        self.assertEqual(result, "fase4")
+        self.assertTrue(engine.parecer.julgador_tempestivo)
+        self.assertFalse(engine.parecer.julgador_prescricao_punitiva)
+        self.assertFalse(engine.parecer.julgador_prescricao_intercorrente)
+        self.assertFalse(engine.parecer.julgador_decadencia)
+
+    def test_formato_frontend_real_acolhida_vai_para_resultado(self):
+        """Formato real: julgador aceita a intempestividade → deve ir para RESULTADO."""
+        engine = self._engine(
+            is_tempestivo=False,
+            has_prescricao_punitiva=False,
+            has_prescricao_intercorrente=False,
+            has_decadencia=False,
+        )
+        msg_real = (
+            "TEMPESTIVIDADE - Acolhida; ✔️\n\n"
+            "PUNITIVA - Não Acolhida; X\n\n"
+            "INTERCORRENTE - Não Acolhida; X\n\n"
+            "DECADENCIA - Não Acolhida; X"
+        )
+        with patch('chat.tasks.gerar_parecer_task') as mock_task:
+            mock_task.delay.return_value = MagicMock(id="xyz")
+            result = engine.process_message(msg_real)
+        resp = json.loads(result)
+        self.assertEqual(resp["type"], "PREJUDICIALIDADE")
+        self.assertFalse(engine.parecer.julgador_tempestivo)
+        self.assertIn("INTEMPESTIVIDADE", engine.parecer.tese)
+
 
 class TestFase4(unittest.TestCase):
 

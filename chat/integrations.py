@@ -956,7 +956,16 @@ class AnthropicClient:
         relator_name = relator_name.upper()
 
         if not self.client:
-            return "**RESULTADO SIMULADO:** DEFERIDO (Anthropic)"
+            import logging
+            logging.getLogger(__name__).error(
+                "ANTHROPIC_API_KEY não configurada. Parecer não pôde ser gerado. "
+                "Configure a variável de ambiente ANTHROPIC_API_KEY no Railway."
+            )
+            return (
+                "⚠️ **ERRO DE CONFIGURAÇÃO: Parecer não gerado.**\n\n"
+                "A chave de API da Anthropic (ANTHROPIC_API_KEY) não está configurada neste ambiente. "
+                "Por favor, configure a variável de ambiente no painel do Railway e tente novamente."
+            )
 
         system_instruction = (
             "Você é o Assessor P-JARI/SC (Fase 5 - PARECER PROTOCOLO DEFINITIVO).\n"

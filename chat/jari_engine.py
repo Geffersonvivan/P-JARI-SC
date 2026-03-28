@@ -234,25 +234,45 @@ class JariEngine:
             # Parseia as escolhas A/B do julgador e aplica a regra:
             # A (acolho) = mantém resultado técnico; B (não acolho) = inverte resultado técnico
             import re as _re
+            import unicodedata as _ud
+
+            def _strip_accents(s):
+                """Remove diacríticos (ex: ã→a, é→e) para matching robusto independente de encoding."""
+                return ''.join(c for c in _ud.normalize('NFD', s) if _ud.category(c) != 'Mn')
 
             def _escolha(msg, keyword):
-                """Retorna True se julgador acolheu (A), False se não acolheu (B), None se não encontrou."""
-                # Permite letras extras após o keyword (ex: PUNITIVA, TEMPESTIVIDADE) antes do separador
-                padrao = rf'{keyword}\w*\s*[:\s]\s*([AB])\b'
-                m = _re.search(padrao, msg.upper())
+                """Retorna True se julgador acolheu, False se não acolheu, None se não encontrou."""
+                # Normaliza: remove acentos e converte para maiúsculas para comparação robusta
+                msg_n   = _strip_accents(msg).upper()
+                kw_n    = _strip_accents(keyword).upper()
+
+                # Formato exato enviado pelo frontend: "{KEY} - Não Acolhida; X" ou "{KEY} - Acolhida; ✔️"
+                # Após strip_accents: "NAO ACOLHIDA" ou "ACOLHIDA"
+                if _re.search(rf'{kw_n}.{{0,30}}NAO ACOLHID', msg_n):
+                    return False
+                if _re.search(rf'{kw_n}.{{0,30}}ACOLHID', msg_n):
+                    return True
+                # Fallback: letras A/B explícitas (formato legado)
+                m = _re.search(rf'{kw_n}\w*\s*[-:\s]\s*([AB])\b', msg_n)
                 if m:
                     return m.group(1) == 'A'
-                if _re.search(rf'{keyword}.{{0,20}}(NÃO ACOLH|NAO ACOLH)', msg.upper()):
-                    return False
-                if _re.search(rf'{keyword}.{{0,20}}ACOLH', msg.upper()):
-                    return True
                 return None
 
-            msg_upper = message.upper()
-            acolhe_temp  = _escolha(msg_upper, 'TEMPESTIVIDADE')
-            acolhe_punit = _escolha(msg_upper, 'PUNITIV')
-            acolhe_inter = _escolha(msg_upper, 'INTERCORRENTE')
-            acolhe_decad = _escolha(msg_upper, 'DECAD')
+            # Loga as escolhas para diagnóstico em produção
+            import logging as _logging
+            _log31 = _logging.getLogger(__name__)
+
+            acolhe_temp  = _escolha(message, 'TEMPESTIVIDADE')
+            acolhe_punit = _escolha(message, 'PUNITIV')
+            acolhe_inter = _escolha(message, 'INTERCORRENTE')
+            acolhe_decad = _escolha(message, 'DECAD')
+            _log31.warning(
+                f"[FASE31] parecer={self.parecer.id} | "
+                f"temp={acolhe_temp} punit={acolhe_punit} inter={acolhe_inter} decad={acolhe_decad} | "
+                f"auto: temp={self.parecer.is_tempestivo} punit={self.parecer.has_prescricao_punitiva} "
+                f"inter={self.parecer.has_prescricao_intercorrente} decad={self.parecer.has_decadencia} | "
+                f"msg_preview={repr(message[:120])}"
+            )
 
             # Converte escolha A/B + resultado automático → flag do julgador
             def _flag(acolhe, automatico):
@@ -703,8 +723,18 @@ class JariEngine:
         # Checa se houve flag de erro interno fatal de compatibilidade
         erro_fatal = False
         incompatibilidade_msg = ""
-        
-        texto_parecer = self.parecer.parecer_final.upper()
+
+        # Se o parecer não foi gerado (erro de configuração), aborta a auditoria
+        parecer_raw = self.parecer.parecer_final or ""
+        if parecer_raw.startswith("⚠️") or "ERRO DE CONFIGURAÇÃO" in parecer_raw:
+            incompatibilidade_msg = "❌ Parecer não gerado: verifique a configuração da API (ANTHROPIC_API_KEY)."
+            self.parecer.blindagem_score = 0
+            self.parecer.blindagem_detalhes = incompatibilidade_msg
+            self.parecer.status_fase = FASE_SELECAO_PASTA
+            self.parecer.save()
+            return incompatibilidade_msg
+
+        texto_parecer = parecer_raw.upper()
         
         # Usa flags do julgador se preenchidas; cai nos automáticos como fallback
         flag_punitiva    = self.parecer.julgador_prescricao_punitiva    if self.parecer.julgador_prescricao_punitiva    is not None else self.parecer.has_prescricao_punitiva
