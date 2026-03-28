@@ -231,20 +231,59 @@ class JariEngine:
             return self.run_phase_3()
             
         elif fase == 31:
-            # A submissão sempre avança. Botões disparam uma string com as opções (ex: TEMPESTIVIDADE ACOLHER)
-            # Aqui traduzimos as flags matemáticas estritas do BD para roteamento
-            if self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia or not self.parecer.is_tempestivo:
-                self.parecer.status_fase = FASE_RESULTADO  # Pula pra Fase 5 de resultado prejudicado, não analisa mérito
-                
+            # Parseia as escolhas A/B do julgador e aplica a regra:
+            # A (acolho) = mantém resultado técnico; B (não acolho) = inverte resultado técnico
+            import re as _re
+
+            def _escolha(msg, keyword):
+                """Retorna True se julgador acolheu (A), False se não acolheu (B), None se não encontrou."""
+                # Permite letras extras após o keyword (ex: PUNITIVA, TEMPESTIVIDADE) antes do separador
+                padrao = rf'{keyword}\w*\s*[:\s]\s*([AB])\b'
+                m = _re.search(padrao, msg.upper())
+                if m:
+                    return m.group(1) == 'A'
+                if _re.search(rf'{keyword}.{{0,20}}(NÃO ACOLH|NAO ACOLH)', msg.upper()):
+                    return False
+                if _re.search(rf'{keyword}.{{0,20}}ACOLH', msg.upper()):
+                    return True
+                return None
+
+            msg_upper = message.upper()
+            acolhe_temp  = _escolha(msg_upper, 'TEMPESTIVIDADE')
+            acolhe_punit = _escolha(msg_upper, 'PUNITIV')
+            acolhe_inter = _escolha(msg_upper, 'INTERCORRENTE')
+            acolhe_decad = _escolha(msg_upper, 'DECAD')
+
+            # Converte escolha A/B + resultado automático → flag do julgador
+            def _flag(acolhe, automatico):
+                if acolhe is None:
+                    return automatico  # sem resposta explícita → mantém automático
+                return automatico if acolhe else (not automatico if automatico is not None else False)
+
+            self.parecer.julgador_tempestivo             = _flag(acolhe_temp,  self.parecer.is_tempestivo)
+            self.parecer.julgador_prescricao_punitiva    = _flag(acolhe_punit, self.parecer.has_prescricao_punitiva)
+            self.parecer.julgador_prescricao_intercorrente = _flag(acolhe_inter, self.parecer.has_prescricao_intercorrente)
+            self.parecer.julgador_decadencia             = _flag(acolhe_decad, self.parecer.has_decadencia)
+            self.parecer.save()
+
+            # Roteamento baseado EXCLUSIVAMENTE nas flags do julgador
+            prejudica = (
+                self.parecer.julgador_prescricao_punitiva
+                or self.parecer.julgador_prescricao_intercorrente
+                or self.parecer.julgador_decadencia
+                or (self.parecer.julgador_tempestivo is False)
+            )
+
+            if prejudica:
+                self.parecer.status_fase = FASE_RESULTADO
                 motivo = []
-                if self.parecer.has_prescricao_punitiva: motivo.append("PRESCRIÇÃO PUNITIVA")
-                if self.parecer.has_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE")
-                if self.parecer.has_decadencia: motivo.append("DECADÊNCIA")
-                if not self.parecer.is_tempestivo: motivo.append("INTEMPESTIVIDADE")
-                
+                if self.parecer.julgador_prescricao_punitiva:    motivo.append("PRESCRIÇÃO PUNITIVA")
+                if self.parecer.julgador_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE")
+                if self.parecer.julgador_decadencia:             motivo.append("DECADÊNCIA")
+                if self.parecer.julgador_tempestivo is False:    motivo.append("INTEMPESTIVIDADE")
                 self.parecer.tese = f"MÉRITO PREJUDICADO ({' / '.join(motivo)})."
                 self.parecer.save()
-                
+
                 from chat.tasks import gerar_parecer_task
                 task = gerar_parecer_task.delay(self.parecer.id)
                 import json
@@ -667,17 +706,28 @@ class JariEngine:
         
         texto_parecer = self.parecer.parecer_final.upper()
         
+        # Usa flags do julgador se preenchidas; cai nos automáticos como fallback
+        flag_punitiva    = self.parecer.julgador_prescricao_punitiva    if self.parecer.julgador_prescricao_punitiva    is not None else self.parecer.has_prescricao_punitiva
+        flag_intercorr   = self.parecer.julgador_prescricao_intercorrente if self.parecer.julgador_prescricao_intercorrente is not None else self.parecer.has_prescricao_intercorrente
+        flag_decadencia  = self.parecer.julgador_decadencia             if self.parecer.julgador_decadencia             is not None else self.parecer.has_decadencia
+        flag_tempestivo  = self.parecer.julgador_tempestivo             if self.parecer.julgador_tempestivo             is not None else self.parecer.is_tempestivo
+
+        import re as _re_audit
+        # Usa word boundary para não confundir DEFERIDO com INDEFERIDO e vice-versa
+        tem_deferido   = bool(_re_audit.search(r'\bDEFERIDO\b',   texto_parecer))
+        tem_indeferido = bool(_re_audit.search(r'\bINDEFERIDO\b', texto_parecer))
+
         # 1. Regra de Extinção da Punibilidade (Prescrição/Decadência) - Ordem Pública prevalece
-        if (self.parecer.has_prescricao_punitiva or self.parecer.has_prescricao_intercorrente or self.parecer.has_decadencia):
+        if flag_punitiva or flag_intercorr or flag_decadencia:
             # Se tem prescrição/decadência, o mérito é prejudicado e a penalidade extinta (DEFERIDO)
-            if "DEFERIDO" not in texto_parecer and "DEFERIMENTO" not in texto_parecer:
+            if not tem_deferido:
                 erro_fatal = True
                 incompatibilidade_msg = "❌ Resultado incompatível com extinção da pretensão punitiva (Deveria ser DEFERIDO)"
-                
+
         # 2. Regra de Admissibilidade (Intempestividade)
-        elif self.parecer.is_tempestivo is False:
+        elif flag_tempestivo is False:
             # Se é intempestivo, mas não prescreveu, o recurso não deve ser conhecido (INDEFERIDO)
-            if "INDEFERIDO" not in texto_parecer and "INDEFERIMENTO" not in texto_parecer:
+            if not tem_indeferido:
                 erro_fatal = True
                 incompatibilidade_msg = "❌ Resultado incompatível com a Intempestividade do recurso (Deveria ser INDEFERIDO)"
                 

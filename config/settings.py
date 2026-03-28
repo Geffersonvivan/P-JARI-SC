@@ -327,6 +327,15 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'rodar-testes-jari-engine': {
+        'task': 'chat.tasks.rodar_testes_engine_task',
+        # A cada 6 horas (00h, 06h, 12h, 18h)
+        'schedule': crontab(minute=0, hour='0,6,12,18'),
+    },
+}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
