@@ -57,6 +57,22 @@ class PjariVersionAdmin(admin.ModelAdmin):
         return super().has_add_permission(request)
 
 admin.site.register(ConfiguracaoParecer)
-admin.site.register(ParecerFinal)
-admin.site.register(Parecer)
-admin.site.register(Pasta)
+
+@admin.register(Parecer)
+class ParecerAdmin(admin.ModelAdmin):
+    list_select_related = ['user', 'pasta']
+    list_display = ['__str__', 'status_fase', 'pa', 'sgpe', 'created_at']
+    search_fields = ['nome_processo', 'user__username', 'pa', 'sgpe']
+    list_filter = ['status_fase']
+
+@admin.register(Pasta)
+class PastaAdmin(admin.ModelAdmin):
+    list_select_related = ['user']
+    list_display = ['__str__', 'created_at']
+    search_fields = ['nome_pasta', 'user__username']
+
+@admin.register(ParecerFinal)
+class ParecerFinalAdmin(admin.ModelAdmin):
+    list_select_related = ['parecer_referencia']
+    list_display = ['__str__', 'status_resultado', 'data_criacao']
+    list_filter = ['status_resultado']
