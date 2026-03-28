@@ -1439,6 +1439,18 @@
                 eventSource.close();
                 document.getElementById('status-dots').classList.add('hidden');
                 if (typeof enableInput === "function") enableInput();
+                // Substitui o spinner por mensagem de erro acionável
+                let msgContainer = document.getElementById(`msg-${msgId}`);
+                if (msgContainer) {
+                    msgContainer.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-amber-500 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">!</div>
+                        <div class="text-amber-800 leading-relaxed pt-1 w-full bg-amber-50 p-4 rounded-xl border border-amber-200">
+                            <p class="font-semibold mb-1">Conexão interrompida</p>
+                            <p class="text-sm">O servidor demorou mais do que o esperado ou a conexão caiu. O processamento pode ter continuado em segundo plano.</p>
+                            <p class="text-sm mt-2">Recarregue a página para verificar o estado atual do processo.</p>
+                        </div>`;
+                    chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+                }
             };
         }
 
@@ -1636,8 +1648,10 @@
             }
             if(!userContent) userContent = "[Anexo]";
             
-            userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${userContent}</div>`;
-            messagesContainer.appendChild(userDiv);
+            if (!text.startsWith('FASE1_CONFIRM:')) {
+                userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${userContent}</div>`;
+                messagesContainer.appendChild(userDiv);
+            }
 
             userInput.value = "";
             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
