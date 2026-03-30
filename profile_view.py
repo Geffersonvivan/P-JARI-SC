@@ -21,10 +21,10 @@ def run_profile():
     profiler = cProfile.Profile()
     profiler.enable()
     
-    response = c.get('/estatisticas/', HTTP_HOST='localhost')
+    response = c.get('/', HTTP_HOST='localhost')
     
     profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('tottime')
+    stats = pstats.Stats(profiler).sort_stats('cumtime')
     stats.print_stats(20)
 
 if __name__ == '__main__':

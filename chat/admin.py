@@ -61,9 +61,42 @@ admin.site.register(ConfiguracaoParecer)
 @admin.register(Parecer)
 class ParecerAdmin(admin.ModelAdmin):
     list_select_related = ['user', 'pasta']
-    list_display = ['__str__', 'status_fase', 'pa', 'sgpe', 'created_at']
+    list_display = ['__str__', 'status_fase', 'pa', 'sgpe', 'blindagem_score', 'created_at']
     search_fields = ['nome_processo', 'user__username', 'pa', 'sgpe']
     list_filter = ['status_fase']
+    readonly_fields = ['score_baseline_90d']
+
+    def score_baseline_90d(self, obj):
+        """
+        Contextualiza o blindagem_score deste parecer dentro da distribuição
+        dos últimos 90 dias — responde "score 70 é bom ou ruim?"
+        """
+        from .models import Parecer as _P
+        stats = _P.score_stats(days=90)
+        if not stats:
+            return 'Sem dados de baseline (últimos 90 dias).'
+
+        global_str = (
+            f"Global 90d — N={stats['count']} | Média={stats['avg']} | "
+            f"P25={stats['p25']} | P50 (mediana)={stats['p50']} | P75={stats['p75']}"
+        )
+
+        score = obj.blindagem_score
+        if score is None:
+            return f'Este parecer ainda não foi auditado. {global_str}'
+
+        if score >= stats['p75']:
+            nivel = '▲ TOP 25% (acima de P75)'
+        elif score >= stats['p50']:
+            nivel = '~ Acima da mediana'
+        elif score >= stats['p25']:
+            nivel = '▼ Abaixo da mediana'
+        else:
+            nivel = '↓↓ Quartil inferior (abaixo de P25)'
+
+        return f'Score {score} — {nivel} | {global_str}'
+
+    score_baseline_90d.short_description = 'Score vs. Baseline (90 dias)'
 
 @admin.register(Pasta)
 class PastaAdmin(admin.ModelAdmin):

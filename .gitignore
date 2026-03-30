@@ -24,3 +24,44 @@ git_up.md
 
 # Google Cloud Credentials (Secret)
 gcp-credentials.json*
+
+# Diretórios Embutidos / Locais
+/uploads/
+/alterações/
+/node_modules/
+
+# Logs de Sistema e Retornos Temporários
+/debug.log
+/debug_jari.txt
+/output.log
+/railway_logs.txt
+/sql_output.txt
+/js_returns.txt
+/cookies.txt
+/res1.json
+
+# Scripts Soltos de Teste na Raiz Python/HTML
+/debug_upload.py
+/test_*.py
+/patch_*.py
+/parse_*.py
+/lint_*.py
+/profile_*.py
+/backfill_infracoes.py
+/bracket_check.py
+/script_test_smtp.py
+/update_landing.py
+/output.html
+/mermaid_test.html
+/mermaid_test.mmd
+/test_docx.js
+/touch
+/restart.txt
+
+# Anotações Pessoais e Documentação Descartável
+/Auditoria_Claude
+/Ideias.MD
+/Jornada_Pjari.md
+/plano_implementacao_jari_fase3.md
+/servidor.MD
+/MELHORIAS/

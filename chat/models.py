@@ -2,8 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Pasta(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pastas', null=True, blank=True)
-    session_key = models.CharField(max_length=40, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pastas', null=True, blank=True, db_index=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True, db_index=True)
     nome_pasta = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     posicao = models.IntegerField(default=0)
@@ -13,11 +13,11 @@ class Pasta(models.Model):
         return f'{self.nome_pasta} - {nome_usuario}'
 
 class Parecer(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pareceres', null=True, blank=True)
-    session_key = models.CharField(max_length=40, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pareceres', null=True, blank=True, db_index=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True, db_index=True)
     pasta = models.ForeignKey(Pasta, on_delete=models.CASCADE, related_name='projetos', null=True, blank=True)
     nome_processo = models.CharField(max_length=255)
-    is_saved = models.BooleanField(default=True)
+    is_saved = models.BooleanField(default=True, db_index=True)
     
     # Campos do Assessor JARI
     # status_fase mapping:
@@ -64,6 +64,11 @@ class Parecer(models.Model):
     tem_flagrante = models.BooleanField(blank=True, null=True)
     # Data do conhecimento da infração pelo órgão — marco FILTRO 3 para multas SEM flagrante (art. 282 §6º-A CTB)
     data_conhecimento_infracao = models.DateField(blank=True, null=True)
+    # Data da infração extraída dos documentos na Fase 3 — usada para blindagem Filtro 1 na F31
+    data_infracao = models.DateField(blank=True, null=True)
+    # Suspensão por acúmulo de pontos: marco inicial da prescrição punitiva = dia seguinte à totalização
+    # logica_jari.md §221 — quando preenchido, substitui data_infracao no check_prescription_punitiva
+    data_totalizacao_pontos = models.DateField(blank=True, null=True)
 
     # Escolhas do julgador (Fase 31 — A/B) — substituem as flags automáticas em todas as fases seguintes
     julgador_tempestivo = models.BooleanField(null=True, blank=True)
@@ -86,6 +91,7 @@ class Parecer(models.Model):
     # Fase 6 - Auditoria e Blindagem
     blindagem_score = models.IntegerField(null=True, blank=True)
     blindagem_detalhes = models.TextField(blank=True, null=True)
+    checklist_auditoria_json = models.JSONField(blank=True, null=True)
     tempo_julgamento_segundos = models.IntegerField(null=True, blank=True)
     
     # Fase 8 - Feedback Contínuo do Usuário
@@ -100,6 +106,63 @@ class Parecer(models.Model):
     def __str__(self):
         nome_usuario = self.user.username if self.user else "Anon"
         return f'{self.nome_processo} - {nome_usuario}'
+
+    @classmethod
+    def score_stats(cls, user=None, days=90):
+        """
+        Retorna distribuição estatística do blindagem_score para baseline comparativo.
+
+        Útil para contextualizar se um score individual é bom ou ruim em relação
+        ao conjunto de pareceres de um julgador ou de toda a JARI no período.
+
+        Args:
+            user: filtra por User específico (None = todos os usuários)
+            days: filtra pelos últimos N dias (None = sem filtro de período)
+
+        Returns:
+            dict com count, avg, min, max, p25, p50, p75
+            ou None se não houver pareceres com score no período.
+
+        Exemplo:
+            stats = Parecer.score_stats(user=request.user, days=90)
+            # {'count': 42, 'avg': 87.3, 'min': 50, 'max': 100, 'p25': 80, 'p50': 90, 'p75': 100}
+        """
+        from django.db.models import Avg, Min, Max, Count
+        import datetime as _dt
+
+        qs = cls.objects.filter(blindagem_score__isnull=False)
+        if user is not None:
+            qs = qs.filter(user=user)
+        if days is not None:
+            cutoff = _dt.datetime.now() - _dt.timedelta(days=days)
+            qs = qs.filter(created_at__gte=cutoff)
+
+        agg = qs.aggregate(
+            count=Count('id'),
+            avg=Avg('blindagem_score'),
+            min=Min('blindagem_score'),
+            max=Max('blindagem_score'),
+        )
+        if not agg['count']:
+            return None
+
+        scores = list(
+            qs.order_by('blindagem_score').values_list('blindagem_score', flat=True)
+        )
+        n = len(scores)
+
+        def _pct(p):
+            return scores[max(0, min(int(n * p / 100), n - 1))]
+
+        return {
+            'count': agg['count'],
+            'avg': round(agg['avg'], 1) if agg['avg'] is not None else None,
+            'min': agg['min'],
+            'max': agg['max'],
+            'p25': _pct(25),
+            'p50': _pct(50),
+            'p75': _pct(75),
+        }
 
     class Meta:
         ordering = ['-created_at']

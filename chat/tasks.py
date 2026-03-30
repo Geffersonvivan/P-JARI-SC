@@ -6,17 +6,31 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@shared_task(bind=True, time_limit=180, soft_time_limit=150)
+@shared_task(bind=True, time_limit=360, soft_time_limit=300)
 def processar_fase1_task(self, parecer_id):
     """
     Processa o auto-preenchimento da Fase 1 no worker Celery.
     Evita que o upload + polling do Gemini (até 60s por PDF) bloqueie
     o Gunicorn e cause WORKER TIMEOUT no Railway.
     """
+    from billiard.exceptions import SoftTimeLimitExceeded
     try:
         parecer = Parecer.objects.get(id=parecer_id)
         engine = JariEngine(parecer)
-        engine.run_fase1_autopreenchimento()
+        reply = engine.run_fase1_autopreenchimento()
+        from .models import ChatMessage
+        ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        return "SUCCESS"
+    except SoftTimeLimitExceeded:
+        # PDF muito grande para o Gemini processar no prazo — cai para fluxo manual
+        logger.warning(f"FASE1 soft time limit atingido (Parecer {parecer_id}). Fallback para fluxo manual.")
+        try:
+            parecer = Parecer.objects.get(id=parecer_id)
+            from .models import ChatMessage
+            reply = JariEngine(parecer).get_current_prompt()
+            ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        except Exception:
+            pass
         return "SUCCESS"
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
@@ -26,26 +40,31 @@ def processar_fase1_task(self, parecer_id):
         raise Exception(f"Erro na Fase 1 (Celery Worker): {str(e)}")
 
 
-@shared_task(bind=True, time_limit=600, soft_time_limit=540)
+@shared_task(bind=True, time_limit=600, soft_time_limit=540, max_retries=2)
 def gerar_parecer_task(self, parecer_id, tese=None):
     """
     Worker task que roda as pesadas Fases 5 e 6 do motor JARI.
+    Até 2 retries automáticos (intervalo 30s) para falhas transitórias de API.
     """
     try:
         # Puxa o objeto do banco de dados na thread do Worker
         parecer = Parecer.objects.get(id=parecer_id)
-        
+
         # Inicia a engrenagem (se a tese foi passada ela salva)
         if tese:
             parecer.tese = tese
             parecer.save(update_fields=['tese'])
 
         engine = JariEngine(parecer)
-        
-        # Dispara o processamento demorado
-        # O JariEngine irá escrever os resultados e setar status_fase = 6
-        engine.run_llm_phases(task_id=self.request.id)
-        
+
+        # Dispara o processamento demorado.
+        # O JariEngine escreve os resultados e seta status_fase = 6.
+        result_text = engine.run_llm_phases(task_id=self.request.id)
+
+        # Persiste o resultado no histórico de chat (equivalente ao processar_fase1_task)
+        from .models import ChatMessage
+        ChatMessage.objects.create(parecer=parecer, role='assistant', content=result_text)
+
         # Gatilho por contagem: a cada 10 pareceres finalizados, roda os testes
         try:
             total_finalizados = Parecer.objects.filter(status_fase=8).count()
@@ -62,8 +81,11 @@ def gerar_parecer_task(self, parecer_id, tese=None):
     except Exception as e:
         trace = traceback.format_exc()
         logger.error(f"ERRO CELERY (Parecer {parecer_id}): {str(e)}\n\n{trace}")
-        # O Celery captura esse Exception e marca a Task como "FAILURE" automaticamente.
-        raise Exception(f"Erro na Geração do Parecer (Celery Worker): {str(e)}")
+        # Retry automático para falhas transitórias de API (até max_retries=2, delay 30s)
+        try:
+            raise self.retry(exc=e, countdown=30)
+        except self.MaxRetriesExceededError:
+            raise Exception(f"Erro na Geração do Parecer (Celery Worker, após retries): {str(e)}")
 
 @shared_task
 def rodar_testes_engine_task():

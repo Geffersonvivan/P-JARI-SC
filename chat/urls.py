@@ -15,7 +15,6 @@ urlpatterns = [
     path('parecer/<int:id>/editor/', views.editar_parecer_view, name='editar_parecer'),
     path('parecer/<int:id>/salvar/', views.salvar_parecer_view, name='salvar_parecer'),
     path('planos/', views.planos_view, name='planos'),
-    path('env-debug/', views.env_debug_view, name='env_debug'),
     path('auth-sync/', views.auth_sync_view, name='auth_sync'),
     path('checkout/', views.checkout_view, name='checkout'),
     path('webhooks/stripe/', views.stripe_webhook, name='stripe_webhook'),
@@ -39,4 +38,5 @@ urlpatterns = [
     path('api/proxy-image/', views.proxy_image_view, name='proxy_image'),
     path('aceite-termos/', views.aceitar_termos_view, name='aceitar_termos'),
     path('termos/', views.visualizar_termos_view, name='termos'),
+    path('chat/pdf/<int:parecer_id>/<str:tipo>/', views.pdf_proxy_view, name='pdf_proxy'),
 ]

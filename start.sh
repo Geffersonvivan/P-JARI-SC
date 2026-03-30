@@ -6,6 +6,10 @@ echo "Starting migrations..."
 # Idealmente, mover para um Release Command separado no Railway (Settings > Deploy > Release Command).
 python manage.py migrate --noinput
 
+echo "Building Tailwind CSS..."
+npm ci --omit=dev 2>/dev/null || npm install
+npm run build:css
+
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 

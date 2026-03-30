@@ -24,8 +24,9 @@ class PDFExtractor:
             return []
             
         resultados = []
+        total_chars = 0
         temp_path = None
-        
+
         try:
             # Baixa o arquivo do Storage para um temporário local para o PyMuPDF ler
             with default_storage.open(file_path, 'rb') as f_in:
@@ -36,7 +37,7 @@ class PDFExtractor:
                             f_out.write(chunk)
                     else:
                         f_out.write(f_in.read())
-            
+
             # Padrões Regex (Cobrindo diversos formatos de data solicitados)
             # - DD/MM/AAAA ou DD/MM/AA
             # - DD-MM-AAAA ou DD-MM-AA
@@ -48,20 +49,24 @@ class PDFExtractor:
                 r'\b(\d{1,2}\.\d{1,2}\.\d{2,4})\b', # Com pontos
             ]
             regex_combined = re.compile('|'.join(paterns))
-            
-            # Abre o PDF e lê página por página
+
+            # Abre o PDF e lê página por página (captura warnings de xref para não poluir stderr)
+            fitz.TOOLS.reset_mupdf_warnings()
             with fitz.open(temp_path) as doc:
+                _w = fitz.TOOLS.mupdf_warnings()
+                if _w:
+                    import logging as _logging
+                    _logging.getLogger(__name__).warning(f"PDFExtractor MuPDF ({doc_type}): {_w.strip()}")
                 for page_num in range(len(doc)):
                     page = doc[page_num]
-                    # Retira blocos de imagens grandes para economizar RAM do worker gunicorn
                     text = page.get_text("text")
-                    # Para ter o contexto exato da linha em que a data aparece
+                    total_chars += len(text)
                     lines = text.split('\n')
                     for line in lines:
                         line_clean = line.strip()
                         if not line_clean:
                             continue
-                            
+
                         matches = regex_combined.findall(line_clean)
                         for match_group in matches:
                             # findall com multiplos padroes retorna tuplas marcando o grupo que deu hit
@@ -76,15 +81,16 @@ class PDFExtractor:
 
         except Exception as e:
             print(f"Erro na extração de texto do {doc_type}: {e}")
-            
+
         finally:
             if temp_path and os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)
                 except:
                     pass
-                    
-        return resultados
+
+        # Retorna tupla (resultados, total_chars) para detecção de legibilidade
+        return resultados, total_chars
     
     @staticmethod
     def extract_infracao_from_pdf(file_path):
@@ -114,7 +120,12 @@ class PDFExtractor:
                     else:
                         f_out.write(f_in.read())
             
+            fitz.TOOLS.reset_mupdf_warnings()
             with fitz.open(temp_path) as doc:
+                _w = fitz.TOOLS.mupdf_warnings()
+                if _w:
+                    import logging as _logging
+                    _logging.getLogger(__name__).warning(f"PDFExtractor MuPDF (infracao): {_w.strip()}")
                 text = ""
                 # Lê até as 5 primeiras páginas (geralmente o AIT tá no topo)
                 for page_num in range(min(5, len(doc))):

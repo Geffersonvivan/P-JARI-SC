@@ -1,0 +1,11 @@
+{
+  "name": "pjari-frontend",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./chat/static/css/input.css -o ./chat/static/css/tailwind.css --minify"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.13",
+    "tailwindcss": "^3.4.4"
+  }
+}

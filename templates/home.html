@@ -11,43 +11,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Phosphor Icons CDN -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com?v=3"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              display: ['Space Grotesk', 'sans-serif'],
-              sans: ['Inter', 'sans-serif'],
-            },
-            colors: {
-              space: {
-                950: '#010205',
-                900: '#02040A',
-                850: '#04060E',
-                800: '#060913',
-                700: '#0B1120',
-              },
-              brand: {
-                primary: '#ffffff',
-                secondary: '#9ca3af',
-                accent: '#22c55e', 
-                accentGlow: '#bbf7d0',
-                neutral: '#111111',
-              }
-            }
-          }
-        }
-      }
-    </script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/13.0.0/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
+    <!-- Phosphor Icons CDN (versão pinada) -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+
+    <!-- Libs JS self-hosted (sem dependência de CDN externo) -->
+    <script src="{% static 'js/marked.min.js' %}"></script>
+    <script src="{% static 'js/apexcharts.min.js' %}"></script>
+    <script src="{% static 'js/wordcloud2.min.js' %}"></script>
     
     <!-- Clerk JS Setup -->
     <script>
@@ -173,7 +145,7 @@
     <aside id="sidebar" class="sidebar w-80 flex flex-col p-4 flex-shrink-0 border-r border-gray-200 bg-[#eff3f9] text-gray-700">
         <!-- Header & Logo -->
         <div class="flex items-center gap-3 mb-8 p-1">
-            <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-900 transition">
+            <button onclick="toggleSidebar()" aria-label="Alternar menu lateral" class="p-2 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-900 transition">
                 <i class="ph ph-list text-xl"></i>
             </button>
             <a href="{% url 'home' %}" class="flex items-center gap-3 shrink-0 ml-1">
@@ -204,22 +176,25 @@
                 <!-- Projetos da Pasta Outros -->
                 <div id="projetos-{{ pasta_outros.id }}" class="hidden pl-6 pr-2 space-y-1 my-1 border-l border-gray-200 ml-3">
                     {% for p in pasta_outros.projetos.all %}
-                    <div class="relative flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200/60 transition group"
+                    <div id="projeto-item-{{ p.id }}" class="relative flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200/60 transition group"
                         onclick="selectProjeto('{{ p.id }}', '{{ pasta_outros.id }}')">
-                        <span class="flex-1 truncate mr-2 flex items-center gap-2"><div class="w-1 h-1 rounded-full bg-gray-400 group-hover:bg-blue-600 transition"></div> {{ p.nome_processo }}</span>
-                        <!-- Custom Tooltip -->
-                        <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-4 top-8 w-[260px] p-2.5 bg-space-800 text-white text-[11px] font-medium leading-tight rounded-xl shadow-2xl z-[100] whitespace-normal pointer-events-none border border-white/10">
+                        <span class="flex-1 truncate mr-2 flex items-center gap-2"><div class="projeto-dot w-1 h-1 rounded-full bg-gray-400 group-hover:bg-blue-600 transition"></div> {{ p.nome_processo }}</span>
+                        <!-- Custom Tooltip — clamp para não transbordar em mobile -->
+                        <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-4 top-8 max-w-[min(260px,calc(100vw-120px))] w-max p-2.5 bg-space-800 text-white text-[11px] font-medium leading-tight rounded-xl shadow-2xl z-[100] whitespace-normal pointer-events-none border border-white/10">
                             {{ p.nome_processo }}
                         </div>
                         <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition z-[120]">
                             <button type="button" onclick="event.stopPropagation(); openMoveModal('{{ p.id }}', '{{ pasta_outros.id }}')"
                                 class="text-green-600 hover:text-green-500 font-bold transition px-1" title="Mover Parecer"><i class="ph ph-folder-open text-sm"></i></button>
-                            <button type="button" onclick="event.stopPropagation(); deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
+                            <button type="button" aria-label="Excluir parecer" onclick="event.stopPropagation(); deleteProjeto(event, '{{ p.id }}', '{{ pasta_outros.id }}')"
                                 class="text-red-500 hover:text-red-600 font-bold transition px-1"><i class="ph ph-trash text-sm"></i></button>
                         </div>
                     </div>
                     {% empty %}
-                    <p class="text-[11px] text-gray-400 italic p-2 pl-4">Vazia</p>
+                    <div class="flex items-center gap-2 p-2 pl-4">
+                        <i class="ph ph-folder-open text-gray-300 text-sm"></i>
+                        <span class="text-[11px] text-gray-400 italic">Pasta vazia</span>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -243,28 +218,31 @@
                             <span class="bg-gray-100 border border-gray-200 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-600 transition">
                                 {{ pasta.num_projetos }}
                             </span>
-                            <button onclick="deleteFolder(event, '{{ pasta.id }}')"
+                            <button onclick="deleteFolder(event, '{{ pasta.id }}')" aria-label="Excluir pasta"
                                 class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity flex-shrink-0"><i class="ph ph-trash text-sm"></i></button>
                         </div>
                     </div>
                     <!-- Projetos da Pasta -->
                     <div id="projetos-{{ pasta.id }}" class="hidden pl-6 pr-2 space-y-1 my-1 border-l border-gray-200 ml-3">
                         {% for p in pasta.projetos.all %}
-                        <div class="relative flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200/60 transition group"
+                        <div id="projeto-item-{{ p.id }}" class="relative flex items-center justify-between text-xs text-gray-600 hover:text-blue-600 cursor-pointer p-2 rounded hover:bg-gray-200/60 transition group"
                             onclick="selectProjeto('{{ p.id }}', '{{ pasta.id }}')">
-                            <span class="flex-1 truncate mr-2 flex items-center gap-2"><div class="w-1 h-1 rounded-full bg-gray-400 group-hover:bg-blue-600 transition"></div> {{ p.nome_processo }}</span>
-                            <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-4 top-8 w-[260px] p-2.5 bg-gray-800 text-white text-[11px] font-medium leading-tight rounded-xl shadow-2xl z-[100] whitespace-normal pointer-events-none border border-gray-700">
+                            <span class="flex-1 truncate mr-2 flex items-center gap-2"><div class="projeto-dot w-1 h-1 rounded-full bg-gray-400 group-hover:bg-blue-600 transition"></div> {{ p.nome_processo }}</span>
+                            <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute left-4 top-8 max-w-[min(260px,calc(100vw-120px))] w-max p-2.5 bg-gray-800 text-white text-[11px] font-medium leading-tight rounded-xl shadow-2xl z-[100] whitespace-normal pointer-events-none border border-gray-700">
                                 {{ p.nome_processo }}
                             </div>
                             <div class="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition z-[120]">
                                 <button type="button" onclick="event.stopPropagation(); openMoveModal('{{ p.id }}', '{{ pasta.id }}')"
                                     class="text-green-600 hover:text-green-500 font-bold transition px-1" title="Mover Parecer"><i class="ph ph-folder-open text-sm"></i></button>
-                                <button type="button" onclick="event.stopPropagation(); deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
+                                <button type="button" aria-label="Excluir parecer" onclick="event.stopPropagation(); deleteProjeto(event, '{{ p.id }}', '{{ pasta.id }}')"
                                     class="text-red-500 hover:text-red-600 font-bold transition px-1"><i class="ph ph-trash text-sm"></i></button>
                             </div>
                         </div>
                         {% empty %}
-                        <p class="text-[11px] text-gray-400 italic p-2 pl-4">Vazia</p>
+                        <div class="flex items-center gap-2 p-2 pl-4">
+                            <i class="ph ph-folder-open text-gray-300 text-sm"></i>
+                            <span class="text-[11px] text-gray-400 italic">Pasta vazia</span>
+                        </div>
                         {% endfor %}
                     </div>
                 </div>
@@ -409,7 +387,7 @@
                             Termos e Privacidade
                         </a>
 
-                        <button type="button" onclick="window.Clerk.signOut({ redirectUrl: '/' })"
+                        <button type="button" onclick="window.Clerk ? window.Clerk.signOut({ redirectUrl: '/' }) : (window.location.href='/')"
                             class="w-full px-3 py-2.5 rounded-xl hover:bg-red-500/10 text-red-400 hover:text-red-300 transition flex items-center gap-4 font-medium text-[15px]">
                             <i class="ph ph-sign-out text-xl"></i>
                             Sair
@@ -444,7 +422,7 @@
                 </a>
             </div>
             <div class="flex items-center gap-4">
-                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md text-blue-700 hover:bg-white border border-white/50 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all duration-300 ring-1 ring-black/5 text-sm font-semibold z-50">
+                <button id="btn-toggle-pdf" onclick="togglePdfViewer()" class="hidden items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md text-blue-700 hover:bg-white border border-white/50 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:-translate-y-0.5 transition-all duration-300 ring-1 ring-black/5 text-sm font-semibold z-50" title="Visualizar PDF do processo">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
@@ -458,7 +436,7 @@
         </header>
 
         <!-- Container Flex para Split Screen -->
-        <div class="flex-1 flex flex-row overflow-hidden relative" id="split-container">
+        <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative" id="split-container">
             
             <!-- Painel Esquerdo: PDF Viewer (Escondido por Padrão) -->
             <div id="pdf-split-panel" class="hidden h-full flex-col border-r border-gray-200 bg-slate-50 z-10 flex-1 min-w-[300px] shadow-inner">
@@ -576,6 +554,20 @@
                     </div>
                 </div>
                 {% endif %}
+                {% if request.user.is_authenticated %}
+                <div id="btn-editar-parecer-container" class="hidden text-center mt-2">
+                    <button onclick="abrirModalEditar()"
+                        class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full transition font-medium">
+                        ✏️ Editar texto do parecer
+                    </button>
+                </div>
+                <div id="btn-reiniciar-container" class="hidden text-center mt-2">
+                    <button onclick="confirmarReiniciar()"
+                        class="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-700 underline transition">
+                        ↺ Reiniciar processo do zero
+                    </button>
+                </div>
+                {% endif %}
                 <p class="text-sm text-center mt-[2vh] text-slate-400">
                     ⚠️ <strong>ATENÇÃO:</strong> a análise do processo e a decisão final são de responsabilidade
                     exclusiva do Membro Julgador.
@@ -649,7 +641,10 @@
         </div>
     </div>
     <script>
+        let _onboardingDismissed = false;
         function dismissOnboarding() {
+            if (_onboardingDismissed) return;
+            _onboardingDismissed = true;
             const modal = document.getElementById('onboarding-modal');
             if (modal) {
                 modal.style.opacity = '0';
@@ -662,7 +657,8 @@
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json'
                 }
-            }).catch(console.error);
+            }).then(r => { if (!r.ok) console.warn('dismiss_onboarding falhou:', r.status); })
+              .catch(console.error);
         }
     </script>
     {% endif %}
@@ -672,12 +668,46 @@
     <script>
         // --- Agent Drawer Toggle removido ---
 
+        // Reabilita o input e botão de envio após conclusão de SSE/Celery
+        function enableInput() {
+            const btnSend = document.getElementById('btn-send');
+            const userInput = document.getElementById('user-input');
+            if (btnSend) btnSend.disabled = false;
+            if (userInput) userInput.disabled = false;
+        }
+
         function showLoginModal() {
             document.getElementById('login-modal').classList.remove('hidden');
         }
 
         function closeLoginModal() {
             document.getElementById('login-modal').classList.add('hidden');
+        }
+
+        function showToast(message, type = 'error') {
+            const colors = { error: 'bg-red-500', success: 'bg-green-500', info: 'bg-blue-500', warning: 'bg-amber-500' };
+            const t = document.createElement('div');
+            t.className = `fixed bottom-5 right-5 ${colors[type] || colors.error} text-white px-5 py-3 rounded-xl shadow-lg font-medium opacity-0 transition-opacity duration-300 z-[200] max-w-xs text-sm`;
+            t.textContent = message;
+            document.body.appendChild(t);
+            requestAnimationFrame(() => t.classList.remove('opacity-0'));
+            setTimeout(() => { t.classList.add('opacity-0'); setTimeout(() => t.remove(), 300); }, 4000);
+        }
+
+        function showConfirmDialog(message, onConfirm) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/50 z-[300] flex items-center justify-center';
+            overlay.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-xl p-7 max-w-sm mx-4 w-full">
+                    <p class="text-gray-800 font-medium text-base mb-6 leading-snug">${message.replace(/</g,'&lt;')}</p>
+                    <div class="flex gap-3 justify-end">
+                        <button id="confirm-cancel" class="px-5 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition text-sm">Cancelar</button>
+                        <button id="confirm-ok" class="px-5 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 font-medium transition text-sm">Confirmar</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelector('#confirm-cancel').addEventListener('click', () => overlay.remove());
+            overlay.querySelector('#confirm-ok').addEventListener('click', () => { overlay.remove(); onConfirm(); });
         }
 
         const isUserAuthenticated = "{{ request.user.is_authenticated|yesno:'true,false' }}" === "true";
@@ -696,8 +726,8 @@
             currentPastaId = null;
 
             // Simular o envio da palavra "Iniciar"
-            userInput.value = "Iniciar";
-            sendMessage();
+            // Passa a palavra "Iniciar" com flag silenciosa (true)
+            sendMessage(null, "Iniciar", true);
         }
 
         const sidebar = document.getElementById('sidebar');
@@ -811,18 +841,18 @@
                         // Atualiza a página para carregar a nova pasta perfeitamente
                         window.location.reload();
                     } else {
-                        alert('Erro ao criar parecer.');
+                        showToast('Erro ao criar parecer.');
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    alert('Erro ao criar parecer.');
+                    showToast('Erro ao criar parecer.');
                 }
             }
         });
 
         async function deleteFolder(event, id) {
             if (event) event.stopPropagation();
-            if (confirm("Deseja mesmo apagar esta pasta e TODOS os seus projetos?")) {
+            showConfirmDialog("Deseja mesmo apagar esta pasta e TODOS os seus projetos?", async () => {
                 try {
                     const response = await fetch(`/parecer/${id}/delete/`, {
                         method: 'POST',
@@ -834,18 +864,18 @@
                     if (response.ok) {
                         window.location.reload();
                     } else {
-                        alert('Erro ao excluir pasta.');
+                        showToast('Erro ao excluir pasta.');
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    alert('Erro ao excluir pasta.');
+                    showToast('Erro ao excluir pasta.');
                 }
-            }
+            });
         }
 
         async function deleteProjeto(event, id, pastaId) {
             if (event) event.stopPropagation();
-            if (confirm("Deseja mesmo apagar este projeto? Esta ação é irreversível.")) {
+            showConfirmDialog("Deseja mesmo apagar este projeto? Esta ação é irreversível.", async () => {
                 try {
                     const response = await fetch(`/projeto/${id}/delete/`, {
                         method: 'POST',
@@ -857,17 +887,77 @@
                     if (response.ok) {
                         window.location.reload();
                     } else {
-                        alert('Erro ao excluir projeto.');
+                        showToast('Erro ao excluir projeto.');
                     }
                 } catch (error) {
                     console.error('Erro:', error);
-                    alert('Erro ao excluir projeto.');
+                    showToast('Erro ao excluir projeto.');
                 }
-            }
+            });
         }
 
         let currentPastaId = null;
         let currentParecerId = null;
+        let currentParecerReadonly = false;
+        let currentStatusFase = 0;
+        let currentParecerFinal = '';
+
+        function _updateContextButtons(statusFase) {
+            const reiniciarEl = document.getElementById('btn-reiniciar-container');
+            const editarEl = document.getElementById('btn-editar-parecer-container');
+            if (reiniciarEl) reiniciarEl.classList.toggle('hidden', !(statusFase > 1 && statusFase < 7));
+            if (editarEl) editarEl.classList.toggle('hidden', statusFase !== 6);
+        }
+
+        function confirmarReiniciar() {
+            if (!currentParecerId) return;
+            if (!confirm('Reiniciar o processo irá apagar todos os dados preenchidos e gerados. Continuar?')) return;
+            sendMessage(null, 'reiniciar', true);
+        }
+
+        function abrirModalEditar() {
+            const modal = document.getElementById('modal-editar-parecer');
+            const textarea = document.getElementById('modal-editar-textarea');
+            if (!modal || !textarea) return;
+            textarea.value = currentParecerFinal;
+            modal.classList.remove('hidden');
+            textarea.focus();
+        }
+
+        function fecharModalEditar() {
+            const modal = document.getElementById('modal-editar-parecer');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function salvarEdicaoParecer() {
+            const textarea = document.getElementById('modal-editar-textarea');
+            if (!textarea) return;
+            const texto = textarea.value.trim();
+            if (!texto) { alert('O texto do parecer não pode ficar vazio.'); return; }
+            fecharModalEditar();
+            sendMessage(null, 'EDITAR: ' + texto, true);
+        }
+
+        /**
+         * Congela todos os botões interativos de fase no chat histórico.
+         * Chamado ao carregar parecer finalizado (status_fase >= 8 ou is_saved).
+         */
+        function _freezeInteractiveButtons() {
+            const selectors = [
+                '.tese-decision-block button',
+                '[onclick*="confirmarFase1"]',
+                '[onclick*="submitTeseDecisions"]',
+                '[onclick*="selectFeedbackRating"]',
+                '[onclick*="submitFeedback"]',
+                '[onclick*="sendMessage"]',
+                '[onclick*="toggleFeedbackTag"]',
+            ];
+            document.querySelectorAll(selectors.join(', ')).forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-40', 'cursor-not-allowed', 'pointer-events-none');
+                btn.title = 'Parecer finalizado — ação não disponível';
+            });
+        }
 
         function toggleFolder(pastaId) {
             const container = document.getElementById(`projetos-${pastaId}`);
@@ -914,7 +1004,7 @@
                         rDiv.className = "flex justify-start items-start gap-3 mt-4";
                         rDiv.innerHTML = `
                           <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                          <div class="text-[#444746] leading-relaxed pt-1">${formatMessage(data.reply)}</div>
+                          <div style="color: #444746;" class="leading-relaxed pt-1">${formatMessage(data.reply)}</div>
                       `;
                         messagesContainer.appendChild(rDiv);
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
@@ -925,9 +1015,24 @@
         function selectProjeto(projetoId, pastaId) {
             currentPastaId = pastaId;
             currentParecerId = projetoId;
+
+            // Highlight pasta
             document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('bg-[#e2e7ed]'));
             const element = document.getElementById(`folder-${pastaId}`);
             if (element) element.classList.add('bg-[#e2e7ed]');
+
+            // Highlight projeto ativo na sidebar
+            document.querySelectorAll('[id^="projeto-item-"]').forEach(el => {
+                el.classList.remove('bg-blue-50', 'text-blue-700', 'font-semibold');
+                const dot = el.querySelector('.projeto-dot');
+                if (dot) { dot.classList.remove('bg-blue-600'); dot.classList.add('bg-gray-400'); }
+            });
+            const activeItem = document.getElementById(`projeto-item-${projetoId}`);
+            if (activeItem) {
+                activeItem.classList.add('bg-blue-50', 'text-blue-700', 'font-semibold');
+                const dot = activeItem.querySelector('.projeto-dot');
+                if (dot) { dot.classList.remove('bg-gray-400'); dot.classList.add('bg-blue-600'); }
+            }
 
             // Limpa chat
             messagesContainer.innerHTML = '';
@@ -938,7 +1043,7 @@
             welcomeDiv.className = "flex justify-start items-start gap-3 mt-4";
             welcomeDiv.innerHTML = `
                 <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                <div class="text-[#444746] leading-relaxed pt-1 animate-pulse">Carregando processo e buscando relatório na base...</div>
+                <div style="color: #444746;" class="leading-relaxed pt-1 animate-pulse">Carregando processo e buscando relatório na base...</div>
             `;
             messagesContainer.appendChild(welcomeDiv);
 
@@ -986,10 +1091,28 @@
                         }, 100);
                     }
                     
-                    // Se o projeto já foi salvo e finalizado, não permite o usuário digitar mais nada no chat.
-                    if (data.is_saved || data.status_fase >= 8) {
+                    // Atualiza fase atual para os botões contextuais
+                    if (data.status_fase !== undefined) {
+                        currentStatusFase = data.status_fase;
+                        _updateContextButtons(currentStatusFase);
+                    }
+
+                    // Se o projeto já foi salvo e finalizado, bloqueia input e botões históricos.
+                    currentParecerReadonly = !!(data.is_saved || data.status_fase >= 8);
+                    if (currentParecerReadonly) {
                         const footer = document.getElementById('chat-footer');
                         if (footer) footer.classList.add('hidden');
+                        // Aguarda o DOM renderizar os botões antes de congelá-los
+                        setTimeout(_freezeInteractiveButtons, 50);
+                        // Banner de leitura no topo do chat
+                        const banner = document.createElement('div');
+                        banner.id = 'readonly-banner';
+                        banner.className = 'flex items-center gap-2 px-4 py-2 mb-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium';
+                        banner.innerHTML = '<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-9a4 4 0 110 8 4 4 0 010-8z"/></svg> Parecer finalizado — visualização somente leitura. Use o Agente JARI para consultas.';
+                        messagesContainer.prepend(banner);
+                    } else {
+                        currentParecerReadonly = false;
+                        document.getElementById('readonly-banner')?.remove();
                     }
                         
                         // Atualiza as opções do Leitor de PDF e abre automaticamente se existir e se passou da fase 1
@@ -1046,6 +1169,18 @@
 
             // Usa a biblioteca marked para converter Markdown em HTML real
             let rawHtml = marked.parse(text);
+
+            // Destaca células de tabela com status incerto na Fase 2 (datas sensíveis)
+            rawHtml = rawHtml.replace(/<td([^>]*)>(.*?)<\/td>/gi, function(match, attrs, content) {
+                const upper = content.toUpperCase();
+                if (upper.includes('POSSÍVEL') || upper.includes('POSSIVEL')) {
+                    return `<td${attrs} class="td-date-possivel">${content}</td>`;
+                }
+                if (upper.includes('NÃO LOCALIZADO') || upper.includes('NAO LOCALIZADO') || upper.includes('NÃO ENCONTRADO')) {
+                    return `<td${attrs} class="td-date-nao-localizado">${content}</td>`;
+                }
+                return match;
+            });
 
             // Injeta botões interativos dinâmicos para a Fase 4 do JARI
             let hasDecisionButtons = false;
@@ -1202,37 +1337,61 @@
             rawHtml = rawHtml.replace(/\[FEEDBACK_FORM\]/g, function () {
                 return `
                 <div id="feedback-container" class="bg-slate-800/80 border border-slate-700 p-5 rounded-2xl mb-6 shadow-sm relative overflow-hidden mt-6">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-10 h-10 rounded-full bg-brand-accent/20 flex items-center justify-center text-brand-accent">
+                    <!-- Cabeçalho -->
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-10 h-10 rounded-full bg-brand-accent/20 flex items-center justify-center text-brand-accent flex-shrink-0">
                             <i class="ph-fill ph-star text-xl"></i>
                         </div>
                         <div>
                             <h4 class="text-white font-bold text-base">Avalie o Parecer da IA</h4>
-                            <p class="text-slate-400 text-xs mt-0.5">O quão preciso e útil foi este resultado?</p>
+                            <p class="text-slate-400 text-xs mt-0.5">O resultado foi preciso e utilizável?</p>
                         </div>
                     </div>
-                    <div class="px-2 mb-6">
-                        <div class="flex justify-between text-xs font-semibold text-slate-500 mb-2">
-                            <span>0% (Refazer)</span>
-                            <span id="feedback-score-display" class="text-brand-accent font-bold text-sm">100% (Perfeito)</span>
-                        </div>
-                        <input type="range" id="feedback-slider" min="0" max="100" value="100" step="10" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-accent" oninput="updateFeedbackUI(this.value)">
-                    </div>
-                    <div id="feedback-details" class="hidden flex-col gap-4 animate-fade-in mt-4 pt-4 border-t border-slate-700">
-                        <p class="text-sm text-slate-300 font-medium">O que a IA deixou passar? (Opcional)</p>
-                        <div class="flex flex-wrap gap-2" id="feedback-tags-container">
-                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Errou Data/Cálculo</button>
-                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Faltou Jurisprudência</button>
-                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Alucinou Fatos</button>
-                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Tom Inadequado</button>
-                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors">Outros</button>
-                        </div>
-                        <textarea id="feedback-notes" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent/50 resize-none" placeholder="Detalhes (ex: Faltou citar o Artigo 281)..."></textarea>
-                    </div>
-                    <div class="mt-4 flex justify-end">
-                        <button id="btn-submit-feedback" onclick="submitFeedback()" class="bg-brand-accent hover:bg-green-600 text-space-950 font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-green-500/20 text-sm flex items-center gap-2">
-                            <i class="ph-bold ph-check"></i> Enviar Avaliação
+
+                    <!-- Passo 1: 3 botões de avaliação rápida -->
+                    <div id="feedback-step1" class="flex gap-3">
+                        <button onclick="selectFeedbackRating('aprovado')" id="fb-btn-aprovado"
+                            class="flex-1 flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border-2 border-slate-600 hover:border-brand-accent hover:bg-brand-accent/10 transition-all duration-200 group cursor-pointer">
+                            <span class="text-2xl">👍</span>
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-brand-accent">Aprovado</span>
+                            <span class="text-xs text-slate-500">Parecer correto</span>
                         </button>
+                        <button onclick="selectFeedbackRating('ressalvas')" id="fb-btn-ressalvas"
+                            class="flex-1 flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border-2 border-slate-600 hover:border-yellow-400 hover:bg-yellow-400/10 transition-all duration-200 group cursor-pointer">
+                            <span class="text-2xl">⚠️</span>
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-yellow-400">Com ressalvas</span>
+                            <span class="text-xs text-slate-500">Pequenos ajustes</span>
+                        </button>
+                        <button onclick="selectFeedbackRating('refazer')" id="fb-btn-refazer"
+                            class="flex-1 flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border-2 border-slate-600 hover:border-red-400 hover:bg-red-400/10 transition-all duration-200 group cursor-pointer">
+                            <span class="text-2xl">❌</span>
+                            <span class="text-xs font-bold text-slate-300 group-hover:text-red-400">Refazer</span>
+                            <span class="text-xs text-slate-500">Resultado incorreto</span>
+                        </button>
+                    </div>
+
+                    <!-- Passo 2: Tags de erro (aparece só para ressalvas/refazer) -->
+                    <div id="feedback-step2" class="hidden mt-5 pt-4 border-t border-slate-700">
+                        <p class="text-sm text-slate-300 font-semibold mb-3">O que a IA errou? <span class="text-slate-500 font-normal">(pode marcar mais de um)</span></p>
+                        <div class="flex flex-wrap gap-2" id="feedback-tags-container">
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">Errou Data/Cálculo</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">Tese Equivocada</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">Prescrição Mal Calculada</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">Faltou Jurisprudência</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">Fato Relevante Omitido</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">Alucinou Fatos</button>
+                            <button onclick="toggleFeedbackTag(this)" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">Outro</button>
+                        </div>
+
+                        <!-- Nota livre: só para "Refazer" -->
+                        <textarea id="feedback-notes" rows="2" class="hidden w-full mt-3 bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent/50 resize-none" placeholder="Descreva brevemente o problema (opcional)..."></textarea>
+
+                        <div class="mt-4 flex justify-end">
+                            <button id="btn-submit-feedback" onclick="submitFeedback()"
+                                class="bg-brand-accent hover:bg-green-600 text-space-950 font-bold py-2.5 px-6 rounded-xl transition-colors shadow-lg shadow-green-500/20 text-sm flex items-center gap-2 cursor-pointer">
+                                <i class="ph-bold ph-check"></i> Confirmar Avaliação
+                            </button>
+                        </div>
                     </div>
                 </div>
                 `;
@@ -1242,7 +1401,16 @@
             // ── FASE1_CONFIRM: Formulário de confirmação do auto-preenchimento ──
             rawHtml = rawHtml.replace(/\[FASE1_CONFIRM:(.*?)\](?:<\/p>)?/gs, function (match, jsonStr) {
                 let dados = {};
-                try { dados = JSON.parse(jsonStr); } catch(e) {}
+                try {
+                    // marked.parse converte " em &quot; — desfaz antes do JSON.parse
+                    const unescaped = jsonStr
+                        .replace(/&quot;/g, '"')
+                        .replace(/&#39;/g, "'")
+                        .replace(/&amp;/g, '&')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>');
+                    dados = JSON.parse(unescaped);
+                } catch(e) { console.error('FASE1_CONFIRM parse error:', e, jsonStr); }
 
                 function confBadge(conf) {
                     if (conf === 'alta')  return '<span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>Encontrado</span>';
@@ -1303,6 +1471,7 @@
             // Função global para confirmar Fase 1
             if (typeof window.confirmarFase1 === 'undefined') {
                 window.confirmarFase1 = function() {
+                    if (currentParecerReadonly) { showToast('Parecer finalizado — ação não disponível.', 'warning'); return; }
                     const get = id => (document.getElementById('f1_' + id)?.value || '').trim();
                     const sessao = (document.getElementById('f1_data_sessao')?.value || '').trim();
                     if (!sessao) {
@@ -1349,11 +1518,14 @@
             // Para injetar Tailwind Typography (prose) precisaríamos do plugin, então aplicamos CSS base aos elementos gerados
 
             return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
+                ${rawHtml}
                 <style>
                     .markdown-content table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; font-size: 13px; }
                     .markdown-content th, .markdown-content td { border: 1px solid #dde3ea; padding: 8px 12px; text-align: left; }
                     .markdown-content th { background-color: #eff3f9; font-weight: 600; color: #1f1f1f; }
                     .markdown-content tr:nth-child(even) { background-color: #fafbfc; }
+                    .markdown-content .td-date-possivel { background-color: #fffbeb !important; color: #92400e; font-weight: 600; }
+                    .markdown-content .td-date-nao-localizado { background-color: #fef2f2 !important; color: #991b1b; font-weight: 600; }
                     .markdown-content ul { list-style-type: disc; padding-left: 20px; }
                     .markdown-content ol { list-style-type: decimal; padding-left: 20px; }
                     .markdown-content a:not(.bg-blue-600) { color: #2563eb; text-decoration: underline; font-weight: 500; }
@@ -1361,15 +1533,30 @@
                     .markdown-content strong { color: #1f1f1f; font-weight: 700; }
                     .markdown-content hr { border-color: #dde3ea; margin: 15px 0; }
                 </style>
-                ${rawHtml}
             </div>`;
         }
 
         function pollTaskStatus(taskId, msgId, parecerId, taskType) {
+            if (activeEventSource) { activeEventSource.close(); activeEventSource = null; }
             const eventSource = new EventSource(`/chat/stream/${taskId}/?parecer_id=${parecerId || ''}`);
+            activeEventSource = eventSource;
             let streamedMarkdown = "";
             let msgContainer = document.getElementById(`msg-${msgId}`);
-            const spinnerLabel = taskType === 'FASE1' ? 'Analisando Documentos...' : 'Sintetizando Conhecimento...';
+            const spinnerMsgsFase1 = [
+                'Lendo documentos enviados...',
+                'Extraindo informações relevantes...',
+                'Identificando fundamentos legais...',
+                'Cruzando com a jurisprudência...',
+                'Verificando prazos e datas...',
+            ];
+            const spinnerMsgsFase2 = [
+                'Organizando os argumentos...',
+                'Consultando normas aplicáveis...',
+                'Construindo o parecer jurídico...',
+                'Revisando a fundamentação...',
+                'Finalizando análise...',
+            ];
+            const spinnerMsgs = taskType === 'FASE1' ? spinnerMsgsFase1 : spinnerMsgsFase2;
 
             if (msgContainer) {
                 msgContainer.innerHTML = `
@@ -1380,9 +1567,10 @@
                         <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
                             <div class="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-brand-accent to-transparent animate-shimmer-cylon"></div>
                         </div>
-                        <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold mt-1">${spinnerLabel}</div>
+                        <div id="spinner-task-label" class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold mt-1">${spinnerMsgs[0]}</div>
                     </div>
                 `;
+                rotateMsgs('spinner-task-label', spinnerMsgs, 2500);
             }
 
             eventSource.onmessage = function(event) {
@@ -1390,6 +1578,7 @@
                     const data = JSON.parse(event.data);
                     
                     if (data.status === 'CHUNK') {
+                        clearSpinner();
                         streamedMarkdown += data.text;
                         const contentDiv = document.getElementById(`stream-content-${msgId}`);
                         if (contentDiv) {
@@ -1397,17 +1586,27 @@
                             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'auto' });
                         }
                     } else if (data.status === 'SUCCESS') {
-                        eventSource.close();
+                        clearSpinner();
+                        eventSource.close(); activeEventSource = null;
                         if (msgContainer) {
-                            msgContainer.innerHTML = `
-                                <div class="w-8 h-8 rounded-full bg-green-500 shadow-md shadow-green-200 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">✓</div>
-                                <div class="text-[#444746] leading-relaxed pt-1 w-full bg-white p-6 rounded-2xl shadow-sm border border-green-200 transition-opacity duration-500">${formatMessage(data.reply)}</div>
-                            `;
-                            try {
-                                const audio = new Audio('data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
-                                audio.volume = 0.5;
-                                audio.play();
-                            } catch (e) { }
+                            if (taskType === 'FASE1') {
+                                // Fase 1: estilo de mensagem normal do assistente (formulário interativo)
+                                msgContainer.innerHTML = `
+                                    <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
+                                    <div style="color: #444746;" class="leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
+                                `;
+                            } else {
+                                // Fase 5: estilo de sucesso com verde e som
+                                msgContainer.innerHTML = `
+                                    <div class="w-8 h-8 rounded-full bg-green-500 shadow-md shadow-green-200 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">✓</div>
+                                    <div class="text-[#444746] leading-relaxed pt-1 w-full bg-white p-6 rounded-2xl shadow-sm border border-green-200 transition-opacity duration-500">${formatMessage(data.reply)}</div>
+                                `;
+                                try {
+                                    const audio = new Audio('data:audio/mp3;base64,//NExAAAAANIAAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq');
+                                    audio.volume = 0.5;
+                                    audio.play();
+                                } catch (e) { }
+                            }
 
                             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
                             
@@ -1417,9 +1616,14 @@
                             const sDots = document.getElementById('status-dots');
                             if (sDots) sDots.classList.add('hidden');
                             if (typeof enableInput === "function") enableInput();
+                            if (data.status_fase !== undefined) {
+                                currentStatusFase = data.status_fase;
+                                _updateContextButtons(currentStatusFase);
+                            }
                         }
                     } else if (data.status === 'FAILURE') {
-                        eventSource.close();
+                        clearSpinner();
+                        eventSource.close(); activeEventSource = null;
                         if (msgContainer) {
                             msgContainer.innerHTML = `
                                 <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
@@ -1437,7 +1641,7 @@
 
             eventSource.onerror = function(err) {
                 console.error("Erro no SSE EventSource:", err);
-                eventSource.close();
+                eventSource.close(); activeEventSource = null;
                 document.getElementById('status-dots').classList.add('hidden');
                 if (typeof enableInput === "function") enableInput();
                 // Substitui o spinner por mensagem de erro acionável
@@ -1454,6 +1658,10 @@
                 }
             };
         }
+
+        window.addEventListener('beforeunload', function() {
+            if (activeEventSource) { activeEventSource.close(); activeEventSource = null; }
+        });
 
         // Logica para o Modal de Citações / Tese
         function openCitacaoModal() {
@@ -1523,8 +1731,9 @@
         }
 
         async function deleteCitacao(id) {
-            if (!confirm("Tem certeza que deseja excluir permanentemente esta citação do seu banco?")) return;
-
+            showConfirmDialog("Tem certeza que deseja excluir permanentemente esta citação do seu banco?", async () => { await _deleteCitacaoConfirmed(id); });
+        }
+        async function _deleteCitacaoConfirmed(id) {
             try {
                 const response = await fetch(`/api/citacao/${id}/delete/`, {
                     method: 'POST',
@@ -1552,11 +1761,11 @@
                         if (card) card.remove();
                     }, 300);
                 } else {
-                    alert('Erro ao excluir citação.');
+                    showToast('Erro ao excluir citação.');
                 }
             } catch (e) {
                 console.error(e);
-                alert('Erro de conexão ao excluir citação.');
+                showToast('Erro de conexão ao excluir citação.');
             }
         }
 
@@ -1596,19 +1805,38 @@
                         setTimeout(() => window.location.reload(), 300);
                     }, 1200);
                 } else {
-                    alert('Erro ao processar citação. Tente novamente.');
+                    showToast('Erro ao processar citação. Tente novamente.');
                     btn.disabled = false;
                     btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
                 }
             } catch (error) {
                 console.error('Erro na requisição:', error);
-                alert('Erro de conexão ao servidor.');
+                showToast('Erro de conexão ao servidor.');
                 btn.disabled = false;
                 btn.innerHTML = isEditing ? 'Atualizar Citação' : 'Salvar Citação';
             }
         }
 
-        async function sendMessage(e, programmaticText = null) {
+        let isSubmitting = false;
+        let activeEventSource = null;
+        let activeSpinnerInterval = null;
+
+        function clearSpinner() {
+            if (activeSpinnerInterval) { clearInterval(activeSpinnerInterval); activeSpinnerInterval = null; }
+        }
+
+        function rotateMsgs(elementId, msgs, interval) {
+            clearSpinner();
+            let i = 0;
+            activeSpinnerInterval = setInterval(() => {
+                const el = document.getElementById(elementId);
+                if (!el) { clearSpinner(); return; }
+                el.textContent = msgs[i++ % msgs.length];
+            }, interval || 2500);
+        }
+
+        async function sendMessage(e, programmaticText = null, isSilent = false) {
+            if (isSubmitting) return;
             if (e && typeof e.preventDefault === 'function') e.preventDefault();
             if (!isUserAuthenticated) {
                 showLoginModal();
@@ -1623,12 +1851,12 @@
             // If there's no active Process (Parecer), the ONLY permitted action is to type "iniciar"
             if (!currentParecerId && !isIniciar) {
                 if (selectedFiles.length > 0) {
-                    alert("⚠️ Processo não iniciado!\n\nPor favor, digite apenas 'iniciar' para criar a nova solicitação. Após o assistente responder, você poderá anexar os seus arquivos no novo processo.");
+                    showToast("Digite apenas 'iniciar' para criar a nova solicitação, depois anexe os arquivos.", 'warning');
                     // Optional: remove files to avoid confusion
                     selectedFiles = [];
                     updateFilePreview();
                 } else {
-                    alert("Por favor, digite 'iniciar' para começar uma nova análise de processo.");
+                    showToast("Por favor, digite 'iniciar' para começar uma nova análise.", 'warning');
                 }
                 return;
             }
@@ -1649,7 +1877,7 @@
             }
             if(!userContent) userContent = "[Anexo]";
             
-            if (!text.startsWith('FASE1_CONFIRM:')) {
+            if (!text.startsWith('FASE1_CONFIRM:') && !isSilent) {
                 userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${userContent}</div>`;
                 messagesContainer.appendChild(userDiv);
             }
@@ -1661,14 +1889,44 @@
             const jariDiv = document.createElement('div');
             jariDiv.id = `msg-${tempId}`;
             jariDiv.className = "flex justify-start items-start gap-3 mt-4 w-full";
-            jariDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center">
-                    <i class="ph-fill ph-scales text-brand-accent text-lg"></i>
-                </div>
-                <div class="text-slate-400 font-medium animate-pulse text-sm px-4 py-1 mt-1">Avaliando...</div>
-            `;
+            jariDiv.style.cssText = "display: flex !important; opacity: 1 !important; visibility: visible !important;";
+            
+            if (!isIniciar && !isSilent) {
+                jariDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center">
+                        <i class="ph-fill ph-scales text-brand-accent text-lg"></i>
+                    </div>
+                    <div class="text-gray-800 w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 min-h-[60px]">
+                        <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
+                            <div class="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-brand-accent to-transparent animate-shimmer-cylon"></div>
+                        </div>
+                        <div id="spinner-chat-label" class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold">Consultando base jurídica...</div>
+                    </div>
+                `;
+                rotateMsgs('spinner-chat-label', [
+                    'Consultando base jurídica...',
+                    'Verificando legislação aplicável...',
+                    'Analisando o contexto do processo...',
+                    'Preparando resposta...',
+                ], 2500);
+            } else {
+                jariDiv.innerHTML = `
+                    <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style="background-color: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.3);"><i class="ph-fill ph-scales text-brand-accent text-lg pt-0.5" style="color: #16a34a;"></i></div>
+                    <div id="spinner-iniciar-label" style="color: #444746; font-size: 15px; font-weight: 500;" class="leading-relaxed pt-1 w-full animate-pulse">Verificando dados do processo...</div>
+                `;
+                rotateMsgs('spinner-iniciar-label', [
+                    'Verificando dados do processo...',
+                    'Conectando ao motor de análise...',
+                    'Carregando histórico do caso...',
+                    'Preparando ambiente de trabalho...',
+                ], 2500);
+            }
             messagesContainer.appendChild(jariDiv);
             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+
+            const btnSend = document.getElementById('btn-send');
+            isSubmitting = true;
+            if (btnSend) btnSend.disabled = true;
 
             try {
                 // Prepara payload (JSON se só texto, FormData se tiver arquivos)
@@ -1730,11 +1988,49 @@
                                     <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
                                         <div class="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-brand-accent to-transparent animate-shimmer-cylon"></div>
                                     </div>
-                                    <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold" id="status-${data.task_id}">PENSANDO PROFUNDAMENTE...</div>
+                                    <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold" id="status-${data.task_id}">Elaborando análise aprofundada...</div>
                                 </div>
                             </div>
                         `;
+                        rotateMsgs(`status-${data.task_id}`, [
+                            'Elaborando análise aprofundada...',
+                            'Consultando legislação e precedentes...',
+                            'Estruturando o raciocínio jurídico...',
+                            'Verificando fundamentos do caso...',
+                            'Quase lá, finalizando...',
+                        ], 2500);
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+
+                        // Carrega os PDFs na lateral imediatamente (mesma lógica do fluxo normal)
+                        let shouldOpenPdfAsync = false;
+                        if (data.consolidado_url) {
+                            pdfDocs.recurso = data.consolidado_url;
+                            if (data.consolidado_name) document.getElementById('tab-recurso').innerText = data.consolidado_name;
+                            shouldOpenPdfAsync = true;
+                        }
+                        if (data.autuacao_url) {
+                            pdfDocs.autuacao = data.autuacao_url;
+                            if (data.autuacao_name) document.getElementById('tab-autuacao').innerText = data.autuacao_name;
+                            shouldOpenPdfAsync = true;
+                        }
+                        if (data.ata_url) {
+                            pdfDocs.ata = data.ata_url;
+                            if (data.ata_name) document.getElementById('tab-ata').innerText = data.ata_name;
+                            shouldOpenPdfAsync = true;
+                        }
+                        if (shouldOpenPdfAsync) {
+                            if (btnTogglePdf) {
+                                btnTogglePdf.classList.remove('hidden');
+                                btnTogglePdf.classList.add('md:flex');
+                            }
+                            const mh = document.getElementById('main-header');
+                            if (mh) {
+                                mh.classList.remove('md:hidden');
+                                mh.classList.add('md:flex');
+                            }
+                            if (!pdfViewerActive) togglePdfViewer(true);
+                        }
+
                         pollTaskStatus(data.task_id, tempId, currentParecerId, data.task_type);
                         return;
                     }
@@ -1743,11 +2039,16 @@
                     // guarda o ID mas NÃO CRIA VISUALMENTE NA BARRA LATERAL AINDA!
                     if (data.active_parecer_id) {
                         currentParecerId = data.active_parecer_id;
+                        currentStatusFase = data.status_fase || 1;
+                        currentParecerFinal = '';
+                        _updateContextButtons(currentStatusFase);
                     }
 
+                    clearSpinner();
+                    document.getElementById(`msg-${tempId}`).style.cssText = "display: flex !important; opacity: 1 !important; visibility: visible !important;";
                     document.getElementById(`msg-${tempId}`).innerHTML = `
-                        <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 shadow-[0_0_10px_rgba(34,197,94,0.2)] flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
-                        <div class="text-slate-300 leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
+                        <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style="background-color: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.3);"><i class="ph-fill ph-scales text-brand-accent text-lg" style="color: #16a34a;"></i></div>
+                        <div style="color: #444746; font-size: 15px; font-weight: 500;" class="leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
                     `;
 
                     // Lógica para abrir/atualizar PDF e Nomes de Abas dinamicamente
@@ -1812,9 +2113,21 @@
                         }
                     }
 
+                    // Atualiza fase e texto do parecer para os botões contextuais
+                    if (data.status_fase !== undefined) {
+                        currentStatusFase = data.status_fase;
+                        _updateContextButtons(currentStatusFase);
+                    }
+                    if (data.parecer_final !== undefined) {
+                        currentParecerFinal = data.parecer_final;
+                    }
+
                     // Se o processo chegou ao fim (salvo na pasta), mostra Toast e reinicia o layout
                     if (data.status_fase === 8) {
                         currentParecerId = null;
+                        currentStatusFase = 0;
+                        currentParecerFinal = '';
+                        _updateContextButtons(0);
 
                         const toast = document.createElement('div');
                         toast.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-4 rounded-xl shadow-2xl z-50 transition-opacity duration-500 font-medium flex items-center gap-3';
@@ -1833,9 +2146,11 @@
                     }
                 } else {
                     let errorMessage = "Erro ao processar mensagem.";
+                    let isReadonly = false;
                     try {
                         const errorData = await response.json();
                         errorMessage = errorData.error || errorData.trace || errorMessage;
+                        isReadonly = !!errorData.readonly;
                         console.error("Backend Error:", errorData);
                     } catch (e) {
                         try {
@@ -1844,10 +2159,18 @@
                         } catch (e2) { }
                     }
 
-                    document.getElementById(`msg-${tempId}`).innerHTML = `
-                        <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
-                        <div class="text-red-500 leading-relaxed pt-1 w-full overflow-x-auto"><pre class="text-xs font-mono whitespace-pre-wrap">${errorMessage}</pre></div>
-                    `;
+                    if (isReadonly || response.status === 409) {
+                        // Parecer finalizado: remove a mensagem pendente e mostra toast
+                        document.getElementById(`msg-${tempId}`)?.remove();
+                        showToast('Parecer finalizado — esta ação não está mais disponível.', 'warning');
+                        currentParecerReadonly = true;
+                        setTimeout(_freezeInteractiveButtons, 0);
+                    } else {
+                        document.getElementById(`msg-${tempId}`).innerHTML = `
+                            <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
+                            <div class="text-red-500 leading-relaxed pt-1 w-full overflow-x-auto"><pre class="text-xs font-mono whitespace-pre-wrap">${errorMessage}</pre></div>
+                        `;
+                    }
                 }
             } catch (error) {
                 console.error('Erro de Rede Exceção:', error);
@@ -1855,6 +2178,9 @@
                     <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
                     <div class="text-red-500 leading-relaxed pt-1 w-full overflow-x-auto"><pre class="text-xs font-mono whitespace-pre-wrap">${error}</pre></div>
                 `;
+            } finally {
+                isSubmitting = false;
+                if (btnSend) btnSend.disabled = false;
             }
             chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
         }
@@ -1948,7 +2274,7 @@
                     // Reload to update sidebar
                     window.location.reload();
                 } else {
-                    alert('Erro ao mover o parecer.');
+                    showToast('Erro ao mover o parecer.');
                 }
             } catch (error) {
                 console.error("Erro na movimentação: ", error);
@@ -2063,12 +2389,13 @@
         };
 
         window.submitTeseDecisions = function (btn) {
+            if (currentParecerReadonly) { showToast('Parecer finalizado — ação não disponível.', 'warning'); return; }
             const messageContainer = btn.closest('.markdown-content');
             const blocks = messageContainer.querySelectorAll('.tese-decision-block');
             const totalTeses = blocks.length;
 
             if (Object.keys(window.currentTeseDecisions).length < totalTeses) {
-                alert("Por favor, selecione expressamente uma opção (Acolher/Não Acolher) para TODAS as teses listadas antes de confirmar.");
+                showToast("Por favor, selecione uma opção para TODAS as teses antes de confirmar.", 'warning');
                 return;
             }
 
@@ -2145,7 +2472,7 @@
                 }
                 
                 // FECHA A SIDEBAR AO ABRIR O PDF AUTOMATICAMENTE (Se estiver aberta e em Desktop)
-                if (window.innerWidth >= 768 && sidebar && !sidebar.classList.contains('sidebar-condensed')) {
+                if (window.innerWidth >= 768 && sidebar && !sidebar.classList.contains('sidebar-hidden')) {
                     toggleSidebar();
                 }
                 
@@ -2297,80 +2624,101 @@
         });
 
         // ================= Feedback UI Handlers =================
-        function updateFeedbackUI(val) {
-            const display = document.getElementById('feedback-score-display');
-            const details = document.getElementById('feedback-details');
-            
-            if (val == 100) {
-                display.innerText = '100% (Perfeito)';
-                display.className = 'text-brand-accent font-bold text-sm';
-                details.classList.add('hidden');
-                details.classList.remove('flex');
+        let _feedbackRating = null; // 'aprovado' | 'ressalvas' | 'refazer'
+
+        function selectFeedbackRating(rating) {
+            if (currentParecerReadonly) { showToast('Parecer finalizado — avaliação não disponível aqui. Acesse pelo editor do parecer.', 'warning'); return; }
+            _feedbackRating = rating;
+
+            // Estilos dos 3 botões
+            const configs = {
+                aprovado:  { id: 'fb-btn-aprovado',  active: 'border-brand-accent bg-brand-accent/15 text-brand-accent',  color: 'brand-accent' },
+                ressalvas: { id: 'fb-btn-ressalvas', active: 'border-yellow-400 bg-yellow-400/15 text-yellow-400', color: 'yellow-400' },
+                refazer:   { id: 'fb-btn-refazer',   active: 'border-red-400 bg-red-400/15 text-red-400',    color: 'red-400' },
+            };
+
+            ['aprovado', 'ressalvas', 'refazer'].forEach(r => {
+                const btn = document.getElementById(configs[r].id);
+                if (!btn) return;
+                // Reset
+                btn.classList.remove('border-brand-accent','bg-brand-accent/15','border-yellow-400','bg-yellow-400/15','border-red-400','bg-red-400/15');
+                btn.classList.add('border-slate-600');
+                btn.querySelectorAll('span').forEach(s => { s.classList.remove('text-brand-accent','text-yellow-400','text-red-400'); });
+                if (r === rating) {
+                    btn.classList.remove('border-slate-600');
+                    configs[r].active.split(' ').forEach(c => btn.classList.add(c));
+                }
+            });
+
+            if (rating === 'aprovado') {
+                // Happy path: envia imediatamente sem mostrar mais nada
+                submitFeedback();
             } else {
-                display.innerText = val + '%';
-                if (val >= 70) display.className = 'text-yellow-400 font-bold text-sm';
-                else display.className = 'text-red-400 font-bold text-sm';
-                
-                details.classList.remove('hidden');
-                details.classList.add('flex');
+                // Mostra Passo 2
+                const step2 = document.getElementById('feedback-step2');
+                step2.classList.remove('hidden');
+                // Nota livre só para "Refazer"
+                const notes = document.getElementById('feedback-notes');
+                if (rating === 'refazer') {
+                    notes.classList.remove('hidden');
+                } else {
+                    notes.classList.add('hidden');
+                    notes.value = '';
+                }
             }
         }
 
         function toggleFeedbackTag(btn) {
-            btn.classList.toggle('bg-brand-accent/20');
-            btn.classList.toggle('border-brand-accent');
-            btn.classList.toggle('text-brand-accent');
-            if (btn.hasAttribute('data-active')) {
+            const isActive = btn.hasAttribute('data-active');
+            if (isActive) {
                 btn.removeAttribute('data-active');
+                btn.classList.remove('bg-brand-accent/20', 'border-brand-accent', 'text-brand-accent');
             } else {
                 btn.setAttribute('data-active', 'true');
+                btn.classList.add('bg-brand-accent/20', 'border-brand-accent', 'text-brand-accent');
             }
         }
 
         async function submitFeedback() {
             if (!currentParecerId) return;
-            
-            const btn = document.getElementById('btn-submit-feedback');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="ph animate-spin ph-spinner"></i> Salvando...';
-            
-            const score = document.getElementById('feedback-slider').value;
+
+            // Score mapeado a partir da escolha
+            const scoreMap = { aprovado: 100, ressalvas: 60, refazer: 0 };
+            const score = scoreMap[_feedbackRating] ?? 100;
+
             const notes = document.getElementById('feedback-notes') ? document.getElementById('feedback-notes').value : '';
-            
             const tags = [];
-            const tagBtns = document.querySelectorAll('#feedback-tags-container button[data-active="true"]');
-            tagBtns.forEach(b => tags.push(b.innerText.trim()));
-            
+            document.querySelectorAll('#feedback-tags-container button[data-active="true"]').forEach(b => tags.push(b.innerText.trim()));
+
+            // Desabilita botão se visível
+            const btn = document.getElementById('btn-submit-feedback');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph animate-spin ph-spinner"></i> Salvando...'; }
+
             try {
                 const res = await fetch(`/api/parecer/${currentParecerId}/feedback/`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrftoken
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
                     body: JSON.stringify({ score, tags, notes })
                 });
-                
+
                 if (res.ok) {
                     const container = document.getElementById('feedback-container');
+                    const emoji = _feedbackRating === 'aprovado' ? '✅' : _feedbackRating === 'ressalvas' ? '⚠️' : '📝';
+                    const msg   = _feedbackRating === 'aprovado' ? 'Ótimo! Parecer aprovado.' : 'Feedback registrado. Obrigado!';
                     container.innerHTML = `
                         <div class="flex items-center gap-3 justify-center py-4">
-                            <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
-                                <i class="ph-fill ph-check-circle text-2xl"></i>
-                            </div>
-                            <span class="text-green-400 font-semibold">Avaliação salva! Obrigado pelo feedback.</span>
+                            <span class="text-2xl">${emoji}</span>
+                            <span class="text-green-400 font-semibold">${msg}</span>
                         </div>
                     `;
                 } else {
-                    alert("Erro ao salvar avaliação.");
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviar Avaliação';
+                    showToast("Erro ao salvar avaliação.");
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar Avaliação'; }
                 }
             } catch (e) {
                 console.error(e);
-                alert("Erro de conexão.");
-                btn.disabled = false;
-                btn.innerHTML = '<i class="ph-bold ph-check"></i> Enviar Avaliação';
+                showToast("Erro de conexão.");
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar Avaliação'; }
             }
         }
 
@@ -2393,7 +2741,8 @@
                 try {
                     const token = await Clerk.session.getToken();
                     if (token) {
-                        document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax; Secure`;
+                        const isHttps = window.location.protocol === 'https:';
+                        document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax;${isHttps ? ' Secure' : ''}`;
                     }
                 } catch(e) { console.error("Error syncing clerk token", e); }
 
@@ -2406,8 +2755,8 @@
                 }
                 
                 // Se o django falhou em renderizar mas temos o token agora, recarregamos a página 1x para o Django ler o cookie real fresh
-                if (btnEntrar && !window.location.hash.includes('reloaded')) {
-                    window.location.hash = 'reloaded';
+                if (btnEntrar && !sessionStorage.getItem('clerk_reloaded')) {
+                    sessionStorage.setItem('clerk_reloaded', '1');
                     window.location.reload();
                     return;
                 }
@@ -2565,6 +2914,32 @@
 
     <!-- Inclui Modal Fórum -->
     {% include 'forum_modal.html' %}
-    
+
+    <!-- Modal: Editar texto do parecer (Fase 6) -->
+    <div id="modal-editar-parecer" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">✏️ Editar Parecer Técnico</h2>
+                <button onclick="fecharModalEditar()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="px-6 py-4 flex-1 overflow-y-auto">
+                <p class="text-xs text-gray-500 mb-3">Edite o texto abaixo. Ao salvar, a auditoria será executada sobre o texto revisado.</p>
+                <textarea id="modal-editar-textarea"
+                    class="w-full h-96 text-sm font-mono border border-gray-300 rounded-lg p-3 resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    placeholder="Texto do parecer..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                <button onclick="fecharModalEditar()"
+                    class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg transition">
+                    Cancelar
+                </button>
+                <button onclick="salvarEdicaoParecer()"
+                    class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition">
+                    Salvar e continuar
+                </button>
+            </div>
+        </div>
+    </div>
+
     </body>
 </html>

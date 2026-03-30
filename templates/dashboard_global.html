@@ -1,3 +1,4 @@
+{% load static %}
 {% load socialaccount %}
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -11,23 +12,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Phosphor Icons CDN -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              display: ['Space Grotesk', 'sans-serif'],
-              sans: ['Inter', 'sans-serif'],
-            }
-          }
-        }
-      }
-    </script>
     <style>
         /* Cores fixadas conforme o layout definido */
         :root {
@@ -1285,9 +1274,13 @@
         }
 
         // --- ApexCharts Initialization ---
+        {{ grafico_datas|json_script:"_jdg_datas" }}
+        {{ grafico_totais|json_script:"_jdg_totais" }}
+        {{ donut_series|json_script:"_jdg_donut" }}
+        {{ historico_test_runs|json_script:"_jdg_testruns" }}
         document.addEventListener("DOMContentLoaded", function () {
-            const datas = JSON.parse('{{ grafico_datas|safe }}' || '[]');
-            const totais = JSON.parse('{{ grafico_totais|safe }}' || '[]');
+            const datas  = JSON.parse(document.getElementById('_jdg_datas').textContent  || '[]');
+            const totais = JSON.parse(document.getElementById('_jdg_totais').textContent || '[]');
 
             const lineOptions = {
                 series: [{
@@ -1327,16 +1320,16 @@
                     strokeDashArray: 4,
                 }
             };
-            var lineChartContainer = document.querySelector("#line-chart");
+            const lineChartContainer = document.querySelector("#line-chart");
             if (totais.length === 0) {
                 lineChartContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full w-full text-gray-400 py-12"><span class="text-4xl mb-3 opacity-30">📉</span><p class="text-sm font-medium">Sem dados suficientes para este período.</p></div>';
             } else {
-                var lineChart = new ApexCharts(lineChartContainer, lineOptions);
+                const lineChart = new ApexCharts(lineChartContainer, lineOptions);
                 lineChart.render();
             }
 
             // --- Donut Chart Initialization ---
-            const donutSeriesRaw = JSON.parse('{{ donut_series|safe }}' || '[0, 0]');
+            const donutSeriesRaw = JSON.parse(document.getElementById('_jdg_donut').textContent || '[0, 0]');
             const donutSeries = [parseInt(donutSeriesRaw[0]) || 0, parseInt(donutSeriesRaw[1]) || 0];
 
             // Se ambos são 0, evitar erro de blank chart
@@ -1387,7 +1380,7 @@
                     y: { formatter: function (val) { return val + " Autos" } }
                 }
             };
-            var donutChartContainer = document.querySelector("#donut-chart");
+            const donutChartContainer = document.querySelector("#donut-chart");
             if (isDonutEmpty) {
                 donutChartContainer.innerHTML = '<div class="flex flex-col items-center justify-center h-full w-full text-gray-400 py-8"><span class="text-4xl mb-3 opacity-30">🍩</span><p class="text-sm font-medium text-center">Nenhum veredito no período.</p></div>';
             } else {
@@ -1396,7 +1389,7 @@
             }
 
             // --- Test Runs Chart ---
-            const testRunsRaw = {{ historico_test_runs|safe }};
+            const testRunsRaw = JSON.parse(document.getElementById('_jdg_testruns').textContent || '[]');
             if (testRunsRaw && testRunsRaw.length > 0) {
                 const trLabels  = testRunsRaw.map(r => {
                     const d = new Date(r.executado_em);

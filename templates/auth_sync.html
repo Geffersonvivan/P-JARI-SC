@@ -4,22 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autenticando - P-JARI/SC</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #f8fafc;
+            height: 100vh; width: 100vw;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+        .wrapper { display: flex; flex-direction: column; align-items: center; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            width: 2.5rem; height: 2.5rem;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+        h2 { font-size: 1.25rem; font-weight: 600; color: #1e293b; }
+        p  { font-size: 0.875rem; color: #64748b; margin-top: 0.5rem; }
     </style>
 </head>
-<body class="h-screen w-screen flex flex-col items-center justify-center">
-
-    <div class="flex flex-col items-center">
+<body>
+    <div class="wrapper">
         <!-- Spinner -->
-        <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <svg class="spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle style="opacity:.25" cx="12" cy="12" r="10" stroke="#2563eb" stroke-width="4"></circle>
+          <path style="opacity:.75" fill="#2563eb" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <h2 class="text-xl font-semibold text-slate-800">Preparando seu ambiente...</h2>
-        <p class="text-slate-500 text-sm mt-2">Sincronizando chave de segurança.</p>
+        <h2>Preparando seu ambiente...</h2>
+        <p>Sincronizando chave de segurança.</p>
     </div>
 
     <!-- Clerk JS Setup -->
@@ -45,7 +58,8 @@
                     const token = await Clerk.session.getToken();
                     if (token) {
                         // Força a escrita do Cookie
-                        document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax; Secure`;
+                        const isHttps = window.location.protocol === 'https:';
+                        document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax;${isHttps ? ' Secure' : ''}`;
                     }
                 } catch(e) {
                     console.error("Erro na sincronização de token", e);

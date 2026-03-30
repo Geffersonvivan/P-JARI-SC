@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR" class="dark scroll-smooth">
 <head>
@@ -12,61 +13,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
     
     <!-- Phosphor Icons CDN -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
     <!-- GSAP CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              display: ['Space Grotesk', 'sans-serif'],
-              sans: ['Inter', 'sans-serif'],
-              serif: ['Instrument Serif', 'serif'],
-            },
-            colors: {
-              space: {
-                950: '#010205',
-                900: '#02040A',
-                850: '#04060E',
-                800: '#060913',
-                700: '#0B1120',
-              },
-              brand: {
-                primary: '#ffffff',
-                secondary: '#9ca3af',
-                accent: '#22c55e', 
-                accentGlow: '#bbf7d0',
-                warning: '#f59e0b',
-                neutral: '#111111',
-              }
-            },
-            animation: {
-              'spin-slow': 'spin 15s linear infinite',
-              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'float': 'float 6s ease-in-out infinite',
-              'glow-pulse': 'glowPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-            },
-            keyframes: {
-              'float': {
-                '0%, 100%': { transform: 'translateY(0)' },
-                '50%': { transform: 'translateY(-20px)' },
-              },
-              glowPulse: {
-                '0%, 100%': { boxShadow: '0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 0 1px rgba(34, 197, 94, 0.2)' },
-                '50%': { boxShadow: '0 0 35px rgba(34, 197, 94, 0.5), inset 0 0 0 1px rgba(34, 197, 94, 0.4)' },
-              }
-            }
-          }
-        }
-      }
-    </script>
-    
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+
     <style>
         /* Base Variables */
         :root {
@@ -1306,7 +1259,8 @@
                     try {
                         const token = await window.Clerk.session.getToken();
                         if (token) {
-                            document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax; Secure`;
+                            const isHttps = window.location.protocol === 'https:';
+                            document.cookie = `__session=${token}; path=/; max-age=3600; SameSite=Lax;${isHttps ? ' Secure' : ''}`;
                         }
                     } catch(e) {}
                     

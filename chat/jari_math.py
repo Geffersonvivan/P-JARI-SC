@@ -1,7 +1,19 @@
 import datetime
 import calendar
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 class JariMath:
+    # Res. CONTRAN 782/2020 — suspensão de prazos COVID-19
+    # logica_jari.md §246: "A partir de 20/03/2020... encerramento em 30/11/2020, totalizando 256 dias corridos."
+    INICIO_COVID_SUSPENSAO = datetime.date(2020, 3, 20)
+    FIM_COVID_SUSPENSAO    = datetime.date(2020, 11, 30)
+    # Período inclusivo (20/03 e 30/11 contam): (FIM - INICIO).days + 1 = 256
+    # Fonte: logica_jari §246 — "totalizando 256 dias corridos de impedimento legal de agir"
+    DIAS_SUSPENSAO_COVID   = (datetime.date(2020, 11, 30) - datetime.date(2020, 3, 20)).days + 1  # 256
+
     @staticmethod
     def is_leap_year(year):
         """Verifica se um ano é bissexto."""
@@ -51,7 +63,7 @@ class JariMath:
         return data_base.replace(year=ano_aniversario, month=mes, day=dia)
 
     @staticmethod
-    def check_prescription_punitiva(data_infracao, data_sessao, marcos_interruptivos=None):
+    def check_prescription_punitiva(data_infracao, data_sessao, marcos_interruptivos=None, desconto_covid_dias=0):
         """
         Prescrição Punitiva (Lei 9.873/99): 5 anos por data aniversário.
         Spec logica_jari.md §108–143:
@@ -59,13 +71,25 @@ class JariMath:
           - O prazo expira às 23:59 do dia aniversário de 5 anos do último marco.
           - Se data_sessao > aniversário → SIM (prescrito).
           - Se data_sessao <= aniversário → NÃO.
+
+        desconto_covid_dias: dias de suspensão COVID (256) a adicionar ao aniversário
+          prescricional quando o último marco interruptivo ocorreu antes do fim do
+          período de suspensão (Res. CONTRAN 782/2020 — até 30/11/2020).
+          Isso estende o prazo, evitando declarar prescrição indevida.
         """
         ultimo_marco = data_infracao
         if marcos_interruptivos and len(marcos_interruptivos) > 0:
             ultimo_marco = max(marcos_interruptivos)
 
         aniversario = JariMath._aniversario_5_anos(ultimo_marco)
-        return data_sessao > aniversario
+        if desconto_covid_dias:
+            aniversario = aniversario + datetime.timedelta(days=desconto_covid_dias)
+        _prescrito = data_sessao > aniversario if data_sessao else False
+        _logger.info(
+            "[JARIMATH] punitiva=%s | ultimo_marco=%s | aniversario=%s | sessao=%s | covid_dias=%s",
+            _prescrito, ultimo_marco, aniversario, data_sessao, desconto_covid_dias,
+        )
+        return _prescrito
 
     @staticmethod
     def check_prescription_intercorrente(data_protocolo, data_sessao):
@@ -105,7 +129,11 @@ class JariMath:
             declaracao = "Prescrição intercorrente configurada."
         else:
             declaracao = "Prescrição intercorrente não configurada."
-            
+
+        _logger.info(
+            "[JARIMATH] intercorrente=%s | protocolo=%s | aniversario=%s | sessao=%s",
+            is_prescrito, data_protocolo, aniversario, data_sessao,
+        )
         return is_prescrito, declaracao
 
     @staticmethod
@@ -138,14 +166,13 @@ class JariMath:
         # Marcos legais de transição CTB
         LIMIAR_1_ANTIGA = datetime.date(2021, 4, 12)
         LIMIAR_2_TRANSICAO = datetime.date(2021, 10, 22)
-        FIM_COVID_SUSPENSAO = datetime.date(2020, 11, 30)
-        
+
         dias_infracao_notificacao = JariMath.calculate_days_diff(data_infracao, data_expedicao_autuacao)
         desconto_covid = 0
         incidencia_covid_texto = "Não aplicável."
 
-        if data_infracao <= FIM_COVID_SUSPENSAO:
-            desconto_covid = 256
+        if data_infracao <= JariMath.FIM_COVID_SUSPENSAO:
+            desconto_covid = JariMath.DIAS_SUSPENSAO_COVID
             dias_infracao_notificacao = max(0, dias_infracao_notificacao - desconto_covid)
             incidencia_covid_texto = "Sim (Res. 782/CONTRAN gerou desconto de -256 dias ao cômputo)."
 
@@ -163,7 +190,9 @@ class JariMath:
             # FILTRO 3 — Suspensão/Cassação: marco inicial é a conclusão da multa, não a infração
             # (logica_jari.md §218: "data da conclusão do processo da multa que lhes deu causa")
             if _penalidade_grave:
-                regra_aplicada = "180 dias Notificação / 360 dias Conclusão — marco: conclusão da multa"
+                # C2-FIX: spec §241 — único prazo para suspensão/cassação é 360 dias da conclusão da multa.
+                # Removido o check intermediário de 180 dias que não existe na especificação.
+                regra_aplicada = "360 dias Instauração — marco: conclusão da multa (art. 24 §1º Res. 844/2021)"
                 if data_conclusao_multa:
                     data_marco_inicio = data_conclusao_multa
                     if isinstance(data_marco_inicio, str):
@@ -176,66 +205,49 @@ class JariMath:
                     dias_marco_notificacao = dias_infracao_notificacao
                     regra_aplicada += " [AVISO: data_conclusao_multa não informada — usando data_infracao como fallback]"
 
-                if dias_marco_notificacao > 180:
+                if dias_marco_notificacao > 360:
                     decadencia_encontrada = True
                     detalhe_calculo = (
-                        f"Notificação excedeu 180 dias a partir da conclusão da multa "
+                        f"Instauração excedeu 360 dias a partir da conclusão da multa "
                         f"({dias_marco_notificacao} dias contabilizados)."
                     )
-                elif data_decisao_final:
-                    dias_marco_decisao = max(0, JariMath.calculate_days_diff(data_marco_inicio, data_decisao_final) - desconto_covid)
-                    if dias_marco_decisao > 360:
-                        decadencia_encontrada = True
-                        detalhe_calculo = (
-                            f"Decisão Final excedeu 360 dias a partir da conclusão da multa "
-                            f"({dias_marco_decisao} dias contabilizados)."
-                        )
-                    else:
-                        detalhe_calculo = (
-                            f"Dentro do limite de 360 dias a partir da conclusão da multa "
-                            f"({dias_marco_decisao} dias transcorridos)."
-                        )
                 else:
                     detalhe_calculo = (
-                        f"Dentro do limite de 180 dias para notificação a partir da conclusão da multa "
+                        f"Dentro do limite de 360 dias a partir da conclusão da multa "
                         f"({dias_marco_notificacao} dias transcorridos)."
                     )
             else:
-                # FILTRO 3 — Multa/Advertência: marco inicial depende do flagrante
-                # Com flagrante → data_infracao (agente presenciou o ato)
-                # Sem flagrante → data_conhecimento_infracao (art. 282 §6º-A CTB)
-                # Não determinado → fallback conservador: data_infracao com aviso
+                # FILTRO 3 — Multa/Advertência: marco e limiar dependem do flagrante
+                # Com flagrante    → 180 dias da data_infracao (art. 282 §6º-A CTB / logica_jari §239)
+                # Sem flagrante    → 360 dias da data_conhecimento_infracao (art. 282 §6º-A CTB / logica_jari §240)
+                # Não determinado → fallback conservador: data_infracao com 180 dias
                 if tem_flagrante is False and data_conhecimento_infracao:
                     data_marco_multa = data_conhecimento_infracao
                     if isinstance(data_marco_multa, str):
                         import datetime as _dt
                         data_marco_multa = _dt.datetime.strptime(data_marco_multa, "%Y-%m-%d").date()
-                    regra_aplicada = "180 dias Notificação / 360 dias Conclusão — marco: data do conhecimento (sem flagrante, art. 282 §6º-A CTB)"
+                    regra_aplicada = "360 dias — marco: data do conhecimento (sem flagrante, art. 282 §6º-A CTB)"
                     dias_marco_notificacao = max(0, JariMath.calculate_days_diff(data_marco_multa, data_expedicao_autuacao) - desconto_covid)
+                    limiar_f3 = 360
                 elif tem_flagrante is False and not data_conhecimento_infracao:
                     data_marco_multa = data_infracao
-                    regra_aplicada = "180 dias Notificação / 360 dias Conclusão — sem flagrante, marco data_infracao (data_conhecimento não informada)"
+                    regra_aplicada = "180 dias — sem flagrante, marco data_infracao (data_conhecimento não informada)"
                     dias_marco_notificacao = dias_infracao_notificacao
+                    limiar_f3 = 180
                 else:
-                    # Com flagrante ou não determinado → data_infracao
+                    # Com flagrante ou não determinado → 180 dias da data_infracao
                     data_marco_multa = data_infracao
-                    regra_aplicada = "180 dias Notificação / 360 dias Conclusão"
+                    regra_aplicada = "180 dias — marco: data da infração (flagrante, art. 282 §6º-A CTB)"
                     if tem_flagrante is None:
                         regra_aplicada += " [flagrante não determinado — usando data_infracao como fallback]"
                     dias_marco_notificacao = dias_infracao_notificacao
+                    limiar_f3 = 180
 
-                if dias_marco_notificacao > 180:
+                if dias_marco_notificacao > limiar_f3:
                     decadencia_encontrada = True
-                    detalhe_calculo = f"Notificação excedeu 180 dias ({dias_marco_notificacao} dias contabilizados)."
-                elif data_decisao_final:
-                    dias_marco_decisao = max(0, JariMath.calculate_days_diff(data_marco_multa, data_decisao_final) - desconto_covid)
-                    if dias_marco_decisao > 360:
-                        decadencia_encontrada = True
-                        detalhe_calculo = f"Decisão Final excedeu 360 dias ({dias_marco_decisao} dias contabilizados)."
-                    else:
-                        detalhe_calculo = f"Dentro do limite de 360 dias ({dias_marco_decisao} dias transcorridos)."
+                    detalhe_calculo = f"Prazo excedeu {limiar_f3} dias ({dias_marco_notificacao} dias contabilizados)."
                 else:
-                    detalhe_calculo = f"Dentro do limite de 180 dias para notificação ({dias_marco_notificacao} dias transcorridos)."
+                    detalhe_calculo = f"Dentro do limite de {limiar_f3} dias ({dias_marco_notificacao} dias transcorridos)."
 
         # B) Infrações entre 12/04/2021 e 21/10/2021 (inclusive) — FILTRO 2
         elif data_infracao >= LIMIAR_1_ANTIGA and data_infracao < LIMIAR_2_TRANSICAO:
@@ -254,21 +266,36 @@ class JariMath:
                     "Análise encaminhada à Prescrição Punitiva (Lei 9.873/1999)."
                 )
             else:
-                regra_aplicada = "180 dias Notificação / 360 dias Decisão Final"
-                # Infração -> Notificação (180 dias)
-                if dias_infracao_notificacao > 180:
-                    decadencia_encontrada = True
-                    detalhe_calculo = f"Notificação excedeu 180 dias ({dias_infracao_notificacao} dias contabilizados)."
-                # Infração -> Conclusão do processo (360 dias)
-                elif data_decisao_final:
-                    dias_infracao_conclusao = max(0, JariMath.calculate_days_diff(data_infracao, data_decisao_final) - desconto_covid)
-                    if dias_infracao_conclusao > 360:
-                        decadencia_encontrada = True
-                        detalhe_calculo = f"Decisão Final excedeu 360 dias ({dias_infracao_conclusao} dias contabilizados)."
-                    else:
-                        detalhe_calculo = f"Dentro do limite de 360 dias ({dias_infracao_conclusao} dias transcorridos)."
+                # C1-FIX: FILTRO 2 multa/advertência — distinguir flagrante de sem flagrante.
+                # Com flagrante → 180 dias da data_infracao (logica_jari.md §227)
+                # Sem flagrante → 360 dias da data_conhecimento_infracao (logica_jari.md §228)
+                if tem_flagrante is False and data_conhecimento_infracao:
+                    data_marco_multa_f2 = data_conhecimento_infracao
+                    if isinstance(data_marco_multa_f2, str):
+                        import datetime as _dt
+                        data_marco_multa_f2 = _dt.datetime.strptime(data_marco_multa_f2, "%Y-%m-%d").date()
+                    regra_aplicada = "360 dias — marco: data do conhecimento (sem flagrante, art. 282 §6º-A CTB)"
+                    dias_marco_f2 = max(0, JariMath.calculate_days_diff(data_marco_multa_f2, data_expedicao_autuacao) - desconto_covid)
+                    limiar_f2 = 360
+                elif tem_flagrante is False and not data_conhecimento_infracao:
+                    data_marco_multa_f2 = data_infracao
+                    regra_aplicada = "180 dias — sem flagrante, marco data_infracao (data_conhecimento não informada)"
+                    dias_marco_f2 = dias_infracao_notificacao
+                    limiar_f2 = 180
                 else:
-                    detalhe_calculo = f"Dentro do limite de 180 dias para notificação ({dias_infracao_notificacao} dias transcorridos)."
+                    # Com flagrante ou não determinado → 180 dias da data_infracao
+                    data_marco_multa_f2 = data_infracao
+                    regra_aplicada = "180 dias Notificação / 360 dias Decisão Final"
+                    if tem_flagrante is None:
+                        regra_aplicada += " [flagrante não determinado — usando data_infracao como fallback]"
+                    dias_marco_f2 = dias_infracao_notificacao
+                    limiar_f2 = 180
+
+                if dias_marco_f2 > limiar_f2:
+                    decadencia_encontrada = True
+                    detalhe_calculo = f"Prazo excedeu {limiar_f2} dias ({dias_marco_f2} dias contabilizados)."
+                else:
+                    detalhe_calculo = f"Dentro do limite de {limiar_f2} dias ({dias_marco_f2} dias transcorridos)."
             
         # A) Infrações anteriores a 12/04/2021 — FILTRO 1
         # HARD STOP (Parecer CETRAN/SC 381/2022): decadência de 180/360 dias é PROIBIDA
@@ -291,6 +318,11 @@ class JariMath:
             f"  - **Detalhe do Cálculo**: {detalhe_calculo}"
         )
 
+        _logger.info(
+            "[JARIMATH] decadencia=%s | filtro=%s | regra=%s | detalhe=%s",
+            decadencia_encontrada, faixa_temporal, regra_aplicada,
+            detalhe_calculo[:120] if detalhe_calculo else '',
+        )
         return (decadencia_encontrada, relatorio_decadencia)
 
     @staticmethod

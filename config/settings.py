@@ -20,14 +20,15 @@ import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 
 sentry_dsn = os.environ.get('SENTRY_DSN')
+_is_debug = os.environ.get('DEBUG', 'False') == 'True'
 if sentry_dsn:
     sentry_sdk.init(
         dsn=sentry_dsn,
         integrations=[DjangoIntegration()],
         send_default_pii=False,
         enable_logs=True,
-        traces_sample_rate=1.0,
-        profile_session_sample_rate=1.0,
+        traces_sample_rate=0.0 if _is_debug else 1.0,
+        profile_session_sample_rate=0.0 if _is_debug else 1.0,
         profile_lifecycle="trace",
     )
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -133,6 +134,9 @@ MIDDLEWARE = [
     'chat.middleware_clerk.ClerkAuthenticationMiddleware',
 ]
 
+# Permitir Iframes (SplitScreen de PDFs nativo do painel)
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 ROOT_URLCONF = 'config.urls'
 
 AUTHENTICATION_BACKENDS = [
@@ -216,7 +220,7 @@ DATABASES = {
     'default': dj_database_url.config(
         env='DATABASE_URL',
         default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
-        conn_max_age=0 if DEBUG else 600,
+        conn_max_age=60 if DEBUG else 600,
         conn_health_checks=True,
     )
 }
@@ -258,10 +262,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 # Google Cloud Storage Configuration
-USE_GCS = os.environ.get('USE_GCS', 'True') == 'True'
+# Sempre usar Storage Local em Desenvolvimento (DEBUG=True), a menos que explicitamente forçado via .env
+USE_GCS = os.environ.get('USE_GCS', str(not DEBUG)) == 'True'
 
 if USE_GCS:
     GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', 'pjari-midias')
@@ -275,14 +278,31 @@ if USE_GCS:
         try:
             creds_info = json.loads(google_creds_env)
             GS_CREDENTIALS = service_account.Credentials.from_service_account_info(creds_info)
-            DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
-            MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
             
-            # Limpa a variável para evitar que o SDK padrão do Google tente usá-la como caminho de arquivo
+            STORAGES = {
+                'default': {
+                    'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
+                },
+                'staticfiles': {
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                },
+            }
+            
+            GS_QUERYSTRING_AUTH = True
+            from datetime import timedelta
+            GS_EXPIRATION = timedelta(days=1)
+            
             if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
                 del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
         except Exception as e:
-            DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+            STORAGES = {
+                'default': {
+                    'BACKEND': 'django.core.files.storage.FileSystemStorage',
+                },
+                'staticfiles': {
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                },
+            }
             MEDIA_URL = '/media/'
             MEDIA_ROOT = BASE_DIR / 'media'
             
@@ -294,15 +314,38 @@ if USE_GCS:
             if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GS_CREDENTIALS_FILE
                 
-            DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
-            MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+            STORAGES = {
+                'default': {
+                    'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
+                },
+                'staticfiles': {
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                },
+            }
+            GS_QUERYSTRING_AUTH = True
+            from datetime import timedelta
+            GS_EXPIRATION = timedelta(days=1)
         else:
             # Fallback to local if credentials aren't found
-            DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+            STORAGES = {
+                'default': {
+                    'BACKEND': 'django.core.files.storage.FileSystemStorage',
+                },
+                'staticfiles': {
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                },
+            }
             MEDIA_URL = '/media/'
             MEDIA_ROOT = BASE_DIR / 'media'
 else:
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    STORAGES = {
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        },
+    }
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -316,9 +359,18 @@ CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': _redis_url,
-        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 2,
+            'SOCKET_TIMEOUT': 2,
+            'CONNECTION_POOL_KWARGS': {'max_connections': 50},
+        },
     }
 }
+
+# Sessões em cache Redis (elimina query DB por request)
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 
 CELERY_BROKER_URL = _redis_url
 CELERY_RESULT_BACKEND = _redis_url
@@ -363,6 +415,16 @@ LOGGING = {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': True,
+        },
+        'chat': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'pjari.perf': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
