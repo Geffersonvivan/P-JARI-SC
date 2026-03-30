@@ -77,7 +77,7 @@ class ClerkAuthenticationMiddleware:
                     # Valida 'azp' (authorized party) para garantir que o token é desta instância Clerk.
                     # No ambiente de desenvolvimento, o Clerk às vezes preenche 'azp' com a URL de origem.
                     azp = payload.get("azp", "")
-                    allowed_azps = [self.clerk_publishable_key, "http://127.0.0.1:8000", "http://localhost:8000"]
+                    allowed_azps = [self.clerk_publishable_key, "http://127.0.0.1:8000", "http://localhost:8000", "https://pjarisc.com.br", "https://www.pjarisc.com.br"]
                     if self.clerk_publishable_key and azp and azp not in allowed_azps:
                         import logging
                         logging.getLogger(__name__).warning(f"JWT rejeitado: azp '{azp}' não corresponde à instância")
