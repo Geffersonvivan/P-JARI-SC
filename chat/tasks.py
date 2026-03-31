@@ -144,6 +144,7 @@ def rodar_testes_engine_task():
     suite.addTests(loader.loadTestsFromName('chat.tests_jari_engine'))
     suite.addTests(loader.loadTestsFromName('chat.tests.test_jari_math'))
     suite.addTests(loader.loadTestsFromName('chat.tests_integration'))
+    suite.addTests(loader.loadTestsFromName('chat.tests.test_contratos_api'))
 
     buf = StringIO()
     start = time.time()
@@ -171,6 +172,8 @@ def rodar_testes_engine_task():
             return 'Camada 1 — JariMath'
         if 'tests_integration' in nome_teste:
             return 'Camada 2 — Integração de Fases'
+        if 'test_contratos_api' in nome_teste:
+            return 'Camada 3 — Contratos de API'
         return 'Camada 1 — Engine'
 
     if num_falhas > 0:
@@ -183,7 +186,7 @@ def rodar_testes_engine_task():
             send_mail(
                 subject=f'[P-JARI] {num_falhas} teste(s) falhando — verificar urgente',
                 message=(
-                    f"Resultado da execução automática dos testes (Camadas 1 e 2):\n\n"
+                    f"Resultado da execução automática dos testes (Camadas 1, 2 e 3):\n\n"
                     f"  Total: {result.testsRun}\n"
                     f"  Passou: {result.testsRun - num_falhas}\n"
                     f"  Falhou: {num_falhas}\n"
@@ -191,7 +194,8 @@ def rodar_testes_engine_task():
                     f"  Suites:\n"
                     f"    • Camada 1 — JariMath unitário (tests.test_jari_math): 37 testes\n"
                     f"    • Camada 1 — Engine por fase (tests_jari_engine): 44 testes\n"
-                    f"    • Camada 2 — Integração F2→F3→F31 (tests_integration): 17 testes\n\n"
+                    f"    • Camada 2 — Integração F2→F3→F31 (tests_integration): 17 testes\n"
+                    f"    • Camada 3 — Contratos de API (tests.test_contratos_api): 26 testes\n\n"
                     f"--- FALHAS ---\n\n{linhas_falha}"
                 ),
                 from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br'),
