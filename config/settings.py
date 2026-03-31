@@ -285,6 +285,7 @@ if USE_GCS:
                 },
                 'staticfiles': {
                     'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                    'OPTIONS': {'manifest_strict': False},
                 },
             }
             
@@ -301,6 +302,7 @@ if USE_GCS:
                 },
                 'staticfiles': {
                     'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                    'OPTIONS': {'manifest_strict': False},
                 },
             }
             MEDIA_URL = '/media/'
@@ -320,6 +322,7 @@ if USE_GCS:
                 },
                 'staticfiles': {
                     'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                    'OPTIONS': {'manifest_strict': False},
                 },
             }
             GS_QUERYSTRING_AUTH = True
@@ -333,6 +336,7 @@ if USE_GCS:
                 },
                 'staticfiles': {
                     'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+                    'OPTIONS': {'manifest_strict': False},
                 },
             }
             MEDIA_URL = '/media/'
@@ -344,12 +348,11 @@ else:
         },
         'staticfiles': {
             'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+            'OPTIONS': {'manifest_strict': False},
         },
     }
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
-
-WHITENOISE_MANIFEST_STRICT = False
 
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/'
