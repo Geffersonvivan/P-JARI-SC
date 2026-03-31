@@ -181,6 +181,8 @@ class ChatService:
                     msg = "\n⚠️ **Prejudicialidade Constatada**. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.\n\n⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto...*"
                 elif tipo == "FASE1":
                     msg = "⏳ *Analisando os documentos com Inteligência Artificial. Aguarde — isso pode levar até 30 segundos...*"
+                elif tipo == "FASE2":
+                    msg = "⏳ *Extraindo datas sensíveis e montando a tabela de prazos via Inteligência Artificial. Aguarde...*"
                 else:
                     msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O P-JARI irá disponibilizar o Parecer logo abaixo quando for concluído...*"
                 

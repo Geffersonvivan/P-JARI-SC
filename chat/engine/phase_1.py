@@ -79,11 +79,13 @@ def process(engine, message: str, uploaded_files: list) -> str:
             return f"❌ Erro ao ler a data de protocolo {val}. O formato deve ser DD/MM/AAAA."
     elif not parecer.paginas_defesa:
         parecer.paginas_defesa = val
-        # Último campo: avança para Fase 2
+        # Último campo: avança para Fase 2 via Celery
         from chat.engine import FASE_DIR
         parecer.status_fase = FASE_DIR
         parecer.save()
-        return engine.run_phase_2()
+        from chat.tasks import processar_fase2_task
+        task = processar_fase2_task.delay(parecer.id)
+        return _json.dumps({"status": "celery", "task_id": task.id, "type": "FASE2"})
 
     try:
         parecer.save()
@@ -152,7 +154,9 @@ def process_confirm(engine, message: str) -> str:
     from chat.engine import FASE_DIR
     parecer.status_fase = FASE_DIR
     parecer.save()
-    return engine.run_phase_2()
+    from chat.tasks import processar_fase2_task
+    task = processar_fase2_task.delay(parecer.id)
+    return _json.dumps({"status": "celery", "task_id": task.id, "type": "FASE2"})
 
 
 # ── Celery task ───────────────────────────────────────────────────────────────

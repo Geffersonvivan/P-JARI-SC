@@ -1591,8 +1591,8 @@
                         // Finaliza barra simulada do Celery em 100%
                         if (window[`_cleanupSim_${taskId}`]) { window[`_cleanupSim_${taskId}`](); delete window[`_cleanupSim_${taskId}`]; }
                         if (msgContainer) {
-                            if (taskType === 'FASE1') {
-                                // Fase 1: estilo de mensagem normal do assistente (formulário interativo)
+                            if (taskType === 'FASE1' || taskType === 'FASE2') {
+                                // Fase 1/2: estilo de mensagem normal do assistente (formulário interativo / tabela de datas)
                                 msgContainer.innerHTML = `
                                     <div class="w-8 h-8 rounded-full bg-brand-accent/20 border border-brand-accent/30 flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
                                     <div style="color: #444746;" class="leading-relaxed pt-1 w-full">${formatMessage(data.reply)}</div>
