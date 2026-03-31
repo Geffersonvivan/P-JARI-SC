@@ -284,7 +284,7 @@ if USE_GCS:
                     'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
                 },
             }
             
@@ -300,7 +300,7 @@ if USE_GCS:
                     'BACKEND': 'django.core.files.storage.FileSystemStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
                 },
             }
             MEDIA_URL = '/media/'
@@ -319,7 +319,7 @@ if USE_GCS:
                     'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
                 },
             }
             GS_QUERYSTRING_AUTH = True
@@ -332,7 +332,7 @@ if USE_GCS:
                     'BACKEND': 'django.core.files.storage.FileSystemStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
                 },
             }
             MEDIA_URL = '/media/'
@@ -343,11 +343,13 @@ else:
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
         },
         'staticfiles': {
-            'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
         },
     }
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+
+WHITENOISE_MANIFEST_STRICT = False
 
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/'
