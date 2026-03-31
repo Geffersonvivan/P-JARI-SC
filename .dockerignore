@@ -35,3 +35,7 @@ media/
 # Cache
 .cache/
 .pytest_cache/
+
+# Node (instalado dentro do Dockerfile, não copiar da máquina local)
+node_modules/
+staticfiles/

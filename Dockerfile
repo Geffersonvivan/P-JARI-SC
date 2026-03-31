@@ -40,6 +40,14 @@ COPY . /app/
 # Gera o tailwind.css com todas as classes usadas pelos templates
 RUN npm run build:css
 
+# Roda collectstatic no BUILD (não no startup) — garante que staticfiles/
+# e o manifest do WhiteNoise existam na imagem antes de qualquer request.
+# USE_GCS=False evita conexão GCS; DATABASE_URL sqlite evita conexão Postgres.
+RUN SECRET_KEY=build-only \
+    USE_GCS=False \
+    DATABASE_URL=sqlite:////tmp/build.db \
+    python manage.py collectstatic --noinput
+
 # Dá permissão de execução para o script de inicialização
 RUN chmod +x start.sh
 

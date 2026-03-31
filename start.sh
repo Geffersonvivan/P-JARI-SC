@@ -6,9 +6,6 @@ echo "Starting migrations..."
 # Idealmente, mover para um Release Command separado no Railway (Settings > Deploy > Release Command).
 python manage.py migrate --noinput
 
-echo "Collecting static files..."
-python manage.py collectstatic --noinput
-
 echo "Ensuring superuser exists and password is up to date..."
 python manage.py shell -c "
 import os
