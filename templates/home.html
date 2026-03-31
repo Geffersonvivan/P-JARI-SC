@@ -1536,7 +1536,8 @@
             </div>`;
         }
 
-        function pollTaskStatus(taskId, msgId, parecerId, taskType) {
+        function pollTaskStatus(taskId, msgId, parecerId, taskType, _retryCount) {
+            _retryCount = _retryCount || 0;
             if (activeEventSource) { activeEventSource.close(); activeEventSource = null; }
             const eventSource = new EventSource(`/chat/stream/${taskId}/?parecer_id=${parecerId || ''}`);
             activeEventSource = eventSource;
@@ -1623,6 +1624,20 @@
                                 _updateContextButtons(currentStatusFase);
                             }
                         }
+                    } else if (data.status === 'RECONNECT') {
+                        // Servidor sinalizou queda (Redis/timeout) — reconecta automaticamente até 3x
+                        eventSource.close(); activeEventSource = null;
+                        if (_retryCount < 3) {
+                            setTimeout(() => pollTaskStatus(taskId, msgId, parecerId, taskType, _retryCount + 1), 2000);
+                        } else {
+                            clearSpinner();
+                            if (msgContainer) msgContainer.innerHTML = `
+                                <div class="w-8 h-8 rounded-full bg-amber-500 flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">!</div>
+                                <div class="text-amber-800 p-4 rounded-xl border border-amber-200 bg-amber-50 w-full">
+                                    <p class="font-semibold mb-1">Conexão interrompida</p>
+                                    <p class="text-sm">O processamento pode ter continuado em segundo plano. Recarregue a página para verificar.</p>
+                                </div>`;
+                        }
                     } else if (data.status === 'FAILURE') {
                         clearSpinner();
                         eventSource.close(); activeEventSource = null;
@@ -1645,9 +1660,14 @@
             eventSource.onerror = function(err) {
                 console.error("Erro no SSE EventSource:", err);
                 eventSource.close(); activeEventSource = null;
+                // Reconecta automaticamente até 3x com delay de 2s
+                if (_retryCount < 3) {
+                    console.log(`SSE reconectando... tentativa ${_retryCount + 1}/3`);
+                    setTimeout(() => pollTaskStatus(taskId, msgId, parecerId, taskType, _retryCount + 1), 2000);
+                    return;
+                }
                 document.getElementById('status-dots').classList.add('hidden');
                 if (typeof enableInput === "function") enableInput();
-                // Substitui o spinner por mensagem de erro acionável
                 let msgContainer = document.getElementById(`msg-${msgId}`);
                 if (msgContainer) {
                     msgContainer.innerHTML = `

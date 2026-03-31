@@ -255,6 +255,15 @@ def stream_task_status_view(request, task_id):
         except GeneratorExit:
             # Cliente desconectou — encerra silenciosamente sem propagar o erro
             pass
+        except Exception as stream_err:
+            # Redis caiu, timeout de rede ou outro erro inesperado no generator
+            # Loga e envia evento de falha para o frontend reconectar
+            import logging as _log
+            _log.getLogger(__name__).error(f"SSE stream error (task={task_id}): {stream_err}")
+            try:
+                yield f"data: {json.dumps({'status': 'RECONNECT', 'error': str(stream_err)})}\n\n"
+            except Exception:
+                pass
         finally:
             # Garante cleanup do Redis independente de como o generator terminou
             # (conclusão normal, timeout, exceção ou desconexão do cliente)
