@@ -284,8 +284,7 @@ if USE_GCS:
                     'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-                    'OPTIONS': {'manifest_strict': False},
+                    'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
                 },
             }
             
@@ -301,8 +300,7 @@ if USE_GCS:
                     'BACKEND': 'django.core.files.storage.FileSystemStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-                    'OPTIONS': {'manifest_strict': False},
+                    'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
                 },
             }
             MEDIA_URL = '/media/'
@@ -321,8 +319,7 @@ if USE_GCS:
                     'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-                    'OPTIONS': {'manifest_strict': False},
+                    'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
                 },
             }
             GS_QUERYSTRING_AUTH = True
@@ -335,8 +332,7 @@ if USE_GCS:
                     'BACKEND': 'django.core.files.storage.FileSystemStorage',
                 },
                 'staticfiles': {
-                    'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-                    'OPTIONS': {'manifest_strict': False},
+                    'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
                 },
             }
             MEDIA_URL = '/media/'
@@ -347,8 +343,7 @@ else:
             'BACKEND': 'django.core.files.storage.FileSystemStorage',
         },
         'staticfiles': {
-            'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-            'OPTIONS': {'manifest_strict': False},
+            'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
         },
     }
     MEDIA_URL = '/media/'
