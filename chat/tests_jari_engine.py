@@ -203,6 +203,7 @@ def _make_parecer(**kwargs):
     p.sgpe = ""
     p.prazo_final = None
     p.data_protocolo = None
+    p.data_infracao = None
     p.paginas_defesa = ""
     p.tabela_datas_sensiveis = ""
     p.admissibilidade_texto = "Admissibilidade gerada"
@@ -423,9 +424,9 @@ class TestFase4(unittest.TestCase):
 
     def test_texto_livre_dispara_refinamento(self):
         engine = self._engine()
-        with patch.object(engine, 'run_phase_4_refinement', return_value="refinado") as mock_r:
+        with patch('chat.engine.phase_4.run_refinement', return_value="refinado") as mock_r:
             result = engine.process_message("a tese é nulidade de notificação")
-        mock_r.assert_called_once_with("a tese é nulidade de notificação")
+        mock_r.assert_called_once_with(engine, "a tese é nulidade de notificação")
         self.assertEqual(result, "refinado")
 
 
