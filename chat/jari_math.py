@@ -296,7 +296,16 @@ class JariMath:
                     detalhe_calculo = f"Prazo excedeu {limiar_f2} dias ({dias_marco_f2} dias contabilizados)."
                 else:
                     detalhe_calculo = f"Dentro do limite de {limiar_f2} dias ({dias_marco_f2} dias transcorridos)."
-            
+                    # 2º check: decisão final > 360 dias (somente no caso com flagrante — regra "180 dias Notif / 360 dias Decisão Final")
+                    if data_decisao_final and limiar_f2 == 180:
+                        dias_decisao_f2 = max(0, JariMath.calculate_days_diff(data_infracao, data_decisao_final) - desconto_covid)
+                        if dias_decisao_f2 > 360:
+                            decadencia_encontrada = True
+                            detalhe_calculo = (
+                                f"Decisão final excedeu 360 dias da infração "
+                                f"({dias_decisao_f2} dias contabilizados)."
+                            )
+
         # A) Infrações anteriores a 12/04/2021 — FILTRO 1
         # HARD STOP (Parecer CETRAN/SC 381/2022): decadência de 180/360 dias é PROIBIDA
         # para este período. Resultado sempre "NÃO SE APLICA".

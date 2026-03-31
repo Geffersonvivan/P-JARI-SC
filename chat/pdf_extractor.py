@@ -57,6 +57,9 @@ class PDFExtractor:
                 if _w:
                     import logging as _logging
                     _logging.getLogger(__name__).warning(f"PDFExtractor MuPDF ({doc_type}): {_w.strip()}")
+                    # PDF com xref corrompido: page.get_text() trava em C-level ignorando time_limit
+                    if "xref" in _w.lower() or "format error" in _w.lower():
+                        return [], 0
                 for page_num in range(len(doc)):
                     page = doc[page_num]
                     text = page.get_text("text")
@@ -126,6 +129,8 @@ class PDFExtractor:
                 if _w:
                     import logging as _logging
                     _logging.getLogger(__name__).warning(f"PDFExtractor MuPDF (infracao): {_w.strip()}")
+                    if "xref" in _w.lower() or "format error" in _w.lower():
+                        return None
                 text = ""
                 # Lê até as 5 primeiras páginas (geralmente o AIT tá no topo)
                 for page_num in range(min(5, len(doc))):

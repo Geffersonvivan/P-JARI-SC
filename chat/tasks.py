@@ -122,17 +122,22 @@ def gerar_parecer_task(self, parecer_id, tese=None):
 @shared_task
 def rodar_testes_engine_task():
     """
-    Executa os testes unitários do JariEngine e salva o resultado em TestRun.
+    Executa os testes unitários do JariEngine + JariMath e salva o resultado em TestRun.
     Acionado automaticamente pelo Celery Beat (a cada 6h) ou
     a cada 10 pareceres finalizados (gatilho em gerar_parecer_task).
+    Envia e-mail para ADMIN_EMAIL quando há falhas.
     """
     import unittest
     import time
     from io import StringIO
+    from django.core.mail import send_mail
+    from django.conf import settings
     from chat.models import TestRun
 
     loader = unittest.TestLoader()
-    suite  = loader.loadTestsFromName('chat.tests_jari_engine')
+    suite  = unittest.TestSuite()
+    suite.addTests(loader.loadTestsFromName('chat.tests_jari_engine'))
+    suite.addTests(loader.loadTestsFromName('chat.tests.test_jari_math'))
 
     buf = StringIO()
     start = time.time()
@@ -145,15 +150,38 @@ def rodar_testes_engine_task():
         for caso, traceback_str in result.failures + result.errors
     ]
 
+    num_falhas = len(result.failures) + len(result.errors)
+
     TestRun.objects.create(
         total=result.testsRun,
-        passou=result.testsRun - len(result.failures) - len(result.errors),
-        falhou=len(result.failures) + len(result.errors),
+        passou=result.testsRun - num_falhas,
+        falhou=num_falhas,
         duracao_ms=duracao_ms,
         detalhes_json=detalhes,
     )
 
-    return f"{result.testsRun} testes | {len(result.failures) + len(result.errors)} falhas | {duracao_ms}ms"
+    if num_falhas > 0:
+        admin_email = getattr(settings, 'ADMIN_EMAIL', '')
+        if admin_email:
+            linhas_falha = '\n\n'.join(
+                f"TESTE: {d['nome']}\n{d['mensagem']}" for d in detalhes
+            )
+            send_mail(
+                subject=f'[P-JARI] {num_falhas} teste(s) falhando — verificar urgente',
+                message=(
+                    f"Resultado da execução automática dos testes JariMath/JariEngine:\n\n"
+                    f"  Total: {result.testsRun}\n"
+                    f"  Passou: {result.testsRun - num_falhas}\n"
+                    f"  Falhou: {num_falhas}\n"
+                    f"  Duração: {duracao_ms}ms\n\n"
+                    f"--- FALHAS ---\n\n{linhas_falha}"
+                ),
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br'),
+                recipient_list=[admin_email],
+                fail_silently=True,
+            )
+
+    return f"{result.testsRun} testes | {num_falhas} falhas | {duracao_ms}ms"
 
 
 @shared_task
