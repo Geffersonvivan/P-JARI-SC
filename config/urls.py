@@ -47,3 +47,6 @@ if settings.DEBUG:
         path('sentry-debug/', user_passes_test(lambda u: u.is_superuser)(trigger_error)),
     ]
 
+if getattr(settings, 'SILK_ENABLED', False):
+    urlpatterns += [path('silk/', include('silk.urls', namespace='silk'))]
+

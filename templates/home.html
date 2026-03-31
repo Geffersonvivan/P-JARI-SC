@@ -1588,6 +1588,8 @@
                     } else if (data.status === 'SUCCESS') {
                         clearSpinner();
                         eventSource.close(); activeEventSource = null;
+                        // Finaliza barra simulada do Celery em 100%
+                        if (window[`_cleanupSim_${taskId}`]) { window[`_cleanupSim_${taskId}`](); delete window[`_cleanupSim_${taskId}`]; }
                         if (msgContainer) {
                             if (taskType === 'FASE1') {
                                 // Fase 1: estilo de mensagem normal do assistente (formulário interativo)
@@ -1624,6 +1626,7 @@
                     } else if (data.status === 'FAILURE') {
                         clearSpinner();
                         eventSource.close(); activeEventSource = null;
+                        if (window[`_cleanupSim_${taskId}`]) { window[`_cleanupSim_${taskId}`](); delete window[`_cleanupSim_${taskId}`]; }
                         if (msgContainer) {
                             msgContainer.innerHTML = `
                                 <div class="w-8 h-8 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center text-white text-[10px]">!</div>
@@ -1835,6 +1838,45 @@
             }, interval || 2500);
         }
 
+        // XHR com progress para uploads — retorna objeto compatível com fetch Response
+        function xhrUpload(url, formData, onProgress) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url);
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                if (onProgress) xhr.upload.onprogress = onProgress;
+                xhr.onload = () => {
+                    const body = xhr.responseText;
+                    resolve({
+                        ok: xhr.status >= 200 && xhr.status < 300,
+                        status: xhr.status,
+                        json: () => Promise.resolve(JSON.parse(body)),
+                        text: () => Promise.resolve(body),
+                    });
+                };
+                xhr.onerror = () => reject(new Error('Erro de rede ao enviar arquivos'));
+                xhr.send(formData);
+            });
+        }
+
+        // Progressão simulada para barras de processamento Celery (0→90% orgânico, 100% no SUCCESS)
+        function startSimulatedProgress(barId, labelId, labelFn) {
+            let pct = 0;
+            const el_bar = () => document.getElementById(barId);
+            const el_lbl = () => document.getElementById(labelId);
+            const tick = () => {
+                if (pct < 30)       pct += 2.5;
+                else if (pct < 60)  pct += 1.2;
+                else if (pct < 80)  pct += 0.5;
+                else if (pct < 90)  pct += 0.15;
+                const b = el_bar(); const l = el_lbl();
+                if (b) b.style.width = Math.min(pct, 90) + '%';
+                if (l && labelFn) l.textContent = labelFn(Math.round(Math.min(pct, 90)));
+            };
+            tick();
+            return setInterval(tick, 800);
+        }
+
         async function sendMessage(e, programmaticText = null, isSilent = false) {
             if (isSubmitting) return;
             if (e && typeof e.preventDefault === 'function') e.preventDefault();
@@ -1892,6 +1934,22 @@
             jariDiv.style.cssText = "display: flex !important; opacity: 1 !important; visibility: visible !important;";
             
             if (!isIniciar && !isSilent) {
+                if (selectedFiles.length > 0) {
+                    jariDiv.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center">
+                            <i class="ph-fill ph-scales text-brand-accent text-lg"></i>
+                        </div>
+                        <div class="text-gray-800 w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-3 min-h-[60px]">
+                            <div class="w-full max-w-sm flex justify-between items-center mb-1">
+                                <span id="upload-label-${tempId}" class="text-brand-accent/80 text-[10px] uppercase tracking-widest font-bold">Enviando arquivos... 0%</span>
+                                <span id="upload-pct-${tempId}" class="text-brand-accent font-bold text-xs">0%</span>
+                            </div>
+                            <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                <div id="upload-bar-${tempId}" class="h-full bg-brand-accent rounded-full transition-all duration-150" style="width:0%"></div>
+                            </div>
+                        </div>
+                    `;
+                } else {
                 jariDiv.innerHTML = `
                     <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center">
                         <i class="ph-fill ph-scales text-brand-accent text-lg"></i>
@@ -1909,6 +1967,7 @@
                     'Analisando o contexto do processo...',
                     'Preparando resposta...',
                 ], 2500);
+                }
             } else {
                 jariDiv.innerHTML = `
                     <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" style="background-color: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.3);"><i class="ph-fill ph-scales text-brand-accent text-lg pt-0.5" style="color: #16a34a;"></i></div>
@@ -1929,40 +1988,34 @@
             if (btnSend) btnSend.disabled = true;
 
             try {
-                // Prepara payload (JSON se só texto, FormData se tiver arquivos)
-                let fetchOptions = {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrftoken
-                    }
-                };
+                let response;
 
                 if (selectedFiles.length > 0) {
                     const formData = new FormData();
                     formData.append('message', text);
                     if (currentParecerId) formData.append('parecer_id', currentParecerId);
                     if (currentPastaId) formData.append('pasta_id', currentPastaId);
+                    selectedFiles.forEach((file, index) => formData.append(`file_${index}`, file));
+                    selectedFiles = [];
+                    renderFilePreview();
 
-                    selectedFiles.forEach((file, index) => {
-                        formData.append(`file_${index}`, file);
+                    response = await xhrUpload('/chat/message/', formData, (evt) => {
+                        if (evt.lengthComputable) {
+                            const pct = Math.round((evt.loaded / evt.total) * 100);
+                            const bar = document.getElementById(`upload-bar-${tempId}`);
+                            const lbl = document.getElementById(`upload-label-${tempId}`);
+                            const pctEl = document.getElementById(`upload-pct-${tempId}`);
+                            if (bar) bar.style.width = pct + '%';
+                            if (lbl) lbl.textContent = `Enviando arquivos... ${pct}%`;
+                            if (pctEl) pctEl.textContent = pct + '%';
+                        }
                     });
-
-                    fetchOptions.body = formData;
-
-                    // Limpa anexos da view após o envio
-                    selectedFiles = [];
-                    renderFilePreview();
                 } else {
-                    fetchOptions.headers['Content-Type'] = 'application/json';
-                    fetchOptions.body = JSON.stringify({ message: text, parecer_id: currentParecerId, pasta_id: currentPastaId });
-                }
-
-                const response = await fetch('/chat/message/', fetchOptions);
-
-                // Limpa anexos da interface imediatamente após disparo
-                if (selectedFiles.length > 0) {
-                    selectedFiles = [];
-                    renderFilePreview();
+                    response = await fetch('/chat/message/', {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: text, parecer_id: currentParecerId, pasta_id: currentPastaId })
+                    });
                 }
 
                 if (response.ok) {
@@ -1984,21 +2037,41 @@
                             <div class="w-8 h-8 rounded-full bg-brand-accent/20 flex-shrink-0 flex items-center justify-center"><i class="ph-fill ph-scales text-brand-accent text-lg"></i></div>
                             <div class="text-[#444746] w-full bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-2">
                                 ${formatMessage(data.reply)}
-                                <div class="mt-8 flex flex-col items-center justify-center gap-4 w-full">
-                                    <div class="w-full max-w-sm h-[3px] bg-slate-100 rounded-full overflow-hidden relative shadow-inner">
-                                        <div class="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-brand-accent to-transparent animate-shimmer-cylon"></div>
+                                <div class="mt-8 flex flex-col gap-2 w-full">
+                                    <div class="flex justify-between items-center">
+                                        <div id="status-${data.task_id}" class="text-brand-accent/80 text-[10px] uppercase tracking-widest font-bold">Elaborando análise...</div>
+                                        <div id="pct-${data.task_id}" class="text-brand-accent font-bold text-xs">0%</div>
                                     </div>
-                                    <div class="text-center text-brand-accent/80 text-[10px] uppercase tracking-widest animate-pulse font-bold" id="status-${data.task_id}">Elaborando análise aprofundada...</div>
+                                    <div class="w-full h-[3px] bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                        <div id="bar-${data.task_id}" class="h-full bg-brand-accent rounded-full transition-all duration-500" style="width:0%"></div>
+                                    </div>
                                 </div>
                             </div>
                         `;
-                        rotateMsgs(`status-${data.task_id}`, [
-                            'Elaborando análise aprofundada...',
-                            'Consultando legislação e precedentes...',
-                            'Estruturando o raciocínio jurídico...',
-                            'Verificando fundamentos do caso...',
-                            'Quase lá, finalizando...',
-                        ], 2500);
+                        const _simLabels = [
+                            'Elaborando análise...', 'Consultando legislação...', 'Estruturando raciocínio jurídico...',
+                            'Verificando fundamentos...', 'Quase lá, finalizando...',
+                        ];
+                        let _simLabelIdx = 0;
+                        const _simLabelInterval = setInterval(() => {
+                            const el = document.getElementById(`status-${data.task_id}`);
+                            if (!el) { clearInterval(_simLabelInterval); return; }
+                            el.textContent = _simLabels[_simLabelIdx++ % _simLabels.length];
+                        }, 2500);
+                        const _simBarInterval = startSimulatedProgress(
+                            `bar-${data.task_id}`,
+                            `pct-${data.task_id}`,
+                            (p) => p + '%'
+                        );
+                        // Ao concluir (SSE SUCCESS), finaliza a barra em 100%
+                        window[`_cleanupSim_${data.task_id}`] = () => {
+                            clearInterval(_simLabelInterval);
+                            clearInterval(_simBarInterval);
+                            const b = document.getElementById(`bar-${data.task_id}`);
+                            const p = document.getElementById(`pct-${data.task_id}`);
+                            if (b) b.style.width = '100%';
+                            if (p) p.textContent = '100%';
+                        };
                         chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
 
                         // Carrega os PDFs na lateral imediatamente (mesma lógica do fluxo normal)

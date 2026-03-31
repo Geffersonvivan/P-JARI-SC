@@ -1,8 +1,26 @@
 import os
 import time
+import hashlib
 import requests
 from django.core.mail import send_mail
 from django.conf import settings
+
+# TTL do cache RAG: 24 horas
+_RAG_CACHE_TTL = 86_400
+
+
+def _rag_cache_key(query: str) -> str:
+    digest = hashlib.sha256(query.strip().lower().encode()).hexdigest()[:16]
+    return f"rag:perplexity:{digest}"
+
+
+def _get_redis():
+    try:
+        import redis
+        return redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+                              decode_responses=True)
+    except Exception:
+        return None
 
 
 def _p(field):
@@ -20,6 +38,17 @@ class PerplexityClient:
     def search_tese(self, parecer_obj, tese):
         if not self.api_key:
             return "Simulação (Perplexity): Tese pesquisada. A tese é favorável segundo jurisprudência recente (REsp 123.456)."
+
+        # Cache hit — evita re-consultar Perplexity para a mesma tese
+        _cache_key = _rag_cache_key(tese)
+        _r = _get_redis()
+        if _r:
+            try:
+                _cached = _r.get(_cache_key)
+                if _cached:
+                    return _cached
+            except Exception:
+                pass
 
         payload = {
             "model": "sonar-pro",
@@ -72,6 +101,12 @@ class PerplexityClient:
             except Exception as log_e:
                 print(f"Erro ao logar tokens Perplexity: {log_e}")
 
-            return data["choices"][0]["message"]["content"]
+            resultado = data["choices"][0]["message"]["content"]
+            if _r:
+                try:
+                    _r.setex(_cache_key, _RAG_CACHE_TTL, resultado)
+                except Exception:
+                    pass
+            return resultado
         except Exception as e:
             return f"Erro ao acessar Perplexity: {str(e)}.\nSimulação ativada: Jurisprudência encontrada favorável a tese."

@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@shared_task(bind=True, time_limit=360, soft_time_limit=300)
+@shared_task(bind=True, time_limit=360, soft_time_limit=300, queue='fast')
 def processar_fase1_task(self, parecer_id):
     """
     Processa o auto-preenchimento da Fase 1 no worker Celery.
@@ -40,7 +40,7 @@ def processar_fase1_task(self, parecer_id):
         raise Exception(f"Erro na Fase 1 (Celery Worker): {str(e)}")
 
 
-@shared_task(bind=True, time_limit=600, soft_time_limit=540, max_retries=2)
+@shared_task(bind=True, time_limit=600, soft_time_limit=540, max_retries=2, queue='heavy')
 def gerar_parecer_task(self, parecer_id, tese=None):
     """
     Worker task que roda as pesadas Fases 5 e 6 do motor JARI.

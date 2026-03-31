@@ -202,7 +202,7 @@ class AnthropicClient:
 
             with self.client.messages.stream(
                 model=model_to_use,
-                max_tokens=4096,
+                max_tokens=8096,
                 system=system_instruction,
                 messages=[{"role": "user", "content": content}]
             ) as stream:

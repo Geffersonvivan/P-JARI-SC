@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
 
-# Em produção (Railway): sem auto-reload, apenas o worker padrão
+# Em produção (Railway): sem auto-reload, filas separadas com prioridade
 if [ "$RAILWAY_ENVIRONMENT" != "" ]; then
     echo "Starting Celery worker (production)..."
     exec celery -A config worker \
         --beat \
         --loglevel=info \
+        --concurrency=4 \
+        --queues=fast,heavy \
         --schedule=/tmp/celerybeat-schedule
 fi
 
@@ -20,4 +22,5 @@ exec watchmedo auto-restart \
     celery -A config worker \
         --loglevel=info \
         --logfile=/tmp/pjari_celery.log \
-        --concurrency=4
+        --concurrency=4 \
+        --queues=fast,heavy
