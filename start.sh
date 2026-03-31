@@ -7,9 +7,8 @@ echo "Starting migrations..."
 python manage.py migrate --noinput
 
 echo "Building Tailwind CSS..."
-echo "Tailwind CSS já compilado localmente."
-# npm ci --omit=dev 2>/dev/null || npm install
-# npm run build:css
+npm ci --omit=dev 2>/dev/null || npm install --omit=dev
+npm run build:css
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
