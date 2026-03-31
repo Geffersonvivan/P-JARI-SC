@@ -59,7 +59,7 @@ SYSTEM_INSTRUCTION_TEMPLATE = (
     "Data da sessão de julgamento JARI: (preencher da tabela de datas)\n\n"
     "Conclusão: (configurada / não configurada — conforme flag JariMath, nunca por cálculo próprio).\n\n"
     "**3.3 Decadência**\n\n"
-    "Regime temporal aplicado e Conclusão. ATENÇÃO MÁXIMA: É proibido alterar a natureza (prescrição x decadência) ou inovar. Reproduza estritamente a conclusão obtida na análise obrigatória da Fase 3. Se a Fase 3 apontar 'NÃO SE APLICA' (Filtro 1), escreva exatamente isso.\n\n"
+    "Regime temporal aplicado e Conclusão. ATENÇÃO MÁXIMA: É proibido alterar a natureza (prescrição x decadência) ou inovar. Reproduza estritamente a conclusão obtida na análise obrigatória da Fase 3. Se a Fase 3 apontar 'NÃO SE APLICA', escreva exatamente isso.\n\n"
     "**MATERIALIDADE**\n\n"
     "Explicação normativa sobre a materialidade da infração ancorada na presunção de legitimidade dos atos.\n\n"
     "**GARANTIAS PROCESSUAIS**\n\n"

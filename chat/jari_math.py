@@ -260,7 +260,7 @@ class JariMath:
                 regra_aplicada = "NÃO SE APLICA — Suspensão/Cassação (Nota CETRAN/SC 02/03/2023)"
                 decadencia_encontrada = False
                 detalhe_calculo = (
-                    "Penalidade de suspensão ou cassação no período FILTRO 2 (12/04/2021–22/10/2021). "
+                    "Penalidade de suspensão ou cassação com infração no período de 12/04/2021 a 22/10/2021. "
                     "A Nota CETRAN/SC 02/03/2023 restringe a decadência de 180/360 dias "
                     "exclusivamente a multas e advertências neste período. "
                     "Análise encaminhada à Prescrição Punitiva (Lei 9.873/1999)."
@@ -314,7 +314,7 @@ class JariMath:
             regra_aplicada = "NÃO SE APLICA — Blindagem CETRAN/SC 381/2022"
             decadencia_encontrada = False  # Hard stop: nunca True para FILTRO 1
             detalhe_calculo = (
-                "Infração anterior a 12/04/2021 (Filtro 1). "
+                "Infração anterior a 12/04/2021. "
                 "Decadência de 180/360 dias expressamente proibida pelo Parecer CETRAN/SC 381/2022. "
                 "Análise encaminhada exclusivamente à Prescrição Punitiva (Lei 9.873/1999)."
             )
