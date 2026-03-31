@@ -105,7 +105,7 @@ INSTALLED_APPS = [
     'chat',
     'legal',
     'tinymce',
-    
+
     # Allauth
     'allauth',
     'allauth.account',
@@ -114,7 +114,14 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
 ]
 
-MIDDLEWARE = [
+SILK_ENABLED = os.environ.get('SILK_ENABLED', 'False') == 'True' or DEBUG
+
+if SILK_ENABLED:
+    INSTALLED_APPS += ['silk']
+
+_SILK_MIDDLEWARE = ['silk.middleware.SilkyMiddleware'] if SILK_ENABLED else []
+
+MIDDLEWARE = _SILK_MIDDLEWARE + [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -136,6 +143,18 @@ MIDDLEWARE = [
 
 # Permitir Iframes (SplitScreen de PDFs nativo do painel)
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# django-silk: profiling de requests e queries
+if SILK_ENABLED:
+    SILKY_PYTHON_PROFILER = True
+    SILKY_AUTHENTICATION = True           # exige login para ver /silk/
+    SILKY_AUTHORISATION = True            # exige is_staff
+    if DEBUG:
+        SILKY_MAX_RECORDED_REQUESTS = 1000
+        SILKY_INTERCEPT_PERCENT = 100     # captura tudo em dev
+    else:
+        SILKY_MAX_RECORDED_REQUESTS = 200
+        SILKY_INTERCEPT_PERCENT = 5       # captura 5% em produção
 
 ROOT_URLCONF = 'config.urls'
 
@@ -262,6 +281,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [
+    BASE_DIR / 'chat' / 'static',
+]
 # Google Cloud Storage Configuration
 # Sempre usar Storage Local em Desenvolvimento (DEBUG=True), a menos que explicitamente forçado via .env
 USE_GCS = os.environ.get('USE_GCS', str(not DEBUG)) == 'True'
