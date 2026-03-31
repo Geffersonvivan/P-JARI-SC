@@ -7,7 +7,7 @@ echo "Starting migrations..."
 python manage.py migrate --noinput
 
 echo "Building Tailwind CSS..."
-npm ci --omit=dev 2>/dev/null || npm install --omit=dev
+npm ci 2>/dev/null || npm install
 npm run build:css
 
 echo "Collecting static files..."
