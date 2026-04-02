@@ -65,7 +65,14 @@ def home_view(request):
 
         # Correção severa de performance: Consulta otimizada apenas pelo timestamp para notificar novos posts.
         ultimo_post = PostForum.objects.only('data_criacao').order_by('-data_criacao').first()
-        ultimo_acesso = request.user.profile.ultimo_acesso_forum
+        
+        try:
+            ultimo_acesso = request.user.profile.ultimo_acesso_forum
+        except Exception:
+            from ..models import UserProfile
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            ultimo_acesso = profile.ultimo_acesso_forum
+            
         tem_novidade_forum = bool(
             ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso)
         )
