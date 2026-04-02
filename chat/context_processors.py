@@ -13,13 +13,13 @@ def pjari_info(request):
     
     if request.user.is_authenticated:
         user_key = f'user_online_{request.user.id}'
-        # Set the user as online in cache for 15 minutes
         cache.set(user_key, True, 60 * 15)
         online_users_keys.add(user_key)
-        
-    # Limpa chaves expiradas
-    active_keys = {key for key in online_users_keys if cache.get(key)}
-    cache.set('online_users_keys', active_keys, 60 * 60 * 24) # Mantém a lista por 24h
+
+    # Limpa chaves expiradas — get_many faz 1 chamada Redis em vez de N (uma por usuário)
+    hits = cache.get_many(online_users_keys) if online_users_keys else {}
+    active_keys = set(hits.keys())
+    cache.set('online_users_keys', active_keys, 60 * 60 * 24)
     real_users_count = len(active_keys)
 
     # 2. Usuários Fantasmas Orgânicos baseados no horário

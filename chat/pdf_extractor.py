@@ -1,8 +1,11 @@
 import re
+import logging
 import fitz  # PyMuPDF
 from django.core.files.storage import default_storage
 import os
 import tempfile
+
+logger = logging.getLogger(__name__)
 
 class PDFExtractor:
     """Extrai informações brutas de PDFs (como datas) mantendo o contexto."""
@@ -83,7 +86,7 @@ class PDFExtractor:
                                  })
 
         except Exception as e:
-            print(f"Erro na extração de texto do {doc_type}: {e}")
+            logger.error("Erro na extração de texto do %s: %s", doc_type, e)
 
         finally:
             if temp_path and os.path.exists(temp_path):
@@ -169,7 +172,7 @@ class PDFExtractor:
                             break
                             
         except Exception as e:
-            print(f"Erro ao extrair infracao do documento: {e}")
+            logger.error("Erro ao extrair infracao do documento: %s", e)
             
         finally:
             if temp_path and os.path.exists(temp_path):

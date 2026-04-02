@@ -45,6 +45,7 @@ def processar_fase2_task(self, parecer_id):
     """
     Processa a Fase 2 (extração de datas + tabela via Gemini) no worker Celery.
     Evita que a chamada síncrona ao Gemini (até 60s) bloqueie o Gunicorn.
+    Ao terminar, dispara pré-cálculo da Fase 3 em background (otimização UX).
     """
     from billiard.exceptions import SoftTimeLimitExceeded
     try:
@@ -53,6 +54,11 @@ def processar_fase2_task(self, parecer_id):
         reply = engine.run_phase_2()
         from .models import ChatMessage
         ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        # Dispara pré-cálculo F3 enquanto julgador revisa tabela F2 (best-effort)
+        try:
+            processar_fase3_precompute_task.delay(parecer_id)
+        except Exception:
+            pass  # Nunca deve bloquear o fluxo principal
         return "SUCCESS"
     except SoftTimeLimitExceeded:
         logger.warning(f"FASE2 soft time limit atingido (Parecer {parecer_id}). Retornando prompt de fase 2.")
@@ -70,6 +76,27 @@ def processar_fase2_task(self, parecer_id):
         trace = traceback.format_exc()
         logger.error(f"ERRO CELERY FASE2 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 2 (Celery Worker): {str(e)}")
+
+
+@shared_task(bind=True, time_limit=120, soft_time_limit=100, queue='fast')
+def processar_fase3_precompute_task(self, parecer_id):
+    """
+    Pré-calcula a Fase 3 em background enquanto o julgador revisa F2.
+    Executa JariMath + Gemini e persiste admissibilidade_texto sem avançar o status.
+    Quando o julgador confirmar F2, phase_3.run() detecta admissibilidade_texto já preenchido
+    e pula a chamada Gemini — elimina ~30s de espera percebida.
+    Não retenta em falha (best-effort): se falhar, F3 roda normalmente no fluxo principal.
+    """
+    try:
+        parecer = Parecer.objects.get(id=parecer_id)
+        from chat.engine.phase_3 import run_precompute
+        result = run_precompute(parecer)
+        return "PRECOMPUTED" if result else "SKIP"
+    except Parecer.DoesNotExist:
+        return f"Processo ({parecer_id}) não encontrado."
+    except Exception as e:
+        logger.warning("FASE3-PRE falhou (best-effort, sem retry) — Parecer %s: %s", parecer_id, e)
+        return f"ERRO (ignorado): {e}"
 
 
 @shared_task(bind=True, time_limit=600, soft_time_limit=540, max_retries=2, queue='heavy')
@@ -128,9 +155,12 @@ def rodar_testes_engine_task():
     Envia e-mail para ADMIN_EMAIL quando há falhas.
 
     Suites incluídas:
-      - chat.tests_jari_engine   (44 testes) Camada 1: unitários JariMath + engine por fase
-      - chat.tests.test_jari_math (37 testes) Camada 1: unitários JariMath expandidos
-      - chat.tests_integration   (17 testes) Camada 2: integração F2→F3→F31 com banco real
+      - chat.tests_jari_engine              (44 testes) Camada 1: unitários JariMath + engine por fase
+      - chat.tests.test_jari_math           (37 testes) Camada 1: unitários JariMath expandidos
+      - chat.tests_integration              (17 testes) Camada 2: integração F2→F3→F31 com banco real
+      - chat.tests.test_fases               (22 testes) Camada 2: integração F31→F4/F5 + 409 + Rota D
+      - chat.tests.test_cenarios_producao   (13 testes) Camada 2.5: cenários reais de produção
+      - chat.tests.test_contratos_api       (26 testes) Camada 3: contratos de API
     """
     import unittest
     import time
@@ -144,6 +174,8 @@ def rodar_testes_engine_task():
     suite.addTests(loader.loadTestsFromName('chat.tests_jari_engine'))
     suite.addTests(loader.loadTestsFromName('chat.tests.test_jari_math'))
     suite.addTests(loader.loadTestsFromName('chat.tests_integration'))
+    suite.addTests(loader.loadTestsFromName('chat.tests.test_fases'))
+    suite.addTests(loader.loadTestsFromName('chat.tests.test_cenarios_producao'))
     suite.addTests(loader.loadTestsFromName('chat.tests.test_contratos_api'))
 
     buf = StringIO()
@@ -172,6 +204,10 @@ def rodar_testes_engine_task():
             return 'Camada 1 — JariMath'
         if 'tests_integration' in nome_teste:
             return 'Camada 2 — Integração de Fases'
+        if 'test_fases' in nome_teste:
+            return 'Camada 2 — Fases F31/F4/F5'
+        if 'test_cenarios_producao' in nome_teste:
+            return 'Camada 2.5 — Cenários de Produção'
         if 'test_contratos_api' in nome_teste:
             return 'Camada 3 — Contratos de API'
         return 'Camada 1 — Engine'
@@ -195,6 +231,8 @@ def rodar_testes_engine_task():
                     f"    • Camada 1 — JariMath unitário (tests.test_jari_math): 37 testes\n"
                     f"    • Camada 1 — Engine por fase (tests_jari_engine): 44 testes\n"
                     f"    • Camada 2 — Integração F2→F3→F31 (tests_integration): 17 testes\n"
+                    f"    • Camada 2 — Fases F31/F4/F5 (tests.test_fases): 22 testes\n"
+                    f"    • Camada 2.5 — Cenários de Produção (tests.test_cenarios_producao): 13 testes\n"
                     f"    • Camada 3 — Contratos de API (tests.test_contratos_api): 26 testes\n\n"
                     f"--- FALHAS ---\n\n{linhas_falha}"
                 ),

@@ -1,8 +1,11 @@
 import os
 import time
 import hashlib
+import logging
 import requests
 from django.core.mail import send_mail
+
+_log = logging.getLogger(__name__)
 from django.conf import settings
 
 # TTL do cache RAG: 24 horas
@@ -99,7 +102,7 @@ class PerplexityClient:
                         model_name='sonar-pro'
                     )
             except Exception as log_e:
-                print(f"Erro ao logar tokens Perplexity: {log_e}")
+                _log.error("Erro ao logar tokens Perplexity: %s", log_e)
 
             resultado = data["choices"][0]["message"]["content"]
             if _r:

@@ -16,7 +16,9 @@ def editar_parecer_view(request, id):
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
     config = ConfiguracaoParecer.objects.first()
 
-    parecer_final_db = parecer.pareceres_finais.last()
+    # ParecerFinal = versão HTML editada no TinyMCE (tem prioridade)
+    # parecer_final = saída markdown bruta da IA (fallback)
+    parecer_final_db = parecer.pareceres_finais.order_by('-data_criacao').first()
 
     if parecer_final_db:
         parecer_gerado = parecer_final_db.conteudo_html
@@ -227,6 +229,51 @@ def mover_parecer_view(request, id):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@require_POST
+def corrigir_campo_parecer_view(request, parecer_id):
+    """
+    Corrige um campo da tabela F2 via API.
+    Só funciona em FASE_DIR (2). Invalida o pré-cálculo F3 se necessário.
+    """
+    if not request.session.session_key:
+        request.session.create()
+    filter_kwargs = _get_filter_kwargs(request)
+    parecer = get_object_or_404(Parecer, id=parecer_id, **filter_kwargs)
+
+    from chat.engine import FASE_DIR
+    if parecer.status_fase != FASE_DIR:
+        return JsonResponse({'error': 'Correção de campo só é permitida na Fase 2.'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        campo = (data.get('campo') or '').strip().lower()
+        valor_str = str(data.get('valor', '') or '').strip()
+
+        from chat.engine.phase_2 import _CAMPOS_F2, _parse_field
+        if campo not in _CAMPOS_F2:
+            return JsonResponse({'error': f'Campo "{campo}" não pode ser editado inline.'}, status=400)
+
+        valor_parsed, erro = _parse_field(campo, valor_str)
+        if erro:
+            return JsonResponse({'error': erro}, status=400)
+
+        old_val = getattr(parecer, campo, None)
+        setattr(parecer, campo, valor_parsed)
+        update_fields = [campo]
+        if parecer.admissibilidade_texto:
+            parecer.admissibilidade_texto = None
+            update_fields.append('admissibilidade_texto')
+        parecer.save(update_fields=update_fields)
+
+        import logging as _log
+        _log.getLogger(__name__).info(
+            "[F2-API] campo corrigido: %s %s→%s | parecer=%s", campo, old_val, valor_parsed, parecer.id
+        )
+        return JsonResponse({'success': True, 'campo': campo, 'valor_novo': str(valor_parsed), 'valor_anterior': str(old_val)})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 
 @require_POST

@@ -23,6 +23,7 @@ urlpatterns = [
     path('onboarding/dismiss/', views.dismiss_onboarding_view, name='dismiss_onboarding'),
     path('api/reorder-folders/', views.reorder_folders_view, name='reorder_folders'),
     path('api/parecer/<int:parecer_id>/feedback/', views.salvar_feedback_parecer_view, name='salvar_feedback_parecer'),
+    path('api/parecer/<int:parecer_id>/corrigir-campo/', views.corrigir_campo_parecer_view, name='corrigir_campo_parecer'),
     path('api/citacao/create/', views.create_citacao_view, name='create_citacao'),
     path('api/citacao/<int:id>/edit/', views.editar_citacao_view, name='editar_citacao'),
     path('api/citacao/<int:id>/delete/', views.excluir_citacao_view, name='excluir_citacao'),

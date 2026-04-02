@@ -101,7 +101,7 @@ def analise_tese(engine) -> str:
                     perplexity_result=perplexity_result
                 )
             except Exception as e:
-                print(f"Erro ao salvar no PJARI-CACHE: {e}")
+                logger.error("Erro ao salvar no PJARI-CACHE: %s", e)
 
     # ── Análise de teses ──────────────────────────────────────────────────────
     analise_resultado = gemini.analyze_tese(parecer, tese, perplexity_result, vertex_result)

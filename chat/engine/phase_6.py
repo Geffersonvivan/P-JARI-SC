@@ -119,7 +119,7 @@ def run(engine) -> str:
         except Exception as e:
             import sentry_sdk
             sentry_sdk.capture_exception(e)
-            print(f"Erro ao disparar email de auditoria Fase 6: {str(e)}")
+            logger.error("Erro ao disparar email de auditoria Fase 6: %s", e)
 
     parecer.status_fase = FASE_SELECAO_PASTA
     parecer.save()

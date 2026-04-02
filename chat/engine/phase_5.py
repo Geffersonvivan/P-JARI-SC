@@ -29,7 +29,7 @@ def run_llm_phases(engine, task_id=None) -> str:
 
     parecer = engine.parecer
     _t0 = _time.time()
-    print(f"[FASE5] START parecer={parecer.id} task={task_id}")
+    logger.info("[FASE5] START parecer=%s task=%s", parecer.id, task_id)
 
     perplexity = PerplexityClient()
     gemini = GeminiClient()
@@ -37,7 +37,7 @@ def run_llm_phases(engine, task_id=None) -> str:
     anthropic = AnthropicClient()
 
     tese = parecer.tese or "MÉRITO PREJUDICADO."
-    print(f"[FASE5] tese={repr(tese[:80])}")
+    logger.info("[FASE5] tese=%s", repr(tese[:80]))
 
     # ── RAG (Vertex + Perplexity) ─────────────────────────────────────────────
     if "PREJUDICADO" in tese:
@@ -56,29 +56,40 @@ def run_llm_phases(engine, task_id=None) -> str:
             try:
                 vertex_result = v_future.result(timeout=90) if v_future else parecer.vertex_result
             except concurrent.futures.TimeoutError:
-                print(f"[FASE5] TIMEOUT Vertex AI (90s) — usando fallback")
+                logger.warning("[FASE5] TIMEOUT Vertex AI (90s) — usando fallback")
                 vertex_result = "Sistema RAG offline por timeout. Use conhecimento prévio do CTB."
             except Exception as e:
-                print(f"[FASE5] ERRO Vertex AI: {e}")
+                logger.error("[FASE5] ERRO Vertex AI: %s", e)
                 vertex_result = f"Vertex AI indisponível: {e}"
 
             try:
                 perplexity_result = p_future.result(timeout=90) if p_future else parecer.perplexity_result
             except concurrent.futures.TimeoutError:
-                print(f"[FASE5] TIMEOUT Perplexity (90s) — usando fallback")
+                logger.warning("[FASE5] TIMEOUT Perplexity (90s) — usando fallback")
                 perplexity_result = "Pesquisa jurisprudencial offline por timeout."
             except Exception as e:
-                print(f"[FASE5] ERRO Perplexity: {e}")
+                logger.error("[FASE5] ERRO Perplexity: %s", e)
                 perplexity_result = f"Perplexity indisponível: {e}"
         finally:
             executor.shutdown(wait=False, cancel_futures=True)
 
-    # ── Geração do parecer (Anthropic) ────────────────────────────────────────
-    print(f"[FASE5] Vertex/Perplexity prontos em {_time.time()-_t0:.1f}s — chamando Anthropic...")
-    parecer_text = anthropic.validate_and_generate_parecer(
-        parecer, tese, perplexity_result, vertex_result, task_id=task_id
-    )
-    print(f"[FASE5] Anthropic concluído em {_time.time()-_t0:.1f}s — len={len(parecer_text)}")
+    # ── Geração do parecer (Anthropic + fallback Gemini) ─────────────────────
+    logger.info("[FASE5] Vertex/Perplexity prontos em %.1fs — chamando Anthropic...", _time.time()-_t0)
+    try:
+        parecer_text = anthropic.validate_and_generate_parecer(
+            parecer, tese, perplexity_result, vertex_result, task_id=task_id
+        )
+        logger.info("[FASE5] Anthropic concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
+    except Exception as _anthropic_err:
+        logger.error("[FASE5] Anthropic falhou (%s) — tentando fallback Gemini", _anthropic_err)
+        try:
+            parecer_text = gemini.generate_parecer_gemini(
+                parecer, tese, perplexity_result, vertex_result, task_id=task_id
+            )
+            logger.warning("[FASE5] Fallback Gemini concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
+        except Exception as _gemini_err:
+            logger.error("[FASE5] Fallback Gemini também falhou: %s", _gemini_err)
+            raise _anthropic_err  # re-raise erro original para retry do Celery
 
     # ── Extrai Dossiê de Fontes ───────────────────────────────────────────────
     dossie = ""
@@ -113,7 +124,7 @@ def run_llm_phases(engine, task_id=None) -> str:
                 if default_storage.exists(_aut_path):
                     default_storage.delete(_aut_path)
             except Exception as e:
-                print(f"Erro ao deletar autuação PDF do storage: {e}")
+                logger.error("Erro ao deletar autuação PDF do storage: %s", e)
             parecer.autuacao_pdf_path = None
 
         _con_path = _engine_p(parecer.consolidado_pdf_path)
@@ -123,10 +134,10 @@ def run_llm_phases(engine, task_id=None) -> str:
                 if default_storage.exists(_con_path):
                     default_storage.delete(_con_path)
             except Exception as e:
-                print(f"Erro ao deletar consolidado PDF do storage: {e}")
+                logger.error("Erro ao deletar consolidado PDF do storage: %s", e)
             parecer.consolidado_pdf_path = None
     else:
-        print(f"[FASE5] parecer={parecer.id} — geração falhou ou texto inválido; PDFs preservados para reanálise.")
+        logger.warning("[FASE5] parecer=%s — geração falhou ou texto inválido; PDFs preservados para reanálise.", parecer.id)
 
     parecer.status_fase = FASE_AUDITORIA
     parecer.save()

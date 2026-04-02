@@ -1,8 +1,11 @@
+import logging
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from datetime import datetime
 from .models import Parecer, Pasta
 from .jari_engine import JariEngine
+
+logger = logging.getLogger(__name__)
 import json
 import re
 import os
@@ -79,7 +82,7 @@ class ChatService:
             if _con and default_storage.exists(_con):
                 consolidado_url = f'/chat/pdf/{p.id}/consolidado/'
         except Exception as e:
-            print(f"Erro ao buscar URLs de media PDFs: {e}")
+            logger.error("Erro ao buscar URLs de media PDFs: %s", e)
             
         from .models import ChatMessage
         # Prefixos de comandos internos que não devem aparecer no histórico visível

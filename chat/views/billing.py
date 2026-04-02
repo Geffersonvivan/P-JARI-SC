@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
@@ -8,6 +9,8 @@ import stripe
 from django_ratelimit.decorators import ratelimit
 from ..models import Parecer
 from .home import PLANS
+
+logger = logging.getLogger(__name__)
 
 
 @ratelimit(key='user', rate='10/h', method='GET', block=True)
@@ -42,8 +45,7 @@ def checkout_view(request):
         )
         return redirect(session.url)
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logger.error("Erro ao gerar checkout da Stripe: %s", e, exc_info=True)
         return HttpResponse(f"Erro ao gerar checkout da Stripe: {e}", status=500)
 
 
@@ -95,7 +97,7 @@ def stripe_webhook(request):
                                 update_fields += ['is_pro', 'subscription_status']
 
                             user.profile.save(update_fields=update_fields)
-                            print(f"Usuário {user.username} - Pagamento processado Stripe: {trans_amount}")
+                            logger.info("Usuário %s - Pagamento processado Stripe: %s", user.username, trans_amount)
 
                         # Disparar Email de notificação
                         try:
@@ -105,11 +107,11 @@ def stripe_webhook(request):
                             email_cliente = user.email or 'N/A'
                             send_payment_notification_task.delay(nome_cliente, email_cliente, trans_amount, payment_id)
                         except Exception as em:
-                            print(f"Erro disparando webhook email: {em}")
+                            logger.error("Erro disparando webhook email: %s", em)
 
             return HttpResponse(status=200)
         except Exception as e:
-            print("Stripe Webhook Handling Error:", e)
+            logger.error("Stripe Webhook Handling Error: %s", e, exc_info=True)
             return HttpResponse(status=400)
     return HttpResponse(status=405)
 

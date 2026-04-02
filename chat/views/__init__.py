@@ -2,7 +2,7 @@ from .home import landing_page_view, home_view, _get_filter_kwargs, PLANS  # noq
 from .parecer import (  # noqa: F401
     editar_parecer_view, salvar_parecer_view, create_parecer_view,
     delete_parecer_view, delete_projeto_view, mover_parecer_view,
-    salvar_feedback_parecer_view, pdf_proxy_view,
+    salvar_feedback_parecer_view, pdf_proxy_view, corrigir_campo_parecer_view,
 )
 from .chat import (  # noqa: F401
     chat_message_view, chat_agent_message_view,

@@ -56,7 +56,7 @@ class AnthropicClient:
                 model_name=model_name
             )
         except Exception as e:
-            print(f"Erro ao logar tokens Anthropic: {e}")
+            _log.error("Erro ao logar tokens Anthropic: %s", e)
 
     def get_pdf_content(self, file_path):
         if not file_path: return None
@@ -73,7 +73,7 @@ class AnthropicClient:
                     }
                 }
         except Exception as e:
-            print(f"Anthropic PDF encoding error: {e}")
+            _log.error("Anthropic PDF encoding error: %s", e)
             return None
 
     def validate_and_generate_parecer(self, parecer_obj, tese, perplexity_result, vertex_result="", task_id=None):
@@ -196,7 +196,7 @@ class AnthropicClient:
                     from django.conf import settings
                     redis_client = redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'))
                 except Exception as e:
-                    print(f"Erro de conexão com Redis: {e}")
+                    _log.error("Erro de conexão com Redis: %s", e)
 
             full_text = []
 

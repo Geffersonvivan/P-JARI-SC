@@ -57,5 +57,10 @@ app.save()
 app.sites.add(site1, site2)
 "
 
-echo "Starting gunicorn com workers e threads para SaaS..."
-exec gunicorn config.wsgi --bind 0.0.0.0:$PORT --workers 3 --threads 4 --timeout 120 --log-file -
+echo "Starting gunicorn ASGI com uvicorn worker (SSE não-bloqueante)..."
+exec gunicorn config.asgi:application \
+  -k uvicorn.workers.UvicornWorker \
+  --bind 0.0.0.0:$PORT \
+  --workers 3 \
+  --timeout 120 \
+  --log-file -

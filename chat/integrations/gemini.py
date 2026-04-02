@@ -93,7 +93,7 @@ class GeminiClient:
                     is_pdf_defect=is_pdf_defect
                 )
         except Exception as e:
-            print(f"Erro ao logar tokens Gemini: {e}")
+            _log.error("Erro ao logar tokens Gemini: %s", e)
 
     def upload_file(self, file_path):
         if not self.client or not file_path:
@@ -627,7 +627,7 @@ class GeminiClient:
             key = response.text.strip().lower().replace('"', '').replace("'", "")
             return key
         except Exception as e:
-            print(f"Erro ao gerar cache key: {e}")
+            _log.error("Erro ao gerar cache key: %s", e)
             return "erro_chave"
 
     def analyze_tese(self, parecer_obj, tese, perplexity_result, vertex_result):
@@ -788,7 +788,7 @@ class GeminiClient:
                 try:
                     redis_client = redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'))
                 except Exception as e:
-                    print(f"Erro de conexão com Redis: {e}")
+                    _log.error("Erro de conexão com Redis: %s", e)
 
             # Definir limiares de segurança explícitos para BLOCK_NONE (Gemini V1beta/V1) usando nova SDK google-genai
             from google.genai import types
@@ -824,7 +824,7 @@ class GeminiClient:
                                 'text': chunk_text
                             }))
                 except Exception as stream_err:
-                    print(f"Erro no streaming do chunk: {stream_err}")
+                    _log.error("Erro no streaming do chunk: %s", stream_err)
 
             final_text = "".join(full_text)
             self._log_tokens(parecer_obj, last_chunk, 'Fase 5 (Parecer)', model_name=model_to_use, start_time=start_time)

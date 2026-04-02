@@ -63,9 +63,15 @@ def proxy_image_view(request):
     if not url:
         return HttpResponse(status=400)
 
-    # Aceita apenas URLs absolutas com protocolo HTTPS
+    # Aceita URLs absolutas HTTP/HTTPS da lista permitida e do próprio host
     parsed = urlparse(url)
-    if parsed.scheme != 'https' or parsed.netloc not in _PROXY_ALLOWED_DOMAINS:
+    host = request.get_host().split(':')[0]
+    
+    if parsed.scheme not in ['http', 'https']:
+        return HttpResponse(status=403)
+        
+    is_allowed = parsed.netloc in _PROXY_ALLOWED_DOMAINS or parsed.netloc == host
+    if not is_allowed:
         return HttpResponse(status=403)
 
     try:

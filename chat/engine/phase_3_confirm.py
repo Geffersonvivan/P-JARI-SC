@@ -116,7 +116,8 @@ def process(engine, message: str) -> str:
                          data_inf_m1 >= _LIMIAR_FILTRO_1 and
                          data_inf_m1 < datetime.date(2021, 10, 22))
         if _e_grave_m1 and _e_filtro2_m1:
-            acolhe_decad = True  # converte NÃO SE APLICA → SIM
+            # acolhe_decad permanece False (B=inverter): _flag(False, False) = True = SIM
+            # NÃO mudar acolhe_decad para True — isso bloquearia a conversão (bug M1-FIX)
             aviso_filtro2_suspensao = (
                 "\n\n✅ **CONVERSÃO FILTRO 2 SUSPENSÃO — NÃO SE APLICA → SIM**\n"
                 "O julgador escolheu B (Afastar) para penalidade de suspensão/cassação no período "

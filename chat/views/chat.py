@@ -172,53 +172,54 @@ def check_task_status_view(request, task_id):
     return JsonResponse({'status': 'PROCESSING'})
 
 
-def stream_task_status_view(request, task_id):
-    """View endpoint para o frontend consumir Server-Sent Events (SSE) via Redis PubSub."""
-    from django.http import StreamingHttpResponse
-    import redis
+async def stream_task_status_view(request, task_id):
+    """
+    View SSE assíncrona (ASGI) — não bloqueia workers Gunicorn.
+    Usa redis.asyncio (incluído em redis>=5) e asyncio.sleep para I/O não-bloqueante.
+    """
+    import asyncio
     import json
+    from django.http import StreamingHttpResponse
     from django.conf import settings
-    from celery.result import AsyncResult
 
-    def event_stream():
-        import time as _time
+    async def event_stream():
+        import redis.asyncio as aioredis
+        from celery.result import AsyncResult
+
         r = None
         pubsub = None
-        # Conecta no Redis
         try:
-            r = redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'))
+            r = aioredis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'))
             pubsub = r.pubsub()
             channel_name = f"stream_{task_id}"
-            pubsub.subscribe(channel_name)
+            await pubsub.subscribe(channel_name)
         except Exception as e:
             import sentry_sdk
             sentry_sdk.capture_exception(e)
             yield f"data: {json.dumps({'status': 'FAILURE', 'error': 'Redis Inoperante', 'details': str(e)})}\n\n"
             return
 
-        # Timeout máximo de espera: 660s (11 min) — Celery mata tasks em 600s
-        # Sem isso, o loop fica eterno se o worker crashar com task em PENDING
-        _start = _time.time()
+        # Timeout máximo: 660s (11 min) — Celery mata tasks em 600s
+        import time as _time
+        _start = _time.monotonic()
         _MAX_WAIT = 660
 
         try:
-            # Loop de escuta com timeout para verificar se o Celery já acabou
             while True:
-                # Guarda-tempo: encerra se o worker não responder em 11 minutos
-                if _time.time() - _start > _MAX_WAIT:
-                    yield f"data: {json.dumps({'status': 'FAILURE', 'error': 'O processamento excedeu o tempo limite (11 min). O worker pode ter reiniciado. Abra o processo novamente e tente de novo.'})}\n\n"
+                if _time.monotonic() - _start > _MAX_WAIT:
+                    yield f"data: {json.dumps({'status': 'FAILURE', 'error': 'O processamento excedeu o tempo limite (11 min). Abra o processo novamente e tente de novo.'})}\n\n"
                     break
 
-                message = pubsub.get_message(timeout=1.0)
+                # Await sem bloquear thread — libera o event loop
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
                 if message and message['type'] == 'message':
                     data_str = message['data'].decode('utf-8')
                     yield f"data: {data_str}\n\n"
                 else:
-                    # Keepalive SSE: envia comentário a cada ciclo para evitar que o proxy
-                    # (Railway/Nginx/Gunicorn --timeout 120) encerre a conexão silenciosa
                     yield ": keepalive\n\n"
-                    # Se não chegou mensagem nova num prazo, ou se a task terminou rápido:
+                    # Verifica se a task terminou sem publicar no canal (race condition)
                     try:
+                        from asgiref.sync import sync_to_async
                         task = AsyncResult(task_id)
                         if task.state in ['SUCCESS', 'FAILURE', 'REVOKED']:
                             if task.state == 'SUCCESS':
@@ -226,10 +227,10 @@ def stream_task_status_view(request, task_id):
                                     parecer_id = request.GET.get('parecer_id')
                                     if parecer_id:
                                         from ..models import Parecer
-                                        from ..jari_engine import JariEngine, FASE_AGUARDA_CONFIRMACAO_FASE1
-                                        p = Parecer.objects.get(id=parecer_id)
+                                        from ..jari_engine import JariEngine
+                                        get_parecer = sync_to_async(Parecer.objects.get)
+                                        p = await get_parecer(id=parecer_id)
                                         if p.parecer_final:
-                                            # Fase 5: parecer foi gerado
                                             reply = (
                                                 f"**Parecer Técnico Gerado com Sucesso!**\n\n"
                                                 f"{p.parecer_final}\n\n"
@@ -237,45 +238,38 @@ def stream_task_status_view(request, task_id):
                                                 f"Digite **'ok'** para prosseguir."
                                             )
                                         else:
-                                            # Fase 1 (ou fallback): devolve o prompt atual da fase
-                                            reply = JariEngine(p).get_current_prompt()
+                                            get_prompt = sync_to_async(JariEngine(p).get_current_prompt)
+                                            reply = await get_prompt()
                                         final_data = json.dumps({'status': 'SUCCESS', 'reply': reply, 'status_fase': p.status_fase})
                                     else:
-                                        final_data = json.dumps({'status': 'SUCCESS', 'reply': "Tarefa concluída, mas Parecer ID não fornecido.", 'status_fase': 6})
+                                        final_data = json.dumps({'status': 'SUCCESS', 'reply': "Tarefa concluída.", 'status_fase': 6})
                                 except Exception as db_err:
-                                    final_data = json.dumps({'status': 'FAILURE', 'error': f"Parecer não encontrado. {str(db_err)}"})
+                                    final_data = json.dumps({'status': 'FAILURE', 'error': f"Parecer não encontrado. {db_err}"})
                             else:
                                 final_data = json.dumps({'status': 'FAILURE', 'error': str(getattr(task, 'info', 'Falha Celery'))})
-
                             yield f"data: {final_data}\n\n"
                             break
                     except Exception as eval_err:
-                        yield f"data: {json.dumps({'status': 'FAILURE', 'error': f'Falha Crítica ao ler Task State: {str(eval_err)}'})}\n\n"
+                        yield f"data: {json.dumps({'status': 'FAILURE', 'error': f'Falha ao ler Task State: {eval_err}'})}\n\n"
                         break
-        except GeneratorExit:
-            # Cliente desconectou — encerra silenciosamente sem propagar o erro
-            pass
+                    await asyncio.sleep(0)  # cede o event loop a outras coroutines
         except Exception as stream_err:
-            # Redis caiu, timeout de rede ou outro erro inesperado no generator
-            # Loga e envia evento de falha para o frontend reconectar
             import logging as _log
-            _log.getLogger(__name__).error(f"SSE stream error (task={task_id}): {stream_err}")
+            _log.getLogger(__name__).error("SSE async stream error (task=%s): %s", task_id, stream_err)
             try:
                 yield f"data: {json.dumps({'status': 'RECONNECT', 'error': str(stream_err)})}\n\n"
             except Exception:
                 pass
         finally:
-            # Garante cleanup do Redis independente de como o generator terminou
-            # (conclusão normal, timeout, exceção ou desconexão do cliente)
             if pubsub:
                 try:
-                    pubsub.unsubscribe()
-                    pubsub.close()
+                    await pubsub.unsubscribe()
+                    await pubsub.aclose()
                 except Exception:
                     pass
             if r:
                 try:
-                    r.close()
+                    await r.aclose()
                 except Exception:
                     pass
 

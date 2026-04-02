@@ -255,11 +255,51 @@ def run(engine) -> str:
     )
 
     # ── Geração do texto de admissibilidade via Gemini ────────────────────────
-    gemini = GeminiClient()
-    texto_status = gemini.generate_phase3_report(parecer, matematica_detalhes)
+    # Idempotente: se já foi pré-calculado em background (processar_fase3_task),
+    # pula a chamada Gemini e apenas avança a fase.
+    if parecer.admissibilidade_texto:
+        logger.info("[FASE3] admissibilidade_texto já disponível (pré-calculado) — pulando Gemini. parecer=%s", parecer.id)
+    else:
+        gemini = GeminiClient()
+        parecer.admissibilidade_texto = gemini.generate_phase3_report(parecer, matematica_detalhes)
 
-    parecer.admissibilidade_texto = texto_status
     parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
     parecer.save()
 
     return engine.get_current_prompt()
+
+
+def run_precompute(parecer) -> bool:
+    """
+    Pré-computa F3 em background enquanto o julgador ainda revisa F2.
+    Executa JariMath + Gemini e salva admissibilidade_texto SEM avançar status_fase.
+    Retorna True se o pré-cálculo foi realizado, False se foi pulado.
+    """
+    from chat.jari_math import JariMath
+    from chat.integrations import GeminiClient
+    from chat.engine import FASE_DIR
+
+    # Guard: só pré-calcula se ainda está em F2 e F3 ainda não foi calculada
+    if parecer.status_fase != FASE_DIR or parecer.admissibilidade_texto:
+        logger.info("[FASE3-PRE] skipped | parecer=%s | fase=%s | ja_calculado=%s",
+                    parecer.id, parecer.status_fase, bool(parecer.admissibilidade_texto))
+        return False
+
+    # Cria um engine temporário para reutilizar run()
+    from chat.engine import JariEngine
+    engine = JariEngine(parecer)
+
+    # Executa run() completo — ele avançará status_fase para 31.
+    # Depois revertemos o status_fase para FASE_DIR para que o usuário ainda veja F2.
+    run(engine)
+
+    # Reverte o status para FASE_DIR — o usuário ainda precisa confirmar F2.
+    # Quando confirmar, phase_2.process() verá admissibilidade_texto já preenchido
+    # e phase_3.run() pulará a chamada Gemini (idempotente acima).
+    parecer.refresh_from_db(fields=['status_fase'])
+    if parecer.status_fase != FASE_DIR:
+        parecer.status_fase = FASE_DIR
+        parecer.save(update_fields=['status_fase'])
+        logger.info("[FASE3-PRE] pré-cálculo concluído, status revertido para FASE_DIR. parecer=%s", parecer.id)
+
+    return True

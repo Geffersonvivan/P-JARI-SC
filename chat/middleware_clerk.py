@@ -144,8 +144,7 @@ class ClerkAuthenticationMiddleware:
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.error(f"Erro ao validar token do Clerk: {e}")
-                print(f"[DEBUG CLERK] ERRO AO VALIDAR TOKEN: {e}")
+                logger.error("Erro ao validar token do Clerk: %s", e)
                 
                 # Em vez de travar o app com erro 401, redireciona o usuário para a Home.
                 # A tela Home possui o ClerkJS injetado, que cuidará de renovar o cookie silenciosamente
@@ -158,7 +157,7 @@ class ClerkAuthenticationMiddleware:
                     from django.contrib.auth.models import AnonymousUser
                     request.user = AnonymousUser()
         else:
-            print("[DEBUG CLERK] Token NÃO encontrado nos headers nem nos cookies.")
+            logger.debug("Token NÃO encontrado nos headers nem nos cookies.")
             # Sem token presente: ignora qualquer sessão legado se não for painel admin
             if not request.path.startswith('/admin/'):
                 from django.contrib.auth.models import AnonymousUser

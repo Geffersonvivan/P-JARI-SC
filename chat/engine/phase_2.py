@@ -16,6 +16,57 @@ def get_prompt(parecer) -> str:
     )
 
 
+_CAMPOS_F2 = {
+    'data_infracao':             ('date',   'Data da Infração'),
+    'data_protocolo':            ('date',   'Data do Protocolo'),
+    'data_sessao':               ('date',   'Data da Sessão'),
+    'prazo_final':               ('date',   'Prazo Final'),
+    'data_conhecimento_infracao':('date',   'Data do Conhecimento'),
+    'data_conclusao_multa':      ('date',   'Conclusão da Multa'),
+    'data_totalizacao_pontos':   ('date',   'Totalização de Pontos'),
+    'tipo_penalidade':           ('choice', 'Tipo de Penalidade (multa/advertencia/suspensao/cassacao)'),
+    'tem_flagrante':             ('bool',   'Tem Flagrante (sim/nao)'),
+    'recorrente':                ('text',   'Nome do Recorrente'),
+}
+
+
+def _parse_field(campo, valor_str):
+    """Converte valor_str para o tipo correto do campo. Retorna (valor_parsed, erro_msg)."""
+    tipo = _CAMPOS_F2[campo][0]
+    valor_str = valor_str.strip()
+
+    if tipo == 'date':
+        if not valor_str or valor_str.upper() in ('NULO', 'NONE', '-'):
+            return None, None
+        for fmt in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                import datetime as _dt
+                return _dt.datetime.strptime(valor_str, fmt).date(), None
+            except ValueError:
+                pass
+        return None, f"Data inválida: '{valor_str}'. Use DD/MM/AAAA."
+
+    if tipo == 'bool':
+        if valor_str.lower() in ('sim', 's', 'true', '1', 'yes'):
+            return True, None
+        if valor_str.lower() in ('nao', 'não', 'n', 'false', '0', 'no'):
+            return False, None
+        return None, f"Use 'sim' ou 'nao' para o campo '{campo}'."
+
+    if tipo == 'choice':
+        _validos = ('multa', 'advertencia', 'suspensao', 'cassacao')
+        v = valor_str.lower()
+        if v in _validos:
+            return v, None
+        # Também invalida o campo se o usuário digitar vazio ou nulo
+        if not v or v in ('nao_determinado', '-', 'none'):
+            return None, None
+        return None, f"Tipo de penalidade inválido: '{valor_str}'. Valores válidos: {', '.join(_validos)}."
+
+    # text
+    return valor_str[:255] if valor_str else None, None
+
+
 def process(engine, message: str) -> str:
     """Processa a resposta do julgador na fase 2."""
     parecer = engine.parecer
@@ -23,8 +74,14 @@ def process(engine, message: str) -> str:
 
     if msg == 'ok':
         from chat.engine import FASE_ADMISSIBILIDADE_GERADA
+        # Invalida pré-cálculo F3 se campos foram editados (admissibilidade_texto pode estar desatualizado)
+        # A flag _f2_campos_editados é setada pelo processo de edição inline
+        if getattr(parecer, '_f2_campos_editados', False) and parecer.admissibilidade_texto:
+            parecer.admissibilidade_texto = None
+            parecer.save(update_fields=['admissibilidade_texto'])
+            logger.info("[FASE2] campos editados — pré-cálculo F3 invalidado. parecer=%s", parecer.id)
         parecer.status_fase = FASE_ADMISSIBILIDADE_GERADA
-        parecer.save()
+        parecer.save(update_fields=['status_fase'])
         return engine.run_phase_3()
 
     if msg == 'corrigir':
@@ -41,7 +98,49 @@ def process(engine, message: str) -> str:
         parecer.save()
         return "Voltando à Fase 1. Reiniciando a coleta.\n" + engine.get_current_prompt()
 
-    return "Por favor, responda com **'ok'** para prosseguir ou **'corrigir'** para reiniciar."
+    # ── Correção inline de campo via comando de chat ──────────────────────────
+    # Formato: "campo: valor"  ex: "data_infracao: 15/03/2022"
+    # Também aceita prefixo "editar " ou "set " para clareza
+    _RAW = message.strip()
+    _sem_prefixo = _RAW
+    for _pfx in ('editar ', 'set ', 'EDITAR ', 'SET '):
+        if _RAW.startswith(_pfx):
+            _sem_prefixo = _RAW[len(_pfx):]
+            break
+
+    if ':' in _sem_prefixo:
+        _partes = _sem_prefixo.split(':', 1)
+        _campo_raw = _partes[0].strip().lower().replace(' ', '_').replace('-', '_')
+        _valor_raw = _partes[1].strip()
+
+        if _campo_raw in _CAMPOS_F2:
+            valor_parsed, erro = _parse_field(_campo_raw, _valor_raw)
+            if erro:
+                return f"⚠️ {erro}\n\nUse **'ok'** para prosseguir ou corrija o campo."
+            old_val = getattr(parecer, _campo_raw, None)
+            setattr(parecer, _campo_raw, valor_parsed)
+            # Invalida o pré-cálculo F3 para que rode novamente com o campo corrigido
+            update_fields = [_campo_raw]
+            if parecer.admissibilidade_texto:
+                parecer.admissibilidade_texto = None
+                update_fields.append('admissibilidade_texto')
+            parecer.save(update_fields=update_fields)
+            logger.info("[FASE2] campo corrigido: %s %s→%s | parecer=%s", _campo_raw, old_val, valor_parsed, parecer.id)
+            _label = _CAMPOS_F2[_campo_raw][1]
+            return (
+                f"✅ **{_label}** atualizado: `{old_val}` → `{valor_parsed}`\n\n"
+                f"Confirme a tabela ou corrija outro campo. Digite **'ok'** para prosseguir.\n\n"
+                f"---\n\n"
+                f"**Campos editáveis:**\n"
+                + "\n".join(f"- `{c}`: {d[1]}" for c, d in _CAMPOS_F2.items())
+            )
+
+    return (
+        "Por favor, responda com **'ok'** para prosseguir ou **'corrigir'** para reiniciar.\n\n"
+        "Para corrigir um campo específico, use o formato:\n"
+        "```\ndata_infracao: 15/03/2022\n```\n"
+        "Campos disponíveis: " + ", ".join(f"`{c}`" for c in _CAMPOS_F2)
+    )
 
 
 def run(engine) -> str:
