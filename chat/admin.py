@@ -7,7 +7,7 @@ class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Perfil de Créditos e Assinatura'
-    fields = ('credits', 'is_pro', 'subscription_status', 'mp_customer_id', 'can_view_global_stats')
+    fields = ('credits', 'is_pro', 'subscription_status', 'can_view_global_stats')
     
 @admin.register(AiRequestLog)
 class AiRequestLogAdmin(admin.ModelAdmin):

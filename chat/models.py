@@ -31,7 +31,7 @@ class Parecer(models.Model):
     # 6 = Auditoria Blindagem
     # 7 = Seleção Pasta
     # 8 = Finalizado
-    status_fase = models.IntegerField(default=1) 
+    status_fase = models.IntegerField(default=1, db_index=True)
     pa = models.CharField(max_length=100, blank=True, null=True)
     sgpe = models.CharField(max_length=100, blank=True, null=True)
     recorrente = models.CharField(max_length=255, blank=True, null=True)
@@ -98,7 +98,7 @@ class Parecer(models.Model):
     feedback_score = models.IntegerField(null=True, blank=True, help_text="Nota de 0 a 100 dada pelo usuário sobre o parecer gerado")
     feedback_tags = models.CharField(max_length=500, blank=True, null=True, help_text="Tags de erro pontuadas (ex: erro-de-data, erro-jurisprudencia)")
     feedback_notes = models.TextField(blank=True, null=True, help_text="Comentário livre do usuário sobre o que faltou na IA")
-    
+
     # Meta dados
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -106,6 +106,19 @@ class Parecer(models.Model):
     def __str__(self):
         nome_usuario = self.user.username if self.user else "Anon"
         return f'{self.nome_processo} - {nome_usuario}'
+
+    @property
+    def conteudo_final(self) -> str:
+        """
+        Retorna o conteúdo canônico do parecer:
+        - Se o julgador editou e salvou no TinyMCE → ParecerFinal.conteudo_html (HTML)
+        - Caso contrário → parecer_final gerado pela IA (markdown)
+
+        Centraliza a regra de leitura para evitar dual-lookup nas views.
+        Nota: parecer_final (markdown bruto) é sempre preservado como fonte primária da IA.
+        """
+        ultimo = self.pareceres_finais.order_by('-data_criacao').first()
+        return ultimo.conteudo_html if ultimo else (self.parecer_final or "")
 
     @classmethod
     def score_stats(cls, user=None, days=90):
@@ -268,7 +281,6 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     is_pro = models.BooleanField(default=False)
     credits = models.IntegerField(default=5)
-    mp_customer_id = models.CharField(max_length=255, blank=True, null=True)
     subscription_status = models.CharField(max_length=50, default='inactive')
     viu_boas_vindas = models.BooleanField(default=False)
     has_seen_tour = models.BooleanField(default=False)
@@ -316,7 +328,8 @@ def notify_admin_on_signup(request, user, **kwargs):
                 fail_silently=True,
             )
     except Exception as e:
-        print(f"Erro ao enviar email de notificação de signup: {e}")
+        import logging as _log
+        _log.getLogger(__name__).error("Erro ao enviar email de notificação de signup: %s", e)
 
 class BancoTese(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='banco_teses')
