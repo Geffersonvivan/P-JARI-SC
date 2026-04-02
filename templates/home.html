@@ -1136,9 +1136,8 @@
                             btnTogglePdf.classList.add('md:flex');
                             document.getElementById('main-header').classList.remove('md:hidden');
                             document.getElementById('main-header').classList.add('md:flex');
-                            // Ao trocar de processo, reseta a preferência e abre o PDF normalmente
-                            userClosedPdf = false;
-                            togglePdfViewer(true);
+                            // Respeita a preferência do usuário: só abre se ele não fechou manualmente
+                            if (!userClosedPdf) togglePdfViewer(true);
                         } else {
                             btnTogglePdf.classList.add('hidden');
                             btnTogglePdf.classList.remove('md:flex');
