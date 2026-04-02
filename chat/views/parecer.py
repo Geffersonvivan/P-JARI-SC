@@ -165,7 +165,7 @@ def create_parecer_view(request):
             return JsonResponse({'requires_login': True})
     else:
         # Usuário autenticado: Verifica limite de créditos (Ignora se for Vitalício Is Pro ou Superuser)
-        total_usos = Parecer.objects.filter(user=request.user, is_saved=True).count()
+        total_usos = Parecer.objects.filter(user=request.user).count()
         if total_usos >= request.user.profile.credits and not request.user.profile.is_pro and not request.user.is_superuser:
             return JsonResponse({'requires_plan': True})
 

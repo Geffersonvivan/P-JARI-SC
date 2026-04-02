@@ -114,7 +114,9 @@ class ChatService:
             if count >= 2:
                 return JsonResponse({'requires_login': True})
         else:
-            total_usos = Parecer.objects.filter(user=request.user, is_saved=True).count()
+            # Conta saved + em andamento para evitar race condition onde dois processos
+            # simultâneos (is_saved=False) passam pelo check e excedem o limite ao finalizar.
+            total_usos = Parecer.objects.filter(user=request.user).count()
             if total_usos >= request.user.profile.credits and not request.user.profile.is_pro and not request.user.is_superuser:
                 return JsonResponse({'requires_plan': True})
 
