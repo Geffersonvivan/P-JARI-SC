@@ -1136,6 +1136,8 @@
                             btnTogglePdf.classList.add('md:flex');
                             document.getElementById('main-header').classList.remove('md:hidden');
                             document.getElementById('main-header').classList.add('md:flex');
+                            // Ao trocar de processo, reseta a preferência e abre o PDF normalmente
+                            userClosedPdf = false;
                             togglePdfViewer(true);
                         } else {
                             btnTogglePdf.classList.add('hidden');
@@ -2121,7 +2123,8 @@
                                 mh.classList.remove('md:hidden');
                                 mh.classList.add('md:flex');
                             }
-                            if (!pdfViewerActive) togglePdfViewer(true);
+                            // Só abre automaticamente se o usuário não fechou manualmente
+                            if (!pdfViewerActive && !userClosedPdf) togglePdfViewer(true);
                         }
 
                         pollTaskStatus(data.task_id, tempId, currentParecerId, data.task_type);
@@ -2192,7 +2195,9 @@
                             mh.classList.remove('md:hidden');
                             mh.classList.add('md:flex');
                         }
-                        
+
+                        // Primeira abertura: sempre abre e reseta preferência do usuário
+                        userClosedPdf = false;
                         if (!pdfViewerActive) togglePdfViewer(true);
                     } else if (!shouldOpenPdf) {
                         if (btnTogglePdf) {
@@ -2534,6 +2539,7 @@
         // --- INÍCIO DO CÓDIGO DO SPLIT SCREEN (PDF VIEWER) ---
         let pdfDocs = { recurso: null, autuacao: null, ata: null };
         let pdfViewerActive = false;
+        let userClosedPdf = false; // true após o usuário fechar manualmente — suprime auto-abertura em transições de fase
         
         const splitContainer = document.getElementById('split-container');
         const pdfPanel = document.getElementById('pdf-split-panel');
@@ -2544,6 +2550,14 @@
         const btnTogglePdf = document.getElementById('btn-toggle-pdf');
 
         function togglePdfViewer(forceState = null) {
+            // Detecta ação manual do usuário (sem forceState = clique no botão)
+            if (forceState === null) {
+                if (pdfViewerActive) {
+                    userClosedPdf = true;  // Usuário fechou → não reabre automaticamente
+                } else {
+                    userClosedPdf = false; // Usuário abriu manualmente → permite auto-abertura novamente
+                }
+            }
             pdfViewerActive = forceState !== null ? forceState : !pdfViewerActive;
             
             if (pdfViewerActive) {
