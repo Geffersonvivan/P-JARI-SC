@@ -730,6 +730,10 @@
 
     {% csrf_token %}
 
+    {{ grafico_datas|json_script:"_jd_datas" }}
+    {{ grafico_totais|json_script:"_jd_totais" }}
+    {{ donut_series|json_script:"_jd_donut" }}
+
     <script>
         function showLoginModal() {
             document.getElementById('login-modal').classList.remove('hidden');
@@ -798,9 +802,6 @@
         }
 
         // --- ApexCharts Initialization ---
-        {{ grafico_datas|json_script:"_jd_datas" }}
-        {{ grafico_totais|json_script:"_jd_totais" }}
-        {{ donut_series|json_script:"_jd_donut" }}
         document.addEventListener("DOMContentLoaded", function () {
             const datas  = JSON.parse(document.getElementById('_jd_datas').textContent  || '[]');
             const totais = JSON.parse(document.getElementById('_jd_totais').textContent || '[]');

@@ -1206,6 +1206,11 @@
 
     {% csrf_token %}
 
+    {{ grafico_datas|json_script:"_jdg_datas" }}
+    {{ grafico_totais|json_script:"_jdg_totais" }}
+    {{ donut_series|json_script:"_jdg_donut" }}
+    {{ historico_test_runs|json_script:"_jdg_testruns" }}
+
     <script>
         function showLoginModal() {
             document.getElementById('login-modal').classList.remove('hidden');
@@ -1274,10 +1279,6 @@
         }
 
         // --- ApexCharts Initialization ---
-        {{ grafico_datas|json_script:"_jdg_datas" }}
-        {{ grafico_totais|json_script:"_jdg_totais" }}
-        {{ donut_series|json_script:"_jdg_donut" }}
-        {{ historico_test_runs|json_script:"_jdg_testruns" }}
         document.addEventListener("DOMContentLoaded", function () {
             const datas  = JSON.parse(document.getElementById('_jdg_datas').textContent  || '[]');
             const totais = JSON.parse(document.getElementById('_jdg_totais').textContent || '[]');
