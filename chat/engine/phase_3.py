@@ -261,7 +261,14 @@ def run(engine) -> str:
         logger.info("[FASE3] admissibilidade_texto já disponível (pré-calculado) — pulando Gemini. parecer=%s", parecer.id)
     else:
         gemini = GeminiClient()
-        parecer.admissibilidade_texto = gemini.generate_phase3_report(parecer, matematica_detalhes)
+        try:
+            parecer.admissibilidade_texto = gemini.generate_phase3_report(parecer, matematica_detalhes)
+        except Exception as e:
+            logger.error("[FASE3] Falha ao chamar Gemini — parecer=%s | erro=%s", parecer.id, e)
+            return (
+                "⚠️ O serviço de IA está temporariamente indisponível. "
+                "Aguarde alguns instantes e tente novamente."
+            )
 
     parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
     parecer.save()

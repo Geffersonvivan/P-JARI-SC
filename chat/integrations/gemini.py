@@ -500,16 +500,13 @@ class GeminiClient:
             "Aplique estritamente o roteiro obrigatório e devolva os resultados solicitados baseando-se unicamente nas flags matemáticas acima."
         )
 
-        try:
-            start_time = time.time()
-            response, _ = self._call_with_fallback(
-                'gemini-2.5-pro', 'gemini-2.0-flash',
-                [prompt_text], {'system_instruction': system_instruction},
-                'Fase 3 (Avaliação Prazos)', parecer_obj, start_time
-            )
-            return response.text
-        except Exception as e:
-            return f"Erro ao acessar Gemini na Fase 3: {str(e)}.\n"
+        start_time = time.time()
+        response, _ = self._call_with_fallback(
+            'gemini-2.5-pro', 'gemini-2.0-flash',
+            [prompt_text], {'system_instruction': system_instruction},
+            'Fase 3 (Avaliação Prazos)', parecer_obj, start_time
+        )
+        return response.text
 
     def extract_tese(self, parecer_obj):
         if not self.client:

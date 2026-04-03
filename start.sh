@@ -63,4 +63,6 @@ exec gunicorn config.asgi:application \
   --bind 0.0.0.0:$PORT \
   --workers 3 \
   --timeout 120 \
+  --graceful-timeout 60 \
+  --keep-alive 65 \
   --log-file -
