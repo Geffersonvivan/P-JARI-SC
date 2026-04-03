@@ -25,7 +25,7 @@ def checkout_view(request):
         payer_email = request.user.email or f"user_{request.user.id}@pjari.com.br"
 
         session = stripe.checkout.Session.create(
-            payment_method_types=['card', 'pix'],
+            payment_method_types=['card'],
             customer_email=payer_email,
             client_reference_id=str(request.user.id),
             line_items=[{
