@@ -1,9 +1,12 @@
 import os
 import json
+import logging
 import jwt
 import requests
 from django.contrib.auth.models import User
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
 
 class ClerkAuthenticationMiddleware:
     """
@@ -142,8 +145,6 @@ class ClerkAuthenticationMiddleware:
                             request.user = user  # Injeta no ciclo do Django
 
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.error("Erro ao validar token do Clerk: %s", e)
                 
                 # Em vez de travar o app com erro 401, redireciona o usuário para a Home.
