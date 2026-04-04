@@ -626,15 +626,25 @@
                 printElement.style.wordWrap = 'break-word';
                 printElement.style.overflowWrap = 'break-word';
 
-            // Previne que o html2canvas corte o conteúdo no meio da linha e adiciona padding bottom
-            const avoidBreakElements = printElement.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, tr, blockquote');
-            avoidBreakElements.forEach(el => {
+            // Controle de quebra de página via CSS puro (sem avoid-all, que causa duplicação de títulos)
+            // Parágrafos e listas: não quebrar internamente
+            printElement.querySelectorAll('p, li, tr, blockquote').forEach(el => {
                 el.style.display = 'block';
                 el.style.pageBreakInside = 'avoid';
                 el.style.breakInside = 'avoid';
-                el.style.marginBottom = '12px'; // Garante uma fronteira clara para o clipper do html2canvas cortar
+                el.style.marginBottom = '12px';
                 el.style.paddingTop = '4px';
                 el.style.paddingBottom = '4px';
+            });
+            // Headings: nunca quebrar internamente nem ficar isolado (break-after:avoid mantém com o próximo bloco)
+            printElement.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
+                el.style.display = 'block';
+                el.style.pageBreakInside = 'avoid';
+                el.style.breakInside = 'avoid';
+                el.style.pageBreakAfter = 'avoid';
+                el.style.breakAfter = 'avoid';
+                el.style.marginBottom = '6px';
+                el.style.paddingTop = '4px';
             });
 
             // Ocultar a UI principal para não conflitar com a captura
@@ -663,7 +673,7 @@
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: {
-                    mode: ['avoid-all', 'css', 'legacy']
+                    mode: ['css', 'legacy']
                 }
             };
 
