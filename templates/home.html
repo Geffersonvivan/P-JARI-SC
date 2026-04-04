@@ -2190,9 +2190,8 @@
                             mh.classList.add('md:flex');
                         }
 
-                        // Primeira abertura: sempre abre e reseta preferência do usuário
-                        userClosedPdf = false;
-                        if (!pdfViewerActive) togglePdfViewer(true);
+                        // Abre automaticamente apenas se o MJ não fechou manualmente
+                        if (!pdfViewerActive && !userClosedPdf) togglePdfViewer(true);
                     } else if (!shouldOpenPdf) {
                         if (btnTogglePdf) {
                             btnTogglePdf.classList.add('hidden');
