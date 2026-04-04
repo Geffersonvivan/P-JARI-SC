@@ -1289,7 +1289,7 @@
                 }
 
                 return `
-                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseIdAttr}">
+                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseIdAttr}" data-tese-nome="${teseNome}" data-label-a="${labelA}" data-label-b="${labelB}">
                     <div class="flex items-center gap-2 mb-1 pb-2 border-b border-gray-100">
                         <div class="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs"><svg fill="none" class="w-4 h-4" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
                         <span class="font-semibold text-gray-800 text-sm">Decisão sobre: ${teseNome}</span>
@@ -1898,7 +1898,7 @@
             return setInterval(tick, 800);
         }
 
-        async function sendMessage(e, programmaticText = null, isSilent = false) {
+        async function sendMessage(e, programmaticText = null, isSilent = false, displayText = null) {
             if (isSubmitting) return;
             if (e && typeof e.preventDefault === 'function') e.preventDefault();
             if (!isUserAuthenticated) {
@@ -1934,7 +1934,8 @@
             userDiv.className = "flex justify-end mt-4";
             
             let userContent = "";
-            if (text) userContent += formatUserMessage(text);
+            if (displayText) userContent += formatUserMessage(displayText);
+            else if (text) userContent += formatUserMessage(text);
             if (selectedFiles.length > 0) {
                 userContent += `<div class="mt-2 text-xs font-semibold text-green-800 bg-green-100 px-3 py-1 rounded-md inline-block">📎 ${selectedFiles.length} arquivo(s) anexado(s)</div>`;
             }
@@ -2418,13 +2419,17 @@
 
         // --- Funções Interativas do Chat (Menu de Teses) ---
         window.currentTeseDecisions = {};
+        window.currentTeseDisplayLabels = {};
 
         window.selectTeseOption = function (btn, teseNum, opcao) {
             // Salvar na memória
             window.currentTeseDecisions[teseNum] = opcao;
+            const container = btn.closest('.tese-decision-block');
+            const teseNome = container ? (container.dataset.teseNome || teseNum) : teseNum;
+            const label = opcao === 'a' ? (container ? container.dataset.labelA : 'CONFIRMAR') : (container ? container.dataset.labelB : opcao.toUpperCase());
+            window.currentTeseDisplayLabels[teseNum] = `${teseNome} - ${label}`;
 
             // Atualizar UI
-            const container = btn.closest('.tese-decision-block');
             container.classList.add('border-green-200', 'ring-1', 'ring-green-100');
 
             const buttons = container.querySelectorAll('button.btn-tese-option');
@@ -2512,8 +2517,18 @@
             // Usa '\n\n' (Markdown paragraph break duplo) para forçar quebra visual segura que não é apagada pelo DOM
             const finalString = choiceArray.join('\n\n');
 
+            // Montar display legível (um item por linha)
+            const displayLines = [];
+            for (const [key, value] of Object.entries(window.currentTeseDecisions)) {
+                if (String(key).startsWith('ADM_')) {
+                    displayLines.push(window.currentTeseDisplayLabels[key] || `${key.replace('ADM_', '')} - ${value.toUpperCase()}`);
+                }
+            }
+            const displayString = displayLines.join('\n');
+
             // Limpar memória
             window.currentTeseDecisions = {};
+            window.currentTeseDisplayLabels = {};
 
             // Ocultar apenas o botão de confirmar, para evitar duplo clique, mas mantém o painel inteiro visível
             if (btn) {
@@ -2528,7 +2543,7 @@
                 messageContainer.classList.add('opacity-80'); // Opcional: deixar as teses um pouco apagadas mas presentes
             }
 
-            sendMessage(null, finalString);
+            sendMessage(null, finalString, false, displayString);
         };
 
         // --- INÍCIO DO CÓDIGO DO SPLIT SCREEN (PDF VIEWER) ---
