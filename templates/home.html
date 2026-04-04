@@ -1058,7 +1058,7 @@
                             if (msg.role === 'user') {
                                 const userDiv = document.createElement('div');
                                 userDiv.className = "flex justify-end mt-4";
-                                userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatUserMessage(msg.content)}</div>`;
+                                userDiv.innerHTML = `<div class="bg-[#e9eef6] px-4 py-2 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatUserMessage(msg.content)}</div>`;
                                 messagesContainer.appendChild(userDiv);
                             } else {
                                 const rDiv = document.createElement('div');
@@ -1946,7 +1946,7 @@
             if(!userContent) userContent = "[Anexo]";
             
             if (!text.startsWith('FASE1_CONFIRM:') && !isSilent) {
-                userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${userContent}</div>`;
+                userDiv.innerHTML = `<div class="bg-[#e9eef6] px-4 py-2 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${userContent}</div>`;
                 messagesContainer.appendChild(userDiv);
             }
 
