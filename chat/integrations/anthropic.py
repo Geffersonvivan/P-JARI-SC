@@ -159,6 +159,19 @@ class AnthropicClient:
                 + "\n".join(_divs) + "\n\n"
             )
 
+        # S5-FIX: quando há inversão pelo julgador, sinaliza explicitamente que o
+        # admissibilidade_texto contém resultado automático superado. O LLM deve usar
+        # apenas os dados matemáticos (datas/prazos), nunca a conclusão do automático.
+        if _divs:
+            _adm_prompt = (
+                "🚫 RESULTADO DO TEXTO ABAIXO ESTÁ SUPERADO PELA DECISÃO DO JULGADOR 🚫\n"
+                "Use APENAS os dados de datas e prazos para fundamentação. "
+                f"A conclusão correta está nas FLAGS acima (RESULTADO OBRIGATÓRIO: {_resultado_obrigatorio}).\n\n"
+                f"{_adm}"
+            )
+        else:
+            _adm_prompt = _adm
+
         prompt = (
             f"{_flags_block}\n"
             f"---- DADOS PARA PREENCHER O CABEÇALHO (Obrigatório) ----\n"
@@ -169,7 +182,7 @@ class AnthropicClient:
             f"---- PACOTE DE ADMISSIBILIDADE E FUNDAMENTAÇÃO (Para Capítulos 3.1 a 3.3) ----\n"
             f"{_aviso_diverg}"
             f"A T E N Ç Ã O: Use para redigir a fundamentação, mas as FLAGS acima prevalecem sempre.\n"
-            f"{_adm}\n\n"
+            f"{_adm_prompt}\n\n"
             f"---- RESUMO FÁTICO (Para o Relatório e Datas da Prescrição) ----\n"
             f"{_tab or 'Vazio.'}\n\n"
             f"---- ANÁLISE DAS TESES E DECISÃO EXIGIDA (Para 'Teses Defensivas') ----\n"

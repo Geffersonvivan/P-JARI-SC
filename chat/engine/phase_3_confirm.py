@@ -75,13 +75,17 @@ def process(engine, message: str) -> str:
         Semântica RELATIVA: A = CONFIRMAR (mantém o resultado automático),
         B = INVERTER (oposto do resultado automático).
         None = sem escolha explícita → usa resultado automático do JariMath.
+        Quando automatico=None e acolhe=False (B), retorna True: julgador declara
+        o problema como existente mesmo sem cálculo automático anterior.
         """
         if acolhe is None:
             return automatico
         if acolhe is True:   # A (Confirmar) → mantém o automático
             return automatico
         # acolhe is False: B (Inverter) → inverte o automático
-        return (not automatico) if automatico is not None else False
+        if automatico is None:
+            return True   # S3-FIX: None não é False; inverter None = declarar existente
+        return not automatico
 
     # ── DIV-03: Blindagem Filtro 1 — decadência para infrações < 12/04/2021 é PROIBIDA ──
     # Semântica RELATIVA (pós BUG-B): acolhe_decad=False significa B (INVERTER), ou seja,

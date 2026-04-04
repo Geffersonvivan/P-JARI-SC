@@ -555,12 +555,7 @@
                 </div>
                 {% endif %}
                 {% if request.user.is_authenticated %}
-                <div id="btn-editar-parecer-container" class="hidden text-center mt-2">
-                    <button onclick="abrirModalEditar()"
-                        class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-500 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-full transition font-medium">
-                        ✏️ Editar texto do parecer
-                    </button>
-                </div>
+                <div id="btn-editar-parecer-container" class="hidden"></div>
                 <div id="btn-reiniciar-container" class="hidden text-center mt-2">
                     <button onclick="confirmarReiniciar()"
                         class="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-700 underline transition">
@@ -2499,17 +2494,14 @@
             // Formatar a string de saída com quebras de linha e texto claro
             let choiceArray = [];
             for (const [key, value] of Object.entries(window.currentTeseDecisions)) {
-                let suffix = '';
-                if (value.toLowerCase() === 'a') {
-                    suffix = 'Acolhida; ✔️';
-                } else {
-                    suffix = 'Não Acolhida; X';
-                }
-
                 if (String(key).startsWith('ADM_')) {
+                    // S2-FIX: envia letra A/B explícita para parsing determinístico no backend
+                    // (evita falha do parser regex por variações de texto descritivo)
                     const admName = key.replace('ADM_', '');
-                    choiceArray.push(`${admName} - ${suffix}`);
+                    const choice = value.toUpperCase(); // 'A' ou 'B'
+                    choiceArray.push(`${admName} - ${choice}`);
                 } else {
+                    const suffix = value.toLowerCase() === 'a' ? 'Acolhida; ✔️' : 'Não Acolhida; X';
                     choiceArray.push(`Tese ${key} – Síntese da alegação: ${suffix}`);
                 }
             }

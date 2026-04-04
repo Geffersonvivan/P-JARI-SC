@@ -732,6 +732,18 @@ class GeminiClient:
                 + "\n".join(_divs_g) + "\n\n"
             )
 
+        # S5-FIX (Gemini fallback): quando há inversão pelo julgador, sinaliza explicitamente
+        # que o admissibilidade_texto contém resultado automático superado.
+        if _divs_g:
+            _adm_g_prompt = (
+                "🚫 RESULTADO DO TEXTO ABAIXO ESTÁ SUPERADO PELA DECISÃO DO JULGADOR 🚫\n"
+                "Use APENAS os dados de datas e prazos para fundamentação. "
+                "A conclusão correta está nas FLAGS/RESULTADO OBRIGATÓRIO acima.\n\n"
+                f"{_adm}"
+            )
+        else:
+            _adm_g_prompt = _adm
+
         prompt = (
             f"---- DADOS PARA PREENCHER O CABEÇALHO (Obrigatório) ----\n"
             f"PROCESSO (PA): {parecer_obj.pa}\n"
@@ -741,7 +753,7 @@ class GeminiClient:
             f"---- PACOTE DE FLAGS MATEMÁTICAS E ADMISSIBILIDADE (Soberanas para o Resultado e Capítulos 3.1 a 3.3) ----\n"
             f"{_aviso_diverg_g}"
             f"A T E N Ç Ã O: Os resultados abaixo refletem a escolha exclusiva do MEMBRO JULGADOR. Você está ESTRITAMENTE VINCULADO a usar estas conclusões e NÃO pode contrariá-las em nenhuma hipótese.\n"
-            f"{_adm}\n\n"
+            f"{_adm_g_prompt}\n\n"
             f"---- RESUMO FÁTICO (Para o Relatório e Datas da Prescrição) ----\n"
             f"{_tab or 'Vazio.'}\n\n"
             f"---- ANÁLISE DAS TESES E DECISÃO EXIGIDA (Para 'Teses Defensivas') ----\n"

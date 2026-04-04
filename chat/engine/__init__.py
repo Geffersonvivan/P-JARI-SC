@@ -60,14 +60,7 @@ class JariEngine:
             return "Processando Prazos e Admissibilidade... (Simulando loading)"
 
         if fase == 31:
-            preamble = (
-                "**Confirme os resultados de admissibilidade abaixo:**\n\n"
-                "> - **A (Confirmar)** = mantém o resultado técnico do sistema\n"
-                "> - **B (Inverter)** = inverte o resultado técnico do sistema\n"
-                "> - Digite **ok** para confirmar todos os resultados automáticos do JariMath\n\n"
-                "---\n\n"
-            )
-            return preamble + (self.parecer.admissibilidade_texto or "")
+            return self.parecer.admissibilidade_texto or ""
 
         if fase == 4:
             from .phase_4 import get_prompt
