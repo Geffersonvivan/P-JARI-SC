@@ -1058,7 +1058,7 @@
                             if (msg.role === 'user') {
                                 const userDiv = document.createElement('div');
                                 userDiv.className = "flex justify-end mt-4";
-                                userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatMessage(msg.content)}</div>`;
+                                userDiv.innerHTML = `<div class="bg-[#e9eef6] p-4 rounded-2xl max-w-[80%] text-[#1f1f1f] shadow-sm">${formatUserMessage(msg.content)}</div>`;
                                 messagesContainer.appendChild(userDiv);
                             } else {
                                 const rDiv = document.createElement('div');
@@ -1148,6 +1148,16 @@
                             window.updateAgentChips(currentParecerId, data.reply);
                         }
                 }).catch(err => console.error(err));
+        }
+
+        function formatUserMessage(text) {
+            // Usa parseInline para evitar o <p> wrapper do marked.parse,
+            // que somado ao padding do bubble criava espaço excessivo em msgs curtas.
+            try {
+                return marked.parseInline(String(text));
+            } catch (e) {
+                return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
         }
 
         function formatMessage(text) {
@@ -1929,7 +1939,7 @@
             userDiv.className = "flex justify-end mt-4";
             
             let userContent = "";
-            if (text) userContent += formatMessage(text);
+            if (text) userContent += formatUserMessage(text);
             if (selectedFiles.length > 0) {
                 userContent += `<div class="mt-2 text-xs font-semibold text-green-800 bg-green-100 px-3 py-1 rounded-md inline-block">📎 ${selectedFiles.length} arquivo(s) anexado(s)</div>`;
             }
