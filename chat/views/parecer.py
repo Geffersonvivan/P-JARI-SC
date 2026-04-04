@@ -59,11 +59,21 @@ def editar_parecer_view(request, id):
             from django.contrib.staticfiles.storage import staticfiles_storage
 
             if config.cabecalho_imagem and default_storage.exists(config.cabecalho_imagem.name):
-                banner_absolute_url = request.build_absolute_uri(config.cabecalho_imagem.url)
-                # Removemos a tabela cruzada porque o Word no Mac pode bugar com tabelas em 100%
+                # Embute a imagem como base64 para garantir renderização no PDF via html2canvas
+                # (evita falha de CORS quando a imagem está em storage externo como S3/Spaces)
+                try:
+                    import base64
+                    from mimetypes import guess_type
+                    with default_storage.open(config.cabecalho_imagem.name, 'rb') as _img_file:
+                        _img_bytes = _img_file.read()
+                    _mime = guess_type(config.cabecalho_imagem.name)[0] or 'image/jpeg'
+                    _b64 = base64.b64encode(_img_bytes).decode('utf-8')
+                    banner_src = f'data:{_mime};base64,{_b64}'
+                except Exception:
+                    banner_src = request.build_absolute_uri(config.cabecalho_imagem.url)
                 cabecalho_html = f"""
                 <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 10px;">
-                    <img src='{banner_absolute_url}' style='width: 100%; max-width: 800px; height: auto;' alt="Cabeçalho">
+                    <img src='{banner_src}' style='width: 100%; max-width: 800px; height: auto;' alt="Cabeçalho">
                 </div>
                 """
             else:
