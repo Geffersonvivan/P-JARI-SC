@@ -2451,8 +2451,25 @@
                     text.style.fontWeight = '400';
                 }
             });
+            const total = items.length;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
             const counter = panel.querySelector('.mj-sticky-counter');
-            if (counter) counter.textContent = `${done}/${items.length} decisões`;
+            const bar = panel.querySelector('.mj-progress-bar');
+            if (bar) {
+                bar.style.width = `${pct}%`;
+                bar.style.background = pct === 100 ? '#16a34a' : '#6366f1';
+            }
+            if (counter) {
+                if (pct === 100) {
+                    counter.textContent = '✓ Pronto para confirmar';
+                    counter.style.color = '#16a34a';
+                    counter.style.fontWeight = '700';
+                } else {
+                    counter.textContent = `${done}/${total} decisões`;
+                    counter.style.color = '#9ca3af';
+                    counter.style.fontWeight = '400';
+                }
+            }
         }
 
         function _showStickyPanel(admBlocks) {
@@ -2478,9 +2495,12 @@
                 </div>`;
             });
             panel.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #f1f5f9;padding-bottom:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                     <span style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.05em;">Decisões MJ</span>
                     <span class="mj-sticky-counter" style="font-size:10px;color:#9ca3af;">0/${admBlocks.length} decisões</span>
+                </div>
+                <div style="background:#f1f5f9;border-radius:99px;height:5px;margin-bottom:10px;overflow:hidden;">
+                    <div class="mj-progress-bar" style="height:100%;width:0%;background:#6366f1;border-radius:99px;transition:width .35s ease,background .35s ease;"></div>
                 </div>
                 ${itemsHtml}`;
             document.body.appendChild(panel);
@@ -2500,8 +2520,11 @@
                 counter.style.color = '#16a34a';
                 counter.style.fontWeight = '700';
             }
-            const title = panel.querySelector('span[style*="font-weight:700"]');
-            if (title) title.style.color = '#374151';
+            const bar = panel.querySelector('.mj-progress-bar');
+            if (bar) {
+                bar.style.width = '100%';
+                bar.style.background = '#16a34a';
+            }
         }
 
         // Detecta blocos ADM no chat e exibe o painel sticky
