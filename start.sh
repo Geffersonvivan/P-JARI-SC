@@ -62,7 +62,8 @@ exec gunicorn config.asgi:application \
   -k uvicorn.workers.UvicornWorker \
   --bind 0.0.0.0:$PORT \
   --workers 3 \
-  --timeout 120 \
-  --graceful-timeout 60 \
+  --timeout 300 \
+  --graceful-timeout 120 \
   --keep-alive 65 \
+  --worker-tmp-dir /dev/shm \
   --log-file -
