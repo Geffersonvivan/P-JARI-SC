@@ -43,8 +43,8 @@
                         {% endif %}
                     </span>
                 </h1>
-                <a href="/app/"
-                    class="text-sm px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">Voltar</a>
+                <button type="button" onclick="window.history.back()"
+                    class="text-sm px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">Voltar</button>
             </div>
 
             <form method="POST" action="{% url 'salvar_parecer' parecer.id %}" class="flex flex-col flex-1 min-h-0">
@@ -55,8 +55,8 @@
             </textarea>
 
                 <div class="mt-6 pt-2 flex justify-end gap-4 shrink-0">
-                    <a href="/app/"
-                        class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancelar</a>
+                    <button type="button" onclick="window.history.back()"
+                        class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancelar</button>
 
                     <!-- NEW WORD EXPORT BUTTON -->
                     <button type="button" onclick="openExportModal('word')"
