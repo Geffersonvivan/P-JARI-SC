@@ -68,6 +68,7 @@ if not DEBUG:
     ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
+    SECURE_REDIRECT_EXEMPT = [r'^health/$']  # Railway healthcheck usa HTTP interno
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     
