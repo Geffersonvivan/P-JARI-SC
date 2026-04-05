@@ -2560,6 +2560,20 @@
                 indicator.classList.add('border-rose-500', 'bg-rose-500');
                 indicator.innerHTML = checkSVG;
             }
+
+            // Alerta de inversão: aparece quando opção B (inverte automático), some quando A
+            let alertEl = container.querySelector('.mj-inversion-alert');
+            if (opcao === 'b') {
+                if (!alertEl) {
+                    alertEl = document.createElement('div');
+                    alertEl.className = 'mj-inversion-alert';
+                    alertEl.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:10px;padding:7px 10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:11px;color:#92400e;';
+                    alertEl.innerHTML = '<span style="font-size:14px;flex-shrink:0;">⚠️</span><span>Você está <strong>invertendo o resultado automático</strong>. Confirme se é intencional.</span>';
+                    container.appendChild(alertEl);
+                }
+            } else {
+                if (alertEl) alertEl.remove();
+            }
         };
 
         window.submitTeseDecisions = function (btn) {
