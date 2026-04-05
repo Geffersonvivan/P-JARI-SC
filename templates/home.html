@@ -1261,42 +1261,49 @@
 
                 const teseIdAttr = `ADM_${tipoLimpo}`;
 
+                // Cor, ícone e fundo por tipo de item
+                const _typeCfg = {
+                    'TEMPESTIVIDADE': { cor: '#3b82f6', bg: '#eff6ff', borda: '#bfdbfe', icone: '⏱' },
+                    'PUNITIVA':       { cor: '#f97316', bg: '#fff7ed', borda: '#fed7aa', icone: '⚖️' },
+                    'INTERCORRENTE':  { cor: '#f59e0b', bg: '#fffbeb', borda: '#fde68a', icone: '🔄' },
+                    'DECADENCIA':     { cor: '#8b5cf6', bg: '#f5f3ff', borda: '#ddd6fe', icone: '📅' },
+                };
+                const cfg = _typeCfg[tipoLimpo] || { cor: '#6366f1', bg: '#eef2ff', borda: '#c7d2fe', icone: 'ℹ️' };
+
                 // Determina labels contextuais com base no resultado técnico
-                // resultado: 'SIM', 'NAO', 'NAO_SE_APLICA' ou undefined (fallback legado)
                 const r = (resultado || '').toUpperCase();
                 let labelA, labelB, subA, subB;
+                let autoTexto = '', autoCor = '#374151';
 
                 if (r === 'SIM') {
-                    // Resultado técnico: problema encontrado (ex: prescrição SIM, intempestividade NÃO=intempestivo)
-                    labelA = 'CONFIRMAR';
-                    subA   = 'Mantém: resultado técnico prevalece';
-                    labelB = 'AFASTAR';
-                    subB   = 'Inverte: resultado passa a NÃO';
+                    labelA = 'CONFIRMAR'; subA = 'Mantém: resultado técnico prevalece';
+                    labelB = 'AFASTAR';   subB = 'Inverte: resultado passa a NÃO';
+                    autoTexto = 'CONFIGURADO'; autoCor = '#dc2626';
                 } else if (r === 'NAO') {
-                    // Resultado técnico: sem problema (ex: prescrição NÃO, tempestivo SIM)
-                    labelA = 'CONFIRMAR';
-                    subA   = 'Mantém: resultado técnico prevalece';
-                    labelB = 'CONVERTER PARA SIM';
-                    subB   = 'Atenção: declara o problema como existente';
+                    labelA = 'CONFIRMAR';        subA = 'Mantém: resultado técnico prevalece';
+                    labelB = 'CONVERTER PARA SIM'; subB = 'Atenção: declara o problema como existente';
+                    autoTexto = 'NÃO CONFIGURADO'; autoCor = '#16a34a';
                 } else if (r === 'NAO_SE_APLICA') {
-                    labelA = 'CONFIRMAR';
-                    subA   = 'Mantém: não se aplica (FILTRO 1)';
-                    labelB = 'FORÇAR ANÁLISE';
-                    subB   = 'Aviso: contraria a blindagem CETRAN/SC 381/2022';
+                    labelA = 'CONFIRMAR';      subA = 'Mantém: não se aplica (FILTRO 1)';
+                    labelB = 'FORÇAR ANÁLISE'; subB = 'Aviso: contraria a blindagem CETRAN/SC 381/2022';
+                    autoTexto = 'NÃO SE APLICA'; autoCor = '#9ca3af';
                 } else {
-                    // Fallback legado: sem valor embutido
-                    labelA = 'ACOLHER';
-                    subA   = 'Mantém o resultado técnico';
-                    labelB = 'NÃO ACOLHER';
-                    subB   = 'Inverte o resultado técnico';
+                    labelA = 'ACOLHER';     subA = 'Mantém o resultado técnico';
+                    labelB = 'NÃO ACOLHER'; subB = 'Inverte o resultado técnico';
                 }
 
+                const badgeAuto = autoTexto ? `
+                    <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:${cfg.bg};border:1px solid ${cfg.borda};border-radius:8px;margin-bottom:10px;font-size:11px;color:#6b7280;">
+                        <span>🤖</span><span>Resultado automático: <strong style="color:${autoCor}">${autoTexto}</strong></span>
+                    </div>` : '';
+
                 return `
-                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white border border-[#e2e8f0] shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" data-tese="${teseIdAttr}" data-tese-nome="${teseNome}" data-label-a="${labelA}" data-label-b="${labelB}">
+                <div class="flex flex-col gap-2 mt-2 mb-4 p-4 sm:px-5 bg-white shadow-sm hover:shadow transition-shadow duration-300 rounded-xl tese-decision-block" style="border:1px solid ${cfg.borda};border-left:4px solid ${cfg.cor};" data-tese="${teseIdAttr}" data-tese-nome="${teseNome}" data-label-a="${labelA}" data-label-b="${labelB}" data-resultado="${r}">
                     <div class="flex items-center gap-2 mb-1 pb-2 border-b border-gray-100">
-                        <div class="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs"><svg fill="none" class="w-4 h-4" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                        <span class="font-semibold text-gray-800 text-sm">Decisão sobre: ${teseNome}</span>
+                        <span style="font-size:16px;line-height:1;">${cfg.icone}</span>
+                        <span class="font-semibold text-sm" style="color:${cfg.cor};">Decisão sobre: ${teseNome}</span>
                     </div>
+                    ${badgeAuto}
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'a')" type="button" class="btn-tese-option group relative w-full flex flex-col items-start px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-emerald-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                             <div class="flex items-center gap-3 w-full justify-between">
@@ -1310,7 +1317,6 @@
                             </div>
                             <p class="text-xs text-slate-400 mt-1 ml-9 group-hover:text-emerald-600">${subA}</p>
                         </button>
-
                         <button onclick="window.selectTeseOption(this, '${teseIdAttr}', 'b')" type="button" class="btn-tese-option group relative w-full flex flex-col items-start px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-rose-400 hover:shadow-sm text-slate-600 transition-all duration-300">
                             <div class="flex items-center gap-3 w-full justify-between">
                                 <div class="flex items-center gap-2">
@@ -1521,7 +1527,8 @@
             // Adiciona classes do Tailwind para formatar as tabelas dinâmicas do Gemini
             // Para injetar Tailwind Typography (prose) precisaríamos do plugin, então aplicamos CSS base aos elementos gerados
 
-            return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
+            const phaseStyle = hasDecisionButtons ? 'border-left:3px solid #22c55e;padding-left:14px;' : '';
+            return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words" style="${phaseStyle}">
                 ${rawHtml}
                 <style>
                     .markdown-content table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; font-size: 13px; }
@@ -2433,19 +2440,19 @@
             items.forEach(item => {
                 const key = item.dataset.key;
                 const label = window.currentTeseDisplayLabels[key];
-                const dot = item.querySelector('.mj-sticky-dot');
+                const icon = item.querySelector('.mj-sticky-icon');
                 const text = item.querySelector('.mj-sticky-text');
                 if (label) {
                     done++;
                     const dashIdx = label.indexOf(' - ');
                     const decisao = dashIdx !== -1 ? label.substring(dashIdx + 3) : label;
                     const isPositive = decisao === 'CONFIRMAR';
-                    dot.style.background = isPositive ? '#16a34a' : '#dc2626';
+                    if (icon) icon.textContent = isPositive ? '✅' : '❌';
                     text.textContent = label;
                     text.style.color = isPositive ? '#16a34a' : '#dc2626';
                     text.style.fontWeight = '700';
                 } else {
-                    dot.style.background = '#d1d5db';
+                    if (icon) icon.textContent = '⏳';
                     text.textContent = (item.dataset.nome || key) + ' — pendente';
                     text.style.color = '#9ca3af';
                     text.style.fontWeight = '400';
@@ -2486,11 +2493,12 @@
             panel.id = 'mj-sticky-panel';
             panel.style.cssText = 'position:fixed;top:72px;right:16px;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.10);padding:12px 14px;width:240px;font-family:inherit;';
             let itemsHtml = '';
-            admBlocks.forEach(block => {
+            admBlocks.forEach((block, idx) => {
                 const key = block.dataset.tese;
                 const nome = block.dataset.teseNome || key;
-                itemsHtml += `<div class="mj-sticky-item" data-key="${key}" data-nome="${nome}" style="display:flex;align-items:center;gap:8px;padding:4px 0;">
-                    <span class="mj-sticky-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#d1d5db;flex-shrink:0;transition:background .2s;"></span>
+                const sep = idx > 0 ? 'border-top:1px solid #f1f5f9;margin-top:4px;padding-top:4px;' : '';
+                itemsHtml += `<div class="mj-sticky-item" data-key="${key}" data-nome="${nome}" style="display:flex;align-items:center;gap:8px;padding:4px 0;${sep}">
+                    <span class="mj-sticky-icon" style="font-size:13px;flex-shrink:0;width:16px;text-align:center;">⏳</span>
                     <span class="mj-sticky-text" style="font-size:11px;color:#9ca3af;">${nome} — pendente</span>
                 </div>`;
             });
