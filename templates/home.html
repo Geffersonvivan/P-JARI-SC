@@ -2517,14 +2517,24 @@
             // Usa '\n\n' (Markdown paragraph break duplo) para forçar quebra visual segura que não é apagada pelo DOM
             const finalString = choiceArray.join('\n\n');
 
-            // Montar display legível (um item por linha)
+            // Montar display legível com destaque visual (um item por linha)
             const displayLines = [];
             for (const [key, value] of Object.entries(window.currentTeseDecisions)) {
                 if (String(key).startsWith('ADM_')) {
-                    displayLines.push(window.currentTeseDisplayLabels[key] || `${key.replace('ADM_', '')} - ${value.toUpperCase()}`);
+                    const raw = window.currentTeseDisplayLabels[key] || `${key.replace('ADM_', '')} - ${value.toUpperCase()}`;
+                    const dashIdx = raw.indexOf(' - ');
+                    if (dashIdx !== -1) {
+                        const nome = raw.substring(0, dashIdx);
+                        const decisao = raw.substring(dashIdx + 3);
+                        const isPositive = decisao === 'CONFIRMAR';
+                        const cor = isPositive ? '#16a34a' : '#dc2626';
+                        displayLines.push(`<span style="color:#374151">${nome}</span> <span style="color:#9ca3af">–</span> <span style="font-weight:700;color:${cor}">${decisao}</span>`);
+                    } else {
+                        displayLines.push(raw);
+                    }
                 }
             }
-            const displayString = displayLines.join('\n');
+            const displayString = displayLines.join('<br>');
 
             // Limpar memória
             window.currentTeseDecisions = {};
