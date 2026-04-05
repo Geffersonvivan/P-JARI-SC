@@ -1527,8 +1527,7 @@
             // Adiciona classes do Tailwind para formatar as tabelas dinâmicas do Gemini
             // Para injetar Tailwind Typography (prose) precisaríamos do plugin, então aplicamos CSS base aos elementos gerados
 
-            const phaseStyle = hasDecisionButtons ? 'border-left:3px solid #22c55e;padding-left:14px;' : '';
-            return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words" style="${phaseStyle}">
+            return `<div class="markdown-content space-y-3 prose max-w-none text-sm text-[#444746] leading-relaxed break-words">
                 ${rawHtml}
                 <style>
                     .markdown-content table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; font-size: 13px; }
