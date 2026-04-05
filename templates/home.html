@@ -2537,8 +2537,9 @@
             }
         }
 
-        // Detecta blocos ADM no chat e exibe o painel sticky
+        // Detecta blocos ADM no chat e exibe o painel sticky (apenas quando não é somente leitura)
         const _mjObserver = new MutationObserver(() => {
+            if (currentParecerReadonly) { _removeStickyPanel(); return; }
             const admBlocks = document.querySelectorAll('.tese-decision-block[data-tese-nome]');
             if (admBlocks.length > 0 && !document.getElementById('mj-sticky-panel')) {
                 _showStickyPanel(Array.from(admBlocks));
