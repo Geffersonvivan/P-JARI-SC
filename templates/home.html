@@ -2421,6 +2421,78 @@
         window.currentTeseDecisions = {};
         window.currentTeseDisplayLabels = {};
 
+        // ── PAINEL STICKY DE DECISÕES MJ ─────────────────────────────────────
+        function _updateStickyPanel() {
+            const panel = document.getElementById('mj-sticky-panel');
+            if (!panel) return;
+            const items = panel.querySelectorAll('.mj-sticky-item');
+            let done = 0;
+            items.forEach(item => {
+                const key = item.dataset.key;
+                const label = window.currentTeseDisplayLabels[key];
+                const dot = item.querySelector('.mj-sticky-dot');
+                const text = item.querySelector('.mj-sticky-text');
+                if (label) {
+                    done++;
+                    const dashIdx = label.indexOf(' - ');
+                    const decisao = dashIdx !== -1 ? label.substring(dashIdx + 3) : label;
+                    const isPositive = decisao === 'CONFIRMAR';
+                    dot.style.background = isPositive ? '#16a34a' : '#dc2626';
+                    text.textContent = label;
+                    text.style.color = isPositive ? '#16a34a' : '#dc2626';
+                    text.style.fontWeight = '700';
+                } else {
+                    dot.style.background = '#d1d5db';
+                    text.textContent = (item.dataset.nome || key) + ' — pendente';
+                    text.style.color = '#9ca3af';
+                    text.style.fontWeight = '400';
+                }
+            });
+            const counter = panel.querySelector('.mj-sticky-counter');
+            if (counter) counter.textContent = `${done}/${items.length} decisões`;
+        }
+
+        function _showStickyPanel(admBlocks) {
+            _removeStickyPanel();
+            if (!admBlocks || admBlocks.length === 0) return;
+            const panel = document.createElement('div');
+            panel.id = 'mj-sticky-panel';
+            panel.style.cssText = 'position:fixed;top:72px;right:16px;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.10);padding:12px 14px;width:240px;font-family:inherit;';
+            let itemsHtml = '';
+            admBlocks.forEach(block => {
+                const key = block.dataset.tese;
+                const nome = block.dataset.teseNome || key;
+                itemsHtml += `<div class="mj-sticky-item" data-key="${key}" data-nome="${nome}" style="display:flex;align-items:center;gap:8px;padding:4px 0;">
+                    <span class="mj-sticky-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#d1d5db;flex-shrink:0;transition:background .2s;"></span>
+                    <span class="mj-sticky-text" style="font-size:11px;color:#9ca3af;">${nome} — pendente</span>
+                </div>`;
+            });
+            panel.innerHTML = `
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border-bottom:1px solid #f1f5f9;padding-bottom:8px;">
+                    <span style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.05em;">Decisões MJ</span>
+                    <span class="mj-sticky-counter" style="font-size:10px;color:#9ca3af;">0/${admBlocks.length} decisões</span>
+                </div>
+                ${itemsHtml}`;
+            document.body.appendChild(panel);
+        }
+
+        function _removeStickyPanel() {
+            const panel = document.getElementById('mj-sticky-panel');
+            if (panel) panel.remove();
+        }
+
+        // Detecta blocos ADM no chat e exibe o painel sticky
+        const _mjObserver = new MutationObserver(() => {
+            const admBlocks = document.querySelectorAll('.tese-decision-block[data-tese-nome]');
+            if (admBlocks.length > 0 && !document.getElementById('mj-sticky-panel')) {
+                _showStickyPanel(Array.from(admBlocks));
+            } else if (admBlocks.length === 0) {
+                _removeStickyPanel();
+            }
+        });
+        _mjObserver.observe(document.body, { childList: true, subtree: true });
+        // ─────────────────────────────────────────────────────────────────────
+
         window.selectTeseOption = function (btn, teseNum, opcao) {
             // Salvar na memória
             window.currentTeseDecisions[teseNum] = opcao;
@@ -2428,6 +2500,7 @@
             const teseNome = container ? (container.dataset.teseNome || teseNum) : teseNum;
             const label = opcao === 'a' ? (container ? container.dataset.labelA : 'CONFIRMAR') : (container ? container.dataset.labelB : opcao.toUpperCase());
             window.currentTeseDisplayLabels[teseNum] = `${teseNome} - ${label}`;
+            _updateStickyPanel();
 
             // Atualizar UI
             container.classList.add('border-green-200', 'ring-1', 'ring-green-100');
@@ -2536,9 +2609,10 @@
             }
             const displayString = displayLines.join('<br>');
 
-            // Limpar memória
+            // Limpar memória e remover painel sticky
             window.currentTeseDecisions = {};
             window.currentTeseDisplayLabels = {};
+            _removeStickyPanel();
 
             // Ocultar apenas o botão de confirmar, para evitar duplo clique, mas mantém o painel inteiro visível
             if (btn) {
