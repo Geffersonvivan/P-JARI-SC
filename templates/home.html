@@ -1174,8 +1174,11 @@
             // Usa a biblioteca marked para converter Markdown em HTML real
             let rawHtml = marked.parse(text);
 
-            // Negrito no rótulo "Cálculo fundamentado:" gerado pelo LLM
-            rawHtml = rawHtml.replace(/Cálculo fundamentado:/g, '<strong>Cálculo fundamentado:</strong>');
+            // Negrito apenas no rótulo "Cálculo fundamentado:" — o LLM às vezes envolve o parágrafo todo em **bold**
+            // Ex: <strong>Cálculo fundamentado: texto longo...</strong> → <strong>Cálculo fundamentado:</strong> texto longo...
+            rawHtml = rawHtml.replace(/<strong>(Cálculo fundamentado:)([\s\S]*?)<\/strong>/g, '<strong>$1</strong>$2');
+            // Garante negrito quando o LLM não usou bold (texto simples)
+            rawHtml = rawHtml.replace(/Cálculo fundamentado:(?!\s*<\/strong>)/g, '<strong>Cálculo fundamentado:</strong>');
 
             // Destaca células de tabela com status incerto na Fase 2 (datas sensíveis)
             rawHtml = rawHtml.replace(/<td([^>]*)>(.*?)<\/td>/gi, function(match, attrs, content) {
