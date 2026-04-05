@@ -1174,6 +1174,9 @@
             // Usa a biblioteca marked para converter Markdown em HTML real
             let rawHtml = marked.parse(text);
 
+            // Negrito no rótulo "Cálculo fundamentado:" gerado pelo LLM
+            rawHtml = rawHtml.replace(/Cálculo fundamentado:/g, '<strong>Cálculo fundamentado:</strong>');
+
             // Destaca células de tabela com status incerto na Fase 2 (datas sensíveis)
             rawHtml = rawHtml.replace(/<td([^>]*)>(.*?)<\/td>/gi, function(match, attrs, content) {
                 const upper = content.toUpperCase();
