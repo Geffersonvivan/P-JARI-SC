@@ -2458,6 +2458,13 @@
         function _showStickyPanel(admBlocks) {
             _removeStickyPanel();
             if (!admBlocks || admBlocks.length === 0) return;
+            // Ordenar blocos pela sequência canônica
+            const _ORDEM = ['ADM_TEMPESTIVIDADE', 'ADM_PUNITIVA', 'ADM_INTERCORRENTE', 'ADM_DECADENCIA'];
+            admBlocks = admBlocks.slice().sort((a, b) => {
+                const ia = _ORDEM.indexOf(a.dataset.tese);
+                const ib = _ORDEM.indexOf(b.dataset.tese);
+                return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+            });
             const panel = document.createElement('div');
             panel.id = 'mj-sticky-panel';
             panel.style.cssText = 'position:fixed;top:72px;right:16px;z-index:50;background:white;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.10);padding:12px 14px;width:240px;font-family:inherit;';
@@ -2603,12 +2610,19 @@
                 return;
             }
 
+            // Ordem canônica fixa: garante sequência lógica independente da ordem de clique
+            const ORDEM_ADM = ['ADM_TEMPESTIVIDADE', 'ADM_PUNITIVA', 'ADM_INTERCORRENTE', 'ADM_DECADENCIA'];
+            const keysOrdenadas = [
+                ...ORDEM_ADM.filter(k => window.currentTeseDecisions[k] !== undefined),
+                ...Object.keys(window.currentTeseDecisions).filter(k => !k.startsWith('ADM_'))
+            ];
+
             // Formatar a string de saída com quebras de linha e texto claro
             let choiceArray = [];
-            for (const [key, value] of Object.entries(window.currentTeseDecisions)) {
+            for (const key of keysOrdenadas) {
+                const value = window.currentTeseDecisions[key];
                 if (String(key).startsWith('ADM_')) {
                     // S2-FIX: envia letra A/B explícita para parsing determinístico no backend
-                    // (evita falha do parser regex por variações de texto descritivo)
                     const admName = key.replace('ADM_', '');
                     const choice = value.toUpperCase(); // 'A' ou 'B'
                     choiceArray.push(`${admName} - ${choice}`);
@@ -2622,7 +2636,8 @@
 
             // Montar display legível com destaque visual (um item por linha)
             const displayLines = [];
-            for (const [key, value] of Object.entries(window.currentTeseDecisions)) {
+            for (const key of keysOrdenadas) {
+                const value = window.currentTeseDecisions[key];
                 if (String(key).startsWith('ADM_')) {
                     const raw = window.currentTeseDisplayLabels[key] || `${key.replace('ADM_', '')} - ${value.toUpperCase()}`;
                     const dashIdx = raw.indexOf(' - ');
