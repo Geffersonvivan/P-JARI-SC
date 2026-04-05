@@ -173,8 +173,8 @@ ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 SOCIALACCOUNT_ADAPTER = 'chat.adapters.CustomSocialAccountAdapter'
 
 # Redirects de autenticação padrão do Django
-LOGIN_URL = '/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/app/'
+LOGIN_REDIRECT_URL = '/app/'
 LOGOUT_REDIRECT_URL = '/'
 
 if DEBUG:
@@ -207,7 +207,7 @@ CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY", "")
 CLERK_WEBHOOK_SECRET = os.getenv("CLERK_WEBHOOK_SECRET", "")
 
 # Optionally set login redirect to home
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/app/'
 
 TEMPLATES = [
     {
