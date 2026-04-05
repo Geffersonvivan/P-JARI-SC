@@ -714,6 +714,7 @@
             // Limpa as referências do processo/pasta anterior para o backend entender que é uma requisição nova
             currentParecerId = null;
             currentPastaId = null;
+            _removeStickyPanel();
 
             // Simular o envio da palavra "Iniciar"
             // Passa a palavra "Iniciar" com flag silenciosa (true)
@@ -961,6 +962,7 @@
         function selectFolder(id, element) {
             currentPastaId = id;
             currentParecerId = null;
+            _removeStickyPanel();
             document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('bg-white/10'));
             if (element) element.classList.add('bg-white/10');
 
@@ -1005,6 +1007,7 @@
         function selectProjeto(projetoId, pastaId) {
             currentPastaId = pastaId;
             currentParecerId = projetoId;
+            _removeStickyPanel();
 
             // Highlight pasta
             document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('bg-[#e2e7ed]'));
@@ -2481,6 +2484,19 @@
             if (panel) panel.remove();
         }
 
+        function _freezeStickyPanel() {
+            const panel = document.getElementById('mj-sticky-panel');
+            if (!panel) return;
+            const counter = panel.querySelector('.mj-sticky-counter');
+            if (counter) {
+                counter.textContent = '✓ Confirmado';
+                counter.style.color = '#16a34a';
+                counter.style.fontWeight = '700';
+            }
+            const title = panel.querySelector('span[style*="font-weight:700"]');
+            if (title) title.style.color = '#374151';
+        }
+
         // Detecta blocos ADM no chat e exibe o painel sticky
         const _mjObserver = new MutationObserver(() => {
             const admBlocks = document.querySelectorAll('.tese-decision-block[data-tese-nome]');
@@ -2623,10 +2639,10 @@
             }
             const displayString = displayLines.join('<br>');
 
-            // Limpar memória e remover painel sticky
+            // Limpar memória e congelar painel sticky (mantém visível até trocar de processo)
             window.currentTeseDecisions = {};
             window.currentTeseDisplayLabels = {};
-            _removeStickyPanel();
+            _freezeStickyPanel();
 
             // Ocultar apenas o botão de confirmar, para evitar duplo clique, mas mantém o painel inteiro visível
             if (btn) {
