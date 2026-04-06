@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 from . import views
 
 urlpatterns = [
@@ -40,4 +41,5 @@ urlpatterns = [
     path('aceite-termos/', views.aceitar_termos_view, name='aceitar_termos'),
     path('termos/', views.visualizar_termos_view, name='termos'),
     path('chat/pdf/<int:parecer_id>/<str:tipo>/', views.pdf_proxy_view, name='pdf_proxy'),
+    path('politica-de-privacidade/', RedirectView.as_view(url='/termos/', permanent=True), name='politica_privacidade'),
 ]

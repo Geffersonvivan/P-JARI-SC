@@ -5,7 +5,7 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>P-JARI | Inteligência Artificial para Membros da JARI/SC</title>
-    <link rel="icon" type="image/png" href="favicon.png"/>
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}"/>
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -1064,7 +1064,7 @@
             <div class="flex flex-col">
                 <h4 class="text-[10px] font-semibold tracking-widest uppercase text-white/40 mb-6">Acesso</h4>
                 <ul class="space-y-4 flex flex-col items-start">
-                    <li><a href="#" onclick="showLoginModal(); return false;" class="text-green-400/90 hover:text-green-300 transition-colors text-[14px] font-medium flex items-center gap-1 group">Área do Cliente <i class="ph-bold ph-arrow-up-right text-xs group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i></a></li>
+                    <li><a href="javascript:void(0)" onclick="showLoginModal()" class="text-green-400/90 hover:text-green-300 transition-colors text-[14px] font-medium flex items-center gap-1 group">Área do Cliente <i class="ph-bold ph-arrow-up-right text-xs group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"></i></a></li>
                     <li><a href="https://wa.me/554991031516" target="_blank" class="text-white/80 hover:text-white transition-colors text-[14px] font-light">Contato</a></li>
                     <li><a href="{% url 'termos' %}" class="text-white/80 hover:text-white transition-colors text-[14px] font-light">Privacidade</a></li>
                     <li><a href="{% url 'termos' %}" class="text-white/80 hover:text-white transition-colors text-[14px] font-light">Termos de Uso</a></li>

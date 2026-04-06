@@ -27,14 +27,57 @@ def trigger_error(request):
 
 from chat.webhooks_clerk import clerk_webhook_view
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
+from django.views.generic import RedirectView
 
 def health_check(request):
     return JsonResponse({'status': 'ok'})
 
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Disallow: /pjari-admin/",
+        "Disallow: /app/",
+        "Disallow: /api/",
+        "Disallow: /chat/",
+        "Disallow: /aceite-termos/",
+        "Disallow: /checkout/",
+        "Disallow: /estatisticas/",
+        "Allow: /",
+        "Allow: /planos/",
+        "Allow: /termos/",
+        "Allow: /politica-de-privacidade/",
+        "",
+        f"Sitemap: https://www.pjarisc.com.br/sitemap.xml",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
+
+def sitemap_xml(request):
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url><loc>https://www.pjarisc.com.br/</loc>'
+        '<changefreq>weekly</changefreq><priority>1.0</priority></url>\n'
+        '  <url><loc>https://www.pjarisc.com.br/planos/</loc>'
+        '<changefreq>weekly</changefreq><priority>0.8</priority></url>\n'
+        '  <url><loc>https://www.pjarisc.com.br/termos/</loc>'
+        '<changefreq>monthly</changefreq><priority>0.5</priority></url>\n'
+        '  <url><loc>https://www.pjarisc.com.br/politica-de-privacidade/</loc>'
+        '<changefreq>monthly</changefreq><priority>0.5</priority></url>\n'
+        '</urlset>'
+    )
+    return HttpResponse(xml, content_type="application/xml")
+
+def favicon_ico(request):
+    # Redireciona /favicon.ico para o favicon estático real
+    return HttpResponseRedirect('/static/img/favicon.png')
+
 urlpatterns = [
     path('health/', health_check, name='health_check'),
-    path('admin/', admin.site.urls),
+    path('robots.txt', robots_txt, name='robots_txt'),
+    path('sitemap.xml', sitemap_xml, name='sitemap_xml'),
+    path('favicon.ico', favicon_ico, name='favicon_ico'),
+    path('pjari-admin/', admin.site.urls),
     path('', include('chat.urls')),
     path('api/webhooks/clerk/', clerk_webhook_view, name='clerk_webhook'),
     # path('accounts/', include('allauth.urls')), # Removing django-allauth routing
