@@ -19,9 +19,14 @@ def get_prompt(parecer) -> str:
 
 def process(engine, message: str) -> str:
     """Processa a resposta do julgador na fase 4."""
+    import json
     if message.lower().strip() != 'ok':
         return run_refinement(engine, message.strip())
-    return engine.analise_tese_fase_4()
+    # Análise de teses (Perplexity + Vertex + Gemini) pode ultrapassar o timeout do gunicorn.
+    # Despacha para o worker Celery, igual ao padrão das demais fases com chamadas LLM.
+    from chat.tasks import processar_fase4_analise_task
+    task = processar_fase4_analise_task.delay(engine.parecer.id)
+    return json.dumps({"status": "celery", "task_id": task.id, "type": "FASE4_ANALISE"})
 
 
 def run_extraction(engine) -> str:

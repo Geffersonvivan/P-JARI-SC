@@ -430,9 +430,13 @@ class TestFase4(unittest.TestCase):
 
     def test_ok_dispara_analise_tese(self):
         engine = self._engine()
-        with patch.object(engine, 'analise_tese_fase_4', return_value="analise"):
+        with patch('chat.tasks.processar_fase4_analise_task') as mock_task:
+            mock_task.delay.return_value = MagicMock(id="t-f4a")
             result = engine.process_message("ok")
-        self.assertEqual(result, "analise")
+        data = json.loads(result)
+        self.assertEqual(data["status"], "celery")
+        self.assertEqual(data["type"], "FASE4_ANALISE")
+        mock_task.delay.assert_called_once()
 
     def test_texto_livre_dispara_refinamento(self):
         engine = self._engine()

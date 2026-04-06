@@ -190,6 +190,8 @@ class ChatService:
                     msg = "⏳ *Extraindo datas sensíveis e montando a tabela de prazos via Inteligência Artificial. Aguarde...*"
                 elif tipo == "FASE4":
                     msg = "⏳ *Extraindo teses defensivas via Inteligência Artificial. Aguarde...*"
+                elif tipo == "FASE4_ANALISE":
+                    msg = "⏳ *Analisando teses defensivas com Perplexity + Vertex + Gemini. Aguarde...*"
                 else:
                     msg = "⏳ *O processo entrou na Fila de Engenharia de Prompts (Fase 5). Isso levará em média 1 minuto. O P-JARI irá disponibilizar o Parecer logo abaixo quando for concluído...*"
                 
