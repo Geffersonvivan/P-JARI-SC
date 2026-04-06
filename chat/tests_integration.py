@@ -360,20 +360,23 @@ class TestFase31Integracao(TestCase):
 
     def test_f31_sem_prejudicialidade_avanca_para_merito(self):
         """
-        Julgador confirma 'ok' (aceita todos os resultados automáticos, todos False) → F4.
+        Julgador confirma 'ok' (aceita todos os resultados automáticos, todos False) → despacha FASE4.
 
         Semântica: 'ok' = _flag(None, automático) para cada item.
-        Com flags automáticas = False/False/False/True(tempestivo), nenhum prejudica → F4.
+        Com flags automáticas = False/False/False/True(tempestivo), nenhum prejudica → Celery FASE4.
         """
         from chat.models import Parecer
         from chat.jari_engine import JariEngine
         parecer = self._parecer_f31()
         engine = JariEngine(parecer)
 
-        with patch.object(engine, 'run_phase_4_extraction', return_value='f4') as mock_f4:
-            engine.process_message("ok")
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id='t-f4')
+            result = engine.process_message("ok")
 
-        mock_f4.assert_called_once()
+        mock_fase4.delay.assert_called_once_with(parecer.id)
+        data = json.loads(result)
+        self.assertEqual(data["type"], "FASE4")
         parecer.refresh_from_db()
         self.assertTrue(parecer.julgador_tempestivo)
         self.assertFalse(parecer.julgador_prescricao_punitiva)
@@ -451,7 +454,8 @@ class TestFase31Integracao(TestCase):
         engine = JariEngine(parecer)
 
         # Julgador inverte punitiva e intercorrente para B; decadência também B (tudo sem prejudicialidade)
-        with patch.object(engine, 'run_phase_4_extraction', return_value='f4'):
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id='t-f4')
             engine.process_message(
                 "TEMPESTIVIDADE: A; PUNITIVA: B; INTERCORRENTE: B; DECADÊNCIA: B"
             )
@@ -529,10 +533,13 @@ class TestFluxoEncadeadoF2F3F31(TestCase):
 
         # ── F31: julgador confirma "ok" (aceita todos os automáticos = sem prejudicialidade) ──
         engine3 = JariEngine(Parecer.objects.get(pk=parecer.pk))
-        with patch.object(engine3, 'run_phase_4_extraction', return_value='f4') as mock_f4:
-            engine3.process_message("ok")
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id='t-f4')
+            result = engine3.process_message("ok")
 
-        mock_f4.assert_called_once()
+        mock_fase4.delay.assert_called_once_with(parecer.id)
+        data = json.loads(result)
+        self.assertEqual(data["type"], "FASE4")
         parecer.refresh_from_db()
         self.assertIsNotNone(parecer.julgador_tempestivo)
         self.assertIsNotNone(parecer.julgador_prescricao_punitiva)

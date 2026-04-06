@@ -99,6 +99,38 @@ def processar_fase3_precompute_task(self, parecer_id):
         return f"ERRO (ignorado): {e}"
 
 
+@shared_task(bind=True, time_limit=360, soft_time_limit=300, queue='fast')
+def processar_fase4_task(self, parecer_id):
+    """
+    Extrai a tese defensiva via Gemini (Fase 4) no worker Celery.
+    Evita que a chamada síncrona ao Gemini bloqueie o Gunicorn e cause WORKER TIMEOUT.
+    """
+    from billiard.exceptions import SoftTimeLimitExceeded
+    try:
+        parecer = Parecer.objects.get(id=parecer_id)
+        engine = JariEngine(parecer)
+        reply = engine.run_phase_4_extraction()
+        from .models import ChatMessage
+        ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        return "SUCCESS"
+    except SoftTimeLimitExceeded:
+        logger.warning(f"FASE4 soft time limit atingido (Parecer {parecer_id}). Retornando prompt de fase 4.")
+        try:
+            parecer = Parecer.objects.get(id=parecer_id)
+            from .models import ChatMessage
+            reply = JariEngine(parecer).get_current_prompt()
+            ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        except Exception:
+            pass
+        return "SUCCESS"
+    except Parecer.DoesNotExist:
+        return f"Processo ({parecer_id}) não encontrado."
+    except Exception as e:
+        trace = traceback.format_exc()
+        logger.error(f"ERRO CELERY FASE4 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
+        raise Exception(f"Erro na Fase 4 (Celery Worker): {str(e)}")
+
+
 @shared_task(bind=True, time_limit=600, soft_time_limit=540, max_retries=2, queue='heavy')
 def gerar_parecer_task(self, parecer_id, tese=None):
     """

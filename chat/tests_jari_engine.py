@@ -296,9 +296,13 @@ class TestFase31(unittest.TestCase):
             has_prescricao_intercorrente=False,
             has_decadencia=False,
         )
-        with patch.object(engine, 'run_phase_4_extraction', return_value="fase4"):
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id="t-fase4")
             result = engine.process_message("TEMPESTIVIDADE: A; PUNITIVA: A; INTERCORRENTE: A; DECADÊNCIA: A")
-        self.assertEqual(result, "fase4")
+        data = json.loads(result)
+        self.assertEqual(data["status"], "celery")
+        self.assertEqual(data["type"], "FASE4")
+        mock_fase4.delay.assert_called_once()
 
     def test_julgador_acata_prescricao_punitiva_automatica(self):
         """Julgador escolhe A (acolho) para punitiva → mantém True → pula para resultado."""
@@ -311,18 +315,20 @@ class TestFase31(unittest.TestCase):
         self.assertTrue(engine.parecer.julgador_prescricao_punitiva)
 
     def test_julgador_inverte_prescricao_punitiva(self):
-        """Julgador escolhe B (não acolho) para punitiva → inverte False → avança para F4."""
+        """Julgador escolhe B (não acolho) para punitiva → inverte False → despacha FASE4."""
         engine = self._engine(
             has_prescricao_punitiva=True,
             is_tempestivo=True,
             has_prescricao_intercorrente=False,
             has_decadencia=False,
         )
-        with patch.object(engine, 'run_phase_4_extraction', return_value="fase4"):
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id="t-fase4")
             result = engine.process_message(
                 "TEMPESTIVIDADE: A; PUNITIVA: B; INTERCORRENTE: A; DECADÊNCIA: A"
             )
-        self.assertEqual(result, "fase4")
+        data = json.loads(result)
+        self.assertEqual(data["type"], "FASE4")
         self.assertFalse(engine.parecer.julgador_prescricao_punitiva)
 
     def test_intempestividade_tecnica_acolhida_pula_para_resultado(self):
@@ -335,33 +341,37 @@ class TestFase31(unittest.TestCase):
         self.assertIn("INTEMPESTIVIDADE", engine.parecer.tese)
 
     def test_intempestividade_tecnica_nao_acolhida_avanca_para_merito(self):
-        """Julgador B em tempestividade: inverte False → True → vai para F4."""
+        """Julgador B em tempestividade: inverte False → True → despacha FASE4."""
         engine = self._engine(
             is_tempestivo=False,
             has_prescricao_punitiva=False,
             has_prescricao_intercorrente=False,
             has_decadencia=False,
         )
-        with patch.object(engine, 'run_phase_4_extraction', return_value="fase4"):
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id="t-fase4")
             result = engine.process_message(
                 "TEMPESTIVIDADE: B; PUNITIVA: A; INTERCORRENTE: A; DECADÊNCIA: A"
             )
-        self.assertEqual(result, "fase4")
+        data = json.loads(result)
+        self.assertEqual(data["type"], "FASE4")
         self.assertTrue(engine.parecer.julgador_tempestivo)
 
     def test_decadencia_filtro1_nao_prejudica(self):
-        """has_decadencia=False (corrigido pelo FILTRO 1) → julgador acolhe → não prejudica."""
+        """has_decadencia=False (corrigido pelo FILTRO 1) → julgador acolhe → despacha FASE4."""
         engine = self._engine(
             has_decadencia=False,   # JariMath corrigido já retorna False p/ FILTRO 1
             is_tempestivo=True,
             has_prescricao_punitiva=False,
             has_prescricao_intercorrente=False,
         )
-        with patch.object(engine, 'run_phase_4_extraction', return_value="fase4"):
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id="t-fase4")
             result = engine.process_message(
                 "TEMPESTIVIDADE: A; PUNITIVA: A; INTERCORRENTE: A; DECADÊNCIA: A"
             )
-        self.assertEqual(result, "fase4")
+        data = json.loads(result)
+        self.assertEqual(data["type"], "FASE4")
 
     def test_formato_frontend_real_nao_acolhida_avanca_merito(self):
         """Formato real do frontend: 'KEYWORD - Não Acolhida; X' deve ser parseado corretamente."""
@@ -379,9 +389,11 @@ class TestFase31(unittest.TestCase):
             "INTERCORRENTE - Não Acolhida; X\n\n"
             "DECADENCIA - Acolhida; ✔️"
         )
-        with patch.object(engine, 'run_phase_4_extraction', return_value="fase4"):
+        with patch('chat.tasks.processar_fase4_task') as mock_fase4:
+            mock_fase4.delay.return_value = MagicMock(id="t-fase4")
             result = engine.process_message(msg_real)
-        self.assertEqual(result, "fase4")
+        data = json.loads(result)
+        self.assertEqual(data["type"], "FASE4")
         self.assertTrue(engine.parecer.julgador_tempestivo)
         self.assertFalse(engine.parecer.julgador_prescricao_punitiva)
         self.assertFalse(engine.parecer.julgador_prescricao_intercorrente)

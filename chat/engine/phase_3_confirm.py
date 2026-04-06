@@ -163,4 +163,12 @@ def process(engine, message: str) -> str:
         # aviso_filtro1 não pode ser embutido no JSON Celery; se existir, será registrado no log
         return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
 
-    return engine.run_phase_4_extraction() + aviso_filtro1 + aviso_filtro2_suspensao
+    # Extração da tese (Gemini) é síncrona e pode ultrapassar o timeout do gunicorn.
+    # Despacha para o worker Celery, igual ao padrão das demais fases com chamadas LLM.
+    if aviso_filtro1:
+        from chat.models import ChatMessage
+        ChatMessage.objects.create(parecer=parecer, role='assistant', content=aviso_filtro1.strip())
+
+    from chat.tasks import processar_fase4_task
+    task = processar_fase4_task.delay(parecer.id)
+    return json.dumps({"status": "celery", "task_id": task.id, "type": "FASE4"})
