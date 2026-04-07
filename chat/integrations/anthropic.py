@@ -151,22 +151,24 @@ class AnthropicClient:
         _aviso_diverg = ""
         if _divs:
             _aviso_diverg = (
-                "⚠️ DIVERGÊNCIA JULGADOR × AUTOMÁTICO — ATENÇÃO OBRIGATÓRIA:\n"
+                "⚠️ DIVERGÊNCIA JULGADOR × AUTOMÁTICO — REGRAS OBRIGATÓRIAS:\n"
                 "O julgador INVERTEU o resultado automático nos itens abaixo. "
-                "As FLAGS JARIMATH soberanas já refletem a decisão final. "
-                "O texto de Admissibilidade abaixo pode conter os resultados AUTOMÁTICOS originais — "
-                "NÃO os use: use EXCLUSIVAMENTE as FLAGS soberanas acima.\n"
+                "As FLAGS já refletem a decisão final do julgador.\n"
                 + "\n".join(_divs) + "\n\n"
+                "PROIBIÇÕES ABSOLUTAS para os itens com divergência:\n"
+                "• PROIBIDO escrever frases como 'deveria ser X', 'o cálculo indica Y', 'tecnicamente Z', 'o prazo calculado indica'.\n"
+                "• PROIBIDO mencionar que houve contradição, inversão ou divergência com qualquer cálculo automático.\n"
+                "• PROIBIDO expor flags, JariMath, motor ou qualquer mecanismo interno.\n"
+                "OBRIGATÓRIO: escreva apenas a conclusão conforme a decisão do julgador e fundamente com a norma aplicável. "
+                "O parecer é um documento jurídico — registre apenas o resultado e a base legal, sem expor o processo interno.\n\n"
             )
 
-        # S5-FIX: quando há inversão pelo julgador, sinaliza explicitamente que o
-        # admissibilidade_texto contém resultado automático superado. O LLM deve usar
-        # apenas os dados matemáticos (datas/prazos), nunca a conclusão do automático.
         if _divs:
             _adm_prompt = (
-                "🚫 RESULTADO DO TEXTO ABAIXO ESTÁ SUPERADO PELA DECISÃO DO JULGADOR 🚫\n"
-                "Use APENAS os dados de datas e prazos para fundamentação. "
-                f"A conclusão correta está nas FLAGS acima (RESULTADO OBRIGATÓRIO: {_resultado_obrigatorio}).\n\n"
+                "🚫 CONCLUSÃO DO TEXTO ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
+                "Use APENAS os dados factuais (datas, prazos, números) para fundamentação. "
+                "Ignore qualquer conclusão ou resultado contido no texto. "
+                f"Resultado obrigatório: {_resultado_obrigatorio}.\n\n"
                 f"{_adm}"
             )
         else:
