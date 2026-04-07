@@ -2659,10 +2659,23 @@
             for (const key of keysOrdenadas) {
                 const value = window.currentTeseDecisions[key];
                 if (String(key).startsWith('ADM_')) {
-                    // S2-FIX: envia letra A/B explícita para parsing determinístico no backend
                     const admName = key.replace('ADM_', '');
-                    const choice = value.toUpperCase(); // 'A' ou 'B'
-                    choiceArray.push(`${admName} - ${choice}`);
+                    const choice = value.toLowerCase(); // 'a' ou 'b'
+
+                    // Resolve valor semântico absoluto a partir da escolha + resultado automático do motor
+                    const block = messageContainer.querySelector(`.tese-decision-block[data-tese="${key}"]`);
+                    const resultado = block ? (block.dataset.resultado || '') : '';
+                    let semanticValue;
+                    if (admName === 'TEMPESTIVIDADE') {
+                        const autoTempestivo = resultado === 'SIM';
+                        const confirmar = choice === 'a';
+                        semanticValue = (confirmar ? autoTempestivo : !autoTempestivo) ? 'TEMPESTIVO' : 'INTEMPESTIVO';
+                    } else {
+                        const autoSim = resultado === 'SIM';
+                        const confirmar = choice === 'a';
+                        semanticValue = (confirmar ? autoSim : !autoSim) ? 'SIM' : 'NAO';
+                    }
+                    choiceArray.push(`${admName} - ${semanticValue}`);
                 } else {
                     const suffix = value.toLowerCase() === 'a' ? 'Acolhida; ✔️' : 'Não Acolhida; X';
                     choiceArray.push(`Tese ${key} – Síntese da alegação: ${suffix}`);
