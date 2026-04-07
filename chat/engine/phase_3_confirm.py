@@ -10,8 +10,8 @@ Semântica ABSOLUTA: A/B expressam o resultado final diretamente, sem depender d
   None = sem escolha explícita → usa resultado automático do JariMath.
   "ok"/"confirmo" etc.  → confirma todos os resultados automáticos.
 
-Blindagens (aplicadas sobre o resultado absoluto resolvido):
-  Filtro 1 (data_inf < 12/04/2021): julgador_decad=True → bloqueado para False.
+Avisos informativos (aplicados sobre o resultado absoluto resolvido):
+  Filtro 1 (data_inf < 12/04/2021): julgador_decad=True → permitido, com aviso CETRAN/SC 381/2022.
   Filtro 2 Suspensão/Cassação: julgador_decad=True → permitido, com aviso informativo.
 """
 
@@ -23,7 +23,7 @@ import json
 
 logger = logging.getLogger(__name__)
 
-# Limiar Filtro 1: infrações anteriores a esta data → decadência PROIBIDA (CETRAN/SC 381/2022)
+# Limiar Filtro 1: infrações anteriores a esta data → aviso CETRAN/SC 381/2022 (julgador pode forçar)
 _LIMIAR_FILTRO_1 = datetime.date(2021, 4, 12)
 # Mensagens de confirmação simples que aceitam todos os resultados automáticos
 _MSG_CONFIRMA = {
@@ -155,21 +155,20 @@ def process(engine, message: str) -> str:
         message,
     )
 
-    # ── Blindagem Filtro 1: decadência PROIBIDA para infrações < 12/04/2021 ──
-    # Com semântica absoluta: bloqueia sempre que julgador_decad=True E data < limiar.
+    # ── Aviso Filtro 1: decadência declarada pelo julgador para infração < 12/04/2021 ──
+    # Autonomia do julgador prevalece; aviso informa que contraria CETRAN/SC 381/2022.
     aviso_filtro1 = ""
     if julgador_decad is True:
         data_inf = getattr(parecer, 'data_infracao', None)
         if data_inf and data_inf < _LIMIAR_FILTRO_1:
-            julgador_decad = False
             aviso_filtro1 = (
-                "\n\n⚠️ **CONVERSÃO BLOQUEADA — Blindagem Filtro 1 (CETRAN/SC 381/2022)**\n"
-                "A infração ocorreu antes de 12/04/2021. A declaração de decadência de 180/360 dias "
-                "é expressamente proibida para este período. "
-                "Decadência: **NÃO SE APLICA** (mantido automaticamente)."
+                "\n\n⚠️ **AVISO — Filtro 1 (CETRAN/SC 381/2022)**\n"
+                "A infração ocorreu antes de 12/04/2021. O Parecer CETRAN/SC 381/2022 indica que "
+                "os prazos decadenciais dos arts. 281-A e 282, §6°-A do CTB não retroagem. "
+                "O julgador optou por declarar Decadência: **SIM** (escolha prevalece)."
             )
             logger.warning(
-                "[FASE31] Filtro 1 blindagem ativada: parecer=%s data_infracao=%s — decadência bloqueada",
+                "[FASE31] Filtro 1 aviso emitido: parecer=%s data_infracao=%s — julgador declarou SIM (permitido)",
                 parecer.id, data_inf,
             )
 
@@ -209,6 +208,12 @@ def process(engine, message: str) -> str:
         or (parecer.julgador_tempestivo is False)
     )
 
+    # Salva avisos informativos antes de rotear (independente da rota)
+    from chat.models import ChatMessage
+    for aviso in (aviso_filtro1, aviso_filtro2_suspensao):
+        if aviso:
+            ChatMessage.objects.create(parecer=parecer, role='assistant', content=aviso.strip())
+
     if prejudica:
         from chat.engine import FASE_RESULTADO
         motivo = []
@@ -220,23 +225,11 @@ def process(engine, message: str) -> str:
         parecer.status_fase = FASE_RESULTADO
         parecer.save()
 
-        # Salva aviso de filtro2 antes de despachar o parecer (filtro1 já bloqueou, não chega aqui)
-        if aviso_filtro2_suspensao:
-            from chat.models import ChatMessage
-            ChatMessage.objects.create(
-                parecer=parecer, role='assistant',
-                content=aviso_filtro2_suspensao.strip(),
-            )
-
         from chat.tasks import gerar_parecer_task
         task = gerar_parecer_task.delay(parecer.id)
         return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
 
     # Rota D — análise de mérito (extração de teses)
-    if aviso_filtro1:
-        from chat.models import ChatMessage
-        ChatMessage.objects.create(parecer=parecer, role='assistant', content=aviso_filtro1.strip())
-
     from chat.tasks import processar_fase4_task
     task = processar_fase4_task.delay(parecer.id)
     return json.dumps({"status": "celery", "task_id": task.id, "type": "FASE4"})
