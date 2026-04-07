@@ -2667,7 +2667,8 @@
                     const resultado = block ? (block.dataset.resultado || '') : '';
                     let semanticValue;
                     if (admName === 'TEMPESTIVIDADE') {
-                        const autoTempestivo = resultado === 'SIM';
+                        // Tag usa semântica INVERTIDA: SIM=intempestivo(configurada), NAO=tempestivo(não configurada)
+                        const autoTempestivo = resultado === 'NAO';
                         const confirmar = choice === 'a';
                         semanticValue = (confirmar ? autoTempestivo : !autoTempestivo) ? 'TEMPESTIVO' : 'INTEMPESTIVO';
                     } else {
