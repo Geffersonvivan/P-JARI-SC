@@ -1,6 +1,18 @@
 """
 Fase 31 — Confirmação da admissibilidade pelo julgador.
-Parseia as escolhas A/B (Acolhida / Não Acolhida) e roteia para F4 ou F5.
+Semântica ABSOLUTA: A/B expressam o resultado final diretamente, sem depender do automático.
+
+  Tempestividade:        A = TEMPESTIVO (recurso admissível)   | B = INTEMPESTIVO (inadmissível)
+  Prescrição Punitiva:   A = SIM (prescrito)                   | B = NÃO
+  Prescrição Intercorr:  A = SIM (prescrito)                   | B = NÃO
+  Decadência:            A = SIM (configurada)                 | B = NÃO / NÃO SE APLICA
+
+  None = sem escolha explícita → usa resultado automático do JariMath.
+  "ok"/"confirmo" etc.  → confirma todos os resultados automáticos.
+
+Blindagens (aplicadas sobre o resultado absoluto resolvido):
+  Filtro 1 (data_inf < 12/04/2021): julgador_decad=True → bloqueado para False.
+  Filtro 2 Suspensão/Cassação: julgador_decad=True → permitido, com aviso informativo.
 """
 
 import re
@@ -11,132 +23,182 @@ import json
 
 logger = logging.getLogger(__name__)
 
-# Limiar Filtro 1: infrações anteriores a esta data → decadência PROIBIDA (Parecer CETRAN/SC 381/2022)
+# Limiar Filtro 1: infrações anteriores a esta data → decadência PROIBIDA (CETRAN/SC 381/2022)
 _LIMIAR_FILTRO_1 = datetime.date(2021, 4, 12)
-# Mensagens de confirmação simples que significam "aceito os resultados automáticos"
-_MSG_CONFIRMA = {'ok', 'confirmo', 'confirmar', 'sim', 'confirmar resultados', 'confirmo os resultados', 'confirmar os resultados'}
+# Mensagens de confirmação simples que aceitam todos os resultados automáticos
+_MSG_CONFIRMA = {
+    'ok', 'confirmo', 'confirmar', 'sim',
+    'confirmar resultados', 'confirmo os resultados', 'confirmar os resultados',
+}
 
 
 def process(engine, message: str) -> str:
     """
-    Parseia a resposta do julgador sobre cada item de admissibilidade e:
-    - Se algum item prejudica o mérito → vai para F5 (FASE_RESULTADO) via Celery.
-    - Caso contrário → vai para F4 (extração de teses).
+    Parseia a resposta do julgador com semântica absoluta e roteia:
+    - Algum item prejudica o mérito → FASE_RESULTADO (parecer via Celery).
+    - Nenhum item prejudica → FASE4 (extração de teses via Celery).
     """
     parecer = engine.parecer
 
-    def _strip_accents(s):
-        return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+    def _n(s):
+        """Remove acentos e converte para maiúsculas."""
+        return ''.join(
+            c for c in unicodedata.normalize('NFD', s)
+            if unicodedata.category(c) != 'Mn'
+        ).upper()
 
-    def _escolha(msg, keyword):
-        """Retorna True se acolheu, False se não acolheu, None se não encontrou."""
-        msg_n = _strip_accents(msg).upper()
-        kw_n = _strip_accents(keyword).upper()
-        if re.search(rf'{kw_n}.{{0,30}}NAO ACOLHID', msg_n):
-            return False
-        if re.search(rf'{kw_n}.{{0,30}}ACOLHID', msg_n):
-            return True
-        m = re.search(rf'{kw_n}\w*\s*[-:\s]\s*([AB])\b', msg_n)
-        if m:
-            return m.group(1) == 'A'
+    def _janela(msg_n, keyword_n, size=55):
+        """Janela de texto após a keyword; None se não encontrada."""
+        m = re.search(rf'{keyword_n}(.{{0,{size}}})', msg_n)
+        return m.group(1) if m else None
+
+    def _abs_prescrição_decad(janela):
+        """
+        Semântica ABSOLUTA para Prescrição Punitiva, Intercorrente e Decadência.
+        True  = SIM / configurada / presente / acolhida.
+        False = NÃO / não configurada / não se aplica / não acolhida.
+        None  = não identificado.
+        """
+        # Negativos antes (padrões mais específicos primeiro)
+        neg = [
+            r'NAO\s+ACOLHID',
+            r'NAO\s+SE\s+APLIC',
+            r'NAO\s+CONFIGURAD',
+            r'\bNAO\b',
+            r'\bB\b',
+        ]
+        for p in neg:
+            if re.search(p, janela):
+                return False
+        # Positivos
+        pos = [
+            r'ACOLHID',
+            r'CONFIGURAD',
+            r'\bSIM\b',
+            r'\bA\b',
+        ]
+        for p in pos:
+            if re.search(p, janela):
+                return True
         return None
 
-    acolhe_temp  = _escolha(message, 'TEMPESTIVIDADE')
-    acolhe_punit = _escolha(message, 'PUNITIV')
-    acolhe_inter = _escolha(message, 'INTERCORRENTE')
-    acolhe_decad = _escolha(message, 'DECAD')
+    def _abs_tempestividade(janela):
+        """
+        Semântica ABSOLUTA para Tempestividade.
+        True  = TEMPESTIVO / admissível / NÃO CONFIGURADA.
+        False = INTEMPESTIVO / inadmissível / CONFIGURADA.
+        None  = não identificado.
+        Atenção: "NÃO CONFIGURADA" precede "CONFIGURADA" para evitar falso negativo.
+        """
+        if re.search(r'NAO\s+CONFIGURAD', janela):
+            return True   # NÃO CONFIGURADA = tempestivo
+        if re.search(r'\bCONFIGURAD', janela):
+            return False  # CONFIGURADA (sozinha) = intempestivo
+        neg = [r'NAO\s+ACOLHID', r'INTEMPESTIV', r'INADMISSIV', r'\bB\b']
+        for p in neg:
+            if re.search(p, janela):
+                return False
+        pos = [r'ACOLHID', r'TEMPESTIV', r'ADMISSIV', r'\bA\b']
+        for p in pos:
+            if re.search(p, janela):
+                return True
+        return None
 
-    # ── DIV-05: parser silencioso — avisar quando nenhuma escolha foi detectada ──
-    _nenhuma_escolha = all(x is None for x in [acolhe_temp, acolhe_punit, acolhe_inter, acolhe_decad])
+    msg_n = _n(message)
+
+    j_temp  = _janela(msg_n, 'TEMPESTIVIDADE')
+    j_punit = _janela(msg_n, 'PUNITIV')
+    j_inter = _janela(msg_n, 'INTERCORRENTE')
+    j_decad = _janela(msg_n, 'DECAD')
+
+    r_temp  = _abs_tempestividade(j_temp)       if j_temp  is not None else None
+    r_punit = _abs_prescrição_decad(j_punit)    if j_punit is not None else None
+    r_inter = _abs_prescrição_decad(j_inter)    if j_inter is not None else None
+    r_decad = _abs_prescrição_decad(j_decad)    if j_decad is not None else None
+
+    _nenhuma  = all(x is None for x in [r_temp, r_punit, r_inter, r_decad])
     _msg_simples = message.strip().lower() in _MSG_CONFIRMA
 
-    if _nenhuma_escolha and not _msg_simples:
+    if _nenhuma and not _msg_simples:
         return (
             "⚠️ **Não consegui identificar suas escolhas.** Responda no formato:\n\n"
             "```\n"
             "Tempestividade - A\n"
-            "Prescrição Punitiva - B\n"
-            "Prescrição Intercorrente - A\n"
+            "Prescrição Punitiva - A\n"
+            "Prescrição Intercorrente - B\n"
             "Decadência - A\n"
             "```\n\n"
+            "**A** = resultado positivo  "
+            "(Tempestividade: **tempestivo** | Prescrição/Decadência: **SIM** / configurada)\n"
+            "**B** = resultado negativo  "
+            "(Tempestividade: **intempestivo** | Prescrição/Decadência: **NÃO**)\n\n"
             "Ou digite **ok** para confirmar todos os resultados automáticos do JariMath."
         )
 
+    # Resultado final: escolha explícita prevalece; None → usa automático
+    julgador_temp  = r_temp  if r_temp  is not None else parecer.is_tempestivo
+    julgador_punit = r_punit if r_punit is not None else parecer.has_prescricao_punitiva
+    julgador_inter = r_inter if r_inter is not None else parecer.has_prescricao_intercorrente
+    julgador_decad = r_decad if r_decad is not None else parecer.has_decadencia
+
     logger.warning(
-        f"[FASE31] parecer={parecer.id} | "
-        f"temp={acolhe_temp} punit={acolhe_punit} inter={acolhe_inter} decad={acolhe_decad} | "
-        f"auto: temp={parecer.is_tempestivo} punit={parecer.has_prescricao_punitiva} "
-        f"inter={parecer.has_prescricao_intercorrente} decad={parecer.has_decadencia} | "
-        f"msg_preview={repr(message[:120])}"
+        "[FASE31] parecer=%s | "
+        "parsed: temp=%s punit=%s inter=%s decad=%s | "
+        "auto:   temp=%s punit=%s inter=%s decad=%s | "
+        "result: temp=%s punit=%s inter=%s decad=%s | "
+        "msg=%.120s",
+        parecer.id,
+        r_temp, r_punit, r_inter, r_decad,
+        parecer.is_tempestivo, parecer.has_prescricao_punitiva,
+        parecer.has_prescricao_intercorrente, parecer.has_decadencia,
+        julgador_temp, julgador_punit, julgador_inter, julgador_decad,
+        message,
     )
 
-    def _flag(acolhe, automatico):
-        """
-        Semântica RELATIVA: A = CONFIRMAR (mantém o resultado automático),
-        B = INVERTER (oposto do resultado automático).
-        None = sem escolha explícita → usa resultado automático do JariMath.
-        Quando automatico=None e acolhe=False (B), retorna True: julgador declara
-        o problema como existente mesmo sem cálculo automático anterior.
-        """
-        if acolhe is None:
-            return automatico
-        if acolhe is True:   # A (Confirmar) → mantém o automático
-            return automatico
-        # acolhe is False: B (Inverter) → inverte o automático
-        if automatico is None:
-            return True   # S3-FIX: None não é False; inverter None = declarar existente
-        return not automatico
-
-    # ── DIV-03: Blindagem Filtro 1 — decadência para infrações < 12/04/2021 é PROIBIDA ──
-    # Semântica RELATIVA (pós BUG-B): acolhe_decad=False significa B (INVERTER), ou seja,
-    # o julgador está tentando forçar SIM a partir de um automático NÃO/NÃO SE APLICA.
-    # É exatamente esse caso que deve ser bloqueado para infrações no Filtro 1.
+    # ── Blindagem Filtro 1: decadência PROIBIDA para infrações < 12/04/2021 ──
+    # Com semântica absoluta: bloqueia sempre que julgador_decad=True E data < limiar.
     aviso_filtro1 = ""
-    if acolhe_decad is False:  # B (INVERTER) = julgador tentando forçar SIM
+    if julgador_decad is True:
         data_inf = getattr(parecer, 'data_infracao', None)
         if data_inf and data_inf < _LIMIAR_FILTRO_1:
-            acolhe_decad = True  # força A (CONFIRMAR): mantém automático = NÃO SE APLICA
+            julgador_decad = False
             aviso_filtro1 = (
                 "\n\n⚠️ **CONVERSÃO BLOQUEADA — Blindagem Filtro 1 (CETRAN/SC 381/2022)**\n"
                 "A infração ocorreu antes de 12/04/2021. A declaração de decadência de 180/360 dias "
-                "é expressamente proibida para este período. A tentativa de inversão foi bloqueada."
+                "é expressamente proibida para este período. "
+                "Decadência: **NÃO SE APLICA** (mantido automaticamente)."
             )
             logger.warning(
-                f"[FASE31] Filtro 1 blindagem ativada: parecer={parecer.id} "
-                f"data_infracao={data_inf} — declaração de decadência bloqueada"
+                "[FASE31] Filtro 1 blindagem ativada: parecer=%s data_infracao=%s — decadência bloqueada",
+                parecer.id, data_inf,
             )
 
-    # M1-FIX: Conversão NÃO SE APLICA → SIM para Filtro 2 Suspensão/Cassação.
-    # Spec logica_jari.md §371-373: quando o resultado automático é NÃO SE APLICA (Filtro 2 Suspensão)
-    # e o julgador escolhe B (Afastar), o sistema deve converter para SIM — julgador força análise decadencial.
+    # ── Filtro 2 Suspensão/Cassação: julgador pode declarar SIM (não bloqueado) ──
+    # Emite aviso informativo quando o automático era NÃO SE APLICA e o julgador forçou SIM.
     aviso_filtro2_suspensao = ""
-    if (acolhe_decad is False                    # julgador escolheu B (afastar)
-            and parecer.has_decadencia is False  # automático retornou NÃO SE APLICA
-            and aviso_filtro1 == ""):            # não bloqueado pelo Filtro 1
-        data_inf_m1 = getattr(parecer, 'data_infracao', None)
-        tipo_pen_m1 = (getattr(parecer, 'tipo_penalidade', None) or '').lower()
-        _e_grave_m1 = tipo_pen_m1 in ('suspensao', 'cassacao')
-        _e_filtro2_m1 = (data_inf_m1 and
-                         data_inf_m1 >= _LIMIAR_FILTRO_1 and
-                         data_inf_m1 < datetime.date(2021, 10, 22))
-        if _e_grave_m1 and _e_filtro2_m1:
-            # acolhe_decad permanece False (B=inverter): _flag(False, False) = True = SIM
-            # NÃO mudar acolhe_decad para True — isso bloquearia a conversão (bug M1-FIX)
+    if julgador_decad is True and not aviso_filtro1:
+        data_inf_f2  = getattr(parecer, 'data_infracao', None)
+        tipo_pen_f2  = (getattr(parecer, 'tipo_penalidade', None) or '').lower()
+        _e_grave     = tipo_pen_f2 in ('suspensao', 'cassacao')
+        _e_filtro2   = (data_inf_f2 and
+                        data_inf_f2 >= _LIMIAR_FILTRO_1 and
+                        data_inf_f2 < datetime.date(2021, 10, 22))
+        if _e_grave and _e_filtro2 and parecer.has_decadencia is False:
             aviso_filtro2_suspensao = (
                 "\n\n✅ **CONVERSÃO FILTRO 2 SUSPENSÃO — NÃO SE APLICA → SIM**\n"
-                "O julgador escolheu B (Afastar) para penalidade de suspensão/cassação no período "
-                "Filtro 2 (12/04/2021–21/10/2021). A Nota CETRAN/SC 02/03/2023 não é absoluta; "
-                "o julgador pode forçar análise decadencial. Decadência convertida para **SIM**."
+                "O julgador declarou Decadência: SIM para penalidade de suspensão/cassação "
+                "no período Filtro 2 (12/04/2021–21/10/2021). A Nota CETRAN/SC 02/03/2023 "
+                "não é absoluta; o julgador pode forçar análise decadencial. Decadência: **SIM**."
             )
             logger.warning(
-                "[FASE31] Filtro 2 Suspensão NÃO SE APLICA→SIM: parecer=%s tipo=%s data_inf=%s",
-                parecer.id, tipo_pen_m1, data_inf_m1,
+                "[FASE31] Filtro 2 Suspensão — julgador declarou SIM: parecer=%s tipo=%s data_inf=%s",
+                parecer.id, tipo_pen_f2, data_inf_f2,
             )
 
-    parecer.julgador_tempestivo               = _flag(acolhe_temp,  parecer.is_tempestivo)
-    parecer.julgador_prescricao_punitiva      = _flag(acolhe_punit, parecer.has_prescricao_punitiva)
-    parecer.julgador_prescricao_intercorrente = _flag(acolhe_inter, parecer.has_prescricao_intercorrente)
-    parecer.julgador_decadencia               = _flag(acolhe_decad, parecer.has_decadencia)
+    parecer.julgador_tempestivo               = julgador_temp
+    parecer.julgador_prescricao_punitiva      = julgador_punit
+    parecer.julgador_prescricao_intercorrente = julgador_inter
+    parecer.julgador_decadencia               = julgador_decad
     parecer.save()
 
     # Roteamento por precedência: C (Decadência) > B (Prescrição) > A (Intempestividade) > D (mérito)
@@ -158,13 +220,19 @@ def process(engine, message: str) -> str:
         parecer.status_fase = FASE_RESULTADO
         parecer.save()
 
+        # Salva aviso de filtro2 antes de despachar o parecer (filtro1 já bloqueou, não chega aqui)
+        if aviso_filtro2_suspensao:
+            from chat.models import ChatMessage
+            ChatMessage.objects.create(
+                parecer=parecer, role='assistant',
+                content=aviso_filtro2_suspensao.strip(),
+            )
+
         from chat.tasks import gerar_parecer_task
         task = gerar_parecer_task.delay(parecer.id)
-        # aviso_filtro1 não pode ser embutido no JSON Celery; se existir, será registrado no log
         return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
 
-    # Extração da tese (Gemini) é síncrona e pode ultrapassar o timeout do gunicorn.
-    # Despacha para o worker Celery, igual ao padrão das demais fases com chamadas LLM.
+    # Rota D — análise de mérito (extração de teses)
     if aviso_filtro1:
         from chat.models import ChatMessage
         ChatMessage.objects.create(parecer=parecer, role='assistant', content=aviso_filtro1.strip())

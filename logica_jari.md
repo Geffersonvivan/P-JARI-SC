@@ -340,38 +340,27 @@ Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando: identific
 1. Quadro-resumo de opções ao julgador
 Após apresentar as conclusões técnicas e os "Cálculos fundamentados", exiba o quadro-resumo com as opções de decisão HUMANA para cada item, SEM alterar os resultados técnicos.
 
-⚠️ ATENÇÃO: "CONFIRMAR" significa manter o resultado técnico do sistema; "AFASTAR/CONVERTER" significa invertê-lo.
+⚠️ ATENÇÃO: As opções A e B expressam o resultado FINAL que o julgador deseja registrar, de forma ABSOLUTA e independente do resultado técnico automático. O julgador tem 100% de autonomia sobre a decisão; o sistema apenas fundamenta o parecer conforme a escolha registrada.
 
 INTEMPESTIVIDADE DO RECURSO – resultado técnico: [CONFIGURADA/NÃO CONFIGURADA]
-Se CONFIGURADA:
- A – CONFIRMAR (recurso permanece inadmissível por intempestividade)
- B – AFASTAR (declara recurso tempestivo, admite ao mérito)
-Se NÃO CONFIGURADA:
- A – CONFIRMAR (recurso permanece admissível)
- B – CONVERTER PARA CONFIGURADA (declara intempestividade — atenção: prejudica o recorrente)
+ A – TEMPESTIVO (recurso admissível — prossegue ao mérito)
+ B – INTEMPESTIVO (recurso inadmissível — não conhecido)
 
 PRESCRIÇÃO PUNITIVA – resultado técnico: [SIM/NÃO]
- A – CONFIRMAR (mantém resultado técnico)
- B – AFASTAR (inverte resultado técnico)
+ A – SIM (prescrição punitiva configurada — penalidade extinta)
+ B – NÃO (prescrição punitiva não configurada)
 
 PRESCRIÇÃO INTERCORRENTE – resultado técnico: [SIM/NÃO]
- A – CONFIRMAR (mantém resultado técnico)
- B – AFASTAR (inverte resultado técnico)
+ A – SIM (prescrição intercorrente configurada — penalidade extinta)
+ B – NÃO (prescrição intercorrente não configurada)
 
 DECADÊNCIA – resultado técnico: [SIM/NÃO/NÃO SE APLICA]
- A – CONFIRMAR (mantém resultado técnico)
- B – AFASTAR/CONVERTER (inverte resultado técnico; ver regra de inversão em §4)
+ A – SIM (decadência configurada — penalidade inválida)
+ B – NÃO / NÃO SE APLICA (decadência não configurada)
+ ⚠️ Restrição: para infrações anteriores a 12/04/2021 (Filtro 1), a opção A será bloqueada automaticamente pelo sistema, independente da escolha do julgador (Parecer CETRAN/SC 381/2022).
 
-1. Conversão das escolhas em resultado consolidado
-O sistema converte automaticamente as escolhas do julgador seguindo esta regra:
-Se o julgador escolher A (CONFIRMAR): resultado escolhido = repete o resultado técnico.
-Se o julgador escolher B (AFASTAR/CONVERTER): resultado escolhido = oposto, conforme:
-  SIM → NÃO
-  NÃO → SIM
-  NÃO SE APLICA → regra de conversão depende do filtro temporal:
-    - Filtro 2 (Suspensão/Cassação): permite conversão → SIM (julgador força análise decadencial).
-    - Filtro 1: BLOQUEADO. O sistema NÃO converte. Resultado permanece NÃO SE APLICA.
-      Exibir obrigatoriamente: "CONVERSÃO BLOQUEADA — Filtro 1: blindagem absoluta conforme Parecer CETRAN/SC 381/2022. Não é possível declarar decadência para infrações até 11/04/2021."
+1. Resultado consolidado
+O sistema registra diretamente o resultado declarado pelo julgador — não há conversão relativa. A escolha A significa o resultado positivo e B o negativo, conforme especificado acima para cada item. Quando o julgador não especifica um item, o sistema utiliza o resultado técnico automático do JariMath.
 
 Formato obrigatório do resultado consolidado:
 Resultado escolhido pelo membro julgador:
