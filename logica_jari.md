@@ -357,7 +357,7 @@ PRESCRIÇÃO INTERCORRENTE – resultado técnico: [SIM/NÃO]
 DECADÊNCIA – resultado técnico: [SIM/NÃO/NÃO SE APLICA]
  A – SIM (decadência configurada — penalidade inválida)
  B – NÃO / NÃO SE APLICA (decadência não configurada)
- ⚠️ Restrição: para infrações anteriores a 12/04/2021 (Filtro 1), a opção A será bloqueada automaticamente pelo sistema, independente da escolha do julgador (Parecer CETRAN/SC 381/2022).
+ ⚠️ Aviso: para infrações anteriores a 12/04/2021 (Filtro 1), o sistema emitirá aviso informativo (Parecer CETRAN/SC 381/2022). A escolha do julgador prevalece; o aviso é registrado no histórico do processo.
 
 1. Resultado consolidado
 O sistema registra diretamente o resultado declarado pelo julgador — não há conversão relativa. A escolha A significa o resultado positivo e B o negativo, conforme especificado acima para cada item. Quando o julgador não especifica um item, o sistema utiliza o resultado técnico automático do JariMath.
