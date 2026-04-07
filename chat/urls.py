@@ -19,6 +19,7 @@ urlpatterns = [
     path('auth-sync/', views.auth_sync_view, name='auth_sync'),
     path('checkout/', views.checkout_view, name='checkout'),
     path('webhooks/stripe/', views.stripe_webhook, name='stripe_webhook'),
+    path('stripe/webhook/', views.stripe_webhook),  # URL cadastrada no Stripe Dashboard
     path('estatisticas/', views.estatisticas_view, name='estatisticas'),
     path('estatisticas-gerais/', views.estatisticas_gerais_view, name='estatisticas_gerais'),
     path('onboarding/dismiss/', views.dismiss_onboarding_view, name='dismiss_onboarding'),
