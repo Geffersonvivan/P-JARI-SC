@@ -44,7 +44,24 @@ class VertexAIClient:
                 pass
 
         try:
-            client = discoveryengine.SearchServiceClient()
+            # Monta credenciais explicitamente para suportar JSON inline (Railway)
+            _credentials = None
+            _creds_env = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')
+            if _creds_env.strip().startswith('{'):
+                import json
+                from google.oauth2 import service_account
+                _credentials = service_account.Credentials.from_service_account_info(
+                    json.loads(_creds_env)
+                )
+            else:
+                # Tenta recuperar do Django settings (quando GCS já parseou e deletou a env var)
+                try:
+                    from django.conf import settings as _dj_settings
+                    _credentials = getattr(_dj_settings, 'GS_CREDENTIALS', None)
+                except Exception:
+                    pass
+
+            client = discoveryengine.SearchServiceClient(credentials=_credentials)
             serving_config = client.serving_config_path(
                 project=self.project_id,
                 location=self.location,
