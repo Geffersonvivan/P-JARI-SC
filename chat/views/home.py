@@ -11,9 +11,24 @@ def _get_filter_kwargs(request):
 
 
 PLANS = {
-    'extra':       {'title': 'P-JARI/SC 1 Crédito Extra',          'price': 20.00,   'credits': 1,  'is_pro': False},
-    'basic':       {'title': 'P-JARI/SC Básico (40 Pareceres)',     'price': 720.00,  'credits': 40, 'is_pro': True},
-    'pro':         {'title': 'P-JARI/SC Profissional (80 Pareceres)','price': 1440.00,'credits': 80, 'is_pro': True},
+    'extra': {
+        'title': 'P-JARI/SC 1 Crédito Extra',
+        'price': 20.00,
+        'credits_base': 1, 'credits_bonus': 0, 'credits': 1,
+        'is_pro': False, 'is_subscription': False,
+    },
+    'basic': {
+        'title': 'P-JARI/SC Básico (40 Pareceres)',
+        'price': 720.00,
+        'credits_base': 36, 'credits_bonus': 4, 'credits': 40,
+        'is_pro': True, 'is_subscription': True,
+    },
+    'pro': {
+        'title': 'P-JARI/SC Profissional (80 Pareceres)',
+        'price': 1440.00,
+        'credits_base': 72, 'credits_bonus': 8, 'credits': 80,
+        'is_pro': True, 'is_subscription': True,
+    },
 }
 
 

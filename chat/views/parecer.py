@@ -5,6 +5,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, StreamingHttpResponse, Http404
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 from django.core.files.storage import default_storage
 from ..models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
@@ -174,10 +175,18 @@ def create_parecer_view(request):
         if count >= 2:
             return JsonResponse({'requires_login': True})
     else:
-        # Usuário autenticado: Verifica limite de créditos (Ignora se for Vitalício Is Pro ou Superuser)
-        total_usos = Parecer.objects.filter(user=request.user).count()
-        if total_usos >= request.user.profile.credits and not request.user.profile.is_pro and not request.user.is_superuser:
-            return JsonResponse({'requires_plan': True})
+        if not request.user.is_superuser:
+            profile = request.user.profile
+            # Verifica expiração da assinatura
+            if profile.subscription_expires_at and profile.subscription_expires_at < timezone.now():
+                return JsonResponse({'requires_plan': True})
+            # Conta pareceres apenas dentro do ciclo atual
+            start = profile.subscription_start_at
+            qs = Parecer.objects.filter(user=request.user)
+            if start:
+                qs = qs.filter(created_at__gte=start)
+            if qs.count() >= profile.credits:
+                return JsonResponse({'requires_plan': True})
 
     try:
         data = json.loads(request.body)

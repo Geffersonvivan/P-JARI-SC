@@ -2,6 +2,7 @@ import logging
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from datetime import datetime
+from django.utils import timezone
 from .models import Parecer, Pasta
 from .jari_engine import JariEngine
 
@@ -114,11 +115,18 @@ class ChatService:
             if count >= 2:
                 return JsonResponse({'requires_login': True})
         else:
-            # Conta saved + em andamento para evitar race condition onde dois processos
-            # simultâneos (is_saved=False) passam pelo check e excedem o limite ao finalizar.
-            total_usos = Parecer.objects.filter(user=request.user).count()
-            if total_usos >= request.user.profile.credits and not request.user.profile.is_pro and not request.user.is_superuser:
-                return JsonResponse({'requires_plan': True})
+            if not request.user.is_superuser:
+                profile = request.user.profile
+                # Verifica expiração da assinatura
+                if profile.subscription_expires_at and profile.subscription_expires_at < timezone.now():
+                    return JsonResponse({'requires_plan': True})
+                # Conta pareceres apenas dentro do ciclo atual
+                start = profile.subscription_start_at
+                qs = Parecer.objects.filter(user=request.user)
+                if start:
+                    qs = qs.filter(created_at__gte=start)
+                if qs.count() >= profile.credits:
+                    return JsonResponse({'requires_plan': True})
 
         if request.user.is_authenticated:
             nome_usuario = f"{request.user.first_name} {request.user.last_name}".strip().upper()

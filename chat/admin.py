@@ -1,13 +1,22 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog
+from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog, Subscription
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Perfil de Créditos e Assinatura'
-    fields = ('credits', 'is_pro', 'subscription_status', 'can_view_global_stats')
+    fields = ('credits', 'is_pro', 'subscription_status', 'subscription_start_at', 'subscription_expires_at', 'can_view_global_stats')
+    readonly_fields = ('subscription_start_at', 'subscription_expires_at')
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'plano', 'creditos_base', 'creditos_bonus', 'data_inicio', 'data_expiracao', 'is_active', 'stripe_session_id')
+    list_filter = ('plano', 'is_active')
+    search_fields = ('user__username', 'stripe_session_id')
+    readonly_fields = ('stripe_session_id',)
     
 @admin.register(AiRequestLog)
 class AiRequestLogAdmin(admin.ModelAdmin):

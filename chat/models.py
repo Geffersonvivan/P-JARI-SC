@@ -277,16 +277,45 @@ class AiRequestLog(models.Model):
         nome_usuario = self.user.username if self.user else "Anon"
         return f"{self.provider} - Fase {self.fase} - User: {nome_usuario}"
         
+class Subscription(models.Model):
+    PLANO_CHOICES = [
+        ('basic', 'Básico'),
+        ('pro', 'Profissional'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    plano = models.CharField(max_length=20, choices=PLANO_CHOICES)
+    creditos_base = models.IntegerField()
+    creditos_bonus = models.IntegerField(default=0)
+    data_inicio = models.DateTimeField()
+    data_expiracao = models.DateTimeField()
+    stripe_session_id = models.CharField(max_length=255, blank=True, null=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    @property
+    def creditos_total(self):
+        return self.creditos_base + self.creditos_bonus
+
+    class Meta:
+        ordering = ['-data_inicio']
+        verbose_name = "Assinatura"
+        verbose_name_plural = "Assinaturas"
+
+    def __str__(self):
+        return f"{self.user.username} — {self.get_plano_display()} ({self.data_inicio.strftime('%d/%m/%Y')} → {self.data_expiracao.strftime('%d/%m/%Y')})"
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     is_pro = models.BooleanField(default=False)
     credits = models.IntegerField(default=5)
     subscription_status = models.CharField(max_length=50, default='inactive')
+    subscription_start_at = models.DateTimeField(null=True, blank=True)
+    subscription_expires_at = models.DateTimeField(null=True, blank=True)
     viu_boas_vindas = models.BooleanField(default=False)
     has_seen_tour = models.BooleanField(default=False)
     can_view_global_stats = models.BooleanField(default=False, verbose_name="Ver Painel Global")
     ultimo_acesso_forum = models.DateTimeField(null=True, blank=True)
-    
+
     def __str__(self):
         return f"Profile: {self.user.username} - PRO: {self.is_pro}"
 

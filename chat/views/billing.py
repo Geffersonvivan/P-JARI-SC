@@ -1,3 +1,4 @@
+import datetime
 import logging
 from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
@@ -5,9 +6,10 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.utils import timezone
 import stripe
 from django_ratelimit.decorators import ratelimit
-from ..models import Parecer
+from ..models import Parecer, Subscription
 from .home import PLANS
 
 logger = logging.getLogger(__name__)
@@ -82,27 +84,60 @@ def stripe_webhook(request):
                     trans_amount_cents = session.get('amount_total', 0)
                     trans_amount = trans_amount_cents / 100.0
 
-                    plan = next((p for p in PLANS.values() if p['price'] == trans_amount), None)
+                    plan_key, plan = next(
+                        ((k, v) for k, v in PLANS.items() if v['price'] == trans_amount),
+                        (None, None)
+                    )
 
                     if user_id and plan:
                         from django.db import transaction
                         with transaction.atomic():
                             user = User.objects.select_for_update().get(id=user_id)
+                            payment_id = session.get('payment_intent') or session.get('id')
 
-                            update_fields = ['credits']
-                            user.profile.credits += plan['credits']
-                            if plan['is_pro']:
+                            if plan['is_subscription']:
+                                # Plano com assinatura mensal: substitui saldo (não acumula)
+                                agora = timezone.now()
+                                expiracao = agora + datetime.timedelta(days=30)
+
+                                # Desativa assinaturas anteriores
+                                user.subscriptions.filter(is_active=True).update(is_active=False)
+
+                                # Cria nova assinatura
+                                Subscription.objects.create(
+                                    user=user,
+                                    plano=plan_key,
+                                    creditos_base=plan['credits_base'],
+                                    creditos_bonus=plan['credits_bonus'],
+                                    data_inicio=agora,
+                                    data_expiracao=expiracao,
+                                    stripe_session_id=payment_id,
+                                    is_active=True,
+                                )
+
+                                # Atualiza UserProfile com o novo ciclo (reset, não soma)
+                                user.profile.credits = plan['credits']
                                 user.profile.is_pro = True
-                                user.profile.subscription_status = "active"
-                                update_fields += ['is_pro', 'subscription_status']
+                                user.profile.subscription_status = 'active'
+                                user.profile.subscription_start_at = agora
+                                user.profile.subscription_expires_at = expiracao
+                                user.profile.save(update_fields=[
+                                    'credits', 'is_pro', 'subscription_status',
+                                    'subscription_start_at', 'subscription_expires_at',
+                                ])
+                            else:
+                                # Crédito extra avulso: apenas adiciona ao saldo atual
+                                user.profile.credits += plan['credits']
+                                user.profile.save(update_fields=['credits'])
 
-                            user.profile.save(update_fields=update_fields)
-                            logger.info("Usuário %s - Pagamento processado Stripe: %s", user.username, trans_amount)
+                            logger.info(
+                                "Usuário %s - Pagamento processado Stripe: R$%.2f (plano=%s)",
+                                user.username, trans_amount, plan_key
+                            )
 
                         # Disparar Email de notificação
                         try:
                             from ..tasks import send_payment_notification_task
-                            payment_id = session.get('payment_intent') or session.get('id')
                             nome_cliente = user.get_full_name() or user.username
                             email_cliente = user.email or 'N/A'
                             send_payment_notification_task.delay(nome_cliente, email_cliente, trans_amount, payment_id)
