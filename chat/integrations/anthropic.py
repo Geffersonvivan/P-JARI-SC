@@ -136,39 +136,64 @@ class AnthropicClient:
         _vrtx  = _trunc(vertex_result or '',                                      'vertex',          _LIMITES['vertex'])
         _pplx  = _trunc(perplexity_result or '',                                  'perplexity',      _LIMITES['perplexity'])
 
-        # M2-FIX: Detecta divergências entre flags do julgador e resultados automáticos.
-        # Quando o julgador inverteu um resultado, o admissibilidade_texto pode conter o resultado
-        # automático antigo — avisamos explicitamente o LLM para ignorá-lo.
-        _divs = []
-        if parecer_obj.julgador_prescricao_punitiva is not None and parecer_obj.julgador_prescricao_punitiva != parecer_obj.has_prescricao_punitiva:
-            _divs.append(f"  • Prescrição Punitiva: automático={'SIM' if parecer_obj.has_prescricao_punitiva else 'NÃO'} → julgador={'SIM' if parecer_obj.julgador_prescricao_punitiva else 'NÃO'}")
-        if parecer_obj.julgador_prescricao_intercorrente is not None and parecer_obj.julgador_prescricao_intercorrente != parecer_obj.has_prescricao_intercorrente:
-            _divs.append(f"  • Prescrição Intercorrente: automático={'SIM' if parecer_obj.has_prescricao_intercorrente else 'NÃO'} → julgador={'SIM' if parecer_obj.julgador_prescricao_intercorrente else 'NÃO'}")
-        if parecer_obj.julgador_decadencia is not None and parecer_obj.julgador_decadencia != parecer_obj.has_decadencia:
-            _divs.append(f"  • Decadência: automático={'SIM' if parecer_obj.has_decadencia else 'NÃO/NÃO SE APLICA'} → julgador={'SIM' if parecer_obj.julgador_decadencia else 'NÃO'}")
-        if parecer_obj.julgador_tempestivo is not None and parecer_obj.julgador_tempestivo != parecer_obj.is_tempestivo:
-            _divs.append(f"  • Tempestividade: automático={'TEMPESTIVO' if parecer_obj.is_tempestivo else 'INTEMPESTIVO'} → julgador={'TEMPESTIVO' if parecer_obj.julgador_tempestivo else 'INTEMPESTIVO'}")
-        _aviso_diverg = ""
-        if _divs:
-            _aviso_diverg = (
-                "⚠️ DIVERGÊNCIA JULGADOR × AUTOMÁTICO — REGRAS OBRIGATÓRIAS:\n"
-                "O julgador INVERTEU o resultado automático nos itens abaixo. "
-                "As FLAGS já refletem a decisão final do julgador.\n"
-                + "\n".join(_divs) + "\n\n"
-                "PROIBIÇÕES ABSOLUTAS para os itens com divergência:\n"
-                "• PROIBIDO escrever frases como 'deveria ser X', 'o cálculo indica Y', 'tecnicamente Z', 'o prazo calculado indica'.\n"
-                "• PROIBIDO mencionar que houve contradição, inversão ou divergência com qualquer cálculo automático.\n"
-                "• PROIBIDO expor flags, JariMath, motor ou qualquer mecanismo interno.\n"
-                "OBRIGATÓRIO: escreva apenas a conclusão conforme a decisão do julgador e fundamente com a norma aplicável. "
-                "O parecer é um documento jurídico — registre apenas o resultado e a base legal, sem expor o processo interno.\n\n"
+        # Detecta quais flags o MJ inverteu individualmente
+        _temp_invertido  = (parecer_obj.julgador_tempestivo               is not None and parecer_obj.julgador_tempestivo               != parecer_obj.is_tempestivo)
+        _punit_invertido = (parecer_obj.julgador_prescricao_punitiva      is not None and parecer_obj.julgador_prescricao_punitiva      != parecer_obj.has_prescricao_punitiva)
+        _inter_invertido = (parecer_obj.julgador_prescricao_intercorrente is not None and parecer_obj.julgador_prescricao_intercorrente != parecer_obj.has_prescricao_intercorrente)
+        _decad_invertido = (parecer_obj.julgador_decadencia               is not None and parecer_obj.julgador_decadencia               != parecer_obj.has_decadencia)
+        _qualquer_invertido = _temp_invertido or _punit_invertido or _inter_invertido or _decad_invertido
+
+        # Constrói instrução cirúrgica por seção — só para as seções efetivamente invertidas
+        _section_rules = []
+        if _temp_invertido:
+            _decisao_temp = "TEMPESTIVO" if parecer_obj.julgador_tempestivo else "INTEMPESTIVO"
+            _section_rules.append(
+                f"• Seção ADMISSIBILIDADE: o Membro Julgador decidiu que o recurso é {_decisao_temp}. "
+                f"Redija nesta seção APENAS a conclusão ({_decisao_temp}) e a base normativa aplicável. "
+                f"PROIBIDO mencionar prazo calculado, data divergente ou qualquer resultado diferente."
+            )
+        if _punit_invertido:
+            _decisao_punit = "CONFIGURADA" if parecer_obj.julgador_prescricao_punitiva else "NÃO configurada"
+            _section_rules.append(
+                f"• Seção 3.1 Prescrição Punitiva: o Membro Julgador decidiu que a prescrição punitiva está {_decisao_punit}. "
+                f"Redija nesta seção APENAS a conclusão ({_decisao_punit}) e a base normativa aplicável. "
+                f"PROIBIDO mencionar datas calculadas, prazo divergente ou qualquer resultado diferente."
+            )
+        if _inter_invertido:
+            _decisao_inter = "CONFIGURADA" if parecer_obj.julgador_prescricao_intercorrente else "NÃO configurada"
+            _section_rules.append(
+                f"• Seção 3.2 Prescrição Intercorrente: o Membro Julgador decidiu que a prescrição intercorrente está {_decisao_inter}. "
+                f"Redija nesta seção APENAS a conclusão ({_decisao_inter}) e a base normativa aplicável. "
+                f"PROIBIDO mencionar datas calculadas, prazo divergente ou qualquer resultado diferente."
+            )
+        if _decad_invertido:
+            _decisao_decad = "CONFIGURADA" if parecer_obj.julgador_decadencia else "NÃO configurada"
+            _section_rules.append(
+                f"• Seção 3.3 Decadência: o Membro Julgador decidiu que a decadência está {_decisao_decad}. "
+                f"Redija nesta seção APENAS a conclusão ({_decisao_decad}) e a base normativa aplicável. "
+                f"PROIBIDO mencionar regime temporal calculado, datas divergentes ou qualquer resultado diferente."
             )
 
-        if _divs:
+        _aviso_diverg = ""
+        if _qualquer_invertido:
+            _aviso_diverg = (
+                "⚠️ DECISÃO DO MEMBRO JULGADOR — RESTRIÇÃO CIRÚRGICA POR SEÇÃO:\n"
+                "Nas seções indicadas abaixo, o Membro Julgador exerceu poder discricionário. "
+                "A restrição se aplica EXCLUSIVAMENTE a essas seções. O restante do parecer segue normalmente.\n\n"
+                + "\n".join(_section_rules) + "\n\n"
+                "PROIBIÇÕES ABSOLUTAS para as seções listadas acima:\n"
+                "• PROIBIDO citar que houve cálculo automático diferente.\n"
+                "• PROIBIDO usar frases como 'deveria ser', 'o cálculo indica', 'tecnicamente', 'o prazo calculado'.\n"
+                "• PROIBIDO mencionar contradição, inversão ou divergência com qualquer resultado anterior.\n"
+                "• PROIBIDO expor JariMath, flags, motor, fases ou qualquer mecanismo interno.\n\n"
+            )
+
+        # Aviso no bloco de admissibilidade apenas se a tempestividade foi invertida
+        if _temp_invertido:
             _adm_prompt = (
-                "🚫 CONCLUSÃO DO TEXTO ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
-                "Use APENAS os dados factuais (datas, prazos, números) para fundamentação. "
-                "Ignore qualquer conclusão ou resultado contido no texto. "
-                f"Resultado obrigatório: {_resultado_obrigatorio}.\n\n"
+                "🚫 CONCLUSÃO DE TEMPESTIVIDADE ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
+                "Use APENAS os dados factuais (datas, identificação do processo) para contextualização. "
+                "A conclusão sobre tempestividade obrigatória está na seção ADMISSIBILIDADE acima.\n\n"
                 f"{_adm}"
             )
         else:
