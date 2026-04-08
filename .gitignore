@@ -13,6 +13,7 @@ staticfiles/
 *$py.class
 env/
 venv/
+.venv/
 .env
 .DS_Store
 

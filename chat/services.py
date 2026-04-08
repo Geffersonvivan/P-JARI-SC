@@ -114,19 +114,6 @@ class ChatService:
             count = Parecer.objects.filter(user__isnull=True, session_key=request.session.session_key).count()
             if count >= 2:
                 return JsonResponse({'requires_login': True})
-        else:
-            if not request.user.is_superuser:
-                profile = request.user.profile
-                # Verifica expiração da assinatura
-                if profile.subscription_expires_at and profile.subscription_expires_at < timezone.now():
-                    return JsonResponse({'requires_plan': True})
-                # Conta pareceres apenas dentro do ciclo atual
-                start = profile.subscription_start_at
-                qs = Parecer.objects.filter(user=request.user)
-                if start:
-                    qs = qs.filter(created_at__gte=start)
-                if qs.count() >= profile.credits:
-                    return JsonResponse({'requires_plan': True})
 
         if request.user.is_authenticated:
             nome_usuario = f"{request.user.first_name} {request.user.last_name}".strip().upper()
