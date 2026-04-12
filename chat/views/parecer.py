@@ -175,7 +175,7 @@ def salvar_parecer_view(request, id):
             status_resultado=status_result
         )
 
-    return redirect('wizard_parecer', id=id)
+    return redirect('home')
 
 
 @ratelimit(key='ip', rate='20/h', method='POST', block=True)
