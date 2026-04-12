@@ -92,6 +92,6 @@ def wizard_parecer_view(request, id):
         'nome_usuario': nome_usuario,
         'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', ''),
         'pjari_version': getattr(settings, 'PJARI_VERSION', '1.2'),
-        'online_users_count': Pasta.objects.values('user').distinct().count(),
+        'online_users_count': Parecer.objects.filter(user__isnull=False).values('user').distinct().count(),
     }
     return render(request, 'wizard_parecer.html', context)
