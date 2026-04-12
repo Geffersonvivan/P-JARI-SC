@@ -92,8 +92,12 @@ def proxy_image_view(request):
         return HttpResponse(status=502)
 
 
-@login_required
 def aceitar_termos_view(request):
+    # Não usa @login_required para evitar loop: LOGIN_URL='/app/' + RequireTermsMiddleware = redirect infinito.
+    # Usuários não autenticados são mandados para a landing page (/).
+    if not request.user.is_authenticated:
+        return redirect('/')
+
     from legal.models import DocumentoLegal, AceiteDocumentoLegal
 
     termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).first()

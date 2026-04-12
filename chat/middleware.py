@@ -14,7 +14,12 @@ class RequireTermsAcceptanceMiddleware:
                 reverse('termos'),
                 '/pjari-admin/',
                 '/static/',
-                '/media/'
+                '/media/',
+                '/accounts/',   # allauth login/signup (evita loop com @login_required)
+                '/sign-in/',    # Clerk hosted UI
+                '/sign-up/',    # Clerk hosted UI
+                '/auth-sync/',  # interceptor OAuth
+                '/health/',     # Railway healthcheck
             ]
 
             is_allowed = any(request.path.startswith(url) for url in allowed_urls)
