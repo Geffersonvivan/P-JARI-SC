@@ -47,6 +47,10 @@ class ClerkAuthenticationMiddleware:
                         jwks = None
                 
                 if not jwks:
+                    # JWKS indisponível: continua como anônimo sem travar o request
+                    if not request.path.startswith('/pjari-admin/'):
+                        from django.contrib.auth.models import AnonymousUser
+                        request.user = AnonymousUser()
                     response = self.get_response(request)
                     return response
 
@@ -146,14 +150,9 @@ class ClerkAuthenticationMiddleware:
 
             except Exception as e:
                 logger.error("Erro ao validar token do Clerk: %s", e)
-                
-                # Em vez de travar o app com erro 401, redireciona o usuário para a Home.
-                # A tela Home possui o ClerkJS injetado, que cuidará de renovar o cookie silenciosamente
-                if request.path.startswith('/app/'):
-                    from django.shortcuts import redirect
-                    return redirect('/')
-                
-                # Falha: se não for admin, força usuário anônimo
+                # Falha na validação: força usuário anônimo e deixa o fluxo continuar.
+                # O Clerk JS da página destino cuidará de renovar o cookie silenciosamente.
+                # NÃO redirecionar aqui — causaria logout aparente para o usuário.
                 if not request.path.startswith('/pjari-admin/'):
                     from django.contrib.auth.models import AnonymousUser
                     request.user = AnonymousUser()
