@@ -135,12 +135,13 @@ MIDDLEWARE = _SILK_MIDDLEWARE + [
     
     # Allauth middleware
     'allauth.account.middleware.AccountMiddleware',
-    
+
+    # Clerk Auth Middleware — deve rodar ANTES do Terms para que request.user
+    # já esteja definido quando o RequireTermsAcceptanceMiddleware verificar.
+    'chat.middleware_clerk.ClerkAuthenticationMiddleware',
+
     # Termos de Uso Middleware
     'chat.middleware.RequireTermsAcceptanceMiddleware',
-
-    # Clerk Auth Middleware
-    'chat.middleware_clerk.ClerkAuthenticationMiddleware',
 ]
 
 # Permitir Iframes (SplitScreen de PDFs nativo do painel)
