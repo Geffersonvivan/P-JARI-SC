@@ -33,7 +33,7 @@
     </style>
 </head>
 
-<body class="p-4 md:p-8">
+<body class="p-4 md:p-8" style="visibility:hidden">
     <div class="max-w-[1500px] w-full mx-auto flex flex-col lg:flex-row items-stretch flex-nowrap gap-6">
 
         <!-- Main Editor Area (70%) -->
@@ -974,6 +974,10 @@
         const btn = document.getElementById('btn-voltar-editor');
         if (btn) btn.style.display = 'none';
     }
+    // Elimina FOUC: revela o body após DOM pronto
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.style.visibility = 'visible';
+    });
     </script>
 </body>
 
