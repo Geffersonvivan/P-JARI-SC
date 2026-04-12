@@ -50,11 +50,11 @@
                         {% endif %}
                     </span>
                 </h1>
-                <button type="button" onclick="window.history.back()"
+                <button type="button" id="btn-voltar-editor" onclick="window.history.back()"
                     class="text-sm px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">Voltar</button>
             </div>
 
-            <form method="POST" action="{% url 'salvar_parecer' parecer.id %}" class="flex flex-col flex-1 min-h-0">
+            <form id="form-salvar-parecer" method="POST" action="{% url 'salvar_parecer' parecer.id %}" class="flex flex-col flex-1 min-h-0">
                 {% csrf_token %}
 
                 <textarea id="editor" name="conteudo_final">
@@ -966,6 +966,14 @@
                 appendAgentMessageEditor('**Erro de Rede:** Falha ao comunicar com o servidor.', 'agent');
             }
         }
+    </script>
+
+    <script>
+    // Esconde "Voltar" quando acessado via wizard
+    if (new URLSearchParams(window.location.search).get('from') === 'wizard') {
+        const btn = document.getElementById('btn-voltar-editor');
+        if (btn) btn.style.display = 'none';
+    }
     </script>
 </body>
 
