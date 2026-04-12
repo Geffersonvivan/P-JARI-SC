@@ -64,8 +64,11 @@ def wizard_parecer_view(request, id):
     parecer_final_editado = parecer.pareceres_finais.order_by('-data_criacao').first()
     parecer_final_html = parecer_final_editado.conteudo_html if parecer_final_editado else ''
 
+    total_finalizados = Parecer.objects.filter(user=request.user, status_fase=8).count()
+
     context = {
         'parecer': parecer,
+        'total_finalizados': total_finalizados,
         'csrf_token_value': get_token(request),
         'user_credits': user_credits,
         'user_is_pro': user_is_pro,
