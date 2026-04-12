@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 from django.core.files.storage import default_storage
+from django.conf import settings
 from ..models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
 from .home import _get_filter_kwargs, PLANS
 
@@ -54,33 +55,46 @@ def editar_parecer_view(request, id):
             }))
 
             import re
+            import base64
+            from mimetypes import guess_type
 
-            # Use explicit image attributes and wrap it
-            from django.core.files.storage import default_storage
-            from django.contrib.staticfiles.storage import staticfiles_storage
+            def _img_to_b64(path):
+                mime = guess_type(path)[0] or 'image/png'
+                with open(path, 'rb') as f:
+                    return f'data:{mime};base64,{base64.b64encode(f.read()).decode()}'
+
+            banner_src = None
 
             if config.cabecalho_imagem and default_storage.exists(config.cabecalho_imagem.name):
-                # Embute a imagem como base64 para garantir renderização no PDF via html2canvas
-                # (evita falha de CORS quando a imagem está em storage externo como S3/Spaces)
                 try:
-                    import base64
-                    from mimetypes import guess_type
                     with default_storage.open(config.cabecalho_imagem.name, 'rb') as _img_file:
                         _img_bytes = _img_file.read()
                     _mime = guess_type(config.cabecalho_imagem.name)[0] or 'image/jpeg'
-                    _b64 = base64.b64encode(_img_bytes).decode('utf-8')
-                    banner_src = f'data:{_mime};base64,{_b64}'
+                    banner_src = f'data:{_mime};base64,{base64.b64encode(_img_bytes).decode()}'
                 except Exception:
                     banner_src = request.build_absolute_uri(config.cabecalho_imagem.url)
+
+            if not banner_src:
+                # Fallback: usa o cabeçalho padrão em staticfiles
+                _static_cabecalho = os.path.join(
+                    settings.BASE_DIR, 'staticfiles', 'Cabecalho', 'Cabeçalho topo.png'
+                )
+                if os.path.exists(_static_cabecalho):
+                    try:
+                        banner_src = _img_to_b64(_static_cabecalho)
+                    except Exception:
+                        pass
+
+            if banner_src:
                 cabecalho_html = f"""
                 <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 10px;">
                     <img src='{banner_src}' style='width: 100%; max-width: 800px; height: auto;' alt="Cabeçalho">
                 </div>
                 """
             else:
-                cabecalho_html = f"""
-                <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 20px; height: 80px; border: 1px dashed #ccc;">
-                    <span style="color: #999; font-family: Arial, sans-serif; font-size: 12px;">[ Banner do Cabeçalho P-JARI não configurado no Admin ]</span>
+                cabecalho_html = """
+                <div style="text-align: center; width: 100%; margin-bottom: 40px; margin-top: 10px; height: 153px; border: 1px dashed #ccc; display:flex; align-items:center; justify-content:center;">
+                    <span style="color: #999; font-family: Arial, sans-serif; font-size: 12px;">[ Banner do Cabeçalho P-JARI não configurado ]</span>
                 </div>
                 """
 
@@ -161,7 +175,7 @@ def salvar_parecer_view(request, id):
             status_resultado=status_result
         )
 
-    return redirect('home')
+    return redirect('wizard_parecer', id=id)
 
 
 @ratelimit(key='ip', rate='20/h', method='POST', block=True)
@@ -181,9 +195,11 @@ def create_parecer_view(request):
         if nome_processo:
             if request.user.is_authenticated:
                 pasta = Pasta.objects.create(user=request.user, nome_pasta=nome_processo)
+                parecer = Parecer.objects.create(user=request.user, pasta=pasta, nome_processo=nome_processo, is_saved=True)
             else:
                 pasta = Pasta.objects.create(session_key=request.session.session_key, nome_pasta=nome_processo)
-            return JsonResponse({'id': pasta.id, 'nome_processo': pasta.nome_pasta})
+                parecer = Parecer.objects.create(session_key=request.session.session_key, pasta=pasta, nome_processo=nome_processo, is_saved=True)
+            return JsonResponse({'id': pasta.id, 'nome_processo': pasta.nome_pasta, 'parecer_id': parecer.id})
         return JsonResponse({'error': 'Nome do processo inválido'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -196,8 +212,6 @@ def delete_parecer_view(request, id):
     filter_kwargs = _get_filter_kwargs(request)
 
     pasta = get_object_or_404(Pasta, id=id, **filter_kwargs)
-    if pasta.nome_pasta == "Outros":
-        return JsonResponse({'error': 'A pasta Outros não pode ser deletada.'}, status=403)
     pasta.delete()
     return JsonResponse({'success': True})
 

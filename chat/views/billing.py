@@ -161,7 +161,20 @@ def planos_view(request):
     else:
         total_julgados = Parecer.objects.filter(user__isnull=True, session_key=request.session.session_key).count()
 
+    user_credits = None
+    user_is_pro = False
+    if request.user.is_authenticated:
+        try:
+            user_credits = request.user.profile.credits
+            user_is_pro = request.user.profile.is_pro
+        except Exception:
+            pass
+
     context = {
-        'total_julgados': total_julgados
+        'total_julgados': total_julgados,
+        'success': request.GET.get('success') == '1',
+        'failure': request.GET.get('failure') == '1',
+        'user_credits': user_credits,
+        'user_is_pro': user_is_pro,
     }
     return render(request, 'planos.html', context)

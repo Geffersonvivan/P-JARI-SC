@@ -312,10 +312,17 @@ def rodar_testes_engine_task():
 def send_payment_notification_task(nome_cliente, email_cliente, trans_amount, payment_id):
     from django.core.mail import send_mail
     from django.conf import settings
+    admin_email = getattr(settings, 'ADMIN_EMAIL', '') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br')
     send_mail(
-        subject=f'✅ Nova Venda Confirmada: {nome_cliente}',
-        message=f'Sucesso! Um pagamento de R$ {trans_amount} foi aprovado no Mercado Pago e os créditos foram liberados.\n\nDetalhes do Cliente:\nNome: {nome_cliente}\nEmail: {email_cliente}\nID do Pagamento: {payment_id}',
+        subject=f'[P-JARI] Nova Venda Confirmada — {nome_cliente}',
+        message=(
+            f"Pagamento aprovado via Stripe e créditos liberados com sucesso.\n\n"
+            f"Cliente : {nome_cliente}\n"
+            f"E-mail  : {email_cliente}\n"
+            f"Valor   : R$ {trans_amount:.2f}\n"
+            f"ID      : {payment_id}\n"
+        ),
         from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'validacao@pjarisc.com.br'),
-        recipient_list=[getattr(settings, 'ADMIN_EMAIL', settings.DEFAULT_FROM_EMAIL)],
-        fail_silently=True,
+        recipient_list=[admin_email],
+        fail_silently=False,
     )

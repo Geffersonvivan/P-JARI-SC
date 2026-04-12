@@ -73,13 +73,21 @@ def process(engine, message: str) -> str:
     msg = message.lower().strip()
 
     if msg == 'ok':
-        from chat.engine import FASE_ADMISSIBILIDADE_GERADA
+        from chat.engine import FASE_ADMISSIBILIDADE_GERADA, FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
         # Invalida pré-cálculo F3 se campos foram editados (admissibilidade_texto pode estar desatualizado)
         # A flag _f2_campos_editados é setada pelo processo de edição inline
         if getattr(parecer, '_f2_campos_editados', False) and parecer.admissibilidade_texto:
             parecer.admissibilidade_texto = None
             parecer.save(update_fields=['admissibilidade_texto'])
             logger.info("[FASE2] campos editados — pré-cálculo F3 invalidado. parecer=%s", parecer.id)
+
+        # Fast-path: FASE3-PRE já calculou admissibilidade — avança direto para fase 31
+        if parecer.admissibilidade_texto:
+            parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
+            parecer.save(update_fields=['status_fase'])
+            logger.info("[FASE2→31] pré-cálculo F3 reutilizado. parecer=%s", parecer.id)
+            return engine.get_current_prompt()
+
         parecer.status_fase = FASE_ADMISSIBILIDADE_GERADA
         parecer.save(update_fields=['status_fase'])
         return engine.run_phase_3()

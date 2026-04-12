@@ -87,7 +87,7 @@
                                     {% if post.imagem %}
                                     <div class="mb-4 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 max-h-96 flex items-center justify-center">
                                         <a href="{{ post.imagem.url }}" target="_blank" class="block w-full h-full cursor-zoom-in">
-                                            <img src="{{ post.imagem.url }}" alt="Imagem da publicação" class="max-w-full max-h-96 object-contain mx-auto" loading="lazy">
+                                            <img src="{{ post.imagem.url }}" alt="Imagem da publicação" class="max-w-full max-h-96 object-contain mx-auto" loading="lazy" onerror="this.closest('div.mb-4').style.display='none'">
                                         </a>
                                     </div>
                                     {% endif %}

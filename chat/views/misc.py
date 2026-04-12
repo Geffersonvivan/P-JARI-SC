@@ -1,12 +1,19 @@
 import json
 import requests
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings
 from ..models import UserProfile, Pasta
 from .home import _get_filter_kwargs
+
+
+@require_POST
+def logout_view(request):
+    auth_logout(request)
+    return redirect('/')
 
 
 @login_required
@@ -156,6 +163,36 @@ def visualizar_termos_view(request):
         'somente_visualizacao': True # Flag para o template esconder o form de aceite
     }
     return render(request, 'termos.html', context)
+
+
+@login_required
+@require_POST
+def criar_pasta_view(request):
+    try:
+        data = json.loads(request.body)
+        nome = (data.get('nome') or '').strip()
+        if not nome:
+            return JsonResponse({'error': 'Nome de pasta inválido.'}, status=400)
+        pasta = Pasta.objects.create(user=request.user, nome_pasta=nome)
+        return JsonResponse({'success': True, 'id': pasta.id, 'nome': pasta.nome_pasta})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def renomear_pasta_view(request, id):
+    pasta = get_object_or_404(Pasta, id=id, user=request.user)
+    try:
+        data = json.loads(request.body)
+        nome = (data.get('nome') or '').strip()
+        if not nome:
+            return JsonResponse({'error': 'Nome inválido.'}, status=400)
+        pasta.nome_pasta = nome
+        pasta.save(update_fields=['nome_pasta'])
+        return JsonResponse({'success': True, 'id': pasta.id, 'nome': pasta.nome_pasta})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 
 def auth_sync_view(request):

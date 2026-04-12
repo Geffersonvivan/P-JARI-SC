@@ -115,7 +115,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
 ]
 
-SILK_ENABLED = os.environ.get('SILK_ENABLED', 'False') == 'True' or DEBUG
+# Silk só ativo quando explicitamente ligado via env — nunca auto-ativo em DEBUG
+SILK_ENABLED = os.environ.get('SILK_ENABLED', 'False') == 'True'
 
 if SILK_ENABLED:
     INSTALLED_APPS += ['silk']
@@ -210,21 +211,43 @@ CLERK_WEBHOOK_SECRET = os.getenv("CLERK_WEBHOOK_SECRET", "")
 # Optionally set login redirect to home
 LOGIN_REDIRECT_URL = '/app/'
 
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'chat.context_processors.pjari_info',
-            ],
-        },
-    },
+_TEMPLATE_CONTEXT_PROCESSORS = [
+    'django.template.context_processors.request',
+    'django.contrib.auth.context_processors.auth',
+    'django.contrib.messages.context_processors.messages',
+    'chat.context_processors.pjari_info',
 ]
+
+if DEBUG:
+    # Dev: APP_DIRS recarrega templates automaticamente ao editar
+    TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [BASE_DIR / 'templates'],
+            'APP_DIRS': True,
+            'OPTIONS': {
+                'context_processors': _TEMPLATE_CONTEXT_PROCESSORS,
+            },
+        },
+    ]
+else:
+    # Prod: CachedLoader compila templates uma vez e mantém em memória
+    TEMPLATES = [
+        {
+            'BACKEND': 'django.template.backends.django.DjangoTemplates',
+            'DIRS': [BASE_DIR / 'templates'],
+            'APP_DIRS': False,
+            'OPTIONS': {
+                'context_processors': _TEMPLATE_CONTEXT_PROCESSORS,
+                'loaders': [
+                    ('django.template.loaders.cached.Loader', [
+                        'django.template.loaders.filesystem.Loader',
+                        'django.template.loaders.app_directories.Loader',
+                    ]),
+                ],
+            },
+        },
+    ]
 
 PJARI_VERSION = '1.2'
 
@@ -386,8 +409,17 @@ CACHES = {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'SOCKET_CONNECT_TIMEOUT': 2,
             'SOCKET_TIMEOUT': 2,
-            'CONNECTION_POOL_KWARGS': {'max_connections': 50},
+            'SOCKET_KEEPALIVE': True,
+            'RETRY_ON_TIMEOUT': True,
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 100,
+                'socket_keepalive': True,
+                'socket_keepalive_options': {},
+            },
+            'IGNORE_EXCEPTIONS': True,  # Não quebra a request se Redis cair
         },
+        'KEY_PREFIX': 'pjari',
+        'TIMEOUT': 300,
     }
 }
 
@@ -411,6 +443,9 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+_LOG_HANDLERS_DJANGO = ['console'] if DEBUG else ['console', 'file']
+_LOG_LEVEL_DJANGO    = 'WARNING'  if DEBUG else 'INFO'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -419,33 +454,33 @@ LOGGING = {
             'class': 'logging.StreamHandler',
         },
         'file': {
-            'level': 'DEBUG',
+            'level': 'WARNING',
             'class': 'logging.FileHandler',
             'filename': BASE_DIR / 'debug.log',
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': 'WARNING',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
+            'handlers': _LOG_HANDLERS_DJANGO,
+            'level': _LOG_LEVEL_DJANGO,
+            'propagate': False,
         },
         'allauth': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
         },
         'chat': {
-            'handlers': ['console', 'file'],
+            'handlers': _LOG_HANDLERS_DJANGO,
             'level': 'INFO',
             'propagate': False,
         },
         'pjari.perf': {
-            'handlers': ['console', 'file'],
+            'handlers': _LOG_HANDLERS_DJANGO,
             'level': 'INFO',
             'propagate': False,
         },

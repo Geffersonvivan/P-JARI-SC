@@ -116,6 +116,11 @@ class ChatService:
                 return JsonResponse({'requires_login': True})
 
         if request.user.is_authenticated:
+            profile = request.user.profile
+            if not profile.is_pro and profile.credits <= 0:
+                return JsonResponse({'sem_creditos': True, 'redirect': '/planos/'})
+
+        if request.user.is_authenticated:
             nome_usuario = f"{request.user.first_name} {request.user.last_name}".strip().upper()
             if not nome_usuario:
                 nome_usuario = request.user.username.upper()

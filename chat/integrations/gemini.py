@@ -33,7 +33,10 @@ def _trunc(texto: str, label: str, max_chars: int) -> str:
 class GeminiClient:
     def __init__(self):
         self.api_key = os.environ.get('GEMINI_API_KEY')
-        self.client = genai.Client(api_key=self.api_key) if self.api_key else None
+        self.client = (
+            genai.Client(api_key=self.api_key, http_options={'timeout': 90_000})  # 90s em ms
+            if self.api_key else None
+        )
 
     def _call_with_fallback(self, preferred_model, fallback_model, contents, config, fase_label, parecer_obj, start_time):
         """Chama generate_content com fallback automático em caso de 503/429/UNAVAILABLE."""

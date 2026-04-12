@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "Starting migrations..."
-# ATENÇÃO: em deploy com múltiplas réplicas, rodar migrate aqui pode causar race condition.
-# Idealmente, mover para um Release Command separado no Railway (Settings > Deploy > Release Command).
-python manage.py migrate --noinput
+# NOTA: migrate foi movido para o Release Command do Railway
+# (Settings → Deploy → Release Command: python manage.py migrate --noinput)
+# Isso garante que as migrations rodem apenas 1 vez antes de qualquer réplica subir,
+# evitando race condition em deploys com múltiplas réplicas.
 
 echo "Ensuring superuser exists and password is up to date..."
 python manage.py shell -c "

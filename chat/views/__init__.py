@@ -21,4 +21,6 @@ from .teses import (  # noqa: F401
 from .misc import (  # noqa: F401
     dismiss_onboarding_view, reorder_folders_view, proxy_image_view,
     aceitar_termos_view, visualizar_termos_view, auth_sync_view,
+    criar_pasta_view, renomear_pasta_view, logout_view,
 )
+from .wizard import wizard_parecer_view, wizard_avancar_view  # noqa: F401

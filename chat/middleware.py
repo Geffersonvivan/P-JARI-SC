@@ -12,7 +12,7 @@ class RequireTermsAcceptanceMiddleware:
             allowed_urls = [
                 reverse('aceitar_termos'),
                 reverse('termos'),
-                '/admin/',
+                '/pjari-admin/',
                 '/static/',
                 '/media/'
             ]

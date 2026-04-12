@@ -1,0 +1,1827 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P-JARI/SC — {{ parecer.nome_processo }}</title>
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+    <script src="{% static 'js/marked.min.js' %}"></script>
+
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .hidden { display: none !important; }
+
+        /* ── PROGRESS ────────────────────────────── */
+        .progress-seg { background: #e5e7eb; transition: background .3s; }
+        .progress-seg.done    { background: #2563eb; }
+        .progress-seg.current { background: #93c5fd; }
+        .progress-label { font-size: 11px; font-weight: 500; color: #9ca3af; transition: color .3s; }
+        .progress-label.active { color: #2563eb; font-weight: 700; }
+        .progress-label.done   { color: #6b7280; }
+
+        /* ── RADIO CARD ──────────────────────────── */
+        .radio-card {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 16px; border: 2px solid #e5e7eb;
+            border-radius: 12px; cursor: pointer; background: #fff;
+            transition: all .15s; user-select: none;
+        }
+        .radio-card:hover { border-color: #93c5fd; background: #f8faff; }
+        .radio-card.selected { border-color: #2563eb; background: #eff6ff; }
+        .radio-dot {
+            width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%;
+            border: 2px solid #d1d5db; background: #fff; transition: all .15s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .radio-card.selected .radio-dot { border-color: #2563eb; background: #2563eb; box-shadow: inset 0 0 0 3px #fff; }
+        .radio-card-label { font-size: 14px; font-weight: 600; color: #1f2937; line-height: 1.2; }
+        .radio-card.selected .radio-card-label { color: #1d4ed8; }
+        .radio-card-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .radio-card.selected .radio-card-sub { color: #3b82f6; }
+        .radio-card-text { flex: 1; }
+        .radio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+        /* ── ADM SECTION (gerado via JS) ─────────── */
+        .adm-section { border-radius: 12px; padding: 20px; margin-bottom: 14px; border: 1px solid #e5e7eb; border-left-width: 4px; }
+        .adm-section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb; }
+        .adm-section-title { font-size: 14px; font-weight: 700; }
+        .adm-icon-circle { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .adm-result-pill { margin-left: auto; display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .adm-fundamentacao { font-size: 13px; color: #374151; line-height: 1.65; margin-bottom: 14px; padding: 11px 14px; background: rgba(255,255,255,.7); border-radius: 8px; border: 1px solid rgba(0,0,0,.07); }
+        .adm-fundamentacao p { margin-bottom: 6px; } .adm-fundamentacao p:last-child { margin-bottom: 0; }
+        .adm-fundamentacao strong { font-weight: 600; color: #111827; }
+        .adm-auto-result { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; padding: 6px 10px; background: rgba(255,255,255,.8); border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(0,0,0,.06); }
+        /* ── ADM SUMMARY GRID ────────────────────── */
+        .adm-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+        .adm-summary-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: #374151; background: #f9fafb; border-radius: 8px; padding: 8px 12px; border: 1px solid #e5e7eb; }
+        .adm-summary-label { font-weight: 500; }
+        .adm-sbadge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .adm-sbadge-bad { background: #fee2e2; color: #dc2626; }
+        .adm-sbadge-ok  { background: #dcfce7; color: #16a34a; }
+        .adm-sbadge-nsa { background: #f3f4f6; color: #9ca3af; }
+
+        /* ── FOLDER ROW ─────────────────────────── */
+        .folder-card {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+            background: #fff; cursor: pointer; text-align: left; transition: all .15s;
+            width: 100%;
+        }
+        .folder-card:hover { border-color: #93c5fd; background: #f0f7ff; }
+        .folder-card.selected { border-color: #2563eb; background: #eff6ff; }
+        .folder-card .folder-arrow { margin-left: auto; color: #d1d5db; transition: color .15s; }
+        .folder-card:hover .folder-arrow,
+        .folder-card.selected .folder-arrow { color: #2563eb; }
+
+        /* ── DROP ZONE ───────────────────────────── */
+        .drop-zone {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 8px; border: 2px dashed #e5e7eb; border-radius: 12px;
+            padding: 40px 24px; cursor: pointer; background: #f8fafc; transition: all .15s;
+        }
+        .drop-zone:hover, .drop-zone.drag-over { border-color: #2563eb; background: #eff6ff; }
+
+        /* ── FILE LIST (gerado via JS) ───────────── */
+        .file-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+            font-size: 13px; color: #1d4ed8; font-weight: 500;
+        }
+        .file-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item-remove { background: none; border: none; cursor: pointer; color: #93c5fd; font-size: 16px; display: flex; }
+        .file-item-remove:hover { color: #dc2626; }
+
+        /* ── SCORE BADGE ─────────────────────────── */
+        .score-badge { border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        /* ── SHIMMER ─────────────────────────────── */
+        @keyframes shimmer { 0%{transform:translateX(-150%)} 100%{transform:translateX(300%)} }
+        .shimmer-track {
+            width: 100%; max-width: 360px; height: 4px;
+            background: #e5e7eb; border-radius: 999px; overflow: hidden; position: relative;
+        }
+        .shimmer-track::after {
+            content: ''; position: absolute; top: 0; bottom: 0; width: 50%;
+            background: linear-gradient(90deg, transparent, #2563eb, transparent);
+            animation: shimmer 1.4s linear infinite;
+        }
+
+        /* ── SPIN ────────────────────────────────── */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-spinner {
+            width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4);
+            border-top-color: #fff; border-radius: 50%;
+            animation: spin .7s linear infinite; flex-shrink: 0; display: inline-block;
+        }
+
+        /* ── PROSE ───────────────────────────────── */
+        .prose h1,.prose h2,.prose h3 { font-weight: 700; margin: 1rem 0 .5rem; color: #111827; }
+        .prose h1 { font-size: 1.1rem; }
+        .prose h2 { font-size: 1rem; }
+        .prose p { margin: .5rem 0; color: #374151; line-height: 1.75; font-size: 14px; }
+        .prose ul,.prose ol { padding-left: 1.5rem; margin: .5rem 0; }
+        .prose li { margin: .25rem 0; color: #374151; font-size: 14px; }
+        .prose strong { font-weight: 700; color: #111827; }
+        .prose hr { border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
+        .prose table { width: 100%; border-collapse: collapse; font-size: 13px; margin: .75rem 0; }
+        .prose th { background: #f8fafc; padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600; text-align: left; }
+        .prose td { padding: 7px 12px; border: 1px solid #e5e7eb; }
+        .prose tr:nth-child(even) td { background: #f8fafc; }
+        .prose blockquote { border-left: 3px solid #2563eb; margin: 1rem 0; padding: .5rem 1rem; background: #eff6ff; color: #1d4ed8; border-radius: 0 8px 8px 0; }
+
+        /* ── PDF DOCS VIEWER ────────────────────── */
+        .pdf-tab-bar { display:flex;align-items:center;gap:6px;background:#f1f3f4;padding:6px 12px;flex-shrink:0;border-radius:12px 12px 0 0;border-bottom:1px solid #e0e0e0; }
+        .pdf-tab { padding:5px 14px;font-size:12.5px;font-weight:500;color:#5f6368;background:transparent;border:none;border-radius:20px;cursor:pointer;white-space:nowrap;transition:all .15s;outline:none;display:flex;align-items:center;gap:5px; }
+        .pdf-tab:hover { background:rgba(0,0,0,.06);color:#3c4043; }
+        .pdf-tab.active { background:#fff;color:#1a73e8;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.06); }
+        .f2-label { font-size:10px;font-weight:700;color:#6b7280;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;display:block; }
+        .f2-input { width:100%;padding:8px 12px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;color:#1f2937;font-family:inherit;outline:none;transition:border-color .15s;box-sizing:border-box; }
+        .f2-input:focus { border-color:#2563eb; }
+        .f2-readonly { width:100%;padding:8px 12px;background:#f8fafc;border:1.5px solid #f1f5f9;border-radius:10px;font-size:13px;color:#374151;font-family:inherit;box-sizing:border-box; }
+        .f2-badge-ok   { font-size:10px;font-weight:600;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 8px;border-radius:99px;white-space:nowrap; }
+        .f2-badge-miss { font-size:10px;font-weight:600;color:#d97706;background:#fffbeb;border:1px solid #fde68a;padding:2px 8px;border-radius:99px;white-space:nowrap; }
+
+        /* ── HELP EXPANDABLE ─────────────────────── */
+
+        /* ── TOAST ───────────────────────────────── */
+        .toast-wrap {
+            display: none; position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; padding: 12px 20px; border-radius: 8px;
+            font-size: 14px; font-weight: 500; color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15); max-width: 420px; text-align: center;
+            white-space: nowrap;
+        }
+
+        /* ── RESPONSIVE ──────────────────────────── */
+        @media (max-width: 640px) {
+            .radio-grid { grid-template-columns: 1fr; }
+            .sm-hide { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col">
+
+<!-- ══ TOAST ══════════════════════════════════════════ -->
+<div id="toast" class="toast-wrap"></div>
+
+<!-- ══ NAVBAR ════════════════════════════════════════ -->
+<nav class="bg-white border-b border-gray-100 sticky top-0 z-50">
+    <div class="w-full flex items-center justify-between" style="height:60px;padding-left:50px;padding-right:50px;">
+        <div class="flex items-center gap-4">
+            <a href="/app/" class="flex items-center gap-3" style="text-decoration:none;">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+                     style="background: linear-gradient(135deg, #4ade80, #16a34a);">
+                    <i class="ph ph-scales text-white" style="font-size:18px;"></i>
+                </div>
+                <span class="font-bold text-gray-900 text-base tracking-tight">P-<span style="color:#16a34a;">JARI</span></span>
+            </a>
+            <div style="display:flex;align-items:center;gap:10px;padding-left:4px;">
+                <span style="font-size:11px;color:#d1d5db;font-weight:500;">v{{ pjari_version }}</span>
+                <span style="color:#e5e7eb;">·</span>
+                <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:#9ca3af;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:#4ade80;display:inline-block;"></span>
+                    {{ online_users_count }} online
+                </span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 text-sm relative">
+            <!-- Botão Pastas — volta para home onde o drawer está disponível -->
+            <a href="/app/" title="Minhas Pastas"
+                class="flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:text-orange-500 hover:bg-orange-50 transition-colors"
+                style="text-decoration:none;">
+                <i class="ph ph-folders text-xl"></i>
+            </a>
+            <div class="relative">
+                <button id="user-menu-btn"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors focus:outline-none"
+                    onclick="toggleUserMenu(event)">
+                    <div id="user-avatar" class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {{ nome_usuario|first|upper }}
+                    </div>
+                    <span class="text-gray-700 font-medium hidden sm:inline">{{ nome_usuario }}</span>
+                    <i class="ph ph-caret-down text-gray-400 text-xs" id="user-menu-caret"></i>
+                </button>
+                <div id="user-dropdown"
+                    class="hidden absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+                        <div id="user-avatar-dropdown" class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            {{ nome_usuario|first|upper }}
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-800 truncate">{{ nome_usuario }}</p>
+                            <p class="text-xs text-gray-400 truncate">{{ request.user.email|default:"" }}</p>
+                        </div>
+                    </div>
+                    <div class="px-3 py-3 border-b border-gray-100 space-y-2">
+                        <a href="/planos/" style="text-decoration:none;"
+                            class="flex items-center justify-between px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                            <span class="text-sm font-semibold text-indigo-700">Ver Plano</span>
+                            <i class="ph ph-arrow-right text-indigo-500"></i>
+                        </a>
+                        <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50">
+                            <span class="text-sm text-gray-500 font-medium">Créditos</span>
+                            {% if user_is_pro %}
+                                <span class="text-sm font-bold text-green-600">∞ Ilimitado</span>
+                            {% else %}
+                                <span class="text-sm font-bold text-blue-600">{{ user_credits }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="py-1 border-b border-gray-100">
+                        <a href="/termos/" target="_blank" rel="noopener noreferrer" style="text-decoration:none;"
+                            class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                            <i class="ph ph-shield-check text-gray-400 text-lg"></i>
+                            <span class="text-sm text-gray-600">Termos e Privacidade</span>
+                        </a>
+                    </div>
+                    <div class="py-1">
+                        <button id="btn-sair"
+                            class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 transition-colors text-left">
+                            <i class="ph ph-sign-out text-red-500 text-lg"></i>
+                            <span class="text-sm font-semibold text-red-500">Sair</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ══ PAGE ══════════════════════════════════════════ -->
+<div class="w-full py-8 flex-1 flex flex-col" style="padding-left:50px;padding-right:50px;">
+
+<!-- ── PROGRESS CARD ──────────────────────── -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-sm font-semibold text-gray-700">Passo <span id="step-num">2</span> de 6</p>
+            <p class="text-xs text-gray-400" id="step-name-right">Documentos</p>
+        </div>
+        <div class="flex items-center gap-1 mb-1">
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="w-full h-1.5 rounded-full progress-seg" data-step="1"></div>
+                <span class="progress-label" data-step="1">Identificação</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="w-full h-1.5 rounded-full progress-seg" data-step="2"></div>
+                <span class="progress-label" data-step="2">Documentos</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="w-full h-1.5 rounded-full progress-seg" data-step="3"></div>
+                <span class="progress-label" data-step="3">Admissibilidade</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="w-full h-1.5 rounded-full progress-seg" data-step="4"></div>
+                <span class="progress-label" data-step="4">Tese</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="w-full h-1.5 rounded-full progress-seg" data-step="5"></div>
+                <span class="progress-label" data-step="5">Parecer</span>
+            </div>
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="w-full h-1.5 rounded-full progress-seg" data-step="6"></div>
+                <span class="progress-label" data-step="6">Finalizar</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CONTENT CARD ───────────────────────── -->
+    <div id="content-card" class="bg-white rounded-2xl border border-gray-100 shadow-sm flex-1 overflow-hidden" style="display:flex;">
+
+        <!-- ── PDF SIDEBAR (persistente) ─────────── -->
+        {% if has_consolidado or has_autuacao or has_ata %}
+        {% if status_fase == 10 %}
+        <div id="pdf-sidebar" style="flex:1.4;min-width:0;display:flex;flex-direction:column;border-right:1px solid #f1f5f9;overflow:hidden;transition:flex .3s ease,min-width .3s ease;">
+        {% else %}
+        <div id="pdf-sidebar" style="flex:0 0 40px;min-width:40px;display:flex;flex-direction:column;border-right:1px solid #f1f5f9;overflow:hidden;transition:flex .3s ease,min-width .3s ease;">
+        {% endif %}
+
+            <!-- Estado expandido -->
+            <div id="pdf-sidebar-expanded" style="display:{% if status_fase == 10 %}flex{% else %}none{% endif %};flex-direction:column;flex:1;min-height:0;">
+                <div class="pdf-tab-bar">
+                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;">
+                        {% if has_consolidado %}
+                        <button class="pdf-tab" data-tipo="consolidado" onclick="switchPdfTab(this)">
+                            <i class="ph ph-file-text" style="font-size:13px;"></i>Consolidado
+                        </button>
+                        {% endif %}
+                        {% if has_autuacao %}
+                        <button class="pdf-tab" data-tipo="autuacao" onclick="switchPdfTab(this)">
+                            <i class="ph ph-file-text" style="font-size:13px;"></i>Autuação
+                        </button>
+                        {% endif %}
+                        {% if has_ata %}
+                        <button class="pdf-tab" data-tipo="ata" onclick="switchPdfTab(this)">
+                            <i class="ph ph-file-text" style="font-size:13px;"></i>Ata da Sessão
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                        <button onclick="triggerPdfSearch()" title="Buscar no PDF"
+                            style="display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:12px;font-weight:500;color:#5f6368;background:#fff;border:1px solid #dadce0;border-radius:20px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08);outline:none;transition:background .15s;"
+                            onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='#fff'">
+                            <i class="ph ph-magnifying-glass" style="font-size:13px;color:#5f6368;"></i>
+                            <span>Buscar: <kbd style="font-family:inherit;font-size:11px;background:#f1f3f4;border:1px solid #dadce0;border-radius:4px;padding:1px 5px;">Ctrl+F</kbd> ou <kbd style="font-family:inherit;font-size:11px;background:#f1f3f4;border:1px solid #dadce0;border-radius:4px;padding:1px 5px;">⌘+F</kbd></span>
+                        </button>
+                        <button onclick="togglePdfCol()" title="Recolher PDF"
+                            style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid #dadce0;cursor:pointer;outline:none;box-shadow:0 1px 2px rgba(0,0,0,.08);flex-shrink:0;transition:background .15s;"
+                            onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">
+                            <i class="ph ph-caret-left" style="font-size:13px;color:#5f6368;"></i>
+                        </button>
+                    </div>
+                </div>
+                <div style="flex:1;overflow:hidden;position:relative;box-shadow:inset 12px 0 0 #1e1e1e,inset -12px 0 0 #1e1e1e;">
+                    <iframe id="pdf-docs-frame" src="" style="border:none;width:calc(100% + 440px);height:100%;display:block;margin-left:-220px;"></iframe>
+                </div>
+            </div>
+
+            <!-- Estado colapsado (faixa fina) -->
+            <div id="pdf-sidebar-strip" style="display:{% if status_fase == 10 %}none{% else %}flex{% endif %};flex-direction:column;align-items:center;justify-content:flex-start;padding-top:12px;flex:1;background:#f8f9fa;gap:8px;">
+                <button onclick="togglePdfCol()" title="Expandir PDF"
+                    style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid #dadce0;cursor:pointer;outline:none;box-shadow:0 1px 2px rgba(0,0,0,.08);transition:background .15s;"
+                    onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='#fff'">
+                    <i class="ph ph-caret-right" style="font-size:13px;color:#5f6368;"></i>
+                </button>
+                <span style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;font-weight:600;color:#9ca3af;letter-spacing:.08em;text-transform:uppercase;margin-top:4px;">PDF</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ── PAINÉIS (main-content) ─────────────── -->
+        <div id="main-content" style="flex:1;min-width:0;overflow-y:auto;padding:32px;">
+
+        <!-- ═══ PAINEL 1: DOCUMENTOS ═══ -->
+        <div id="panel-1" class="wizard-panel">
+
+            <!-- Sub: upload -->
+            <div id="p1-upload">
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Envie os documentos do processo</h2>
+                <p class="text-gray-400 text-sm mb-6">Anexe ao menos o PDF do Recurso e o Auto de Infração. A ata da sessão é opcional.</p>
+
+                <label id="drop-zone" class="drop-zone" for="file-input-wizard">
+                    <i class="ph ph-upload-simple text-gray-400" style="font-size:36px;"></i>
+                    <p class="text-sm text-gray-600 font-medium">Arraste os PDFs aqui</p>
+                    <p class="text-xs text-gray-400">ou <span class="text-blue-600 font-semibold">clique para selecionar</span></p>
+                    <input type="file" id="file-input-wizard" multiple accept=".pdf" class="hidden">
+                </label>
+
+                <div id="file-list" class="hidden mt-3 flex flex-col gap-2"></div>
+
+                <div id="nome-field" class="hidden mt-5">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5" for="input-nome">
+                        Nome do processo <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="input-nome"
+                           class="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-900 outline-none transition"
+                           style="font-family:inherit;"
+                           placeholder="Ex: AIT-2025/001234 — João da Silva"
+                           value="{{ parecer.nome_processo|default:'' }}"
+                           onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+                    <p class="text-xs text-gray-400 mt-1">Identifica este processo no seu painel.</p>
+                </div>
+            </div>
+
+            <!-- Sub: loading -->
+            <div id="p1-loading" class="hidden flex flex-col items-center justify-center py-16 gap-4">
+                <div class="shimmer-track"></div>
+                <p id="p1-loading-lbl" class="text-xs font-bold tracking-widest uppercase text-blue-600">Processando documentos...</p>
+            </div>
+
+            <!-- Sub: confirm F10 -->
+            <div id="p1-confirm" class="hidden">
+                <div class="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-sm">
+                    <i class="ph ph-check-circle text-green-600 flex-shrink-0 text-base"></i>
+                    <span class="text-blue-700 font-medium">Dados extraídos automaticamente. Revise e confirme para prosseguir.</span>
+                </div>
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Confirme os dados extraídos</h2>
+                <p class="text-gray-400 text-sm mb-6">A IA identificou as informações abaixo. Corrija se necessário.</p>
+                <div id="p1-confirm-content" class="prose max-w-none w-full bg-slate-50 rounded-xl p-5 border border-gray-200"></div>
+            </div>
+
+            <!-- Sub: tabela datas F2 -->
+            <div id="p1-tabela" class="hidden">
+                <div class="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-sm">
+                    <i class="ph ph-calendar-check text-blue-600 flex-shrink-0 text-base"></i>
+                    <span class="text-blue-700 font-medium">Tabela de datas sensíveis extraída. Confirme para calcular a admissibilidade.</span>
+                </div>
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Tabela de datas sensíveis</h2>
+                <p class="text-gray-400 text-sm mb-6">Verifique se todas as datas estão corretas antes de avançar.</p>
+                <div id="p1-tabela-content" class="prose max-w-none w-full bg-slate-50 rounded-xl p-5 border border-gray-200"></div>
+            </div>
+
+            <!-- Sub: dados extraídos F10 — formulário (PDF fica no sidebar persistente) -->
+            <div id="p1-dados" class="hidden" style="max-width:680px;">
+
+                <!-- Header -->
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+                        <i class="ph ph-robot" style="color:#16a34a;font-size:16px;"></i>
+                        <span style="font-size:13px;font-weight:700;color:#15803d;">Dados extraídos automaticamente</span>
+                    </div>
+                    <p style="font-size:11px;color:#166534;margin:0;">Revise, corrija se necessário e confirme para avançar.</p>
+                </div>
+
+                        <!-- DATA DA SESSÃO (full width) -->
+                        <div style="margin-bottom:14px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                <label class="f2-label" style="margin:0;">Data da Sessão</label>
+                                {% if parecer.data_sessao %}<span class="f2-badge-ok">✓ Encontrado</span>
+                                {% else %}<span class="f2-badge-miss">Preenchimento manual</span>{% endif %}
+                            </div>
+                            <input id="f2-data_sessao" class="f2-input"
+                                value="{{ parecer.data_sessao|date:'d/m/Y'|default:'' }}"
+                                placeholder="DD/MM/AAAA — obrigatório"
+                                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+                        </div>
+
+                        <!-- PA + SGPE -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                            <div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                    <label class="f2-label" style="margin:0;">PA</label>
+                                    {% if parecer.pa %}<span class="f2-badge-ok">✓</span>
+                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
+                                </div>
+                                <div class="f2-readonly">{{ parecer.pa|default:'—' }}</div>
+                            </div>
+                            <div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                    <label class="f2-label" style="margin:0;">SGPE</label>
+                                    {% if parecer.sgpe %}<span class="f2-badge-ok">✓</span>
+                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
+                                </div>
+                                <div class="f2-readonly">{{ parecer.sgpe|default:'—' }}</div>
+                            </div>
+                        </div>
+
+                        <!-- RECORRENTE + PRAZO FINAL -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                            <div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                    <label class="f2-label" style="margin:0;">Recorrente</label>
+                                    {% if parecer.recorrente %}<span class="f2-badge-ok">✓</span>
+                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
+                                </div>
+                                <input id="f2-recorrente" class="f2-input"
+                                    value="{{ parecer.recorrente|default:'' }}"
+                                    placeholder="Nome do recorrente"
+                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+                            </div>
+                            <div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                    <label class="f2-label" style="margin:0;">Prazo Protocolo</label>
+                                    {% if parecer.prazo_final %}<span class="f2-badge-ok">✓</span>
+                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
+                                </div>
+                                <input id="f2-prazo_final" class="f2-input"
+                                    value="{{ parecer.prazo_final|date:'d/m/Y'|default:'' }}"
+                                    placeholder="DD/MM/AAAA"
+                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+                            </div>
+                        </div>
+
+                        <!-- DATA PROTOCOLO + PÁGINAS DEFESA -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px;">
+                            <div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                    <label class="f2-label" style="margin:0;">Data Protocolo</label>
+                                    {% if parecer.data_protocolo %}<span class="f2-badge-ok">✓</span>
+                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
+                                </div>
+                                <input id="f2-data_protocolo" class="f2-input"
+                                    value="{{ parecer.data_protocolo|date:'d/m/Y'|default:'' }}"
+                                    placeholder="DD/MM/AAAA"
+                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
+                            </div>
+                            <div>
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                                    <label class="f2-label" style="margin:0;">Páginas Defesa</label>
+                                    {% if parecer.paginas_defesa %}<span class="f2-badge-ok">✓</span>
+                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
+                                </div>
+                                <div class="f2-readonly">{{ parecer.paginas_defesa|default:'—' }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Confirmar -->
+                        <button onclick="confirmarDocumentos()"
+                            style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;background:#1d4ed8;color:#fff;font-size:13px;font-weight:700;border-radius:12px;border:none;cursor:pointer;transition:background .15s;flex-shrink:0;"
+                            onmouseenter="this.style.background='#1e40af'" onmouseleave="this.style.background='#1d4ed8'">
+                            <i class="ph ph-check"></i> Confirmar e Avançar
+                        </button>
+
+                        <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px;">
+                            Campos editáveis: Data da Sessão, Recorrente, Prazos
+                        </p>
+            </div>
+
+            <!-- Botões (ocultos na fase dados) -->
+            <div id="p1-footer" class="flex items-center justify-end mt-8 pt-6">
+                <button class="btn-primary flex items-center gap-2 px-8 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition disabled:bg-blue-300 disabled:cursor-not-allowed"
+                        id="btn-next-1" onclick="wizardNext()">
+                    Próximo <i class="ph ph-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL 2: ADMISSIBILIDADE ═══ -->
+        <div id="panel-2" class="wizard-panel hidden">
+
+            <!-- Loading F3 -->
+            <div id="p2-loading" class="flex flex-col items-center justify-center py-16 gap-4">
+                <div class="shimmer-track"></div>
+                <p id="p2-loading-lbl" class="text-xs font-bold tracking-widest uppercase text-blue-600">Calculando admissibilidade...</p>
+            </div>
+
+            <!-- Conteúdo F31 -->
+            <div id="p2-content" class="hidden">
+                <div class="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-sm">
+                    <i class="ph ph-info text-blue-600 flex-shrink-0 text-base"></i>
+                    <span class="text-blue-700 font-medium">Revise o resultado técnico de cada item e confirme ou ajuste a decisão.</span>
+                </div>
+
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Confirmação da Admissibilidade</h2>
+                <p class="text-gray-400 text-sm mb-5">Confirme ou ajuste cada resultado. O sumário abaixo reflete os cálculos automáticos do JariMath.</p>
+
+                <div id="p2-resumo" class="prose max-w-none w-full hidden bg-slate-50 rounded-xl p-4 border border-gray-200 mb-6"></div>
+                <div id="p2-cards"></div>
+
+                <div class="flex items-center justify-end mt-8 pt-6">
+                    <button class="btn-primary flex items-center gap-2 px-8 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition disabled:bg-blue-300 disabled:cursor-not-allowed"
+                            id="btn-next-2" onclick="wizardNext()">
+                        Confirmar e Avançar <i class="ph ph-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL 3: TESE ═══ -->
+        <div id="panel-3" class="wizard-panel hidden">
+
+            <!-- Loading F4 -->
+            <div id="p3-loading" class="flex flex-col items-center justify-center py-16 gap-4">
+                <div class="shimmer-track"></div>
+                <p id="p3-loading-lbl" class="text-xs font-bold tracking-widest uppercase text-blue-600">Extraindo teses defensivas...</p>
+            </div>
+
+            <!-- Conteúdo F41 -->
+            <div id="p3-content" class="hidden">
+                <div class="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-sm">
+                    <i class="ph ph-scales text-blue-600 flex-shrink-0 text-base"></i>
+                    <span class="text-blue-700 font-medium">Avalie cada tese defensiva identificada e decida pelo mérito.</span>
+                </div>
+
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Análise das Teses Defensivas</h2>
+                <p class="text-gray-400 text-sm mb-6">Para cada argumento identificado, selecione se deve ser acolhido ou não.</p>
+
+                <div id="p3-tese-resumo" class="prose max-w-none w-full hidden bg-slate-50 rounded-xl p-4 border border-gray-200 mb-6"></div>
+                <div id="p3-cards"></div>
+
+                <div class="flex items-center justify-end mt-8 pt-6">
+                    <button class="btn-primary flex items-center gap-2 px-8 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition disabled:bg-blue-300 disabled:cursor-not-allowed"
+                            id="btn-next-3" onclick="wizardNext()">
+                        Confirmar e Gerar Parecer <i class="ph ph-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL 4: PARECER ═══ -->
+        <div id="panel-4" class="wizard-panel hidden">
+
+            <!-- Loading F5 -->
+            <div id="p4-loading" class="flex flex-col items-center justify-center py-16 gap-4">
+                <div class="w-full" style="max-width:360px;">
+                    <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-2">
+                        <div id="p4-progress-bar" class="h-full bg-blue-600 rounded-full" style="width:0%;transition:width .5s;"></div>
+                    </div>
+                    <p id="p4-pct" class="text-xs text-gray-400 text-right">0%</p>
+                </div>
+                <p id="p4-loading-lbl" class="text-xs font-bold tracking-widest uppercase text-blue-600">Gerando Parecer Técnico...</p>
+            </div>
+
+            <!-- Conteúdo F6 -->
+            <div id="p4-content" class="hidden">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                            <i class="ph ph-check-circle text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-sm text-gray-900">Parecer gerado com sucesso</p>
+                            <p class="text-xs text-gray-500">Revise o conteúdo antes de finalizar</p>
+                        </div>
+                    </div>
+                    <a id="link-editor" href="/parecer/{{ parecer.id }}/editor/"
+                       class="flex items-center gap-1.5 text-sm font-semibold text-blue-600 border border-blue-200 rounded-xl px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 transition"
+                       style="text-decoration:none;">
+                        <i class="ph ph-pencil"></i> Abrir Editor Completo
+                    </a>
+                </div>
+
+                <div id="p4-score-badge" class="hidden score-badge"></div>
+
+                <div id="p4-parecer-texto" class="prose max-w-none bg-slate-50 rounded-xl border border-gray-200 p-6 overflow-y-auto" style="max-height:60vh;"></div>
+
+                <div class="flex items-center justify-end mt-8 pt-6">
+                    <button class="btn-primary flex items-center gap-2 px-8 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition disabled:bg-blue-300 disabled:cursor-not-allowed"
+                            id="btn-next-4" onclick="wizardNext()">
+                        Finalizar e Arquivar <i class="ph ph-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ PAINEL 5: FINALIZAR ═══ -->
+        <div id="panel-5" class="wizard-panel hidden">
+
+            <!-- Seleção de pasta F7 -->
+            <div id="p5-pasta">
+                <div class="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5 text-sm">
+                    <i class="ph ph-folder-notch text-blue-600 flex-shrink-0 text-base"></i>
+                    <span class="text-blue-700 font-medium">Escolha onde este parecer será arquivado no seu painel.</span>
+                </div>
+
+                <h2 class="text-base font-semibold text-gray-800 mb-1">Arquivar o parecer</h2>
+                <p class="text-gray-400 text-xs mb-4">Selecione uma pasta para salvar o processo finalizado.</p>
+
+                <div class="flex flex-col gap-2 mb-2" id="p5-folder-grid">
+                    {% for pasta in pastas %}
+                    <button type="button" class="folder-card"
+                            data-nome="{{ pasta.nome_pasta }}"
+                            onclick="selecionarPasta(this, '{{ pasta.nome_pasta }}')">
+                        <i class="ph ph-folder-notch text-blue-500" style="font-size:16px;flex-shrink:0;"></i>
+                        <span class="text-sm font-medium text-gray-800">{{ pasta.nome_pasta }}</span>
+                        <i class="ph ph-caret-right folder-arrow" style="font-size:13px;"></i>
+                    </button>
+                    {% empty %}
+                    <p class="text-center text-xs text-gray-400 py-5">Nenhuma pasta disponível.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Criar nova pasta inline -->
+                <div id="p5-nova-pasta-form" class="hidden mt-1 mb-2">
+                    <div class="flex items-center gap-2 border-1.5 border-blue-300 rounded-10 px-3 py-2 bg-blue-50" style="border:1.5px solid #93c5fd;border-radius:10px;">
+                        <i class="ph ph-folder-plus text-blue-500" style="font-size:15px;flex-shrink:0;"></i>
+                        <input id="p5-nova-pasta-input" type="text" maxlength="60"
+                               placeholder="Nome da nova pasta"
+                               class="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder-gray-400"
+                               onkeydown="if(event.key==='Enter'){criarNovaPasta();}if(event.key==='Escape'){fecharNovaPasta();}">
+                        <button type="button" onclick="criarNovaPasta()"
+                                class="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg transition">
+                            Criar
+                        </button>
+                        <button type="button" onclick="fecharNovaPasta()"
+                                class="text-gray-400 hover:text-gray-600 transition ml-1">
+                            <i class="ph ph-x" style="font-size:13px;"></i>
+                        </button>
+                    </div>
+                    <p id="p5-nova-pasta-erro" class="hidden text-xs text-red-500 mt-1 ml-1"></p>
+                </div>
+
+                <!-- Botão abrir formulário -->
+                <button type="button" id="btn-nova-pasta" onclick="abrirNovaPasta()"
+                        class="flex items-center gap-2 text-xs text-blue-600 hover:text-blue-800 font-medium mt-2 mb-1 transition">
+                    <i class="ph ph-plus-circle" style="font-size:14px;"></i> Nova pasta
+                </button>
+
+                <div class="flex items-center justify-end mt-6 pt-4 border-t border-gray-100">
+                    <button style="display:none;" class="items-center gap-2 px-8 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition"
+                            id="btn-confirmar-pasta" onclick="wizardNext()">
+                        Confirmar <i class="ph ph-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Finalizado F8 -->
+            <div id="p5-final" class="hidden">
+                <!-- Banner de sucesso -->
+                <div class="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-3 mb-6 text-sm">
+                    <i class="ph ph-check-circle text-green-600 flex-shrink-0 text-base"></i>
+                    <span class="text-green-700 font-medium">Parecer arquivado com sucesso.</span>
+                </div>
+
+                <!-- Título da seção -->
+                <h2 class="text-base font-semibold text-gray-800 mb-1">Avalie o Parecer do PJARI</h2>
+                <p class="text-gray-400 text-xs mb-4">O resultado foi preciso e utilizável?</p>
+
+                <!-- Opções de avaliação -->
+                <div class="flex flex-col gap-2 mb-6" id="fb-opcoes">
+
+                    <!-- Aprovado -->
+                    <button type="button" id="fb-btn-5" onclick="enviarFeedback(5, this)"
+                            class="feedback-opt folder-card">
+                        <i class="ph ph-thumbs-up text-green-500" style="font-size:16px;flex-shrink:0;"></i>
+                        <div class="flex-1 text-left">
+                            <span class="text-sm font-medium text-gray-800 block">Aprovado</span>
+                            <span class="text-xs text-gray-400">Parecer correto</span>
+                        </div>
+                        <i class="ph ph-check fb-check-icon text-blue-600 hidden" style="font-size:15px;"></i>
+                        <i class="ph ph-caret-right folder-arrow" style="font-size:13px;"></i>
+                    </button>
+
+                    <!-- Com ressalvas -->
+                    <button type="button" id="fb-btn-3" onclick="enviarFeedback(3, this)"
+                            class="feedback-opt folder-card">
+                        <i class="ph ph-warning text-amber-500" style="font-size:16px;flex-shrink:0;"></i>
+                        <div class="flex-1 text-left">
+                            <span class="text-sm font-medium text-gray-800 block">Com ressalvas</span>
+                            <span class="text-xs text-gray-400">Pequenos ajustes necessários</span>
+                        </div>
+                        <i class="ph ph-check fb-check-icon text-blue-600 hidden" style="font-size:15px;"></i>
+                        <i class="ph ph-caret-right folder-arrow" style="font-size:13px;"></i>
+                    </button>
+                    <!-- Sub-opções ressalvas -->
+                    <div id="fb-tags-panel" class="hidden ml-1 pl-3 border-l-2 border-amber-200">
+                        <p class="text-xs text-gray-500 mb-2 mt-1">Qual o motivo? (selecione um ou mais)</p>
+                        <div class="flex flex-wrap gap-2" id="fb-tags-list">
+                            <button type="button" class="fb-tag text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition" onclick="toggleTag(this,'Prazo incorreto')">Prazo incorreto</button>
+                            <button type="button" class="fb-tag text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition" onclick="toggleTag(this,'Tese mal identificada')">Tese mal identificada</button>
+                            <button type="button" class="fb-tag text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition" onclick="toggleTag(this,'Texto incompleto')">Texto incompleto</button>
+                            <button type="button" class="fb-tag text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition" onclick="toggleTag(this,'Cálculo errado')">Cálculo errado</button>
+                            <button type="button" class="fb-tag text-xs px-3 py-1 rounded-full border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 transition" onclick="toggleTag(this,'Outro')">Outro</button>
+                        </div>
+                        <button type="button" onclick="enviarTags()"
+                                class="mt-3 text-xs font-semibold text-blue-600 hover:text-blue-800 transition flex items-center gap-1">
+                            <i class="ph ph-paper-plane-tilt" style="font-size:13px;"></i> Enviar detalhes
+                        </button>
+                    </div>
+
+                    <!-- Refazer -->
+                    <button type="button" id="fb-btn-1" onclick="enviarFeedback(1, this)"
+                            class="feedback-opt folder-card">
+                        <i class="ph ph-arrow-counter-clockwise text-red-400" style="font-size:16px;flex-shrink:0;"></i>
+                        <div class="flex-1 text-left">
+                            <span class="text-sm font-medium text-gray-800 block">Refazer</span>
+                            <span class="text-xs text-gray-400">Resultado incorreto</span>
+                        </div>
+                        <i class="ph ph-check fb-check-icon text-blue-600 hidden" style="font-size:15px;"></i>
+                        <i class="ph ph-caret-right folder-arrow" style="font-size:13px;"></i>
+                    </button>
+                    <!-- Textarea refazer -->
+                    <div id="fb-notes-panel" class="hidden ml-1 pl-3 border-l-2 border-red-200">
+                        <p class="text-xs text-gray-500 mb-2 mt-1">O que estava incorreto?</p>
+                        <textarea id="fb-notes-input" rows="3" maxlength="500"
+                                  placeholder="Descreva o problema encontrado..."
+                                  class="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 outline-none resize-none focus:border-blue-300 transition placeholder-gray-300"></textarea>
+                        <button type="button" onclick="enviarNotes()"
+                                class="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-800 transition flex items-center gap-1">
+                            <i class="ph ph-paper-plane-tilt" style="font-size:13px;"></i> Enviar detalhe
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Navegação -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <a href="/app/" class="flex items-center gap-2 px-5 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition" style="text-decoration:none;">
+                        <i class="ph ph-house"></i> Voltar ao Dashboard
+                    </a>
+                    <a href="/parecer/{{ parecer.id }}/editor/" class="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 text-sm font-medium border-2 border-gray-200 rounded-xl hover:border-blue-300 hover:text-blue-600 transition" style="text-decoration:none;">
+                        <i class="ph ph-file-text"></i> Acessar Parecer
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        </div><!-- /.main-content -->
+    </div><!-- /.content-card -->
+</div><!-- /.page-wrap -->
+
+<!-- ══ FOOTER ════════════════════════════════════════ -->
+<footer class="text-center py-5 border-t border-gray-100 bg-white">
+    <p class="text-sm text-gray-600 font-medium mb-1">
+        ⚠️ <strong>ATENÇÃO:</strong> a análise do processo e a decisão final são de responsabilidade exclusiva do Membro Julgador.
+    </p>
+    <p class="text-sm text-gray-600">
+        A utilização deste sistema está sujeita aos nossos
+        <a href="/termos/" target="_blank" class="underline hover:text-gray-800 transition-colors">Termos de Uso e Políticas de Privacidade</a>.
+    </p>
+</footer>
+
+<!-- ══ DADOS DJANGO → JS ════════════════════════════ -->
+{{ admissibilidade_texto|json_script:"dj-adm" }}
+{{ analise_tese_texto|json_script:"dj-tese" }}
+{{ parecer_final|json_script:"dj-parecer" }}
+{{ parecer_final_html|json_script:"dj-parecer-html" }}
+{{ tabela_datas_sensiveis|json_script:"dj-tabela" }}
+
+<script>
+// ─── CONSTANTES ────────────────────────────────────
+const PARECER_ID  = {{ parecer.id }};
+const CSRF_TOKEN  = '{{ csrf_token_value }}';
+let   currentFase = {{ status_fase }};
+let   currentStep = 1;
+let   activeES    = null;
+let   selectedFiles = [];
+let   isProcessing  = false;
+let   _selectedPasta = null;
+
+const ADM_TXT      = JSON.parse(document.getElementById('dj-adm').textContent);
+const TESE_TXT     = JSON.parse(document.getElementById('dj-tese').textContent);
+const PARECER_TXT  = JSON.parse(document.getElementById('dj-parecer').textContent);
+const PARECER_HTML = JSON.parse(document.getElementById('dj-parecer-html').textContent);
+const TABELA_TXT   = JSON.parse(document.getElementById('dj-tabela').textContent);
+
+const AUTO_TEMP  = {{ is_tempestivo|yesno:"true,false" }};
+const AUTO_PUNIT = {{ has_prescricao_punitiva|yesno:"true,false" }};
+const AUTO_INTER = {{ has_prescricao_intercorrente|yesno:"true,false" }};
+const AUTO_DECAD = {{ has_decadencia|yesno:"true,false" }};
+
+const FASE_STEP  = {1:2,10:2,2:2,3:2,31:3,4:4,41:4,5:5,6:5,7:6,8:6};
+const STEP_NAMES = ['Identificação','Documentos','Admissibilidade','Tese','Parecer','Finalizar'];
+const TOTAL_STEPS = 6;
+
+window.decisions = {};
+
+// ─── INIT ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof marked !== 'undefined') marked.setOptions({ breaks:true, gfm:true });
+    initUpload();
+    initClerkSair();
+
+    // Se chegou via redirect do modal com task em andamento, inicia polling direto
+    const _urlParams = new URLSearchParams(window.location.search);
+    const _pendingTaskId = _urlParams.get('task_id');
+    if (_pendingTaskId) {
+        // Limpa o task_id da URL sem recarregar
+        history.replaceState(null, '', window.location.pathname);
+        // FASE1 ainda está rodando: mostrar loading manualmente (dados ainda não extraídos)
+        currentFase = 10;
+        document.getElementById('panel-1')?.classList.remove('hidden');
+        ['panel-2','panel-3','panel-4','panel-5'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+        ['p1-upload','p1-confirm','p1-tabela','p1-dados'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+        document.getElementById('p1-loading')?.classList.remove('hidden');
+        document.getElementById('p1-footer').style.display = 'none';
+        rotateLabel('p1-loading-lbl', ['Lendo documentos...','Extraindo informações...','Verificando prazos...']);
+        updateProgress(2);
+        setLoading(true);
+        // Quando FASE1 terminar, recarrega a página para obter dados extraídos no template
+        window._reloadAfterFase1 = true;
+        startSSE(_pendingTaskId, 'FASE1');
+    } else {
+        detectState();
+    }
+});
+
+function md(t) {
+    if (!t) return '';
+    return typeof marked !== 'undefined' ? marked.parse(t) : t.replace(/\n/g,'<br>');
+}
+
+// ─── USER MENU DROPDOWN ────────────────────────────
+function toggleUserMenu(e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('user-dropdown');
+    const caret = document.getElementById('user-menu-caret');
+    const isOpen = !dropdown.classList.contains('hidden');
+    dropdown.classList.toggle('hidden', isOpen);
+    caret.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function closeUserMenu() {
+    const dropdown = document.getElementById('user-dropdown');
+    const caret = document.getElementById('user-menu-caret');
+    if (dropdown) dropdown.classList.add('hidden');
+    if (caret) caret.style.transform = '';
+}
+
+document.addEventListener('click', (e) => {
+    const btn = document.getElementById('user-menu-btn');
+    if (btn && !btn.contains(e.target)) closeUserMenu();
+});
+
+// ─── CLERK SAIR ────────────────────────────────────
+function initClerkSair() {
+    document.getElementById('btn-sair').addEventListener('click', async (e) => {
+        e.preventDefault();
+        closeUserMenu();
+        if (window.Clerk) { await window.Clerk.signOut(); window.location.href = '/'; }
+        else { window.location.href = '/'; }
+    });
+}
+
+// ─── PROGRESS BAR ──────────────────────────────────
+function updateProgress(step) {
+    document.getElementById('step-num').textContent = step;
+    const name = STEP_NAMES[step-1] || '';
+    document.getElementById('step-name-right').textContent = name;
+
+    document.querySelectorAll('.progress-seg').forEach(el => {
+        const s = +el.dataset.step;
+        el.classList.remove('done','current');
+        if (s < step)        el.classList.add('done');
+        else if (s === step) el.classList.add('current');
+    });
+    document.querySelectorAll('.progress-label').forEach(el => {
+        const s = +el.dataset.step;
+        el.classList.remove('active','done');
+        if (s === step)     el.classList.add('active');
+        else if (s < step)  el.classList.add('done');
+    });
+
+    // Atualiza "Passo X de 6"
+    const numEl = document.getElementById('step-num');
+    if (numEl) numEl.textContent = step;
+}
+
+// ─── STATE MACHINE ──────────────────────────────────
+// Passo 2→6 no progress bar mapeiam para panel-1→5 no HTML
+function stepToPanel(step) { return step - 1; }
+
+function detectState() {
+    // Parecer já finalizado acessado diretamente: redireciona para o editor
+    if (currentFase === 8 && !_justFinished) {
+        window.location.replace('/parecer/{{ parecer.id }}/editor/');
+        return;
+    }
+    // Race condition: FASE3-PRE reverte status_fase=2 após FASE2 completar.
+    // Se tabela já foi preenchida, avança direto para fase 3 (revisão da tabela).
+    if (currentFase === 2 && TABELA_TXT) { currentFase = 3; }
+    currentStep = FASE_STEP[currentFase] || 2;
+    updateProgress(currentStep);
+    document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+    const panel = document.getElementById(`panel-${stepToPanel(currentStep)}`);
+    if (panel) panel.classList.remove('hidden');
+    renderPhase(currentFase);
+}
+
+function renderPhase(f) {
+    const show = (id) => { const e=document.getElementById(id); if(e) e.classList.remove('hidden'); };
+    const hide = (id) => { const e=document.getElementById(id); if(e) e.classList.add('hidden'); };
+
+    if (f===1)  { show('p1-upload'); hide('p1-loading'); hide('p1-confirm'); hide('p1-tabela'); hide('p1-dados');
+                  document.getElementById('p1-footer').style.display = '';
+                  if('{{ parecer.nome_processo }}'.trim()) show('nome-field');
+                  collapsePdf(); }
+    if (f===10) {
+        hide('p1-upload'); hide('p1-loading'); hide('p1-confirm'); hide('p1-tabela');
+        show('p1-dados');
+        document.getElementById('p1-footer').style.display = 'none';
+        expandPdf();
+        initPdfTabs();
+    }
+    if (f===2)  {
+        hide('p1-upload'); show('p1-loading'); hide('p1-confirm'); hide('p1-tabela'); hide('p1-dados');
+        document.getElementById('p1-footer').style.display = 'none';
+        collapsePdf();
+        rotateLabel('p1-loading-lbl',['Extraindo datas sensíveis...','Consultando normas...','Calculando prazos...']);
+    }
+    if (f===3)  {
+        hide('p1-upload'); hide('p1-loading'); hide('p1-confirm'); hide('p1-dados');
+        show('p1-tabela');
+        document.getElementById('p1-footer').style.display = '';
+        collapsePdf();
+        const tEl = document.getElementById('p1-tabela-content');
+        if (tEl && TABELA_TXT) tEl.innerHTML = md(TABELA_TXT);
+    }
+    if (f===32) { show('p2-loading'); hide('p2-content');
+                  rotateLabel('p2-loading-lbl',['Calculando prazos...','Verificando prescrição...','Analisando admissibilidade...']); }
+    if (f===31) { hide('p2-loading'); show('p2-content'); renderAdmCards(); }
+    if (f===4)  { collapsePdf(); show('p3-loading'); hide('p3-content');
+                  rotateLabel('p3-loading-lbl',['Extraindo teses defensivas...','Analisando argumentos...','Pesquisando jurisprudência...']); }
+    if (f===41) { hide('p3-loading'); show('p3-content'); renderTeseCards(); }
+    if (f===5)  { collapsePdf(); show('p4-loading'); hide('p4-content'); startProgressAnim(); }
+    if (f===6)  { hide('p4-loading'); show('p4-content'); renderParecer(); }
+    if (f===7)  { show('p5-pasta');   hide('p5-final'); }
+    if (f===8)  {
+        hide('p5-pasta'); show('p5-final');
+        // Acesso direto (já finalizado): oculta avaliação, mostra só navegação
+        const fbOpcoes = document.getElementById('fb-opcoes');
+        const fbTitle  = document.querySelector('#p5-final h2');
+        const fbSub    = document.querySelector('#p5-final p.text-gray-400');
+        if (!_justFinished) {
+            if (fbOpcoes) fbOpcoes.style.display = 'none';
+            if (fbTitle)  fbTitle.style.display  = 'none';
+            if (fbSub)    fbSub.style.display     = 'none';
+        } else {
+            if (fbOpcoes) fbOpcoes.style.display = '';
+            if (fbTitle)  fbTitle.style.display  = '';
+            if (fbSub)    fbSub.style.display     = '';
+        }
+    }
+}
+
+// ─── PDF TABS ──────────────────────────────────────
+function switchPdfTab(btn) {
+    document.querySelectorAll('.pdf-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const tipo = btn.dataset.tipo;
+    document.getElementById('pdf-docs-frame').src = `/chat/pdf/${PARECER_ID}/${tipo}/#zoom=page-width`;
+}
+
+function triggerPdfSearch() {
+    const frame = document.getElementById('pdf-docs-frame');
+    if (!frame) return;
+    try {
+        // Foca o iframe e dispara Ctrl+F dentro dele
+        frame.contentWindow.focus();
+        frame.contentWindow.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'f', code: 'KeyF', ctrlKey: true, metaKey: true, bubbles: true
+        }));
+    } catch(e) {
+        // Cross-origin: instrui o usuário a usar o atalho diretamente
+        frame.focus();
+    }
+}
+
+// ─── COLAPSAR / EXPANDIR PDF SIDEBAR ───────────────
+let _pdfCollapsed = {% if status_fase == 10 %}false{% else %}true{% endif %};
+
+function togglePdfCol() {
+    const sidebar  = document.getElementById('pdf-sidebar');
+    const expanded = document.getElementById('pdf-sidebar-expanded');
+    const strip    = document.getElementById('pdf-sidebar-strip');
+    if (!sidebar) return;
+
+    _pdfCollapsed = !_pdfCollapsed;
+
+    if (_pdfCollapsed) {
+        sidebar.style.flex     = '0 0 40px';
+        sidebar.style.minWidth = '40px';
+        expanded.style.display = 'none';
+        strip.style.display    = 'flex';
+    } else {
+        sidebar.style.flex     = '1.4';
+        sidebar.style.minWidth = '0';
+        expanded.style.display = 'flex';
+        strip.style.display    = 'none';
+    }
+}
+
+function collapsePdf() { if (!_pdfCollapsed) togglePdfCol(); }
+function expandPdf()   { if (_pdfCollapsed)  togglePdfCol(); }
+
+function initPdfTabs() {
+    const firstTab = document.querySelector('.pdf-tab');
+    if (firstTab) switchPdfTab(firstTab);
+    ['data_sessao','data_protocolo','prazo_final','recorrente'].forEach(campo => {
+        const el = document.getElementById(`f2-${campo}`);
+        if (el) el.dataset.original = el.value;
+    });
+}
+
+// ─── CONFIRMAR DOCUMENTOS (F10) ────────────────────
+async function confirmarDocumentos() {
+    if (isProcessing) return;
+
+    // Coleta todos os campos editáveis do formulário p1-dados
+    const payload = {};
+    const dsEl = document.getElementById('f2-data_sessao');
+    if (dsEl && dsEl.value.trim()) payload.data_sessao = dsEl.value.trim();
+
+    const dpEl = document.getElementById('f2-data_protocolo');
+    if (dpEl && dpEl.value.trim()) payload.data_protocolo = dpEl.value.trim();
+
+    const pfEl = document.getElementById('f2-prazo_final');
+    if (pfEl && pfEl.value.trim()) payload.prazo_final = pfEl.value.trim();
+
+    const recEl = document.getElementById('f2-recorrente');
+    if (recEl && recEl.value.trim()) payload.recorrente = recEl.value.trim();
+
+    // data_sessao é obrigatória
+    if (!payload.data_sessao) {
+        toast('A Data da Sessão é obrigatória.', 'warning');
+        if (dsEl) {
+            dsEl.style.borderColor = '#ef4444';
+            dsEl.focus();
+            dsEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+    }
+    if (dsEl) dsEl.style.borderColor = '';
+
+    // Feedback imediato — mostra loading antes de esperar o servidor
+    renderPhase(2);
+
+    // PA e SGPE (readonly mas envia para o engine confirmar)
+    const paEl = document.getElementById('f2-pa');
+    if (paEl && paEl.value.trim()) payload.pa = paEl.value.trim();
+
+    const sgpeEl = document.getElementById('f2-sgpe');
+    if (sgpeEl && sgpeEl.value.trim()) payload.sgpe = sgpeEl.value.trim();
+
+    const pgEl = document.getElementById('f2-paginas_defesa');
+    if (pgEl && pgEl.value.trim()) payload.paginas_defesa = pgEl.value.trim();
+
+    await avancar('FASE1_CONFIRM:' + JSON.stringify(payload));
+}
+
+// ─── ADMISSIBILITY CARDS ───────────────────────────
+const ADM_CFG = [
+    { key:'ADM_TEMPESTIVIDADE', nome:'Tempestividade',           icone:'⏱', cor:'#2563eb', bg:'#eff6ff', borda:'#bfdbfe', autoSim: !AUTO_TEMP },
+    { key:'ADM_PUNITIVA',       nome:'Prescrição Punitiva',      icone:'⚖️', cor:'#ea580c', bg:'#fff7ed', borda:'#fed7aa', autoSim: AUTO_PUNIT },
+    { key:'ADM_INTERCORRENTE',  nome:'Prescrição Intercorrente', icone:'🔄', cor:'#ca8a04', bg:'#fefce8', borda:'#fde68a', autoSim: AUTO_INTER },
+    { key:'ADM_DECADENCIA',     nome:'Decadência',               icone:'📅', cor:'#7c3aed', bg:'#f5f3ff', borda:'#ddd6fe', autoSim: AUTO_DECAD },
+];
+
+function extrairResultado(cfg) {
+    const re = new RegExp(`\\[DECISAO_ADMISSIBILIDADE_${cfg.key.replace('ADM_','')}(?::([A-Z_]+))?\\]`);
+    const m = ADM_TXT.match(re);
+    if (m && m[1]) return m[1].toUpperCase();
+    return cfg.autoSim ? 'SIM' : 'NAO';
+}
+
+function renderAdmCards() {
+    // ── 1. Extrai texto por seção do ADM_TXT (entre marcadores consecutivos) ──
+    const sectionTexts = {};
+    if (ADM_TXT) {
+        const sMatches = [...ADM_TXT.matchAll(/\[DECISAO_ADMISSIBILIDADE_(\w+)(?::[A-Z_]+)?\]/g)];
+        for (let i = 0; i < sMatches.length; i++) {
+            const rawKey = sMatches[i][1];
+            const start = i === 0 ? 0 : sMatches[i-1].index + sMatches[i-1][0].length;
+            const end = sMatches[i].index;
+            sectionTexts[rawKey] = ADM_TXT.slice(start, end).trim();
+        }
+    }
+
+    // ── 2. Mapa de cores por resultado ────────────────────────────────────────
+    const RMAP = {
+        SIM:          {border:'#dc2626',bg:'#fff1f2',bord1:'#fecdd3',iconBg:'#fee2e2',pillBg:'#fee2e2',pillColor:'#dc2626'},
+        NAO:          {border:'#16a34a',bg:'#f0fdf4',bord1:'#bbf7d0',iconBg:'#dcfce7',pillBg:'#dcfce7',pillColor:'#16a34a'},
+        NAO_SE_APLICA:{border:'#9ca3af',bg:'#fafafa',bord1:'#e5e7eb',iconBg:'#f3f4f6',pillBg:'#f3f4f6',pillColor:'#9ca3af'},
+    };
+
+    // ── 3. Sumário no topo ────────────────────────────────────────────────────
+    let summaryHtml = '<div class="adm-summary">';
+    for (const cfg of ADM_CFG) {
+        const r = extrairResultado(cfg);
+        const rawKey = cfg.key.replace('ADM_','');
+        const isTmp = rawKey === 'TEMPESTIVIDADE';
+        const resultLabel = isTmp
+            ? (r==='SIM' ? 'CONFIGURADA' : 'NÃO CONFIGURADA')
+            : (r==='SIM' ? 'SIM' : r==='NAO_SE_APLICA' ? 'NÃO SE APLICA' : 'NÃO');
+        const isBad = r === 'SIM';
+        const isNsa = r === 'NAO_SE_APLICA';
+        const badgeCls = isBad ? 'adm-sbadge adm-sbadge-bad' : isNsa ? 'adm-sbadge adm-sbadge-nsa' : 'adm-sbadge adm-sbadge-ok';
+        summaryHtml += `<div class="adm-summary-item"><span class="adm-summary-label">${cfg.nome}</span><span class="${badgeCls}">${resultLabel}</span></div>`;
+    }
+    summaryHtml += '</div>';
+
+    // ── 4. Cards por critério ─────────────────────────────────────────────────
+    let cardsHtml = '';
+    for (const cfg of ADM_CFG) {
+        const r = extrairResultado(cfg);
+        const rawKey = cfg.key.replace('ADM_','');
+        const rmap = RMAP[r] || RMAP['NAO'];
+        const secText = sectionTexts[rawKey] || '';
+
+        const isTmp = rawKey === 'TEMPESTIVIDADE';
+        const resultLabel = isTmp
+            ? (r==='SIM' ? 'CONFIGURADA' : 'NÃO CONFIGURADA')
+            : (r==='SIM' ? 'SIM' : r==='NAO_SE_APLICA' ? 'NÃO SE APLICA' : 'NÃO');
+
+        let labelA, labelB, subA, subB, autoTxt;
+        if (r==='SIM') {
+            labelA='CONFIRMAR'; subA='Mantém: resultado técnico prevalece';
+            labelB='AFASTAR';   subB='Inverte: resultado passa a NÃO';
+            autoTxt='CONFIGURADO';
+        } else if (r==='NAO') {
+            labelA='CONFIRMAR';          subA='Mantém: resultado técnico prevalece';
+            labelB='CONVERTER PARA SIM'; subB='Atenção: declara o problema como existente';
+            autoTxt='NÃO CONFIGURADO';
+        } else if (r==='NAO_SE_APLICA') {
+            labelA='CONFIRMAR';      subA='Mantém: não se aplica (FILTRO 1)';
+            labelB='FORÇAR ANÁLISE'; subB='Aviso: contraria blindagem CETRAN/SC 381/2022';
+            autoTxt='NÃO SE APLICA';
+        } else {
+            labelA='CONFIRMAR'; subA='Mantém o resultado técnico';
+            labelB='INVERTER';  subB='Inverte o resultado técnico';
+            autoTxt='';
+        }
+
+        const fundamentacao = secText
+            ? `<div class="adm-fundamentacao">${md(secText)}</div>`
+            : '';
+        const autoBadge = autoTxt
+            ? `<div class="adm-auto-result"><i class="ph ph-robot"></i> Resultado automático: <strong style="color:${rmap.pillColor};margin-left:4px;">${autoTxt}</strong></div>`
+            : '';
+
+        cardsHtml += `
+        <div class="adm-section tese-decision-block"
+             style="background:${rmap.bg};border-color:${rmap.bord1};border-left-color:${rmap.border};"
+             data-tese="${cfg.key}" data-tese-nome="${cfg.nome}"
+             data-label-a="${labelA}" data-label-b="${labelB}" data-resultado="${r}">
+            <div class="adm-section-header" style="border-bottom-color:${rmap.bord1};">
+                <div class="adm-icon-circle" style="background:${rmap.iconBg};">${cfg.icone}</div>
+                <span class="adm-section-title" style="color:${rmap.border};">${cfg.nome}</span>
+                <span class="adm-result-pill" style="background:${rmap.pillBg};color:${rmap.pillColor};">● ${resultLabel}</span>
+            </div>
+            ${fundamentacao}
+            ${autoBadge}
+            <div class="radio-grid">
+                <label class="radio-card" onclick="selectCard(this,'${cfg.key}','a')">
+                    <div class="radio-dot"></div>
+                    <div class="radio-card-text">
+                        <p class="radio-card-label">✓ &nbsp;${labelA}</p>
+                        <p class="radio-card-sub">${subA}</p>
+                    </div>
+                </label>
+                <label class="radio-card" onclick="selectCard(this,'${cfg.key}','b')">
+                    <div class="radio-dot"></div>
+                    <div class="radio-card-text">
+                        <p class="radio-card-label">✕ &nbsp;${labelB}</p>
+                        <p class="radio-card-sub">${subB}</p>
+                    </div>
+                </label>
+            </div>
+        </div>`;
+    }
+
+    document.getElementById('p2-resumo').classList.add('hidden');
+    document.getElementById('p2-cards').innerHTML = summaryHtml + cardsHtml;
+
+}
+
+// ─── TESE CARDS ────────────────────────────────────
+function renderTeseCards() {
+    document.getElementById('p3-tese-resumo').classList.add('hidden');
+
+    const allMatches = [...TESE_TXT.matchAll(/\[DECISAO_TESE_(\d+)\]/g)];
+    if (!allMatches.length) {
+        document.getElementById('p3-cards').innerHTML = '<p style="color:#9ca3af;font-size:13px;text-align:center;padding:20px 0;">Nenhuma tese identificada para decisão.</p>';
+        return;
+    }
+
+    // Extrai texto por tese (entre marcadores consecutivos)
+    const sectionTexts = {};
+    for (let i = 0; i < allMatches.length; i++) {
+        const num = allMatches[i][1];
+        const start = i === 0 ? 0 : allMatches[i-1].index + allMatches[i-1][0].length;
+        const end = allMatches[i].index;
+        sectionTexts[num] = TESE_TXT.slice(start, end).trim();
+    }
+
+    let html = '';
+    for (const m of allMatches) {
+        const num = m[1];
+        const secText = sectionTexts[num] || '';
+        const conteudo = secText
+            ? `<div class="adm-fundamentacao">${md(secText)}</div>`
+            : '';
+        html += `
+        <div class="adm-section tese-decision-block"
+             style="background:#f8faff;border-color:#dbeafe;border-left-color:#3b82f6;"
+             data-tese="${num}" data-tese-nome="Tese ${num}" data-label-a="Acolher" data-label-b="Não Acolher" data-resultado="">
+            <div class="adm-section-header" style="border-bottom-color:#dbeafe;">
+                <div class="adm-icon-circle" style="background:#eff6ff;font-weight:700;font-size:13px;color:#2563eb;">${num}</div>
+                <span class="adm-section-title" style="color:#1d4ed8;">Tese ${num}</span>
+            </div>
+            ${conteudo}
+            <div class="radio-grid">
+                <label class="radio-card" onclick="selectCard(this,${num},'a')">
+                    <div class="radio-dot"></div>
+                    <div class="radio-card-text">
+                        <p class="radio-card-label">✓ &nbsp;ACOLHER</p>
+                        <p class="radio-card-sub">O argumento é considerado procedente</p>
+                    </div>
+                </label>
+                <label class="radio-card" onclick="selectCard(this,${num},'b')">
+                    <div class="radio-dot"></div>
+                    <div class="radio-card-text">
+                        <p class="radio-card-label">✕ &nbsp;NÃO ACOLHER</p>
+                        <p class="radio-card-sub">O argumento é rejeitado</p>
+                    </div>
+                </label>
+            </div>
+        </div>`;
+    }
+    document.getElementById('p3-cards').innerHTML = html;
+}
+
+// ─── SELECT CARD ───────────────────────────────────
+function selectCard(label, key, opcao) {
+    window.decisions[key] = opcao;
+    const section = label.closest('.tese-decision-block');
+    section.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
+    label.classList.add('selected');
+    let alert = section.querySelector('.inversion-alert');
+    if (opcao === 'b') {
+        if (!alert) {
+            alert = document.createElement('div');
+            alert.className = 'inversion-alert';
+            alert.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 12px;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;font-size:12px;color:#92400e;';
+            alert.innerHTML = '<span>⚠️</span><span>Você está <strong>invertendo o resultado automático</strong>. Confirme se é intencional.</span>';
+            section.appendChild(alert);
+        }
+    } else if (alert) alert.remove();
+}
+
+window.selectTeseOption = function(btn, teseNum, opcao) {
+    const label = btn.closest('.radio-card') || btn;
+    selectCard(label, teseNum, opcao);
+};
+
+// ─── BUILD STRINGS ─────────────────────────────────
+function buildAdmString() {
+    const ORDER = ['ADM_TEMPESTIVIDADE','ADM_PUNITIVA','ADM_INTERCORRENTE','ADM_DECADENCIA'];
+    // Seções não selecionadas explicitamente assumem CONFIRMAR ('a') como padrão
+    ORDER.forEach(k => { if (window.decisions[k] === undefined) window.decisions[k] = 'a'; });
+    const arr = [];
+    for (const key of ORDER) {
+        const admName = key.replace('ADM_','');
+        const choice  = window.decisions[key];
+        const block   = document.querySelector(`.tese-decision-block[data-tese="${key}"]`);
+        const r = block ? (block.dataset.resultado || '') : '';
+        let val;
+        if (admName === 'TEMPESTIVIDADE') {
+            const autoTemp = r === 'NAO';
+            val = ((choice==='a') ? autoTemp : !autoTemp) ? 'TEMPESTIVO' : 'INTEMPESTIVO';
+        } else {
+            const autoSim = r === 'SIM';
+            val = ((choice==='a') ? autoSim : !autoSim) ? 'SIM' : 'NAO';
+        }
+        arr.push(`${admName} - ${val}`);
+    }
+    return arr.join('\n\n');
+}
+
+function buildTeseString() {
+    const cards = document.querySelectorAll('#p3-cards .tese-decision-block');
+    if (!cards.length) return null;
+    const arr = [];
+    for (const c of cards) {
+        const num = c.dataset.tese;
+        const dec = window.decisions[num];
+        if (dec === undefined) return null;
+        const suffix = dec === 'a' ? 'Acolhida; ✔️' : 'Não Acolhida; X';
+        arr.push(`Tese ${num} – Síntese da alegação: ${suffix}`);
+    }
+    return arr.join('\n\n');
+}
+
+// ─── RENDER PARECER ────────────────────────────────
+function renderParecer() {
+    // Prioridade: versão editada no Editor Completo (HTML) > markdown bruto da IA
+    document.getElementById('p4-parecer-texto').innerHTML = PARECER_HTML
+        ? PARECER_HTML
+        : PARECER_TXT
+            ? md(PARECER_TXT)
+            : '<p style="color:#9ca3af;font-size:13px;text-align:center;">Acesse o Editor Completo para visualizar o parecer.</p>';
+
+    const score = {{ blindagem_score|default:"null" }};
+    if (score !== null) {
+        const el = document.getElementById('p4-score-badge');
+        el.classList.remove('hidden');
+        if (score>=80) { el.style.cssText='background:#dcfce7;border:1px solid #bbf7d0;color:#15803d;'; el.innerHTML=`<i class="ph ph-shield-check"></i> Auditoria aprovada — Conformidade: <strong>${score}/100</strong>`; }
+        else if (score>=50) { el.style.cssText='background:#fef9c3;border:1px solid #fde047;color:#854d0e;'; el.innerHTML=`<i class="ph ph-warning"></i> Atenção — Conformidade: <strong>${score}/100</strong>. Revise o conteúdo.`; }
+        else { el.style.cssText='background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;'; el.innerHTML=`<i class="ph ph-x-circle"></i> Score baixo: <strong>${score}/100</strong>. Verifique o parecer.`; }
+    }
+}
+
+// ─── PASTA SELECTION ───────────────────────────────
+function selecionarPasta(btn, nome) {
+    _selectedPasta = nome;
+    document.querySelectorAll('.folder-card').forEach(c => c.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('btn-confirmar-pasta').style.display = 'flex';
+}
+
+// ─── FEEDBACK ──────────────────────────────────────
+let _justFinished = false; // true somente quando o user acabou de confirmar a pasta
+let _fbScore = null;
+let _fbTags  = [];
+
+async function enviarFeedback(score, btn) {
+    _fbScore = score;
+    _fbTags  = [];
+
+    // Reset visual
+    document.querySelectorAll('.feedback-opt').forEach(b => {
+        b.classList.remove('selected');
+        b.querySelectorAll('.fb-check-icon').forEach(i => i.classList.add('hidden'));
+        b.querySelectorAll('.folder-arrow').forEach(i => i.classList.remove('hidden'));
+    });
+    document.getElementById('fb-tags-panel').classList.add('hidden');
+    document.getElementById('fb-notes-panel').classList.add('hidden');
+
+    // Marca selecionado
+    btn.classList.add('selected');
+    btn.querySelector('.fb-check-icon')?.classList.remove('hidden');
+    btn.querySelector('.folder-arrow')?.classList.add('hidden');
+
+    // Expande painel adicional
+    if (score === 3) document.getElementById('fb-tags-panel').classList.remove('hidden');
+    if (score === 1) document.getElementById('fb-notes-panel').classList.remove('hidden');
+
+    // Envia score imediatamente
+    try {
+        await fetch(`/api/parecer/${PARECER_ID}/feedback/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ score }),
+        });
+    } catch (_) {}
+}
+
+function toggleTag(btn, tag) {
+    const idx = _fbTags.indexOf(tag);
+    if (idx === -1) {
+        _fbTags.push(tag);
+        btn.classList.add('selected', 'border-blue-400', 'text-blue-600', 'bg-blue-50');
+    } else {
+        _fbTags.splice(idx, 1);
+        btn.classList.remove('selected', 'border-blue-400', 'text-blue-600', 'bg-blue-50');
+    }
+}
+
+async function enviarTags() {
+    if (!_fbTags.length) { toast('Selecione pelo menos um motivo.', 'warning'); return; }
+    try {
+        await fetch(`/api/parecer/${PARECER_ID}/feedback/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ score: _fbScore, tags: _fbTags }),
+        });
+        document.getElementById('fb-tags-panel').innerHTML = '<p class="text-xs text-green-600 py-1 flex items-center gap-1"><i class="ph ph-check-circle"></i> Detalhes enviados. Obrigado!</p>';
+    } catch (_) {}
+}
+
+async function enviarNotes() {
+    const notes = (document.getElementById('fb-notes-input')?.value || '').trim();
+    if (!notes) { toast('Digite um comentário antes de enviar.', 'warning'); return; }
+    try {
+        await fetch(`/api/parecer/${PARECER_ID}/feedback/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ score: _fbScore, notes }),
+        });
+        document.getElementById('fb-notes-panel').innerHTML = '<p class="text-xs text-green-600 py-1 flex items-center gap-1"><i class="ph ph-check-circle"></i> Comentário enviado. Obrigado!</p>';
+    } catch (_) {}
+}
+
+function abrirNovaPasta() {
+    document.getElementById('p5-nova-pasta-form').classList.remove('hidden');
+    document.getElementById('btn-nova-pasta').classList.add('hidden');
+    document.getElementById('p5-nova-pasta-erro').classList.add('hidden');
+    document.getElementById('p5-nova-pasta-input').value = '';
+    document.getElementById('p5-nova-pasta-input').focus();
+}
+
+function fecharNovaPasta() {
+    document.getElementById('p5-nova-pasta-form').classList.add('hidden');
+    document.getElementById('btn-nova-pasta').classList.remove('hidden');
+    document.getElementById('p5-nova-pasta-erro').classList.add('hidden');
+}
+
+async function criarNovaPasta() {
+    const input = document.getElementById('p5-nova-pasta-input');
+    const erroEl = document.getElementById('p5-nova-pasta-erro');
+    const nome = input.value.trim();
+    if (!nome) { erroEl.textContent = 'Digite um nome para a pasta.'; erroEl.classList.remove('hidden'); return; }
+
+    try {
+        const res = await fetch('/api/pasta/create/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ nome }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+            erroEl.textContent = data.error || 'Erro ao criar pasta.';
+            erroEl.classList.remove('hidden');
+            return;
+        }
+        // Injeta nova row na lista e seleciona
+        const grid = document.getElementById('p5-folder-grid');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'folder-card';
+        btn.dataset.nome = data.nome;
+        btn.innerHTML = `<i class="ph ph-folder-notch text-blue-500" style="font-size:16px;flex-shrink:0;"></i><span class="text-sm font-medium text-gray-800">${data.nome}</span><i class="ph ph-caret-right folder-arrow" style="font-size:13px;"></i>`;
+        btn.onclick = () => selecionarPasta(btn, data.nome);
+        grid.appendChild(btn);
+        fecharNovaPasta();
+        selecionarPasta(btn, data.nome);
+        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) {
+        erroEl.textContent = 'Erro de conexão. Tente novamente.';
+        erroEl.classList.remove('hidden');
+    }
+}
+
+// ─── NAV ───────────────────────────────────────────
+async function wizardNext() {
+    if (isProcessing) return;
+    switch(currentFase) {
+        case 1: {
+            const nome = document.getElementById('input-nome').value.trim();
+            if (!nome)              { toast('Informe o nome do processo.','warning'); return; }
+            if (!selectedFiles.length) { toast('Anexe ao menos um PDF.','warning'); return; }
+            await doUpload(nome); break;
+        }
+        case 10: await confirmarDocumentos(); break;
+        case 2:
+        case 3: {
+            // Navega imediatamente para o painel de admissibilidade com loading
+            currentStep = 3;
+            updateProgress(currentStep);
+            document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('panel-2')?.classList.remove('hidden');
+            renderPhase(32); // estado loading do painel 2
+            await avancar('ok'); break;
+        }
+        case 31: {
+            const s = buildAdmString();
+            window.decisions = {};
+            // Navega imediatamente para painel de teses com loading antes de aguardar backend
+            currentStep = 4;
+            updateProgress(currentStep);
+            document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('panel-3')?.classList.remove('hidden');
+            renderPhase(4);
+            await avancar(s); break;
+        }
+        case 41: {
+            const s = buildTeseString();
+            if (!s) { toast('Selecione ACOLHER ou NÃO ACOLHER para todas as teses.','warning'); return; }
+            window.decisions = {};
+            // Navega imediatamente para painel de parecer com loading antes de aguardar backend
+            currentStep = 5;
+            updateProgress(currentStep);
+            document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('panel-4')?.classList.remove('hidden');
+            renderPhase(5);
+            await avancar(s); break;
+        }
+        case 6: {
+            // Navega imediatamente para painel de pasta com loading antes de aguardar backend
+            currentStep = 6;
+            updateProgress(currentStep);
+            document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('panel-5')?.classList.remove('hidden');
+            renderPhase(7);
+            await avancar('ok'); break;
+        }
+        case 7: {
+            if (!_selectedPasta) { toast('Selecione uma pasta.','warning'); return; }
+            // Navega imediatamente para a tela final com avaliação
+            currentStep = 7;
+            updateProgress(currentStep);
+            _justFinished = true;
+            renderPhase(8);
+            avancar(_selectedPasta, true); // skipDetect — não re-renderiza ao terminar
+            break;
+        }
+        case 8: window.location.href='/app/'; break;
+        default: break;
+    }
+}
+
+function wizardPrev() {
+    if (currentStep <= 2) { window.location.href = '/app/'; return; }
+    currentStep--;
+    updateProgress(currentStep);
+    document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+    const panel = document.getElementById(`panel-${stepToPanel(currentStep)}`);
+    if (panel) panel.classList.remove('hidden');
+}
+
+// ─── AVANCAR (endpoint dedicado do wizard) ─────────
+async function avancar(message, skipDetect = false) {
+    setLoading(true);
+    try {
+        const r = await fetch(`/parecer/${PARECER_ID}/wizard/next/`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':CSRF_TOKEN},
+            body: JSON.stringify({message}),
+        });
+        const data = await r.json();
+        await handleResponse(data, skipDetect);
+    } catch(e) { toast('Erro de comunicação.','error'); setLoading(false); }
+}
+
+// ─── SEND (legado — usado apenas pelo doUpload via /chat/message/) ──
+async function send(message) {
+    setLoading(true);
+    try {
+        const r = await fetch('/chat/message/', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':CSRF_TOKEN},
+            body: JSON.stringify({message, parecer_id: PARECER_ID}),
+        });
+        const data = await r.json();
+        await handleResponse(data);
+    } catch(e) { toast('Erro de comunicação.','error'); setLoading(false); }
+}
+
+async function handleResponse(data, skipDetect = false) {
+    if (data.error) { toast(data.error,'error'); setLoading(false); return; }
+    if (data.is_processing && data.task_id) { startSSE(data.task_id, data.task_type); return; }
+    if (!skipDetect && data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); }
+    setLoading(false);
+}
+
+// ─── UPLOAD ────────────────────────────────────────
+function initUpload() {
+    const input = document.getElementById('file-input-wizard');
+    const zone  = document.getElementById('drop-zone');
+    input.addEventListener('change', e => addFiles(e.target.files));
+    zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); addFiles(e.dataTransfer.files); });
+}
+
+function addFiles(files) {
+    for (const f of files) if (!selectedFiles.some(x=>x.name===f.name)) selectedFiles.push(f);
+    renderFileList();
+    if (selectedFiles.length) document.getElementById('nome-field').classList.remove('hidden');
+}
+
+function removeFile(i) {
+    selectedFiles.splice(i,1); renderFileList();
+    if (!selectedFiles.length) document.getElementById('nome-field').classList.add('hidden');
+}
+
+function renderFileList() {
+    const el = document.getElementById('file-list');
+    if (!selectedFiles.length) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.innerHTML = selectedFiles.map((f,i) => `
+        <div class="file-item">
+            <i class="ph ph-file-pdf" style="font-size:16px;flex-shrink:0;"></i>
+            <span class="file-item-name">${f.name}</span>
+            <button class="file-item-remove" onclick="removeFile(${i})"><i class="ph ph-x"></i></button>
+        </div>`).join('');
+}
+
+async function doUpload(nome) {
+    setLoading(true,'Enviando arquivos...');
+    const fd = new FormData();
+    fd.append('message', nome);
+    fd.append('parecer_id', PARECER_ID || '');
+    selectedFiles.forEach((f,i) => fd.append(`file_${i}`, f));
+    selectedFiles = [];
+    try {
+        const data = await new Promise((res, rej) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST','/chat/message/',true);
+            xhr.setRequestHeader('X-CSRFToken', CSRF_TOKEN);
+            xhr.upload.onprogress = e => { if(e.lengthComputable) setBtnLabel(`Enviando... ${Math.round(e.loaded/e.total*100)}%`); };
+            xhr.onload = () => xhr.status<400 ? res(JSON.parse(xhr.responseText)) : rej();
+            xhr.onerror = () => rej();
+            xhr.send(fd);
+        });
+        await handleResponse(data);
+    } catch { toast('Erro ao enviar arquivos.','error'); setLoading(false); }
+}
+
+// ─── POLLING (substituiu SSE para compatibilidade WSGI) ────────────
+const SSE_LABELS = {
+    FASE1:['Lendo documentos...','Extraindo informações...','Verificando prazos...'],
+    FASE2:['Organizando argumentos...','Consultando normas...','Verificando datas...'],
+    FASE3:['Calculando admissibilidade...','Verificando prescrições...'],
+    FASE4:['Extraindo teses...','Analisando argumentos...'],
+    FASE5:['Gerando Parecer Técnico...','Elaborando fundamentação...','Finalizando...'],
+    PREJUDICIALIDADE:['Gerando Parecer...','Calculando resultado...'],
+    MERITO:['Elaborando fundamentos...','Redigindo conclusão...','Finalizando parecer...'],
+};
+
+function showTaskError(msg) {
+    // Encontra o painel de loading visível (verifica offsetParent para checar visibilidade real)
+    const loadingPanels = ['p1-loading','p2-loading','p3-loading','p4-loading'];
+    let panel = null;
+    for (const id of loadingPanels) {
+        const el = document.getElementById(id);
+        if (el && el.offsetParent !== null && !el.classList.contains('hidden')) { panel = el; break; }
+    }
+    if (!panel) {
+        toast(`Erro: ${msg}`, 'error');
+        return;
+    }
+    panel.innerHTML = `
+        <div class="flex flex-col items-center gap-4 py-8 text-center px-4">
+            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+                <i class="ph ph-warning-circle text-red-500 text-2xl"></i>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-gray-800 mb-1">Falha no processamento</p>
+                <p class="text-xs text-gray-500 max-w-xs">${msg}</p>
+            </div>
+            <button onclick="window.location.reload()" class="mt-1 px-5 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+                Tentar novamente
+            </button>
+        </div>`;
+}
+
+function startSSE(taskId, taskType) {
+    // Polling a cada 3s — compatível com WSGI/Gunicorn
+    const labels = SSE_LABELS[taskType] || ['Processando...'];
+    const lbl = getLabelEl();
+    if (lbl) rotateLabel(lbl.id, labels);
+
+    const MAX_POLLS = 200;  // 200 × 3s = 10 min
+    let polls = 0;
+
+    const poll = async () => {
+        polls++;
+        if (polls > MAX_POLLS) {
+            showTaskError('Tempo limite esgotado. Verifique sua conexão e tente novamente.');
+            setLoading(false);
+            return;
+        }
+        try {
+            const res = await fetch(`/chat/task-status/${taskId}/?parecer_id=${PARECER_ID}`);
+            const d = await res.json();
+            if (d.status === 'SUCCESS') {
+                if (window._reloadAfterFase1 || ['FASE1','FASE2','FASE4','PREJUDICIALIDADE','MERITO'].includes(taskType)) { if(window._slowProgressInterval)clearInterval(window._slowProgressInterval); window.location.reload(); return; }
+                if (d.status_fase !== undefined) currentFase = d.status_fase;
+                setLoading(false); detectState();
+            } else if (d.status === 'FAILURE') {
+                showTaskError(d.error || 'Falha no processamento. Verifique sua conexão e tente novamente.');
+                setLoading(false);
+            } else {
+                setTimeout(poll, 3000);
+            }
+        } catch(e) {
+            console.error('Poll error:', e);
+            setTimeout(poll, 5000);
+        }
+    };
+    setTimeout(poll, 2000);
+}
+
+function getLabelEl() {
+    const map={1:'p1-loading-lbl',10:'p1-loading-lbl',2:'p1-loading-lbl',3:'p2-loading-lbl',4:'p3-loading-lbl',5:'p4-loading-lbl'};
+    return document.getElementById(map[currentFase]||'');
+}
+
+// ─── PROGRESS ANIM ─────────────────────────────────
+function startProgressAnim() {
+    const bar=document.getElementById('p4-progress-bar');
+    const pct=document.getElementById('p4-pct');
+    if(!bar) return;
+    let v=0;
+    // Fase rápida: 0→90% em ~25s
+    const iv=setInterval(()=>{
+        v=Math.min(v+Math.random()*2.5,90);
+        bar.style.width=v+'%';
+        if(pct)pct.textContent=Math.round(v)+'%';
+        if(v>=90){
+            clearInterval(iv);
+            // Fase lenta: 90→99% a 0.1%/s para não parecer travado
+            const slow=setInterval(()=>{
+                v=Math.min(v+0.1,99);
+                bar.style.width=v+'%';
+                if(pct)pct.textContent=Math.round(v)+'%';
+            },1000);
+            window._slowProgressInterval=slow;
+        }
+    },700);
+}
+
+// ─── UI HELPERS ────────────────────────────────────
+function setLoading(val, label='') {
+    isProcessing = val;
+    document.querySelectorAll('.btn-primary, .btn-secondary').forEach(b => b.disabled = val);
+    if (label) setBtnLabel(label);
+}
+function setBtnLabel(txt) {
+    document.querySelectorAll(`#panel-${stepToPanel(currentStep)} .btn-primary`).forEach(b => {
+        if (b.disabled) b.innerHTML=`<div class="btn-spinner"></div> ${txt}`;
+    });
+}
+
+let _rotIntervals = {};
+function rotateLabel(id, labels) {
+    if (_rotIntervals[id]) clearInterval(_rotIntervals[id]);
+    const el=document.getElementById(id); if(!el) return;
+    let i=0; el.textContent=labels[0];
+    _rotIntervals[id]=setInterval(()=>{ i=(i+1)%labels.length; if(el)el.textContent=labels[i]; },2500);
+}
+
+function toast(msg, type='error') {
+    const el=document.getElementById('toast');
+    el.textContent=msg;
+    const c={error:'#dc2626',warning:'#d97706',success:'#16a34a',info:'#2563eb'};
+    el.style.background=c[type]||c.error;
+    el.style.display='block';
+    setTimeout(()=>el.style.display='none',4000);
+}
+
+
+</script>
+
+<!-- Clerk JS -->
+<script>
+function setClerkAvatar(imageUrl) {
+    if (!imageUrl) return;
+    const img = `<img src="${imageUrl}" class="w-full h-full rounded-full object-cover" alt="avatar">`;
+    const av1 = document.getElementById('user-avatar');
+    const av2 = document.getElementById('user-avatar-dropdown');
+    if (av1) av1.innerHTML = img;
+    if (av2) av2.innerHTML = img;
+}
+</script>
+<script async crossorigin="anonymous"
+    data-clerk-publishable-key="{{ CLERK_PUBLISHABLE_KEY }}"
+    src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+    type="text/javascript"
+    onload="if(window.Clerk){window.Clerk.load().then(()=>{if(window.Clerk.user)setClerkAvatar(window.Clerk.user.imageUrl);});}"></script>
+</body>
+</html>

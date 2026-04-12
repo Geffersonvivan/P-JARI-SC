@@ -43,9 +43,6 @@ def landing_page_view(request):
 def home_view(request):
     if not request.user.is_authenticated:
         return redirect('landing')
-        
-    if not request.session.session_key:
-        request.session.create()
 
     filter_kwargs = _get_filter_kwargs(request)
 
@@ -58,20 +55,15 @@ def home_view(request):
     ).order_by('posicao', '-created_at'))
 
     pasta_outros = next((p for p in todas_pastas if p.nome_pasta == "Outros"), None)
-
-    if not pasta_outros:
-        pasta_outros = Pasta.objects.create(nome_pasta="Outros", **filter_kwargs)
-        pasta_outros.num_projetos = 0
-        # Simula o objeto carregado para evitar que o template acione Lazy Load no BD
-        from django.db.models.query import QuerySet
-        setattr(pasta_outros, '_prefetched_objects_cache', {'projetos': []})
-    else:
+    if pasta_outros:
         todas_pastas.remove(pasta_outros)
 
     pastas = todas_pastas
 
     # Calcula o total de julgados somando as contagens que já estão na memória (Economiza 1 query extra)
-    total_julgados = sum(p.num_projetos for p in pastas) + pasta_outros.num_projetos
+    total_julgados = sum(p.num_projetos for p in pastas)
+    if pasta_outros:
+        total_julgados += pasta_outros.num_projetos
 
     from ..models import BancoTese, PostForum, ComentarioForum
     if request.user.is_authenticated:
@@ -91,15 +83,33 @@ def home_view(request):
         tem_novidade_forum = bool(
             ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso)
         )
-        posts_forum = [] # A lista é zerada pois a home não renderiza o forum diretamente
+        posts_forum = PostForum.objects.select_related('autor').prefetch_related('curtidas', 'comentarios__autor').order_by('-data_criacao')[:50]
     else:
         banco_teses = []
         teses_comunidade = []
         posts_forum = []
         tem_novidade_forum = False
 
+    user_credits = 0
+    user_is_pro = False
+    user_avatar_url = ''
+    if request.user.is_authenticated:
+        try:
+            user_credits = request.user.profile.credits
+            user_is_pro = request.user.profile.is_pro
+        except Exception:
+            pass
+        try:
+            from allauth.socialaccount.models import SocialAccount
+            social = SocialAccount.objects.filter(user=request.user, provider='google').first()
+            if social:
+                user_avatar_url = social.extra_data.get('picture', '')
+        except Exception:
+            pass
+
     return render(request, 'home.html', {
         'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', ''),
+        'user_avatar_url': user_avatar_url,
         'pasta_outros': pasta_outros,
         'pastas': pastas,
         'total_julgados': total_julgados,
@@ -109,4 +119,6 @@ def home_view(request):
         'tem_novidade_forum': tem_novidade_forum,
         'pjari_version': getattr(settings, 'PJARI_VERSION', '1.2'),
         'online_users_count': total_julgados or 0,
+        'user_credits': user_credits,
+        'user_is_pro': user_is_pro,
     })

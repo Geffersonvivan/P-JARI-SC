@@ -8,6 +8,18 @@ db.sqlite3
 media/
 staticfiles/
 
+# Celery Beat — estado local, não deve ir ao repositório
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+celerybeat.pid
+
+# PIDs locais
+logs/*.pid
+
+# Tailwind CSS compilado — gerado no build da imagem Docker (npm run build:css)
+chat/static/css/tailwind.css
+
 # Python
 *.py[cod]
 *$py.class

@@ -1,22 +1,18 @@
 import json
+import calendar
+from datetime import date
 from django.shortcuts import render
+from django.http import HttpResponseForbidden
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch, Count, Q
-from ..models import Parecer, Pasta
+from django.db.models import Count, Q, Avg, F, ExpressionWrapper, Sum, Case, When, Value, BooleanField, DurationField
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from ..models import Parecer, BancoTese, ParecerFinal
 
 
 @login_required
 def estatisticas_view(request):
-    from datetime import datetime
-    from django.db.models import Avg, F, Count
-    from ..models import BancoTese, PostForum
-    from django.utils import timezone
-    from datetime import timedelta
-    from django.db.models.functions import TruncDate
-    import calendar
-    from datetime import date
-    from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
-    from ..models import BancoTese
 
     # Pegar mês e ano da requisição ou usar o atual
     hoje = timezone.localtime(timezone.now()).date()
@@ -28,8 +24,6 @@ def estatisticas_view(request):
         ano = hoje.year
 
     _, ultimo_dia_mes = calendar.monthrange(ano, mes)
-    data_inicio = date(ano, mes, 1)
-    data_fim = date(ano, mes, ultimo_dia_mes)
 
     # 1. Total Julgado (is_saved=True)
     total_julgados = Parecer.objects.filter(
@@ -78,21 +72,21 @@ def estatisticas_view(request):
         created_at__month=mes
     ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
 
-    total_finais = pareceres_base.count()
-    deferidos = 0
-    indeferidos = 0
+    # Uma única query para obter IDs e flag de indeferimento simultaneamente
+    all_pareceres_info = list(pareceres_base.annotate(
+        is_indef_base=Case(
+            When(parecer_final__icontains='INDEFERID', then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField()
+        )
+    ).values_list('id', 'is_indef_base'))
 
-    # Otimização N+1 Level 2: Realizar verificação de texto ("INDEFERID") no Banco de Dados
-    # Evita de baixar megabytes de textos para a memória do servidor Python
-    total_finais = pareceres_base.count()
-
-    ids_indeferidos_base = set(pareceres_base.filter(parecer_final__icontains='INDEFERID').values_list('id', flat=True))
-
-    from ..models import ParecerFinal
-    from django.db.models import Case, When, Value, BooleanField
+    total_finais = len(all_pareceres_info)
+    ids_indeferidos_base = {pid for pid, is_indef in all_pareceres_info if is_indef}
+    ids_base = [pid for pid, _ in all_pareceres_info]
 
     overrides_info = ParecerFinal.objects.filter(
-        parecer_referencia__in=pareceres_base.values('id')
+        parecer_referencia__in=ids_base
     ).annotate(
         is_indef=Case(
             When(conteudo_html__icontains='INDEFERID', then=Value(True)),
@@ -106,8 +100,6 @@ def estatisticas_view(request):
         final_overrides[pid] = is_indef
 
     indeferidos = 0
-    # Precisamos iterar os IDs pra somar e dar preferencia ao override (Painel do Editor)
-    ids_base = list(pareceres_base.values_list('id', flat=True))
     for pid in ids_base:
         if pid in final_overrides:
             if final_overrides[pid]:
@@ -187,18 +179,6 @@ def estatisticas_view(request):
                 'pct': pct
             })
 
-    # Replicar as pastas do menu lateral para manter a interface
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
-
-    pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
-    pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
-        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
-    ).first()
-
-    pastas = Pasta.objects.filter(user=request.user).exclude(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
-        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))
-    ).order_by('-created_at')
-
     # --- Créditos Variáveis ---
     total_usos_global = Parecer.objects.filter(user=request.user, is_saved=True).count()
     try:
@@ -221,24 +201,21 @@ def estatisticas_view(request):
         'radar_infracoes': radar_infracoes,
         'grafico_datas': json.dumps(datas),
         'grafico_totais': json.dumps(totais_por_dia),
-        'pasta_outros': pasta_outros,
-        'pastas': pastas,
         'ano_selecionado': ano,
         'mes_selecionado': mes,
         'mes_ano_input': f"{ano}-{mes:02d}",
         'total_usos_global': total_usos_global,
         'creditos_usuario': creditos_usuario,
         'is_pro': is_pro,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
-        'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
-        'posts_forum': PostForum.objects.select_related('autor').prefetch_related('curtidas', 'comentarios__autor').order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
     }
 
-    if request.user.is_authenticated:
-        ultimo_acesso = request.user.profile.ultimo_acesso_forum
-        posts = context.get('posts_forum') or []
-        primeiro_post = posts[0] if posts else None
-        context['tem_novidade_forum'] = bool(primeiro_post and (not ultimo_acesso or primeiro_post.data_criacao > ultimo_acesso))
+    try:
+        from allauth.socialaccount.models import SocialAccount
+        social = SocialAccount.objects.filter(user=request.user, provider='google').first()
+        context['user_avatar_url'] = social.extra_data.get('picture', '') if social else ''
+    except Exception:
+        context['user_avatar_url'] = ''
 
     return render(request, 'dashboard.html', context)
 
@@ -246,16 +223,9 @@ def estatisticas_view(request):
 @login_required
 def estatisticas_gerais_view(request):
     if not getattr(request.user.profile, 'can_view_global_stats', False) and not request.user.is_superuser:
-        from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Acesso Negado. Você não tem permissão para visualizar estatísticas globais.")
 
-    from django.utils import timezone
-    from datetime import timedelta
-    from django.db.models.functions import TruncDate
-    import calendar
-    from datetime import date
-    from ..models import Parecer, ParecerFinal, AiRequestLog, UserProfile, PjariCacheConfig, BancoTese, PostForum, SystemHealthCheck, TestRun
-    from django.db.models import Avg, F, ExpressionWrapper, fields, Sum
+    from ..models import AiRequestLog, UserProfile, PjariCacheConfig, SystemHealthCheck, TestRun
 
     hoje = timezone.localtime(timezone.now()).date()
     try:
@@ -302,7 +272,6 @@ def estatisticas_gerais_view(request):
     m_segundos = int(media_segundos) % 60
     media_tempo_julgamento = f"{m_minutos}m {m_segundos}s"
 
-    from django.contrib.auth import get_user_model
     User = get_user_model()
     total_usuarios_ativos = User.objects.filter(is_superuser=False).count()
 
@@ -313,18 +282,21 @@ def estatisticas_gerais_view(request):
         created_at__month=mes
     ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
 
-    total_finais = pareceres_base.count()
-    deferidos = 0
-    indeferidos = 0
+    # Uma única query para obter IDs e flag de indeferimento simultaneamente
+    all_pareceres_info = list(pareceres_base.annotate(
+        is_indef_base=Case(
+            When(parecer_final__icontains='INDEFERID', then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField()
+        )
+    ).values_list('id', 'is_indef_base'))
 
-    # Otimização N+1 Global: Conta via DB sem carregar texto original pra RAM
-    ids_indeferidos_base = set(pareceres_base.filter(parecer_final__icontains='INDEFERID').values_list('id', flat=True))
-
-    from ..models import ParecerFinal
-    from django.db.models import Case, When, Value, BooleanField
+    total_finais = len(all_pareceres_info)
+    ids_indeferidos_base = {pid for pid, is_indef in all_pareceres_info if is_indef}
+    ids_base = [pid for pid, _ in all_pareceres_info]
 
     overrides_info = ParecerFinal.objects.filter(
-        parecer_referencia__in=pareceres_base.values('id')
+        parecer_referencia__in=ids_base
     ).annotate(
         is_indef=Case(
             When(conteudo_html__icontains='INDEFERID', then=Value(True)),
@@ -338,7 +310,6 @@ def estatisticas_gerais_view(request):
         final_overrides[pid] = is_indef
 
     indeferidos = 0
-    ids_base = list(pareceres_base.values_list('id', flat=True))
     for pid in ids_base:
         if pid in final_overrides:
             if final_overrides[pid]:
@@ -374,7 +345,6 @@ def estatisticas_gerais_view(request):
         totais_por_dia.append(dados_dict.get(data_atual, 0))
 
     # 4. Uso de API (Custos e Tokens)
-    from django.db.models import Sum
     logs = AiRequestLog.objects.filter(data_requisicao__year=ano, data_requisicao__month=mes)
 
     tokens_gemini = logs.filter(provider__icontains='Gemini').aggregate(
@@ -393,7 +363,6 @@ def estatisticas_gerais_view(request):
     custo_vertex = consultas_vertex * 0.005
 
     # NOVAS MÉTRICAS IA (Latência, Dispersão, Fadiga e Defeito)
-    from django.db.models import Avg
     perplexity_logs_qs = logs.filter(provider__icontains='Perplexity')
     avg_latency_perplexity_ms = perplexity_logs_qs.aggregate(avg_lat=Avg('latency_ms'))['avg_lat'] or 0
     avg_latency_perplexity_sec = round(avg_latency_perplexity_ms / 1000, 2)
@@ -408,15 +377,6 @@ def estatisticas_gerais_view(request):
     top_fatigue_logs = logs.filter(provider__icontains='Gemini', input_tokens__gt=0).order_by('-input_tokens')[:5]
     pdf_defects_logs = logs.filter(provider__icontains='Gemini', is_pdf_defect=True).order_by('-data_requisicao')
     pdf_defects_count = pdf_defects_logs.count()
-
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True, created_at__year=ano, created_at__month=mes).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa').order_by('-created_at'))
-    pasta_outros, _ = Pasta.objects.get_or_create(nome_pasta="Outros", user=request.user)
-    pasta_outros = Pasta.objects.filter(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
-        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True, projetos__created_at__year=ano, projetos__created_at__month=mes))
-    ).first()
-    pastas = Pasta.objects.filter(user=request.user).exclude(id=pasta_outros.id).prefetch_related(projetos_salvos).annotate(
-        num_projetos=Count('projetos', filter=Q(projetos__is_saved=True, projetos__created_at__year=ano, projetos__created_at__month=mes))
-    ).order_by('-created_at')
 
     # --- NOVAS MÉTRICAS ESTRATÉGIAS ---
 
@@ -482,7 +442,7 @@ def estatisticas_gerais_view(request):
         is_saved=True, created_at__year=ano, created_at__month=mes,
         data_protocolo__isnull=False, data_sessao__isnull=False
     ).annotate(
-        diff_dias=ExpressionWrapper(F('data_sessao') - F('data_protocolo'), output_field=fields.DurationField())
+        diff_dias=ExpressionWrapper(F('data_sessao') - F('data_protocolo'), output_field=DurationField())
     ).aggregate(avg_diff=Avg('diff_dias'))
 
     avg_dias_funil = 0
@@ -490,30 +450,33 @@ def estatisticas_gerais_view(request):
         avg_dias_funil = processos_com_datas['avg_diff'].days
 
     # 10. Feedback Contínuo da IA (NPS e Tags)
-    feedbacks = Parecer.objects.filter(
+    feedbacks_qs = Parecer.objects.filter(
         is_saved=True, created_at__year=ano, created_at__month=mes, feedback_score__isnull=False
     )
 
-    media_nps_ia = feedbacks.aggregate(avg_score=Avg('feedback_score'))['avg_score']
+    media_nps_ia = feedbacks_qs.aggregate(avg_score=Avg('feedback_score'))['avg_score']
     nps_ia_fmt = f"{int(media_nps_ia)}%" if media_nps_ia is not None else "N/A"
+
+    # Carrega apenas os campos necessários para evitar textos longos na RAM
+    feedbacks_data = list(feedbacks_qs.filter(
+        Q(feedback_tags__isnull=False) | Q(feedback_notes__isnull=False)
+    ).exclude(feedback_tags='').values('id', 'nome_processo', 'feedback_score', 'feedback_tags', 'feedback_notes', 'created_at'))
 
     tags_contagem = {}
     feedbacks_com_texto = []
 
-    for fb in feedbacks:
-        if fb.feedback_tags:
-            tags_list = [t.strip() for t in fb.feedback_tags.split(',') if t.strip()]
-            for tag in tags_list:
+    for fb in feedbacks_data:
+        if fb['feedback_tags']:
+            for tag in [t.strip() for t in fb['feedback_tags'].split(',') if t.strip()]:
                 tags_contagem[tag] = tags_contagem.get(tag, 0) + 1
-
-        if fb.feedback_notes:
+        if fb['feedback_notes']:
             feedbacks_com_texto.append({
-                'id': fb.id,
-                'processo': fb.nome_processo,
-                'nota': fb.feedback_score,
-                'tags': fb.feedback_tags,
-                'texto': fb.feedback_notes,
-                'data': fb.created_at.strftime('%d/%m/%Y')
+                'id': fb['id'],
+                'processo': fb['nome_processo'],
+                'nota': fb['feedback_score'],
+                'tags': fb['feedback_tags'],
+                'texto': fb['feedback_notes'],
+                'data': fb['created_at'].strftime('%d/%m/%Y')
             })
 
     tags_ranking = sorted(tags_contagem.items(), key=lambda x: x[1], reverse=True)
@@ -534,8 +497,6 @@ def estatisticas_gerais_view(request):
         'donut_series': json.dumps(donut_series),
         'grafico_datas': json.dumps(datas),
         'grafico_totais': json.dumps(totais_por_dia),
-        'pasta_outros': pasta_outros,
-        'pastas': pastas,
         'ano_selecionado': ano,
         'mes_selecionado': mes,
         'mes_ano_input': f"{ano}-{mes:02d}",
@@ -569,15 +530,14 @@ def estatisticas_gerais_view(request):
         'taxa_conversao': taxa_conversao,
         'radar_infracoes': radar_infracoes_global,
         'avg_dias_funil': avg_dias_funil,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at') if request.user.is_authenticated else [],
-        'teses_comunidade': BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20] if request.user.is_authenticated else [],
-        'posts_forum': PostForum.objects.select_related('autor').prefetch_related('curtidas', 'comentarios__autor').order_by('-data_criacao')[:50] if request.user.is_authenticated else [],
+        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
     }
 
-    if request.user.is_authenticated:
-        ultimo_acesso = request.user.profile.ultimo_acesso_forum
-        posts = context.get('posts_forum') or []
-        primeiro_post = posts[0] if posts else None
-        context['tem_novidade_forum'] = bool(primeiro_post and (not ultimo_acesso or primeiro_post.data_criacao > ultimo_acesso))
+    try:
+        from allauth.socialaccount.models import SocialAccount
+        social = SocialAccount.objects.filter(user=request.user, provider='google').first()
+        context['user_avatar_url'] = social.extra_data.get('picture', '') if social else ''
+    except Exception:
+        context['user_avatar_url'] = ''
 
     return render(request, 'dashboard_global.html', context)
