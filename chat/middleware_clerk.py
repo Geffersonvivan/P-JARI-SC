@@ -154,13 +154,13 @@ class ClerkAuthenticationMiddleware:
                     return redirect('/')
                 
                 # Falha: se não for admin, força usuário anônimo
-                if not request.path.startswith('/admin/'):
+                if not request.path.startswith('/pjari-admin/'):
                     from django.contrib.auth.models import AnonymousUser
                     request.user = AnonymousUser()
         else:
             logger.debug("Token NÃO encontrado nos headers nem nos cookies.")
             # Sem token presente: ignora qualquer sessão legado se não for painel admin
-            if not request.path.startswith('/admin/'):
+            if not request.path.startswith('/pjari-admin/'):
                 from django.contrib.auth.models import AnonymousUser
                 request.user = AnonymousUser()
 
