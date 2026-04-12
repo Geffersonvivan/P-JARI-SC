@@ -447,7 +447,10 @@
                                     {% if parecer.pa %}<span class="f2-badge-ok">✓</span>
                                     {% else %}<span class="f2-badge-miss">—</span>{% endif %}
                                 </div>
-                                <div class="f2-readonly">{{ parecer.pa|default:'—' }}</div>
+                                <input id="f2-pa" class="f2-input"
+                                    value="{{ parecer.pa|default:'' }}"
+                                    placeholder="Número do PA"
+                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
                             </div>
                             <div>
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
@@ -455,7 +458,10 @@
                                     {% if parecer.sgpe %}<span class="f2-badge-ok">✓</span>
                                     {% else %}<span class="f2-badge-miss">—</span>{% endif %}
                                 </div>
-                                <div class="f2-readonly">{{ parecer.sgpe|default:'—' }}</div>
+                                <input id="f2-sgpe" class="f2-input"
+                                    value="{{ parecer.sgpe|default:'' }}"
+                                    placeholder="Número SGPE"
+                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
                             </div>
                         </div>
 
@@ -493,7 +499,10 @@
                                     {% if parecer.data_protocolo %}<span class="f2-badge-ok">✓</span>
                                     {% else %}<span class="f2-badge-miss">—</span>{% endif %}
                                 </div>
-                                <div class="f2-readonly">{{ parecer.data_protocolo|date:'d/m/Y'|default:'—' }}</div>
+                                <input id="f2-data_protocolo" class="f2-input"
+                                    value="{{ parecer.data_protocolo|date:'d/m/Y'|default:'' }}"
+                                    placeholder="DD/MM/AAAA"
+                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
                             </div>
                             <div>
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
@@ -501,7 +510,10 @@
                                     {% if parecer.paginas_defesa %}<span class="f2-badge-ok">✓</span>
                                     {% else %}<span class="f2-badge-miss">—</span>{% endif %}
                                 </div>
-                                <div class="f2-readonly">{{ parecer.paginas_defesa|default:'—' }}</div>
+                                <input id="f2-paginas_defesa" class="f2-input"
+                                    value="{{ parecer.paginas_defesa|default:'' }}"
+                                    placeholder="Ex: 54-56"
+                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
                             </div>
                         </div>
 
@@ -512,9 +524,6 @@
                             <i class="ph ph-check"></i> Confirmar e Avançar
                         </button>
 
-                        <p style="font-size:11px;color:#9ca3af;text-align:center;margin-top:10px;">
-                            Campos editáveis: Data da Sessão, Recorrente, Prazos
-                        </p>
             </div>
 
             <!-- Botões (ocultos na fase dados) -->
