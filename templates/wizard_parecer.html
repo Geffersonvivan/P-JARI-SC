@@ -165,7 +165,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-100 min-h-screen flex flex-col" style="visibility:hidden">
 
 <!-- ══ TOAST ══════════════════════════════════════════ -->
 <div id="toast" class="toast-wrap"></div>
@@ -985,6 +985,7 @@ function updateProgress(step) {
 function stepToPanel(step) { return step - 1; }
 
 function detectState() {
+    document.body.style.visibility = 'visible';
     // Parecer já finalizado acessado diretamente: redireciona para o editor
     if (currentFase === 8 && !_justFinished) {
         window.location.replace('/parecer/{{ parecer.id }}/editor/?from=wizard');
