@@ -74,14 +74,16 @@ def run_llm_phases(engine, task_id=None) -> str:
             executor.shutdown(wait=False, cancel_futures=True)
 
     # ── Geração do parecer (Anthropic + fallback Gemini) ─────────────────────
-    logger.info("[FASE5] Vertex/Perplexity prontos em %.1fs — chamando Anthropic...", _time.time()-_t0)
+    _provider = "Claude" if anthropic.client else "Gemini (fallback — Anthropic indisponível)"
+    logger.info("[FASE5] Vertex/Perplexity prontos em %.1fs — chamando %s...", _time.time()-_t0, _provider)
     try:
         parecer_text = anthropic.validate_and_generate_parecer(
             parecer, tese, perplexity_result, vertex_result, task_id=task_id
         )
-        logger.info("[FASE5] Anthropic concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
+        _provider_final = "Claude" if anthropic.client else "Gemini (fallback)"
+        logger.info("[FASE5] %s concluído em %.1fs — len=%d", _provider_final, _time.time()-_t0, len(parecer_text))
     except Exception as _anthropic_err:
-        logger.error("[FASE5] Anthropic falhou (%s) — tentando fallback Gemini", _anthropic_err)
+        logger.error("[FASE5] Claude falhou (%s) — tentando fallback Gemini direto", _anthropic_err)
         try:
             parecer_text = gemini.generate_parecer_gemini(
                 parecer, tese, perplexity_result, vertex_result, task_id=task_id

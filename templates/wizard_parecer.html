@@ -731,21 +731,30 @@
                 </div>
 
                 <!-- JariMatch + Tempo de Julgamento (preenchido via JS) -->
-                <div id="p5-jarimath" class="hidden flex flex-wrap gap-3 mb-6">
-                    <div id="p5-blindagem-card" class="hidden flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold flex-1">
-                        <i id="p5-blindagem-icon" class="ph text-lg flex-shrink-0"></i>
-                        <div>
-                            <span class="block text-xs font-normal opacity-70">JariMatch — Blindagem normativa</span>
-                            <span id="p5-blindagem-label"></span>
+                <div id="p5-jarimath" class="hidden mb-4">
+                    <!-- Cards lado a lado -->
+                    <div class="flex flex-wrap gap-3 mb-2">
+                        <div id="p5-blindagem-card" class="hidden flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold flex-1">
+                            <i id="p5-blindagem-icon" class="ph text-lg flex-shrink-0"></i>
+                            <div class="flex-1">
+                                <span class="block text-xs font-normal opacity-70">JariMatch — Blindagem normativa</span>
+                                <span id="p5-blindagem-label"></span>
+                            </div>
+                            <!-- Seta expansível -->
+                            <button id="p5-blindagem-toggle" onclick="toggleBlindagem()" class="ml-2 p-1 rounded-lg hover:bg-black/5 transition flex-shrink-0" title="Ver detalhes">
+                                <i id="p5-blindagem-arrow" class="ph ph-caret-down text-base transition-transform duration-200"></i>
+                            </button>
+                        </div>
+                        <div id="p5-tempo-card" class="hidden flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 flex-1">
+                            <i class="ph ph-timer text-lg flex-shrink-0"></i>
+                            <div>
+                                <span class="block text-xs font-normal opacity-70">Tempo de julgamento</span>
+                                <span id="p5-tempo-label"></span>
+                            </div>
                         </div>
                     </div>
-                    <div id="p5-tempo-card" class="hidden flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 flex-1">
-                        <i class="ph ph-timer text-lg flex-shrink-0"></i>
-                        <div>
-                            <span class="block text-xs font-normal opacity-70">Tempo de julgamento</span>
-                            <span id="p5-tempo-label"></span>
-                        </div>
-                    </div>
+                    <!-- Painel expansível de detalhes da blindagem -->
+                    <div id="p5-blindagem-detalhes" class="hidden rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap"></div>
                 </div>
 
                 <!-- Título da seção -->
@@ -1480,6 +1489,16 @@ function selecionarPasta(btn, nome) {
 let _justFinished = false; // true somente quando o user acabou de confirmar a pasta
 let _jariMatchScore = {{ blindagem_score|default:"null" }};
 let _tempoFmt = "{{ tempo_julgamento_fmt|escapejs }}" || null;
+let _blindagemDetalhes = "{{ blindagem_detalhes|escapejs }}" || null;
+
+function toggleBlindagem() {
+    const panel = document.getElementById('p5-blindagem-detalhes');
+    const arrow = document.getElementById('p5-blindagem-arrow');
+    if (!panel) return;
+    const open = !panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', open);
+    arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
 
 function renderJariMatch() {
     const wrap = document.getElementById('p5-jarimath');
@@ -1505,6 +1524,14 @@ function renderJariMatch() {
         icon.className = `ph ${iconCls} text-lg flex-shrink-0`;
         label.textContent = txt;
         card.classList.remove('hidden');
+        // Preenche painel de detalhes se houver conteúdo
+        const detPanel = document.getElementById('p5-blindagem-detalhes');
+        const toggleBtn = document.getElementById('p5-blindagem-toggle');
+        if (detPanel && _blindagemDetalhes) {
+            detPanel.textContent = _blindagemDetalhes;
+        } else if (toggleBtn) {
+            toggleBtn.classList.add('hidden'); // sem detalhes, esconde a seta
+        }
         hasContent = true;
     }
 
@@ -1775,6 +1802,7 @@ async function handleResponse(data, skipDetect = false) {
     if (data.is_processing && data.task_id) { startSSE(data.task_id, data.task_type); return; }
     if (data.blindagem_score !== undefined && data.blindagem_score !== null) _jariMatchScore = data.blindagem_score;
     if (data.tempo_julgamento_fmt) _tempoFmt = data.tempo_julgamento_fmt;
+    if (data.blindagem_detalhes) _blindagemDetalhes = data.blindagem_detalhes;
     if (!skipDetect && data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); }
     setLoading(false);
 }
