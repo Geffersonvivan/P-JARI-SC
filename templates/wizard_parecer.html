@@ -1468,7 +1468,7 @@ async function enviarFeedback(score, btn) {
     try {
         await fetch(`/api/parecer/${PARECER_ID}/feedback/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
             body: JSON.stringify({ score }),
         });
     } catch (_) {}
@@ -1490,7 +1490,7 @@ async function enviarTags() {
     try {
         await fetch(`/api/parecer/${PARECER_ID}/feedback/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
             body: JSON.stringify({ score: _fbScore, tags: _fbTags }),
         });
         document.getElementById('fb-tags-panel').innerHTML = '<p class="text-xs text-green-600 py-1 flex items-center gap-1"><i class="ph ph-check-circle"></i> Detalhes enviados. Obrigado!</p>';
@@ -1503,7 +1503,7 @@ async function enviarNotes() {
     try {
         await fetch(`/api/parecer/${PARECER_ID}/feedback/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
             body: JSON.stringify({ score: _fbScore, notes }),
         });
         document.getElementById('fb-notes-panel').innerHTML = '<p class="text-xs text-green-600 py-1 flex items-center gap-1"><i class="ph ph-check-circle"></i> Comentário enviado. Obrigado!</p>';
@@ -1533,7 +1533,7 @@ async function criarNovaPasta() {
     try {
         const res = await fetch('/api/pasta/create/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
             body: JSON.stringify({ nome }),
         });
         const data = await res.json();
@@ -1716,7 +1716,7 @@ async function doUpload(nome) {
         const data = await new Promise((res, rej) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST','/chat/message/',true);
-            xhr.setRequestHeader('X-CSRFToken', CSRF_TOKEN);
+            xhr.setRequestHeader('X-CSRFToken', getCsrf());
             xhr.upload.onprogress = e => { if(e.lengthComputable) setBtnLabel(`Enviando... ${Math.round(e.loaded/e.total*100)}%`); };
             xhr.onload = () => xhr.status<400 ? res(JSON.parse(xhr.responseText)) : rej();
             xhr.onerror = () => rej();

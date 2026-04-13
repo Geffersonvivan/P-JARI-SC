@@ -673,7 +673,8 @@
 
 <!-- ══ SCRIPTS PASTAS ════════════════════════════ -->
 <script>
-const _csrf = () => document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+const _csrfFallback = '{{ csrf_token }}';
+const _csrf = () => document.cookie.match(/csrftoken=([^;]+)/)?.[1] || _csrfFallback;
 
 // ── TOAST ────────────────────────────────────────
 function showToast(msg, type = 'success') {
@@ -1295,6 +1296,10 @@ async function submeterDocumentos() {
             headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: 'iniciar' })
         });
+        if (!res1.ok && res1.status !== 400) {
+            const txt = await res1.text().catch(() => '');
+            throw new Error(`HTTP ${res1.status}: ${txt.substring(0,200)}`);
+        }
         const d1 = await res1.json();
         if (d1.sem_creditos) {
             fecharModalIniciar();
@@ -1320,6 +1325,10 @@ async function submeterDocumentos() {
             headers: { 'X-CSRFToken': csrf },
             body: fd
         });
+        if (!res2.ok && res2.status !== 400) {
+            const txt = await res2.text().catch(() => '');
+            throw new Error(`HTTP ${res2.status}: ${txt.substring(0,200)}`);
+        }
         const d2 = await res2.json();
 
         if (d2.task_id) {
@@ -1334,8 +1343,9 @@ async function submeterDocumentos() {
             window.location.href = `/parecer/${_miParecerId}/wizard/`;
         }
     } catch(e) {
-        console.error(e);
-        showToast('Erro inesperado. Tente novamente.', 'error');
+        console.error('submeterDocumentos error:', e);
+        const msg = e?.message?.startsWith('HTTP') ? e.message : 'Erro inesperado. Tente novamente.';
+        showToast(msg, 'error');
         fecharModalIniciar();
     }
 }
