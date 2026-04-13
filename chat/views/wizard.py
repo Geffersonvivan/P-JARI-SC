@@ -55,6 +55,10 @@ def wizard_avancar_view(request, id):
             'status_fase': parecer.status_fase,
         })
 
+    # Reply de erro do engine (⚠️, ❌) → retorna como 'error' para o frontend exibir
+    if reply and (reply.startswith('⚠️') or reply.startswith('❌') or reply.startswith('⛔')):
+        return JsonResponse({'error': reply, 'status_fase': parecer.status_fase})
+
     return JsonResponse({
         'is_processing': False,
         'reply': reply,

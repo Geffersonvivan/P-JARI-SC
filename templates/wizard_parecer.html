@@ -1706,7 +1706,12 @@ async function send(message) {
 }
 
 async function handleResponse(data, skipDetect = false) {
-    if (data.error) { toast(data.error,'error'); setLoading(false); return; }
+    if (data.error) {
+        // Mostra o erro e atualiza a fase (para o backend poder regredir o estado)
+        toast(data.error.replace(/\*\*/g,'').replace(/^[⚠️❌⛔ ]+/,'').substring(0,220), 'error');
+        if (data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); } else { setLoading(false); }
+        return;
+    }
     if (data.is_processing && data.task_id) { startSSE(data.task_id, data.task_type); return; }
     if (!skipDetect && data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); }
     setLoading(false);
