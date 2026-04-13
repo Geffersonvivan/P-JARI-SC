@@ -444,24 +444,6 @@ async function submitCitacao(event) {
 
 {% include 'forum_modal.html' %}
 
-{% if request.user.is_authenticated and not request.user.profile.viu_boas_vindas %}
-<div id="onboarding-modal" class="fixed inset-0 z-[60] flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-    <div class="relative bg-white rounded-3xl w-full max-w-lg mx-4 p-10 shadow-2xl flex flex-col items-center">
-        <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-6">👋</div>
-        <h2 class="text-3xl font-bold text-gray-800 text-center mb-4">Bem-vindo(a) ao P-JARI/SC!</h2>
-        <p class="text-gray-600 text-center text-base mb-8 leading-relaxed">Eu sou o seu motor inteligente de análise de infrações. Estou aqui para te ajudar a organizar seus processos, cruzar dados com as legislações de trânsito e gerar fundamentos e pareceres automáticos com alta precisão.</p>
-        <button onclick="dismissOnboarding()" class="w-full bg-gray-900 hover:bg-black text-white text-lg font-bold py-4 px-6 rounded-full transition shadow-lg">Começar Agora</button>
-    </div>
-</div>
-<script>
-function dismissOnboarding() {
-    const modal = document.getElementById('onboarding-modal');
-    if (modal) { modal.style.opacity='0'; modal.style.transition='opacity 0.3s'; setTimeout(()=>modal.remove(),300); }
-    fetch("{% url 'dismiss_onboarding' %}", { method:'POST', headers:{'X-CSRFToken':'{{ csrf_token }}','Content-Type':'application/json'} }).catch(console.error);
-}
-</script>
-{% endif %}
 
 {% if request.user.is_authenticated and CLERK_PUBLISHABLE_KEY %}
 <script async crossorigin="anonymous"
