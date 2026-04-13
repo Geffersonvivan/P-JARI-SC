@@ -23,4 +23,4 @@ from .misc import (  # noqa: F401
     aceitar_termos_view, visualizar_termos_view, auth_sync_view,
     criar_pasta_view, renomear_pasta_view, logout_view,
 )
-from .wizard import wizard_parecer_view, wizard_avancar_view  # noqa: F401
+from .wizard import wizard_parecer_view, wizard_avancar_view, wizard_status_view  # noqa: F401
