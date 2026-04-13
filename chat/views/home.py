@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.db.models import Prefetch, Count, Q
 from django.conf import settings
+from django.views.decorators.csrf import ensure_csrf_cookie
 from ..models import Parecer, Pasta
 
 
@@ -40,6 +41,7 @@ def landing_page_view(request):
     })
 
 
+@ensure_csrf_cookie
 def home_view(request):
     if not request.user.is_authenticated:
         return redirect('landing')

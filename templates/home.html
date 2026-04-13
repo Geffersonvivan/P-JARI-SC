@@ -399,6 +399,9 @@
 
 </div><!-- /#pasta-drawer -->
 
+<!-- Token CSRF oculto — garante que o cookie existe e fornece o token para fetch() -->
+<form id="csrf-form" style="display:none">{% csrf_token %}</form>
+
 <!-- ══ PAGE ══════════════════════════════════════ -->
 <div class="w-full py-8 flex-1 flex flex-col" style="padding-left:50px;padding-right:50px;">
 
@@ -673,8 +676,11 @@
 
 <!-- ══ SCRIPTS PASTAS ════════════════════════════ -->
 <script>
-const _csrfFallback = '{{ csrf_token }}';
-const _csrf = () => document.cookie.match(/csrftoken=([^;]+)/)?.[1] || _csrfFallback;
+// Lê CSRF do campo oculto (mais confiável que cookie em alguns browsers) com fallback em cookie
+const _csrf = () =>
+    document.querySelector('#csrf-form [name=csrfmiddlewaretoken]')?.value ||
+    document.cookie.match(/csrftoken=([^;]+)/)?.[1] ||
+    '';
 
 // ── TOAST ────────────────────────────────────────
 function showToast(msg, type = 'success') {
