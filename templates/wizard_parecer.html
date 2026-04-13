@@ -715,7 +715,7 @@
                 </button>
 
                 <div class="flex items-center justify-end mt-6 pt-4 border-t border-gray-100">
-                    <button style="display:none;" class="items-center gap-2 px-8 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition"
+                    <button style="display:none;" class="btn-primary items-center gap-2 px-8 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition disabled:bg-blue-300 disabled:cursor-not-allowed"
                             id="btn-confirmar-pasta" onclick="wizardNext()">
                         Confirmar <i class="ph ph-arrow-right"></i>
                     </button>
@@ -1698,6 +1698,7 @@ async function wizardNext() {
             currentStep = 7;
             updateProgress(currentStep);
             _justFinished = true;
+            currentFase = 8; // impede re-disparo se user clicar novamente antes da resposta
             renderPhase(8);
             avancar(_selectedPasta, true); // skipDetect — não re-renderiza ao terminar
             break;
