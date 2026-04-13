@@ -730,36 +730,23 @@
                     <span class="text-green-700 font-medium">Parecer arquivado com sucesso.</span>
                 </div>
 
-                <!-- JariMatch + Tempo de Julgamento -->
-                {% if blindagem_score is not None or tempo_julgamento_fmt %}
-                <div class="flex flex-wrap gap-3 mb-6">
-                    {% if blindagem_score is not None %}
-                    <div class="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold flex-1
-                        {% if blindagem_score >= 80 %}bg-green-50 border border-green-200 text-green-700
-                        {% elif blindagem_score >= 50 %}bg-yellow-50 border border-yellow-200 text-yellow-700
-                        {% else %}bg-red-50 border border-red-200 text-red-700{% endif %}">
-                        <i class="ph {% if blindagem_score >= 80 %}ph-shield-check{% elif blindagem_score >= 50 %}ph-shield-warning{% else %}ph-shield-slash{% endif %} text-lg flex-shrink-0"></i>
+                <!-- JariMatch + Tempo de Julgamento (preenchido via JS) -->
+                <div id="p5-jarimath" class="hidden flex flex-wrap gap-3 mb-6">
+                    <div id="p5-blindagem-card" class="hidden flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold flex-1">
+                        <i id="p5-blindagem-icon" class="ph text-lg flex-shrink-0"></i>
                         <div>
                             <span class="block text-xs font-normal opacity-70">JariMatch — Blindagem normativa</span>
-                            <span>{{ blindagem_score }}/100
-                                {% if blindagem_score >= 80 %}· Aprovado
-                                {% elif blindagem_score >= 50 %}· Atenção
-                                {% else %}· Inconsistências{% endif %}
-                            </span>
+                            <span id="p5-blindagem-label"></span>
                         </div>
                     </div>
-                    {% endif %}
-                    {% if tempo_julgamento_fmt %}
-                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 flex-1">
+                    <div id="p5-tempo-card" class="hidden flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 flex-1">
                         <i class="ph ph-timer text-lg flex-shrink-0"></i>
                         <div>
                             <span class="block text-xs font-normal opacity-70">Tempo de julgamento</span>
-                            <span>{{ tempo_julgamento_fmt }}</span>
+                            <span id="p5-tempo-label"></span>
                         </div>
                     </div>
-                    {% endif %}
                 </div>
-                {% endif %}
 
                 <!-- Título da seção -->
                 <h2 class="text-base font-semibold text-gray-800 mb-1">Avalie o Parecer do PJARI</h2>
@@ -1095,6 +1082,7 @@ function renderPhase(f) {
     if (f===7)  { show('p5-pasta');   hide('p5-final'); }
     if (f===8)  {
         hide('p5-pasta'); show('p5-final');
+        renderJariMatch();
         // Acesso direto (já finalizado): oculta avaliação, mostra só navegação
         const fbOpcoes = document.getElementById('fb-opcoes');
         const fbTitle  = document.querySelector('#p5-final h2');
@@ -1490,6 +1478,46 @@ function selecionarPasta(btn, nome) {
 
 // ─── FEEDBACK ──────────────────────────────────────
 let _justFinished = false; // true somente quando o user acabou de confirmar a pasta
+let _jariMatchScore = {{ blindagem_score|default:"null" }};
+let _tempoFmt = "{{ tempo_julgamento_fmt|escapejs }}" || null;
+
+function renderJariMatch() {
+    const wrap = document.getElementById('p5-jarimath');
+    if (!wrap) return;
+    let hasContent = false;
+
+    if (_jariMatchScore !== null) {
+        const card  = document.getElementById('p5-blindagem-card');
+        const icon  = document.getElementById('p5-blindagem-icon');
+        const label = document.getElementById('p5-blindagem-label');
+        let cls, iconCls, txt;
+        if (_jariMatchScore >= 80) {
+            cls = 'bg-green-50 border border-green-200 text-green-700';
+            iconCls = 'ph-shield-check'; txt = `${_jariMatchScore}/100 · Aprovado`;
+        } else if (_jariMatchScore >= 50) {
+            cls = 'bg-yellow-50 border border-yellow-200 text-yellow-700';
+            iconCls = 'ph-shield-warning'; txt = `${_jariMatchScore}/100 · Atenção`;
+        } else {
+            cls = 'bg-red-50 border border-red-200 text-red-700';
+            iconCls = 'ph-shield-slash'; txt = `${_jariMatchScore}/100 · Inconsistências`;
+        }
+        card.className = `flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold flex-1 ${cls}`;
+        icon.className = `ph ${iconCls} text-lg flex-shrink-0`;
+        label.textContent = txt;
+        card.classList.remove('hidden');
+        hasContent = true;
+    }
+
+    if (_tempoFmt) {
+        const tempoCard  = document.getElementById('p5-tempo-card');
+        const tempoLabel = document.getElementById('p5-tempo-label');
+        tempoLabel.textContent = _tempoFmt;
+        tempoCard.classList.remove('hidden');
+        hasContent = true;
+    }
+
+    if (hasContent) wrap.classList.remove('hidden');
+}
 let _fbScore = null;
 let _fbTags  = [];
 
@@ -1744,6 +1772,8 @@ async function handleResponse(data, skipDetect = false) {
         return;
     }
     if (data.is_processing && data.task_id) { startSSE(data.task_id, data.task_type); return; }
+    if (data.blindagem_score !== undefined && data.blindagem_score !== null) _jariMatchScore = data.blindagem_score;
+    if (data.tempo_julgamento_fmt) _tempoFmt = data.tempo_julgamento_fmt;
     if (!skipDetect && data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); }
     setLoading(false);
 }

@@ -59,10 +59,15 @@ def wizard_avancar_view(request, id):
     if reply and (reply.startswith('⚠️') or reply.startswith('❌') or reply.startswith('⛔')):
         return JsonResponse({'error': reply, 'status_fase': parecer.status_fase})
 
+    _t = parecer.tempo_julgamento_segundos
     return JsonResponse({
         'is_processing': False,
         'reply': reply,
         'status_fase': parecer.status_fase,
+        'blindagem_score': parecer.blindagem_score,
+        'tempo_julgamento_fmt': (
+            f"{_t // 60} min {_t % 60} s" if _t and _t >= 60 else (f"{_t} s" if _t else None)
+        ),
     })
 
 
