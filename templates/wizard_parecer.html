@@ -876,6 +876,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (_pendingTaskId) {
         // Limpa o task_id da URL sem recarregar
         history.replaceState(null, '', window.location.pathname);
+        // Revela o corpo imediatamente (estava hidden para anti-FOUC)
+        document.body.style.visibility = 'visible';
         // FASE1 ainda está rodando: mostrar loading manualmente (dados ainda não extraídos)
         currentFase = 10;
         document.getElementById('panel-1')?.classList.remove('hidden');
