@@ -53,7 +53,7 @@ class GeminiClient:
                 return response, model
             except Exception as e:
                 err_str = str(e)
-                _transient = any(x in err_str for x in ('503', '429', 'UNAVAILABLE', 'overloaded', 'Too Many Requests'))
+                _transient = any(x in err_str for x in ('503', '504', '429', 'UNAVAILABLE', 'overloaded', 'Too Many Requests', 'DEADLINE_EXCEEDED'))
                 if _transient and attempt == 0:
                     _log.warning(f"_call_with_fallback [{fase_label}]: {model} indisponível — tentando {fallback_model}")
                     continue
