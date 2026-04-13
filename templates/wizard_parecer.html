@@ -1182,7 +1182,9 @@ async function confirmarDocumentos() {
     const pgEl = document.getElementById('f2-paginas_defesa');
     if (pgEl && pgEl.value.trim()) payload.paginas_defesa = pgEl.value.trim();
 
-    await avancar('FASE1_CONFIRM:' + JSON.stringify(payload));
+    const ok = await avancar('FASE1_CONFIRM:' + JSON.stringify(payload));
+    // Se a requisição falhou, reverte para o formulário de confirmação
+    if (!ok) { renderPhase(10); }
 }
 
 // ─── ADMISSIBILITY CARDS ───────────────────────────
@@ -1666,7 +1668,8 @@ async function avancar(message, skipDetect = false) {
         });
         const data = await r.json();
         await handleResponse(data, skipDetect);
-    } catch(e) { toast('Erro de comunicação.','error'); setLoading(false); }
+        return true;
+    } catch(e) { toast('Erro de comunicação.','error'); setLoading(false); return false; }
 }
 
 // ─── SEND (legado — usado apenas pelo doUpload via /chat/message/) ──
