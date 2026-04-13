@@ -13,4 +13,13 @@ from django.core.asgi import get_asgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
-application = get_asgi_application()
+_django_app = get_asgi_application()
+
+
+async def application(scope, receive, send):
+    # Uvicorn envia eventos 'lifespan' ao iniciar/parar.
+    # O handler ASGI do Django não suporta lifespan e levanta ValueError.
+    # Ignoramos silenciosamente para evitar o erro no Sentry.
+    if scope['type'] == 'lifespan':
+        return
+    await _django_app(scope, receive, send)
