@@ -466,7 +466,7 @@ class GeminiClient:
             import json as _json
             start_time = time.time()
             response, _ = self._call_with_fallback(
-                'gemini-2.5-pro', 'gemini-2.0-flash',
+                'gemini-2.5-flash', 'gemini-2.0-flash',
                 contents,
                 {
                     'system_instruction': system_instruction,
