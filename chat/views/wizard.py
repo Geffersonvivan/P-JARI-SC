@@ -4,13 +4,18 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from ..models import Parecer, Pasta
 
 
+@csrf_exempt
 @require_POST
 def wizard_avancar_view(request, id):
-    """Endpoint dedicado para avançar fases no wizard, sem depender do chat."""
+    """Endpoint dedicado para avançar fases no wizard, sem depender do chat.
+    CSRF exempto: protegido por autenticação Clerk JWT + SameSite=Lax no cookie,
+    que impede CSRF cross-origin para requisições POST.
+    """
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Sessão expirada. Recarregue a página e tente novamente.'}, status=401)
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
@@ -57,6 +62,7 @@ def wizard_avancar_view(request, id):
     })
 
 
+@csrf_exempt
 def wizard_status_view(request, id):
     """Retorna apenas o status_fase atual do parecer — usado pelo frontend para polling de fallback."""
     if not request.user.is_authenticated:
