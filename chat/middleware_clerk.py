@@ -148,6 +148,13 @@ class ClerkAuthenticationMiddleware:
                         if user:
                             request.user = user  # Injeta no ciclo do Django
 
+            except jwt.exceptions.ExpiredSignatureError:
+                # JWT expirado é comportamento esperado — Clerk JS renova silenciosamente.
+                # Log como warning para não poluir Sentry com eventos normais.
+                logger.warning("Clerk JWT expirado para %s — definindo AnonymousUser", request.path)
+                if not request.path.startswith('/pjari-admin/'):
+                    from django.contrib.auth.models import AnonymousUser
+                    request.user = AnonymousUser()
             except Exception as e:
                 logger.error("Erro ao validar token do Clerk: %s", e)
                 # Falha na validação: força usuário anônimo e deixa o fluxo continuar.
