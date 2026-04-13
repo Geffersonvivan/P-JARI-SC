@@ -217,6 +217,9 @@ def estatisticas_view(request):
     except Exception:
         context['user_avatar_url'] = ''
 
+    from django.conf import settings as _s
+    context['CLERK_PUBLISHABLE_KEY'] = getattr(_s, 'CLERK_PUBLISHABLE_KEY', '')
+
     return render(request, 'dashboard.html', context)
 
 
@@ -539,5 +542,8 @@ def estatisticas_gerais_view(request):
         context['user_avatar_url'] = social.extra_data.get('picture', '') if social else ''
     except Exception:
         context['user_avatar_url'] = ''
+
+    from django.conf import settings as _s
+    context['CLERK_PUBLISHABLE_KEY'] = getattr(_s, 'CLERK_PUBLISHABLE_KEY', '')
 
     return render(request, 'dashboard_global.html', context)
