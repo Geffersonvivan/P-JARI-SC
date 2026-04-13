@@ -1029,17 +1029,20 @@ function renderPhase(f) {
         collapsePdf();
         rotateLabel('p1-loading-lbl',['Extraindo datas sensíveis...','Consultando normas...','Calculando prazos...']);
         // Fallback: se não há task_id ativo (ex: refresh de página), polling do status DB
+        // Aguarda 6s antes do 1º poll para não disparar durante a transição 10→2 (race condition)
         if (!window._fase2FallbackActive) {
             window._fase2FallbackActive = true;
-            (function pollFase2Status() {
+            setTimeout(function pollFase2Status() {
                 fetch(`/parecer/${PARECER_ID}/wizard/status/`)
                     .then(r => r.json())
                     .then(d => {
-                        if (d.status_fase !== 2) { window.location.reload(); }
+                        // Só recarrega quando a fase avançou ALÉM de 2 (task concluída)
+                        // status_fase < 2 (ex: 10 ainda em transição) — aguarda sem reload
+                        if (d.status_fase > 2) { window.location.reload(); }
                         else { setTimeout(pollFase2Status, 4000); }
                     })
                     .catch(() => setTimeout(pollFase2Status, 6000));
-            })();
+            }, 6000);
         }
     }
     if (f===3)  {
