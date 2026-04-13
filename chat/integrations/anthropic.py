@@ -36,13 +36,21 @@ class AnthropicClient:
 
     def __init__(self):
         self.api_key = os.environ.get('ANTHROPIC_API_KEY')
-        self.client = Anthropic(api_key=self.api_key) if self.api_key else None
-        if not self.api_key and not AnthropicClient._missing_warned:
-            _log.error(
-                "ANTHROPIC_API_KEY ausente — FASE5 usará Gemini como fallback. "
-                "Configure a variável de ambiente ANTHROPIC_API_KEY no Railway para usar Claude."
-            )
-            AnthropicClient._missing_warned = True
+        if Anthropic is None:
+            self.client = None
+            if not AnthropicClient._missing_warned:
+                _log.error("Pacote 'anthropic' não instalado — FASE5 usará Gemini. Execute: pip install anthropic")
+                AnthropicClient._missing_warned = True
+        elif not self.api_key:
+            self.client = None
+            if not AnthropicClient._missing_warned:
+                _log.error(
+                    "ANTHROPIC_API_KEY ausente — FASE5 usará Gemini como fallback. "
+                    "Configure a variável de ambiente ANTHROPIC_API_KEY no Railway para usar Claude."
+                )
+                AnthropicClient._missing_warned = True
+        else:
+            self.client = Anthropic(api_key=self.api_key)
 
     def _log_tokens(self, parecer_obj, input_tokens, output_tokens, fase_nome, model_name=None, start_time=None):
         if not parecer_obj: return
