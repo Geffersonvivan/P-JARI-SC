@@ -21,9 +21,19 @@ def wizard_avancar_view(request, id):
 
     message = data.get('message', 'ok')
 
-    from ..jari_engine import JariEngine
-    engine = JariEngine(parecer)
-    reply = engine.process_message(message, [])
+    try:
+        from ..jari_engine import JariEngine
+        engine = JariEngine(parecer)
+        reply = engine.process_message(message, [])
+    except Exception as e:
+        import sentry_sdk, traceback
+        sentry_sdk.capture_exception(e)
+        import logging
+        logging.getLogger(__name__).error(
+            "wizard_avancar_view error (parecer=%s fase=%s): %s\n%s",
+            id, parecer.status_fase, e, traceback.format_exc()
+        )
+        return JsonResponse({'error': f'Erro interno ao processar fase: {str(e)[:120]}'}, status=500)
 
     parecer.refresh_from_db()
 
@@ -44,6 +54,13 @@ def wizard_avancar_view(request, id):
         'reply': reply,
         'status_fase': parecer.status_fase,
     })
+
+
+@login_required
+def wizard_status_view(request, id):
+    """Retorna apenas o status_fase atual do parecer — usado pelo frontend para polling de fallback."""
+    parecer = get_object_or_404(Parecer, id=id, user=request.user)
+    return JsonResponse({'status_fase': parecer.status_fase})
 
 
 @login_required

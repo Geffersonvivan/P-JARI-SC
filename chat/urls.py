@@ -16,6 +16,7 @@ urlpatterns = [
     path('parecer/<int:id>/editor/', views.editar_parecer_view, name='editar_parecer'),
     path('parecer/<int:id>/wizard/', views.wizard_parecer_view, name='wizard_parecer'),
     path('parecer/<int:id>/wizard/next/', views.wizard_avancar_view, name='wizard_avancar'),
+    path('parecer/<int:id>/wizard/status/', views.wizard_status_view, name='wizard_status'),
     path('parecer/<int:id>/salvar/', views.salvar_parecer_view, name='salvar_parecer'),
     path('planos/', views.planos_view, name='planos'),
     path('auth-sync/', views.auth_sync_view, name='auth_sync'),

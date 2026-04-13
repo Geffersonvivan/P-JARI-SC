@@ -1028,6 +1028,19 @@ function renderPhase(f) {
         document.getElementById('p1-footer').style.display = 'none';
         collapsePdf();
         rotateLabel('p1-loading-lbl',['Extraindo datas sensíveis...','Consultando normas...','Calculando prazos...']);
+        // Fallback: se não há task_id ativo (ex: refresh de página), polling do status DB
+        if (!window._fase2FallbackActive) {
+            window._fase2FallbackActive = true;
+            (function pollFase2Status() {
+                fetch(`/parecer/${PARECER_ID}/wizard/status/`)
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.status_fase !== 2) { window.location.reload(); }
+                        else { setTimeout(pollFase2Status, 4000); }
+                    })
+                    .catch(() => setTimeout(pollFase2Status, 6000));
+            })();
+        }
     }
     if (f===3)  {
         hide('p1-upload'); hide('p1-loading'); hide('p1-confirm'); hide('p1-dados');
