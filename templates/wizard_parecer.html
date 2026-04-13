@@ -1665,8 +1665,27 @@ async function avancar(message, skipDetect = false) {
             method:'POST',
             headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
             body: JSON.stringify({message}),
+            credentials: 'same-origin',
         });
-        const data = await r.json();
+        // Tenta parsear JSON independente do status HTTP
+        let data;
+        try { data = await r.json(); } catch {
+            // Resposta não é JSON (ex: redirect 302 para login, 502 do nginx)
+            if (r.redirected || r.status === 0) {
+                toast('Sessão expirada. Recarregando...', 'error');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                toast(`Erro de comunicação. (HTTP ${r.status})`, 'error');
+            }
+            setLoading(false);
+            return false;
+        }
+        if (r.status === 401) {
+            toast(data.error || 'Sessão expirada. Recarregue a página.', 'error');
+            setTimeout(() => window.location.reload(), 2000);
+            setLoading(false);
+            return false;
+        }
         await handleResponse(data, skipDetect);
         return true;
     } catch(e) { toast('Erro de comunicação.','error'); setLoading(false); return false; }

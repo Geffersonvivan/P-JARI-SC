@@ -8,10 +8,11 @@ from django.conf import settings
 from ..models import Parecer, Pasta
 
 
-@login_required
 @require_POST
 def wizard_avancar_view(request, id):
     """Endpoint dedicado para avançar fases no wizard, sem depender do chat."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Sessão expirada. Recarregue a página e tente novamente.'}, status=401)
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
 
     try:
@@ -56,9 +57,10 @@ def wizard_avancar_view(request, id):
     })
 
 
-@login_required
 def wizard_status_view(request, id):
     """Retorna apenas o status_fase atual do parecer — usado pelo frontend para polling de fallback."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'unauthenticated'}, status=401)
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
     return JsonResponse({'status_fase': parecer.status_fase})
 
