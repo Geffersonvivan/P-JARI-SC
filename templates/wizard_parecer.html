@@ -835,7 +835,11 @@
 <script>
 // ─── CONSTANTES ────────────────────────────────────
 const PARECER_ID  = {{ parecer.id }};
-const CSRF_TOKEN  = '{{ csrf_token_value }}';
+// Lê sempre do cookie para não usar token stale após deploy/reload
+function getCsrf() {
+    return document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '{{ csrf_token_value }}';
+}
+const CSRF_TOKEN  = '{{ csrf_token_value }}'; // fallback legado — substituído por getCsrf()
 let   currentFase = {{ status_fase }};
 let   currentStep = 1;
 let   activeES    = null;
@@ -1639,7 +1643,7 @@ async function avancar(message, skipDetect = false) {
     try {
         const r = await fetch(`/parecer/${PARECER_ID}/wizard/next/`, {
             method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRFToken':CSRF_TOKEN},
+            headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
             body: JSON.stringify({message}),
         });
         const data = await r.json();
@@ -1653,7 +1657,7 @@ async function send(message) {
     try {
         const r = await fetch('/chat/message/', {
             method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRFToken':CSRF_TOKEN},
+            headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
             body: JSON.stringify({message, parecer_id: PARECER_ID}),
         });
         const data = await r.json();
