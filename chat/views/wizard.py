@@ -112,6 +112,13 @@ def wizard_parecer_view(request, id):
         'tabela_datas_sensiveis': parecer.tabela_datas_sensiveis or '',
         'tese': parecer.tese or '',
         'blindagem_score': parecer.blindagem_score,
+        'blindagem_detalhes': parecer.blindagem_detalhes or '',
+        'tempo_julgamento_segundos': parecer.tempo_julgamento_segundos,
+        'tempo_julgamento_fmt': (
+            f"{parecer.tempo_julgamento_segundos // 60} min {parecer.tempo_julgamento_segundos % 60} s"
+            if parecer.tempo_julgamento_segundos and parecer.tempo_julgamento_segundos >= 60
+            else (f"{parecer.tempo_julgamento_segundos} s" if parecer.tempo_julgamento_segundos else None)
+        ),
         'is_tempestivo': parecer.is_tempestivo,
         'has_prescricao_punitiva': parecer.has_prescricao_punitiva,
         'has_prescricao_intercorrente': parecer.has_prescricao_intercorrente,
