@@ -204,7 +204,7 @@ def run(engine) -> str:
             )
             logger.info(f"[FASE2] PDF texto limitado — {_total_chars} chars — parecer={parecer.id}")
 
-    resultado = gemini.generate_phase2_report(parecer, contexto_textual_datas)
+    resultado = gemini.generate_phase2_report(parecer, contexto_textual_datas, pdf_chars=_total_chars)
 
     # ── Extração de campos estruturados (JSON) ────────────────────────────────
     # generate_phase2_report retorna dict via response_schema — sem regex frágil.

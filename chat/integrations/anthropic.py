@@ -13,7 +13,7 @@ _log = logging.getLogger(__name__)
 # Evita estouro silencioso de contexto da API e garante truncamento previsível.
 _LIMITES = {
     'admissibilidade': 10_000,
-    'tabela_datas':     5_000,
+    'tabela_datas':    15_000,  # aumentado de 5k: processos grandes tinham datas cortadas
     'analise_tese':    12_000,
     'tese':             3_000,
     'vertex':           6_000,
@@ -32,9 +32,17 @@ def _trunc(texto: str, label: str, max_chars: int) -> str:
 
 
 class AnthropicClient:
+    _missing_warned = False  # avisa apenas 1x no processo para não poluir logs
+
     def __init__(self):
         self.api_key = os.environ.get('ANTHROPIC_API_KEY')
         self.client = Anthropic(api_key=self.api_key) if self.api_key else None
+        if not self.api_key and not AnthropicClient._missing_warned:
+            _log.error(
+                "ANTHROPIC_API_KEY ausente — FASE5 usará Gemini como fallback. "
+                "Configure a variável de ambiente ANTHROPIC_API_KEY no Railway para usar Claude."
+            )
+            AnthropicClient._missing_warned = True
 
     def _log_tokens(self, parecer_obj, input_tokens, output_tokens, fase_nome, model_name=None, start_time=None):
         if not parecer_obj: return

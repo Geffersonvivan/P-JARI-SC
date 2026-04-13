@@ -12,7 +12,7 @@ _log = _logging.getLogger(__name__)
 # Limites de tamanho dos campos de texto antes de montar o prompt.
 _LIMITES = {
     'admissibilidade': 10_000,
-    'tabela_datas':     5_000,
+    'tabela_datas':    15_000,  # aumentado de 5k: processos grandes tinham datas cortadas
     'analise_tese':    12_000,
     'tese':             3_000,
     'vertex':           6_000,
@@ -38,24 +38,44 @@ class GeminiClient:
             if self.api_key else None
         )
 
-    def _call_with_fallback(self, preferred_model, fallback_model, contents, config, fase_label, parecer_obj, start_time):
-        """Chama generate_content com fallback automático em caso de 503/429/UNAVAILABLE."""
+    def _call_with_fallback(self, preferred_model, fallback_model, contents, config, fase_label, parecer_obj, start_time, retry_preferred=1):
+        """Chama generate_content com retry + fallback automático em caso de erros transitórios.
+
+        retry_preferred: nº de retentativas no modelo preferido antes de cair para o fallback.
+        Quando preferred_model == fallback_model (ex: PDF limitado que não aceita downgrade),
+        apenas retenta sem fallback real.
+        """
         import logging as _log_fb
         _log = _log_fb.getLogger(__name__)
-        for attempt, model in enumerate([preferred_model, fallback_model]):
+
+        _RETRY_DELAYS = [3, 8]  # segundos entre retentativas no preferred
+
+        # Monta sequência: preferred (1 + retry_preferred tentativas) → fallback (1 tentativa)
+        sequence = [preferred_model] * (1 + retry_preferred)
+        if fallback_model != preferred_model:
+            sequence.append(fallback_model)
+
+        for attempt, model in enumerate(sequence):
+            is_preferred = model == preferred_model
+            is_last = attempt == len(sequence) - 1
             try:
                 response = self.client.models.generate_content(
                     model=model, contents=contents, config=config
                 )
                 if attempt > 0:
-                    _log.warning(f"_call_with_fallback [{fase_label}]: fallback para {model} OK")
+                    _log.warning(f"_call_with_fallback [{fase_label}]: OK na tentativa {attempt + 1} com {model}")
                 self._log_tokens(parecer_obj, response, fase_label, model_name=model, start_time=start_time)
                 return response, model
             except Exception as e:
                 err_str = str(e)
                 _transient = any(x in err_str for x in ('503', '504', '429', 'UNAVAILABLE', 'overloaded', 'Too Many Requests', 'DEADLINE_EXCEEDED'))
-                if _transient and attempt == 0:
-                    _log.warning(f"_call_with_fallback [{fase_label}]: {model} indisponível — tentando {fallback_model}")
+                if _transient and not is_last:
+                    delay = _RETRY_DELAYS[min(attempt, len(_RETRY_DELAYS) - 1)]
+                    if is_preferred and attempt < retry_preferred:
+                        _log.warning(f"_call_with_fallback [{fase_label}]: {model} erro transitório (tentativa {attempt + 1}) — retry em {delay}s")
+                    else:
+                        _log.warning(f"_call_with_fallback [{fase_label}]: {model} indisponível — tentando {sequence[attempt + 1]} em {delay}s")
+                    time.sleep(delay)
                     continue
                 if "429" in err_str or "Too Many Requests" in err_str:
                     send_mail(
@@ -344,7 +364,7 @@ class GeminiClient:
             _log.warning(f"extract_fase1_fields falhou: {e}")
             return None
 
-    def generate_phase2_report(self, parecer_obj, contexto_textual_datas):
+    def generate_phase2_report(self, parecer_obj, contexto_textual_datas, pdf_chars=9999):
         """
         Retorna um dict com campos estruturados + tabela_markdown.
         Usa response_schema para eliminar regex frágil no parsing.
@@ -465,8 +485,20 @@ class GeminiClient:
         try:
             import json as _json
             start_time = time.time()
+            # PDF com texto limitado (< 2000 chars): proíbe downgrade para 2.0-flash
+            # pois ele não consegue extrair datas de PDFs corrompidos via visão.
+            # retry_preferred=2 tenta 2.5-flash até 3x antes de desistir.
+            if pdf_chars < 2000:
+                _preferred = 'gemini-2.5-flash'
+                _fallback  = 'gemini-2.5-flash'  # sem downgrade
+                _retries   = 2
+                _log.warning(f"[FASE2] PDF limitado ({pdf_chars} chars) — forçando {_preferred} sem fallback para 2.0-flash")
+            else:
+                _preferred = 'gemini-2.5-flash'
+                _fallback  = 'gemini-2.0-flash'
+                _retries   = 1
             response, _ = self._call_with_fallback(
-                'gemini-2.5-flash', 'gemini-2.0-flash',
+                _preferred, _fallback,
                 contents,
                 {
                     'system_instruction': system_instruction,
@@ -474,6 +506,7 @@ class GeminiClient:
                     'response_schema': _schema,
                 },
                 'Fase 2 (DIR)', parecer_obj, start_time,
+                retry_preferred=_retries,
             )
             return _json.loads(response.text)
         except Exception as e:
