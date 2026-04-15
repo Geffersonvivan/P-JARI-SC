@@ -1,3 +1,4 @@
+import re
 import json
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -7,6 +8,50 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from ..models import Parecer, Pasta
+
+
+def _parse_adm_sections(adm_txt: str) -> dict:
+    """
+    Extrai o texto do 'Cálculo fundamentado' para cada critério de admissibilidade.
+    Retorna dict: {TEMPESTIVIDADE: str, PUNITIVA: str, INTERCORRENTE: str, DECADENCIA: str}
+    """
+    KEYS = ['TEMPESTIVIDADE', 'PUNITIVA', 'INTERCORRENTE', 'DECADENCIA']
+    result = {k: '' for k in KEYS}
+    if not adm_txt:
+        return result
+
+    for key in KEYS:
+        marker_re = re.compile(
+            r'\[DECISAO_ADMISSIBILIDADE_' + key + r'(?::[A-Z_]+)?\]'
+        )
+        m = marker_re.search(adm_txt)
+        if not m:
+            continue
+        text_before = adm_txt[:m.start()]
+
+        # Estratégia 1: localiza "**Cálculo fundamentado" imediatamente antes do marcador
+        calc_idx = text_before.rfind('**Cálculo fundamentado')
+        if calc_idx == -1:
+            calc_idx = text_before.lower().rfind('cálculo fundamentado')
+        if calc_idx == -1:
+            calc_idx = text_before.lower().rfind('calculo fundamentado')
+
+        if calc_idx != -1:
+            result[key] = text_before[calc_idx:].strip()
+            continue
+
+        # Estratégia 2: texto entre o marcador anterior e este
+        all_markers = list(re.finditer(
+            r'\[DECISAO_ADMISSIBILIDADE_(\w+)(?::[A-Z_]+)?\]', adm_txt
+        ))
+        for i, mm in enumerate(all_markers):
+            if mm.group(1) != key:
+                continue
+            start = all_markers[i - 1].end() if i > 0 else 0
+            result[key] = adm_txt[start:mm.start()].strip()
+            break
+
+    return result
 
 
 @csrf_exempt
@@ -112,6 +157,7 @@ def wizard_parecer_view(request, id):
         'has_autuacao': bool(parecer.autuacao_pdf_path),
         'has_ata': bool(parecer.ata_pdf_path),
         'admissibilidade_texto': parecer.admissibilidade_texto or '',
+        'adm_sections': _parse_adm_sections(parecer.admissibilidade_texto or ''),
         'analise_tese_texto': parecer.analise_tese_texto or '',
         'parecer_final': parecer.parecer_final or '',
         'parecer_final_html': parecer_final_html,

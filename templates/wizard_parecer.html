@@ -867,6 +867,7 @@
 
 <!-- ══ DADOS DJANGO → JS ════════════════════════════ -->
 {{ admissibilidade_texto|json_script:"dj-adm" }}
+{{ adm_sections|json_script:"dj-adm-sections" }}
 {{ analise_tese_texto|json_script:"dj-tese" }}
 {{ parecer_final|json_script:"dj-parecer" }}
 {{ parecer_final_html|json_script:"dj-parecer-html" }}
@@ -888,6 +889,7 @@ let   isProcessing  = false;
 let   _selectedPasta = null;
 
 const ADM_TXT      = JSON.parse(document.getElementById('dj-adm').textContent);
+const ADM_SECTIONS = JSON.parse(document.getElementById('dj-adm-sections').textContent);
 const TESE_TXT     = JSON.parse(document.getElementById('dj-tese').textContent);
 const PARECER_TXT  = JSON.parse(document.getElementById('dj-parecer').textContent);
 const PARECER_HTML = JSON.parse(document.getElementById('dj-parecer-html').textContent);
@@ -1250,50 +1252,8 @@ function extrairResultado(cfg) {
 }
 
 function renderAdmCards() {
-    // ── 1. Extrai cálculo fundamentado por seção ──────────────────────────────
-    // Estratégia 1: busca o bloco entre "**Cálculo fundamentado:**" e o marcador
-    // Estratégia 2 (fallback): texto entre marcadores consecutivos
-    const sectionTexts = {};
-    if (ADM_TXT) {
-        const KEYS = ['TEMPESTIVIDADE','PUNITIVA','INTERCORRENTE','DECADENCIA'];
-        for (const rawKey of KEYS) {
-            const markerRe = new RegExp(`\\[DECISAO_ADMISSIBILIDADE_${rawKey}(?::[A-Z_]+)?\\]`);
-            const markerMatch = ADM_TXT.match(markerRe);
-            if (!markerMatch) continue;
-            const endPos = markerMatch.index;
-            const textBefore = ADM_TXT.slice(0, endPos);
-
-            // Estratégia 1: localiza o último heading bold antes do marcador
-            // (cobre formatos: **Título: [X]**, <u>**Título**</u>, etc.)
-            const headingRe = /(?:\*\*|<u>)(?:[A-ZÁÉÍÓÚÂÃÊ][^\n*<]{3,}?)(?:\*\*|<\/u>)/g;
-            const headMatches = [...textBefore.matchAll(headingRe)];
-            if (headMatches.length > 0) {
-                const lastH = headMatches[headMatches.length - 1];
-                const lineStart = textBefore.lastIndexOf('\n', lastH.index);
-                sectionTexts[rawKey] = textBefore.slice(lineStart + 1).trim();
-            }
-
-            // Estratégia 2 (fallback): busca explícita por "Cálculo fundamentado"
-            if (!sectionTexts[rawKey]) {
-                const calcIdx = textBefore.lastIndexOf('Cálculo fundamentado');
-                if (calcIdx !== -1) {
-                    const lineStart = textBefore.lastIndexOf('\n', calcIdx);
-                    sectionTexts[rawKey] = textBefore.slice(lineStart + 1).trim();
-                }
-            }
-
-            // Estratégia 3 (fallback final): texto entre marcadores consecutivos
-            if (!sectionTexts[rawKey]) {
-                const sMatches = [...ADM_TXT.matchAll(/\[DECISAO_ADMISSIBILIDADE_(\w+)(?::[A-Z_]+)?\]/g)];
-                for (let i = 0; i < sMatches.length; i++) {
-                    if (sMatches[i][1] !== rawKey) continue;
-                    const start = i === 0 ? 0 : sMatches[i-1].index + sMatches[i-1][0].length;
-                    sectionTexts[rawKey] = ADM_TXT.slice(start, sMatches[i].index).trim();
-                    break;
-                }
-            }
-        }
-    }
+    // ── 1. Textos de cálculo fundamentado (pré-extraídos pelo backend Python) ─
+    const sectionTexts = ADM_SECTIONS || {};
 
     // ── 2. Mapa de cores por resultado ────────────────────────────────────────
     const RMAP = {
