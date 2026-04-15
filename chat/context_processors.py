@@ -58,14 +58,14 @@ def pjari_info(request):
     # 3. Versão do P-JARI (controlada exclusivamente pelo admin)
     from .models import PjariVersion
 
-    versao_texto = cache.get('pjari_version_display_text')
+    versao_texto = cache.get('pjari_version_v2')
 
     if not versao_texto:
         versao_obj = PjariVersion.objects.first()
         if not versao_obj:
             versao_obj = PjariVersion.objects.create(major=1, minor=2, patch=0)
         versao_texto = str(versao_obj)
-        cache.set('pjari_version_display_text', versao_texto, timeout=600)
+        cache.set('pjari_version_v2', versao_texto, timeout=600)
     
     return {
         'pjari_version': versao_texto,

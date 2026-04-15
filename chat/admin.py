@@ -73,7 +73,7 @@ class PjariVersionAdmin(admin.ModelAdmin):
                     h.update(chunk)
             obj.logica_hash = h.hexdigest()
         super().save_model(request, obj, form, change)
-        cache.delete('pjari_version_display_text')
+        cache.delete('pjari_version_v2')
 
     def has_add_permission(self, request):
         # Apenas um registro permitido (Singleton)
