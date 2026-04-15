@@ -128,6 +128,14 @@ def run(engine) -> str:
     gemini = GeminiClient()
     checklist_texto = gemini.audit_parecer(parecer)
 
+    # Salva o relatório completo em blindagem_detalhes (usado pelo wizard JariMatch)
+    full_blindagem = "### 🛡️ Auditoria Final de Conformidade\n\n"
+    if inconsistencias:
+        full_blindagem += f"⚠️ **Inconsistências Críticas (JariMath):** {' '.join(inconsistencias)}\n\n"
+    full_blindagem += checklist_texto
+    parecer.blindagem_detalhes = full_blindagem
+    parecer.save(update_fields=['blindagem_detalhes'])
+
     # GAP-08: persistir resultado estruturado da auditoria para rastreabilidade
     try:
         parecer.checklist_auditoria_json = {
