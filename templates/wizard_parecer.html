@@ -53,9 +53,11 @@
         .adm-section-title { font-size: 14px; font-weight: 700; }
         .adm-icon-circle { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
         .adm-result-pill { margin-left: auto; display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-        .adm-fundamentacao { font-size: 13px; color: #374151; line-height: 1.65; margin-bottom: 14px; padding: 11px 14px; background: rgba(255,255,255,.7); border-radius: 8px; border: 1px solid rgba(0,0,0,.07); }
-        .adm-fundamentacao p { margin-bottom: 6px; } .adm-fundamentacao p:last-child { margin-bottom: 0; }
-        .adm-fundamentacao strong { font-weight: 600; color: #111827; }
+        .adm-fundamentacao { font-size: 13px; color: #1f2937; line-height: 1.75; margin-bottom: 14px; padding: 14px 16px; background: rgba(255,255,255,.85); border-radius: 10px; border: 1px solid rgba(0,0,0,.09); }
+        .adm-fundamentacao p { margin-bottom: 8px; } .adm-fundamentacao p:last-child { margin-bottom: 0; }
+        .adm-fundamentacao strong { font-weight: 700; color: #111827; }
+        .adm-fundamentacao u { text-decoration: underline; }
+        .adm-fundamentacao-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6b7280; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
         .adm-auto-result { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; padding: 6px 10px; background: rgba(255,255,255,.8); border-radius: 8px; margin-bottom: 12px; border: 1px solid rgba(0,0,0,.06); }
         /* ── ADM SUMMARY GRID ────────────────────── */
         .adm-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
@@ -1229,15 +1231,48 @@ function extrairResultado(cfg) {
 }
 
 function renderAdmCards() {
-    // ── 1. Extrai texto por seção do ADM_TXT (entre marcadores consecutivos) ──
+    // ── 1. Extrai cálculo fundamentado por seção ──────────────────────────────
+    // Estratégia 1: busca o bloco entre "**Cálculo fundamentado:**" e o marcador
+    // Estratégia 2 (fallback): texto entre marcadores consecutivos
     const sectionTexts = {};
     if (ADM_TXT) {
-        const sMatches = [...ADM_TXT.matchAll(/\[DECISAO_ADMISSIBILIDADE_(\w+)(?::[A-Z_]+)?\]/g)];
-        for (let i = 0; i < sMatches.length; i++) {
-            const rawKey = sMatches[i][1];
-            const start = i === 0 ? 0 : sMatches[i-1].index + sMatches[i-1][0].length;
-            const end = sMatches[i].index;
-            sectionTexts[rawKey] = ADM_TXT.slice(start, end).trim();
+        const KEYS = ['TEMPESTIVIDADE','PUNITIVA','INTERCORRENTE','DECADENCIA'];
+        for (const rawKey of KEYS) {
+            const markerRe = new RegExp(`\\[DECISAO_ADMISSIBILIDADE_${rawKey}(?::[A-Z_]+)?\\]`);
+            const markerMatch = ADM_TXT.match(markerRe);
+            if (!markerMatch) continue;
+            const endPos = markerMatch.index;
+            const textBefore = ADM_TXT.slice(0, endPos);
+
+            // Estratégia 1: localiza o último heading bold antes do marcador
+            // (cobre formatos: **Título: [X]**, <u>**Título**</u>, etc.)
+            const headingRe = /(?:\*\*|<u>)(?:[A-ZÁÉÍÓÚÂÃÊ][^\n*<]{3,}?)(?:\*\*|<\/u>)/g;
+            const headMatches = [...textBefore.matchAll(headingRe)];
+            if (headMatches.length > 0) {
+                const lastH = headMatches[headMatches.length - 1];
+                const lineStart = textBefore.lastIndexOf('\n', lastH.index);
+                sectionTexts[rawKey] = textBefore.slice(lineStart + 1).trim();
+            }
+
+            // Estratégia 2 (fallback): busca explícita por "Cálculo fundamentado"
+            if (!sectionTexts[rawKey]) {
+                const calcIdx = textBefore.lastIndexOf('Cálculo fundamentado');
+                if (calcIdx !== -1) {
+                    const lineStart = textBefore.lastIndexOf('\n', calcIdx);
+                    sectionTexts[rawKey] = textBefore.slice(lineStart + 1).trim();
+                }
+            }
+
+            // Estratégia 3 (fallback final): texto entre marcadores consecutivos
+            if (!sectionTexts[rawKey]) {
+                const sMatches = [...ADM_TXT.matchAll(/\[DECISAO_ADMISSIBILIDADE_(\w+)(?::[A-Z_]+)?\]/g)];
+                for (let i = 0; i < sMatches.length; i++) {
+                    if (sMatches[i][1] !== rawKey) continue;
+                    const start = i === 0 ? 0 : sMatches[i-1].index + sMatches[i-1][0].length;
+                    sectionTexts[rawKey] = ADM_TXT.slice(start, sMatches[i].index).trim();
+                    break;
+                }
+            }
         }
     }
 
