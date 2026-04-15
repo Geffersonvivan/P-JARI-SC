@@ -1158,8 +1158,8 @@ function fmtCitacao(tipo) {
 async function adicionarCitacao() {
     const titulo = document.getElementById('nova-citacao-input').value.trim();
     const conteudo = document.getElementById('nova-citacao-conteudo').value.trim();
-    if (!titulo || !conteudo) {
-        alert('Preencha o título e o conteúdo da citação.');
+    if (!titulo) {
+        alert('Preencha o título da citação.');
         return;
     }
 
