@@ -1117,7 +1117,8 @@ function renderPhase(f) {
     if (f===6)  { hide('p4-loading'); show('p4-content'); renderParecer(); }
     if (f===7)  { show('p5-pasta');   hide('p5-final');
                   const _btnPasta = document.getElementById('btn-confirmar-pasta');
-                  if (_btnPasta) _btnPasta.style.display = 'flex'; }
+                  // Só exibe o botão se já houver pasta selecionada (ex: refresh na fase 7)
+                  if (_btnPasta) _btnPasta.style.display = _selectedPasta ? 'flex' : 'none'; }
     if (f===8)  {
         hide('p5-pasta'); show('p5-final');
         renderJariMatch();
@@ -1741,12 +1742,10 @@ async function wizardNext() {
             await avancar(s); break;
         }
         case 6: {
-            // Navega imediatamente para painel de pasta com loading antes de aguardar backend
-            currentStep = 6;
-            updateProgress(currentStep);
+            // Aguarda o audit Gemini completar antes de mostrar a tela de pasta.
+            // Renderizar f=7 de forma otimista causava isProcessing=true bloqueando btn-confirmar-pasta.
             document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
             document.getElementById('panel-5')?.classList.remove('hidden');
-            renderPhase(7);
             await avancar('ok'); break;
         }
         case 7: {
