@@ -771,7 +771,7 @@
                         </div>
                     </div>
                     <!-- Painel expansível de detalhes da blindagem -->
-                    <div id="p5-blindagem-detalhes" class="hidden rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap"></div>
+                    <div id="p5-blindagem-detalhes" class="hidden rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm text-gray-700 leading-relaxed prose max-w-none"></div>
                 </div>
 
                 <!-- Título da seção -->
@@ -872,6 +872,7 @@
 {{ parecer_final|json_script:"dj-parecer" }}
 {{ parecer_final_html|json_script:"dj-parecer-html" }}
 {{ tabela_datas_sensiveis|json_script:"dj-tabela" }}
+{{ blindagem_detalhes|json_script:"dj-blindagem" }}
 
 <script>
 // ─── CONSTANTES ────────────────────────────────────
@@ -1501,7 +1502,7 @@ function selecionarPasta(btn, nome) {
 let _justFinished = false; // true somente quando o user acabou de confirmar a pasta
 let _jariMatchScore = {{ blindagem_score|default:"null" }};
 let _tempoFmt = "{{ tempo_julgamento_fmt|escapejs }}" || null;
-let _blindagemDetalhes = "{{ blindagem_detalhes|escapejs }}" || null;
+let _blindagemDetalhes = JSON.parse(document.getElementById('dj-blindagem').textContent) || null;
 
 function toggleBlindagem() {
     const panel = document.getElementById('p5-blindagem-detalhes');
@@ -1540,7 +1541,11 @@ function renderJariMatch() {
         const detPanel = document.getElementById('p5-blindagem-detalhes');
         const toggleBtn = document.getElementById('p5-blindagem-toggle');
         if (detPanel) {
-            detPanel.textContent = _blindagemDetalhes || 'Detalhes da análise de blindagem não disponíveis para este parecer.';
+            if (_blindagemDetalhes) {
+                detPanel.innerHTML = md(_blindagemDetalhes);
+            } else {
+                detPanel.textContent = 'Detalhes da análise de blindagem não disponíveis para este parecer.';
+            }
         }
         hasContent = true;
     }
