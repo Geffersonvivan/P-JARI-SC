@@ -390,7 +390,12 @@
 
             <!-- Sub: loading -->
             <div id="p1-loading" class="hidden flex flex-col items-center justify-center py-16 gap-4">
-                <div class="shimmer-track"></div>
+                <div class="w-full" style="max-width:360px;">
+                    <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1">
+                        <div id="p1-progress-bar" class="h-full bg-blue-600 rounded-full" style="width:0%;transition:width .5s;"></div>
+                    </div>
+                    <p id="p1-pct" class="text-xs text-gray-400 text-right">0%</p>
+                </div>
                 <p id="p1-loading-lbl" class="text-xs font-bold tracking-widest uppercase text-blue-600">Processando documentos...</p>
             </div>
 
@@ -545,7 +550,12 @@
 
             <!-- Loading F3 -->
             <div id="p2-loading" class="flex flex-col items-center justify-center py-16 gap-4">
-                <div class="shimmer-track"></div>
+                <div class="w-full" style="max-width:360px;">
+                    <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1">
+                        <div id="p2-progress-bar" class="h-full bg-blue-600 rounded-full" style="width:0%;transition:width .5s;"></div>
+                    </div>
+                    <p id="p2-pct" class="text-xs text-gray-400 text-right">0%</p>
+                </div>
                 <p id="p2-loading-lbl" class="text-xs font-bold tracking-widest uppercase text-blue-600">Calculando admissibilidade...</p>
             </div>
 
@@ -576,7 +586,12 @@
 
             <!-- Loading F4 -->
             <div id="p3-loading" class="flex flex-col items-center justify-center py-16 gap-4">
-                <div class="shimmer-track"></div>
+                <div class="w-full" style="max-width:360px;">
+                    <div class="h-1.5 bg-gray-200 rounded-full overflow-hidden mb-1">
+                        <div id="p3-progress-bar" class="h-full bg-blue-600 rounded-full" style="width:0%;transition:width .5s;"></div>
+                    </div>
+                    <p id="p3-pct" class="text-xs text-gray-400 text-right">0%</p>
+                </div>
                 <p id="p3-loading-lbl" class="text-xs font-bold tracking-widest uppercase text-blue-600">Extraindo teses defensivas...</p>
             </div>
 
@@ -911,6 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('p1-loading')?.classList.remove('hidden');
         document.getElementById('p1-footer').style.display = 'none';
         rotateLabel('p1-loading-lbl', ['Lendo documentos...','Extraindo informações...','Verificando prazos...']);
+        startFakeProgress('p1-progress-bar','p1-pct',800,1.8);
         updateProgress(2);
         setLoading(true);
         // Quando FASE1 terminar, recarrega a página para obter dados extraídos no template
@@ -1053,6 +1069,7 @@ function renderPhase(f) {
         document.getElementById('p1-footer').style.display = 'none';
         collapsePdf();
         rotateLabel('p1-loading-lbl',['Extraindo datas sensíveis...','Consultando normas...','Calculando prazos...']);
+        startFakeProgress('p1-progress-bar','p1-pct',800,1.8);
         // Fallback: se não há task_id ativo (ex: refresh de página), polling do status DB
         // Aguarda 6s antes do 1º poll para não disparar durante a transição 10→2 (race condition)
         if (!window._fase2FallbackActive) {
@@ -1079,11 +1096,13 @@ function renderPhase(f) {
         if (tEl && TABELA_TXT) tEl.innerHTML = md(TABELA_TXT);
     }
     if (f===32) { show('p2-loading'); hide('p2-content');
-                  rotateLabel('p2-loading-lbl',['Calculando prazos...','Verificando prescrição...','Analisando admissibilidade...']); }
-    if (f===31) { hide('p2-loading'); show('p2-content'); renderAdmCards(); }
+                  rotateLabel('p2-loading-lbl',['Calculando prazos...','Verificando prescrição...','Analisando admissibilidade...']);
+                  startFakeProgress('p2-progress-bar','p2-pct',700,2.2); }
+    if (f===31) { stopFakeProgress('p2-progress-bar','p2-pct'); hide('p2-loading'); show('p2-content'); renderAdmCards(); }
     if (f===4)  { collapsePdf(); show('p3-loading'); hide('p3-content');
-                  rotateLabel('p3-loading-lbl',['Extraindo teses defensivas...','Analisando argumentos...','Pesquisando jurisprudência...']); }
-    if (f===41) { hide('p3-loading'); show('p3-content'); renderTeseCards(); }
+                  rotateLabel('p3-loading-lbl',['Extraindo teses defensivas...','Analisando argumentos...','Pesquisando jurisprudência...']);
+                  startFakeProgress('p3-progress-bar','p3-pct',750,2.0); }
+    if (f===41) { stopFakeProgress('p3-progress-bar','p3-pct'); hide('p3-loading'); show('p3-content'); renderTeseCards(); }
     if (f===5)  { collapsePdf(); show('p4-loading'); hide('p4-content'); startProgressAnim(); }
     if (f===6)  { hide('p4-loading'); show('p4-content'); renderParecer(); }
     if (f===7)  { show('p5-pasta');   hide('p5-final');
@@ -1973,27 +1992,38 @@ function getLabelEl() {
 }
 
 // ─── PROGRESS ANIM ─────────────────────────────────
-function startProgressAnim() {
-    const bar=document.getElementById('p4-progress-bar');
-    const pct=document.getElementById('p4-pct');
+function startFakeProgress(barId, pctId, speedMs=700, step=2.5) {
+    // cancela intervalo anterior para o mesmo bar, se houver
+    const key = '_fakeProgress_'+barId;
+    if(window[key]) { clearInterval(window[key]); clearInterval(window[key+'_slow']); }
+    const bar=document.getElementById(barId);
+    const pct=document.getElementById(pctId);
     if(!bar) return;
+    bar.style.width='0%'; if(pct) pct.textContent='0%';
     let v=0;
-    // Fase rápida: 0→90% em ~25s
-    const iv=setInterval(()=>{
-        v=Math.min(v+Math.random()*2.5,90);
+    window[key]=setInterval(()=>{
+        v=Math.min(v+Math.random()*step,90);
         bar.style.width=v+'%';
         if(pct)pct.textContent=Math.round(v)+'%';
         if(v>=90){
-            clearInterval(iv);
-            // Fase lenta: 90→99% a 0.1%/s para não parecer travado
-            const slow=setInterval(()=>{
+            clearInterval(window[key]);
+            window[key+'_slow']=setInterval(()=>{
                 v=Math.min(v+0.1,99);
                 bar.style.width=v+'%';
                 if(pct)pct.textContent=Math.round(v)+'%';
             },1000);
-            window._slowProgressInterval=slow;
         }
-    },700);
+    },speedMs);
+}
+function stopFakeProgress(barId, pctId) {
+    const key = '_fakeProgress_'+barId;
+    clearInterval(window[key]); clearInterval(window[key+'_slow']);
+    const bar=document.getElementById(barId);
+    const pct=document.getElementById(pctId);
+    if(bar){bar.style.width='100%';} if(pct){pct.textContent='100%';}
+}
+function startProgressAnim() {
+    startFakeProgress('p4-progress-bar','p4-pct',700,2.5);
 }
 
 // ─── UI HELPERS ────────────────────────────────────
