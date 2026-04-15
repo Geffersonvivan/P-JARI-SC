@@ -96,8 +96,8 @@ def pjari_info(request):
             versao_obj.save()
                 
         versao_texto = str(versao_obj)
-        # Salva em cache para não re-processar MD5 do disco todo refresh (Expira em 10m)
-        cache.set('pjari_version_display_text', versao_texto, timeout=600)
+        # Salva em cache para não re-processar MD5 do disco todo refresh (Expira em 30s)
+        cache.set('pjari_version_display_text', versao_texto, timeout=30)
     
     return {
         'pjari_version': versao_texto,
