@@ -55,49 +55,17 @@ def pjari_info(request):
     
     total_online = real_users_count + ghost_users
     
-    # 3. Integração do Versionamento Semântico Dinâmico
+    # 3. Versão do P-JARI (controlada exclusivamente pelo admin)
     from .models import PjariVersion
-    import os
-    import hashlib
 
-    # Tentativa de busca rápida no Cache
     versao_texto = cache.get('pjari_version_display_text')
 
     if not versao_texto:
-        # Busca a versão no banco (cria se não existir)
         versao_obj = PjariVersion.objects.first()
         if not versao_obj:
             versao_obj = PjariVersion.objects.create(major=1, minor=2, patch=0)
-            
-        # Caminho do Cérebro da JARI
-        logica_path = os.path.join(settings.BASE_DIR, 'logica_jari.md')
-        corrente_hash = None
-        
-        if os.path.exists(logica_path):
-            with open(logica_path, 'rb') as f:
-                file_hash = hashlib.md5()
-                # Ler em blocos para eficiência
-                while chunk := f.read(8192):
-                    file_hash.update(chunk)
-                corrente_hash = file_hash.hexdigest()
-                
-        # Verifica se a Lógica mudou desde o último registro
-        if corrente_hash and versao_obj.logica_hash != corrente_hash:
-            # Só soma se não for o primeiro acesso onde logica_hash era vazio
-            if versao_obj.logica_hash is not None:
-                # A Lógica mudou: Sobe a casa Minor (Y) e reseta o Patch (Z)
-                versao_obj.minor += 1
-                if versao_obj.minor > 9:
-                    versao_obj.major += 1
-                    versao_obj.minor = 0
-                versao_obj.patch = 0
-            
-            versao_obj.logica_hash = corrente_hash
-            versao_obj.save()
-                
         versao_texto = str(versao_obj)
-        # Salva em cache para não re-processar MD5 do disco todo refresh (Expira em 30s)
-        cache.set('pjari_version_display_text', versao_texto, timeout=30)
+        cache.set('pjari_version_display_text', versao_texto, timeout=600)
     
     return {
         'pjari_version': versao_texto,
