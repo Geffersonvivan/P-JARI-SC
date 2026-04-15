@@ -1067,7 +1067,7 @@ async function deletarParecer(parecerId, btn) {
                             <span class="text-xs text-gray-400">{{ tese.created_at|date:"d/m/Y" }}</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <div class="flex items-center gap-1">
                         <button onclick="editarCitacao(this)"
                             class="flex-shrink-0 p-1.5 text-gray-300 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-all">
                             <i class="ph ph-pencil text-base"></i>
@@ -1254,7 +1254,7 @@ async function salvarCitacao() {
                     <p class="text-sm font-semibold text-gray-800 truncate">${escHtml(titulo)}</p>
                     ${conteudo ? `<p class="text-xs text-gray-400 line-clamp-2 mt-0.5">${escHtml(conteudo.substring(0, 120))}</p>` : ''}
                 </div>
-                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <div class="flex items-center gap-1">
                     <button onclick="editarCitacao(this)" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-all">
                         <i class="ph ph-pencil text-base"></i>
                     </button>
