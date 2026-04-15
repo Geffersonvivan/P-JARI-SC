@@ -1516,6 +1516,14 @@ function toggleBlindagem() {
     const arrow = document.getElementById('p5-blindagem-arrow');
     if (!panel) return;
     const open = !panel.classList.contains('hidden');
+    if (!open) {
+        // Renderiza o conteúdo mais recente ao abrir
+        if (_blindagemDetalhes) {
+            panel.innerHTML = md(_blindagemDetalhes);
+        } else {
+            panel.textContent = 'Detalhes da análise de blindagem não disponíveis para este parecer.';
+        }
+    }
     panel.classList.toggle('hidden', open);
     arrow.style.transform = open ? '' : 'rotate(180deg)';
 }
@@ -1824,7 +1832,11 @@ async function handleResponse(data, skipDetect = false) {
     if (data.is_processing && data.task_id) { startSSE(data.task_id, data.task_type); return; }
     if (data.blindagem_score !== undefined && data.blindagem_score !== null) _jariMatchScore = data.blindagem_score;
     if (data.tempo_julgamento_fmt) _tempoFmt = data.tempo_julgamento_fmt;
-    if (data.blindagem_detalhes) _blindagemDetalhes = data.blindagem_detalhes;
+    if (data.blindagem_detalhes) {
+        _blindagemDetalhes = data.blindagem_detalhes;
+        const _dp = document.getElementById('p5-blindagem-detalhes');
+        if (_dp && !_dp.classList.contains('hidden')) _dp.innerHTML = md(_blindagemDetalhes);
+    }
     if (!skipDetect && data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); }
     setLoading(false);
 }
