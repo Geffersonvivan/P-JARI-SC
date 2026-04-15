@@ -1525,10 +1525,8 @@ function renderJariMatch() {
         // Preenche painel de detalhes se houver conteúdo
         const detPanel = document.getElementById('p5-blindagem-detalhes');
         const toggleBtn = document.getElementById('p5-blindagem-toggle');
-        if (detPanel && _blindagemDetalhes) {
-            detPanel.textContent = _blindagemDetalhes;
-        } else if (toggleBtn) {
-            toggleBtn.classList.add('hidden'); // sem detalhes, esconde a seta
+        if (detPanel) {
+            detPanel.textContent = _blindagemDetalhes || 'Detalhes da análise de blindagem não disponíveis para este parecer.';
         }
         hasContent = true;
     }
