@@ -63,10 +63,41 @@ class PDFExtractor:
                     # PDF com xref corrompido: page.get_text() trava em C-level ignorando time_limit
                     if "xref" in _w.lower() or "format error" in _w.lower():
                         return [], 0
+
+                # ── 1ª passagem: extração de texto nativo ───────────────────
+                page_texts = []
                 for page_num in range(len(doc)):
-                    page = doc[page_num]
-                    text = page.get_text("text")
+                    text = doc[page_num].get_text("text")
                     total_chars += len(text)
+                    page_texts.append(text)
+
+                # ── OCR fallback: PDF escaneado (texto nativo insuficiente) ─
+                OCR_THRESHOLD = 500
+                if total_chars < OCR_THRESHOLD:
+                    logger.info("PDFExtractor (%s): texto nativo=%d chars < %d — tentando OCR",
+                                doc_type, total_chars, OCR_THRESHOLD)
+                    ocr_available = True
+                    ocr_total = 0
+                    ocr_texts = []
+                    for page_num in range(len(doc)):
+                        try:
+                            tp = doc[page_num].get_textpage_ocr(
+                                flags=0, language='por', dpi=300, full=True
+                            )
+                            ocr_text = doc[page_num].get_text(textpage=tp)
+                            ocr_total += len(ocr_text)
+                            ocr_texts.append(ocr_text)
+                        except Exception as ocr_err:
+                            logger.warning("PDFExtractor OCR indisponível (%s): %s — instale tesseract-ocr", doc_type, ocr_err)
+                            ocr_available = False
+                            break
+                    if ocr_available and ocr_total > total_chars:
+                        logger.info("PDFExtractor OCR (%s): obteve %d chars", doc_type, ocr_total)
+                        page_texts = ocr_texts
+                        total_chars = ocr_total
+
+                # ── 2ª passagem: extração de datas do texto final ────────────
+                for page_num, text in enumerate(page_texts):
                     lines = text.split('\n')
                     for line in lines:
                         line_clean = line.strip()
@@ -134,10 +165,23 @@ class PDFExtractor:
                     _logging.getLogger(__name__).warning(f"PDFExtractor MuPDF (infracao): {_w.strip()}")
                     if "xref" in _w.lower() or "format error" in _w.lower():
                         return None
-                text = ""
                 # Lê até as 5 primeiras páginas (geralmente o AIT tá no topo)
-                for page_num in range(min(5, len(doc))):
+                pages_to_read = min(5, len(doc))
+                text = ""
+                for page_num in range(pages_to_read):
                     text += doc[page_num].get_text("text") + "\n"
+
+                # OCR fallback para PDFs escaneados
+                if len(text.strip()) < 500:
+                    ocr_text = ""
+                    for page_num in range(pages_to_read):
+                        try:
+                            tp = doc[page_num].get_textpage_ocr(flags=0, language='por', dpi=300, full=True)
+                            ocr_text += doc[page_num].get_text(textpage=tp) + "\n"
+                        except Exception:
+                            break
+                    if len(ocr_text.strip()) > len(text.strip()):
+                        text = ocr_text
                     
                 lines = text.split('\n')
                 
