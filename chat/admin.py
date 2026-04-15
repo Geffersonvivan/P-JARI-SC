@@ -61,6 +61,17 @@ class PjariVersionAdmin(admin.ModelAdmin):
     )
 
     def save_model(self, request, obj, form, change):
+        # Sincroniza o logica_hash com o estado atual do arquivo para evitar
+        # que o context_processor auto-incremente o minor logo após o save manual
+        import os, hashlib
+        from django.conf import settings as dj_settings
+        logica_path = os.path.join(dj_settings.BASE_DIR, 'logica_jari.md')
+        if os.path.exists(logica_path):
+            with open(logica_path, 'rb') as f:
+                h = hashlib.md5()
+                while chunk := f.read(8192):
+                    h.update(chunk)
+            obj.logica_hash = h.hexdigest()
         super().save_model(request, obj, form, change)
         cache.delete('pjari_version_display_text')
 
