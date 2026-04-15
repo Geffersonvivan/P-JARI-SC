@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog, Subscription
 
 class UserProfileInline(admin.StackedInline):
@@ -58,6 +59,10 @@ class PjariVersionAdmin(admin.ModelAdmin):
             'fields': ('logica_hash', 'atualizado_em')
         }),
     )
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        cache.delete('pjari_version_display_text')
 
     def has_add_permission(self, request):
         # Apenas um registro permitido (Singleton)
