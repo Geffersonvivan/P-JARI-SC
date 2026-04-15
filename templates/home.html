@@ -1016,16 +1016,34 @@ async function deletarParecer(parecerId, btn) {
 
         <!-- Formulário nova citação -->
         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Nova citação</p>
-            <div class="flex gap-2">
-                <input id="nova-citacao-input" type="text" placeholder="Título ou texto da citação..."
-                    class="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400">
-                <textarea id="nova-citacao-conteudo" placeholder="Conteúdo completo (opcional)..." rows="1"
-                    class="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 resize-none"></textarea>
-                <button onclick="adicionarCitacao()"
-                    class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-xl hover:bg-purple-700 transition-colors flex items-center gap-1.5">
-                    <i class="ph ph-plus"></i> Adicionar
-                </button>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Nova citação</p>
+            <div class="flex flex-col gap-2">
+                <!-- Título -->
+                <input id="nova-citacao-input" type="text" placeholder="Título da citação..."
+                    class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 bg-white">
+
+                <!-- Toolbar de formatação -->
+                <div class="flex items-center gap-1 px-1">
+                    <button type="button" onclick="fmtCitacao('bold')" title="Negrito" class="fmt-btn w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:bg-purple-100 hover:text-purple-700 transition-colors text-xs font-bold">B</button>
+                    <button type="button" onclick="fmtCitacao('italic')" title="Itálico" class="fmt-btn w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:bg-purple-100 hover:text-purple-700 transition-colors text-xs italic">I</button>
+                    <button type="button" onclick="fmtCitacao('underline')" title="Sublinhado" class="fmt-btn w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:bg-purple-100 hover:text-purple-700 transition-colors text-xs underline">U</button>
+                    <span class="w-px h-4 bg-gray-200 mx-1"></span>
+                    <button type="button" onclick="fmtCitacao('quote')" title="Citação" class="fmt-btn w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:bg-purple-100 hover:text-purple-700 transition-colors text-sm">"</button>
+                    <button type="button" onclick="fmtCitacao('list')" title="Lista" class="fmt-btn w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:bg-purple-100 hover:text-purple-700 transition-colors"><i class="ph ph-list-bullets text-sm"></i></button>
+                    <button type="button" onclick="fmtCitacao('divider')" title="Separador" class="fmt-btn w-7 h-7 flex items-center justify-center rounded-md text-gray-500 hover:bg-purple-100 hover:text-purple-700 transition-colors text-xs">—</button>
+                </div>
+
+                <!-- Conteúdo -->
+                <textarea id="nova-citacao-conteudo" placeholder="Texto da citação com formatação..." rows="4"
+                    class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 resize-y bg-white font-mono leading-relaxed"></textarea>
+
+                <!-- Botão -->
+                <div class="flex justify-end">
+                    <button onclick="adicionarCitacao()"
+                        class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-xl hover:bg-purple-700 transition-colors flex items-center gap-1.5">
+                        <i class="ph ph-plus"></i> Adicionar
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1113,6 +1131,29 @@ function closeCitacoesModal() {
 }
 
 // Escape handled by unified listener in modal-iniciar block
+
+function fmtCitacao(tipo) {
+    const ta = document.getElementById('nova-citacao-conteudo');
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = ta.value.substring(start, end);
+    const map = {
+        bold:     { wrap: ['**', '**'],        default: 'negrito' },
+        italic:   { wrap: ['_', '_'],           default: 'itálico' },
+        underline:{ wrap: ['__', '__'],         default: 'sublinhado' },
+        quote:    { wrap: ['"', '"'],           default: 'citação' },
+        list:     { wrap: ['• ', ''],           default: 'item' },
+        divider:  { wrap: ['\n---\n', ''],      default: '' },
+    };
+    const { wrap, default: def } = map[tipo];
+    const text = sel || def;
+    const inserted = wrap[0] + text + wrap[1];
+    ta.setRangeText(inserted, start, end, 'select');
+    ta.focus();
+    if (!sel) {
+        ta.selectionStart = start + wrap[0].length;
+        ta.selectionEnd   = start + wrap[0].length + text.length;
+    }
+}
 
 async function adicionarCitacao() {
     const titulo = document.getElementById('nova-citacao-input').value.trim();
