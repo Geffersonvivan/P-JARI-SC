@@ -1101,7 +1101,14 @@ function renderPhase(f) {
     if (f===32) { show('p2-loading'); hide('p2-content');
                   rotateLabel('p2-loading-lbl',['Calculando prazos...','Verificando prescrição...','Analisando admissibilidade...']);
                   startFakeProgress('p2-progress-bar','p2-pct',700,2.2); }
-    if (f===31) { stopFakeProgress('p2-progress-bar','p2-pct'); hide('p2-loading'); show('p2-content'); renderAdmCards(); }
+    if (f===31) {
+        stopFakeProgress('p2-progress-bar','p2-pct');
+        // ADM_SECTIONS foi calculado no carregamento da página.
+        // Se estiver vazio, a página foi aberta ANTES do cálculo terminar → recarrega para obter os dados.
+        const _hasAdmSections = ADM_SECTIONS && Object.values(ADM_SECTIONS).some(v => v);
+        if (!_hasAdmSections) { window.location.reload(); return; }
+        hide('p2-loading'); show('p2-content'); renderAdmCards();
+    }
     if (f===4)  { collapsePdf(); show('p3-loading'); hide('p3-content');
                   rotateLabel('p3-loading-lbl',['Extraindo teses defensivas...','Analisando argumentos...','Pesquisando jurisprudência...']);
                   startFakeProgress('p3-progress-bar','p3-pct',750,2.0); }
