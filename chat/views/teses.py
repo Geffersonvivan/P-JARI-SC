@@ -11,14 +11,14 @@ def create_citacao_view(request):
     is_public_str = request.POST.get('is_public', 'true')
     is_public = str(is_public_str).lower() == 'true'
 
-    if not titulo or not conteudo:
-        return JsonResponse({'error': 'Título e Conteúdo são obrigatórios.'}, status=400)
+    if not titulo:
+        return JsonResponse({'error': 'Título é obrigatório.'}, status=400)
 
     from ..models import BancoTese
     banco = BancoTese.objects.create(
         user=request.user,
         titulo=titulo,
-        conteudo=conteudo,
+        conteudo=conteudo or '',
         is_public=is_public
     )
 

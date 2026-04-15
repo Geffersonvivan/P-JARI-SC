@@ -1037,11 +1037,16 @@ async function deletarParecer(parecerId, btn) {
                 <textarea id="nova-citacao-conteudo" placeholder="Texto da citação com formatação..." rows="4"
                     class="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-400 resize-y bg-white font-mono leading-relaxed"></textarea>
 
-                <!-- Botão -->
-                <div class="flex justify-end">
-                    <button onclick="adicionarCitacao()"
+                <!-- Botões -->
+                <div class="flex justify-end gap-2">
+                    <button id="btn-cancelar-edicao" onclick="cancelarEdicaoCitacao()" style="display:none"
+                        class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-colors">
+                        Cancelar
+                    </button>
+                    <button id="btn-salvar-citacao" onclick="salvarCitacao()"
                         class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-xl hover:bg-purple-700 transition-colors flex items-center gap-1.5">
-                        <i class="ph ph-plus"></i> Adicionar
+                        <i class="ph ph-plus" id="btn-citacao-icon"></i>
+                        <span id="btn-citacao-label">Adicionar</span>
                     </button>
                 </div>
             </div>
@@ -1051,7 +1056,7 @@ async function deletarParecer(parecerId, btn) {
         <div class="flex-1 overflow-y-auto px-6 py-4 space-y-2" id="citacoes-list">
             {% if banco_teses %}
                 {% for tese in banco_teses %}
-                <div class="citacao-item flex items-start justify-between gap-3 p-3 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group" data-id="{{ tese.id }}">
+                <div class="citacao-item flex items-start justify-between gap-3 p-3 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group" data-id="{{ tese.id }}" data-titulo="{{ tese.titulo|escapejs }}" data-conteudo="{{ tese.conteudo|escapejs }}">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-gray-800 truncate">{{ tese.titulo|default:tese.conteudo|truncatechars:60 }}</p>
                         {% if tese.conteudo %}
@@ -1062,10 +1067,16 @@ async function deletarParecer(parecerId, btn) {
                             <span class="text-xs text-gray-400">{{ tese.created_at|date:"d/m/Y" }}</span>
                         </div>
                     </div>
-                    <button onclick="excluirCitacao({{ tese.id }}, this)"
-                        class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                        <i class="ph ph-trash text-base"></i>
-                    </button>
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <button onclick="editarCitacao(this)"
+                            class="flex-shrink-0 p-1.5 text-gray-300 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-all">
+                            <i class="ph ph-pencil text-base"></i>
+                        </button>
+                        <button onclick="excluirCitacao({{ tese.id }}, this)"
+                            class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                            <i class="ph ph-trash text-base"></i>
+                        </button>
+                    </div>
                 </div>
                 {% endfor %}
             {% else %}
@@ -1155,18 +1166,71 @@ function fmtCitacao(tipo) {
     }
 }
 
-async function adicionarCitacao() {
+let _editingCitacaoId = null;
+
+function editarCitacao(btn) {
+    const item = btn.closest('.citacao-item');
+    const id = item.dataset.id;
+    const titulo = item.dataset.titulo;
+    const conteudo = item.dataset.conteudo;
+    _editingCitacaoId = id;
+    document.getElementById('nova-citacao-input').value = titulo;
+    document.getElementById('nova-citacao-conteudo').value = conteudo;
+    document.getElementById('btn-citacao-icon').className = 'ph ph-check';
+    document.getElementById('btn-citacao-label').textContent = 'Salvar';
+    document.getElementById('btn-cancelar-edicao').style.display = '';
+    document.getElementById('nova-citacao-input').focus();
+    // Scroll para o formulário
+    document.getElementById('nova-citacao-input').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function cancelarEdicaoCitacao() {
+    _editingCitacaoId = null;
+    document.getElementById('nova-citacao-input').value = '';
+    document.getElementById('nova-citacao-conteudo').value = '';
+    document.getElementById('btn-citacao-icon').className = 'ph ph-plus';
+    document.getElementById('btn-citacao-label').textContent = 'Adicionar';
+    document.getElementById('btn-cancelar-edicao').style.display = 'none';
+}
+
+async function salvarCitacao() {
     const titulo = document.getElementById('nova-citacao-input').value.trim();
     const conteudo = document.getElementById('nova-citacao-conteudo').value.trim();
-    if (!titulo) {
-        alert('Preencha o título da citação.');
-        return;
-    }
+    if (!titulo) { alert('Preencha o título da citação.'); return; }
 
     const csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
     const formData = new FormData();
     formData.append('titulo', titulo);
     formData.append('conteudo', conteudo);
+
+    if (_editingCitacaoId) {
+        // EDITAR
+        try {
+            const res = await fetch(`/api/citacao/${_editingCitacaoId}/edit/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                const item = document.querySelector(`.citacao-item[data-id="${_editingCitacaoId}"]`);
+                if (item) {
+                    item.dataset.titulo = titulo;
+                    item.dataset.conteudo = conteudo;
+                    item.querySelector('p.font-semibold').textContent = titulo.substring(0, 60);
+                    const preview = item.querySelector('p.text-xs');
+                    if (conteudo) {
+                        if (preview) preview.textContent = conteudo.substring(0, 120);
+                        else item.querySelector('.flex-1').insertAdjacentHTML('beforeend', `<p class="text-xs text-gray-400 line-clamp-2 mt-0.5">${escHtml(conteudo.substring(0,120))}</p>`);
+                    } else if (preview) preview.remove();
+                }
+                cancelarEdicaoCitacao();
+            }
+        } catch (err) { console.error(err); }
+        return;
+    }
+
+    // CRIAR
     formData.append('is_public', 'false');
     try {
         const res = await fetch('/api/citacao/create/', {
@@ -1176,24 +1240,28 @@ async function adicionarCitacao() {
         });
         const data = await res.json();
         if (data.id) {
-            // Remove "empty" placeholder if present
             const empty = document.getElementById('citacoes-empty');
             if (empty) empty.remove();
 
-            // Prepend new item
             const list = document.getElementById('citacoes-list');
             const item = document.createElement('div');
             item.className = 'citacao-item flex items-start justify-between gap-3 p-3 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group';
             item.dataset.id = data.id;
+            item.dataset.titulo = titulo;
+            item.dataset.conteudo = conteudo;
             item.innerHTML = `
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-gray-800 truncate">${escHtml(titulo)}</p>
                     ${conteudo ? `<p class="text-xs text-gray-400 line-clamp-2 mt-0.5">${escHtml(conteudo.substring(0, 120))}</p>` : ''}
                 </div>
-                <button onclick="excluirCitacao(${data.id}, this)"
-                    class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                    <i class="ph ph-trash text-base"></i>
-                </button>`;
+                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <button onclick="editarCitacao(this)" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-all">
+                        <i class="ph ph-pencil text-base"></i>
+                    </button>
+                    <button onclick="excluirCitacao(${data.id}, this)" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                        <i class="ph ph-trash text-base"></i>
+                    </button>
+                </div>`;
             list.prepend(item);
             document.getElementById('nova-citacao-input').value = '';
             document.getElementById('nova-citacao-conteudo').value = '';
