@@ -131,7 +131,7 @@ def processar_fase4_task(self, parecer_id):
         raise Exception(f"Erro na Fase 4 (Celery Worker): {str(e)}")
 
 
-@shared_task(bind=True, time_limit=360, soft_time_limit=300, queue='fast')
+@shared_task(bind=True, time_limit=480, soft_time_limit=420, queue='fast')
 def processar_fase4_analise_task(self, parecer_id):
     """
     Executa a análise cruzada de teses (Perplexity + Vertex + Gemini) no worker Celery.

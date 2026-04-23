@@ -38,14 +38,20 @@ class GeminiClient:
             if self.api_key else None
         )
 
-    def _call_with_fallback(self, preferred_model, fallback_model, contents, config, fase_label, parecer_obj, start_time, retry_preferred=1):
+    def _call_with_fallback(self, preferred_model, fallback_model, contents, config, fase_label, parecer_obj, start_time, retry_preferred=1, per_call_timeout=None):
         """Chama generate_content com retry + fallback automático em caso de erros transitórios.
 
         retry_preferred: nº de retentativas no modelo preferido antes de cair para o fallback.
         Quando preferred_model == fallback_model (ex: PDF limitado que não aceita downgrade),
         apenas retenta sem fallback real.
+
+        per_call_timeout: timeout total (segundos) por chamada via thread daemon.
+        O SDK aplica timeout por chunk HTTP (não total), então chamadas longas como Gemini 2.5-pro
+        com thinking podem bloquear por minutos sem esse parâmetro. Quando estourado, o erro é
+        tratado como transitório e aciona o fallback para o modelo mais rápido.
         """
         import logging as _log_fb
+        import threading as _threading
         _log = _log_fb.getLogger(__name__)
 
         _RETRY_DELAYS = [3, 8]  # segundos entre retentativas no preferred
@@ -59,22 +65,50 @@ class GeminiClient:
             is_preferred = model == preferred_model
             is_last = attempt == len(sequence) - 1
             try:
-                response = self.client.models.generate_content(
-                    model=model, contents=contents, config=config
-                )
+                if per_call_timeout:
+                    # Thread daemon: garante timeout total mesmo com streaming lento do SDK.
+                    # O thread continua em background após timeout (daemon=True), sem bloquear o worker.
+                    _holder = [None, None]  # [response, exception]
+                    _m, _c, _co = model, contents, config  # captura por valor evita closure-bug no loop
+
+                    def _call_gemini(_m=_m, _c=_c, _co=_co):
+                        try:
+                            _holder[0] = self.client.models.generate_content(
+                                model=_m, contents=_c, config=_co
+                            )
+                        except Exception as _exc:
+                            _holder[1] = _exc
+
+                    _t = _threading.Thread(target=_call_gemini, daemon=True)
+                    _t.start()
+                    _t.join(timeout=per_call_timeout)
+                    if _t.is_alive():
+                        raise TimeoutError(
+                            f"Gemini {model} não respondeu em {per_call_timeout}s — timeout total excedido"
+                        )
+                    if _holder[1]:
+                        raise _holder[1]
+                    response = _holder[0]
+                else:
+                    response = self.client.models.generate_content(
+                        model=model, contents=contents, config=config
+                    )
                 if attempt > 0:
                     _log.warning(f"_call_with_fallback [{fase_label}]: OK na tentativa {attempt + 1} com {model}")
                 self._log_tokens(parecer_obj, response, fase_label, model_name=model, start_time=start_time)
                 return response, model
             except Exception as e:
                 err_str = str(e)
-                _transient = any(x in err_str for x in ('503', '504', '429', 'UNAVAILABLE', 'overloaded', 'Too Many Requests', 'DEADLINE_EXCEEDED'))
+                _transient = (
+                    isinstance(e, TimeoutError)
+                    or any(x in err_str for x in ('503', '504', '429', 'UNAVAILABLE', 'overloaded', 'Too Many Requests', 'DEADLINE_EXCEEDED'))
+                )
                 if _transient and not is_last:
                     delay = _RETRY_DELAYS[min(attempt, len(_RETRY_DELAYS) - 1)]
                     if is_preferred and attempt < retry_preferred:
                         _log.warning(f"_call_with_fallback [{fase_label}]: {model} erro transitório (tentativa {attempt + 1}) — retry em {delay}s")
                     else:
-                        _log.warning(f"_call_with_fallback [{fase_label}]: {model} indisponível — tentando {sequence[attempt + 1]} em {delay}s")
+                        _log.warning(f"_call_with_fallback [{fase_label}]: {model} timeout/indisponível — tentando {sequence[attempt + 1]} em {delay}s")
                     time.sleep(delay)
                     continue
                 if "429" in err_str or "Too Many Requests" in err_str:
@@ -717,7 +751,9 @@ class GeminiClient:
             response, _ = self._call_with_fallback(
                 'gemini-2.5-pro', 'gemini-2.0-flash',
                 contents, {'system_instruction': system_instruction},
-                'Fase 4 (Análise Mérito)', parecer_obj, start_time
+                'Fase 4 (Análise Mérito)', parecer_obj, start_time,
+                retry_preferred=0,    # 1 tentativa no 2.5-pro → fallback direto para 2.0-flash
+                per_call_timeout=120, # 2 min por modelo; garante saída mesmo com streaming lento
             )
             return response.text
         except Exception as e:
