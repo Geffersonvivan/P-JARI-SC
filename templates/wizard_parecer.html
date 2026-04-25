@@ -2134,26 +2134,53 @@ function startSSE(taskId, taskType) {
     if (lbl) rotateLabel(lbl.id, labels);
 
     const MAX_POLLS = 200;  // 200 × 3s = 10 min
+    const WARN_POLLS = 40;  // 40 × 3s = 2 min → aviso amarelo
     let polls = 0;
+    let pendingStreak = 0;  // quantas vezes consecutivas ficou em PENDING
+
+    const _showStuckBanner = (msg) => {
+        let b = document.getElementById('_stuck-banner');
+        if (b) return;
+        b = document.createElement('div');
+        b.id = '_stuck-banner';
+        b.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);max-width:420px;width:90%;';
+        b.innerHTML = `<span style="font-size:20px">⏳</span>
+            <div style="flex:1;font-size:13px;color:#92400e;">${msg}</div>
+            <button onclick="location.reload()" style="flex-shrink:0;background:#2563eb;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">Recarregar</button>`;
+        document.body.appendChild(b);
+    };
 
     const poll = async () => {
         polls++;
         if (polls > MAX_POLLS) {
-            showTaskError('Tempo limite esgotado. Verifique sua conexão e tente novamente.');
+            showTaskError('Tempo limite esgotado. Clique em Recarregar para retomar.');
             setLoading(false);
+            _showStuckBanner('Processamento demorou mais que o esperado. Recarregue para continuar.');
             return;
+        }
+        // Aviso após 2 minutos sem resposta
+        if (polls === WARN_POLLS) {
+            _showStuckBanner('Processamento está demorando mais que o normal... aguarde ou recarregue.');
         }
         try {
             const res = await fetch(`/chat/task-status/${taskId}/?parecer_id=${PARECER_ID}`);
             const d = await res.json();
             if (d.status === 'SUCCESS') {
+                const b = document.getElementById('_stuck-banner'); if (b) b.remove();
                 if (window._reloadAfterFase1 || ['FASE1','FASE2','FASE4','PREJUDICIALIDADE','MERITO'].includes(taskType)) { if(window._slowProgressInterval)clearInterval(window._slowProgressInterval); window.location.reload(); return; }
                 if (d.status_fase !== undefined) currentFase = d.status_fase;
                 setLoading(false); detectState();
             } else if (d.status === 'FAILURE') {
+                const b = document.getElementById('_stuck-banner'); if (b) b.remove();
                 showTaskError(d.error || 'Falha no processamento. Verifique sua conexão e tente novamente.');
                 setLoading(false);
             } else {
+                // PENDING por mais de 20 polls (1 min) → provavelmente worker não pegou a task
+                if (d.status === 'PENDING') pendingStreak++;
+                else pendingStreak = 0;
+                if (pendingStreak >= 20) {
+                    _showStuckBanner('O servidor pode estar sobrecarregado. Recarregue para tentar novamente.');
+                }
                 setTimeout(poll, 3000);
             }
         } catch(e) {
