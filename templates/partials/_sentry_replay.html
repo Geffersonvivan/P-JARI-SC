@@ -1,0 +1,28 @@
+{% if SENTRY_DSN_PUBLIC and not request.user.is_staff %}
+<script
+  src="https://browser.sentry-cdn.com/8.x/bundle.tracing.replay.min.js"
+  crossorigin="anonymous"
+></script>
+<script>
+  Sentry.init({
+    dsn: "{{ SENTRY_DSN_PUBLIC }}",
+    environment: "{% if debug %}development{% else %}production{% endif %}",
+    // Sem amostragem aleatória de sessões — só grava quando ocorre um erro
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 1.0,
+    integrations: [
+      Sentry.replayIntegration({
+        // Mascara inputs e textos por padrão (LGPD)
+        maskAllText: false,
+        blockAllMedia: false,
+        maskAllInputs: true,
+      }),
+    ],
+    // Sem tracing JS (já feito pelo Django)
+    tracesSampleRate: 0,
+  });
+  {% if request.user.is_authenticated %}
+  Sentry.setUser({ id: "{{ request.user.id }}", email: "{{ request.user.email|default:'' }}" });
+  {% endif %}
+</script>
+{% endif %}

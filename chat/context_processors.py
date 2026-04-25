@@ -71,4 +71,5 @@ def pjari_info(request):
         'pjari_version': versao_texto,
         'online_users_count': total_online,
         'CLARITY_PROJECT_ID': settings.CLARITY_PROJECT_ID,
+        'SENTRY_DSN_PUBLIC': getattr(settings, 'SENTRY_DSN', ''),
     }

@@ -53,7 +53,7 @@ if sentry_dsn:
                 http_methods_to_capture=("GET", "POST", "PUT", "PATCH", "DELETE"),
             ),
             CeleryIntegration(
-                monitor_beat_tasks=False,     # não temos beat schedulado
+                monitor_beat_tasks=True,      # monitora rodar_testes_engine_task via Cron Monitor
                 propagate_traces=True,        # rastreia tarefa pai→filho
             ),
             RedisIntegration(),
@@ -63,9 +63,9 @@ if sentry_dsn:
             ),
         ],
 
-        # Performance — amostra 100% em prod para ver cada task Celery lenta
-        traces_sample_rate=0.0 if _is_debug else 1.0,
-        profile_session_sample_rate=0.0 if _is_debug else 0.2,  # profiling: 20%
+        # Performance — 20% em prod (conserva os 5M spans do plano Team)
+        traces_sample_rate=0.0 if _is_debug else 0.2,
+        profile_session_sample_rate=0.0 if _is_debug else 0.1,  # profiling: 10%
         profile_lifecycle="trace",
 
         # Dados pessoais: manter desativado (LGPD)
