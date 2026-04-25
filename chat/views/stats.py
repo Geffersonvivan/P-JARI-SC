@@ -2,9 +2,10 @@ import json
 import calendar
 from datetime import date
 from django.shortcuts import render
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.db.models import Count, Q, Avg, F, ExpressionWrapper, Sum, Case, When, Value, BooleanField, DurationField
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -622,3 +623,31 @@ def estatisticas_gerais_view(request):
     context['CLERK_PUBLISHABLE_KEY'] = getattr(_s, 'CLERK_PUBLISHABLE_KEY', '')
 
     return render(request, 'dashboard_global.html', context)
+
+
+@login_required
+@require_POST
+def resetar_auditoria_view(request):
+    """Zera AuditEvent e AiRequestLog. Apenas superuser."""
+    if not request.user.is_superuser:
+        return JsonResponse({'ok': False, 'erro': 'Acesso negado.'}, status=403)
+
+    from ..models import AuditEvent, AiRequestLog
+    import logging
+    logger = logging.getLogger(__name__)
+
+    audit_count = AuditEvent.objects.count()
+    log_count = AiRequestLog.objects.count()
+
+    AuditEvent.objects.all().delete()
+    AiRequestLog.objects.all().delete()
+
+    logger.warning(
+        '[RESET] Monitoramento zerado por %s — %d AuditEvents e %d AiRequestLogs removidos.',
+        request.user.username, audit_count, log_count,
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'removidos': {'audit_events': audit_count, 'ai_request_logs': log_count},
+    })

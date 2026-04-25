@@ -808,7 +808,15 @@
             </div>
 
             <!-- ══ AUDITORIA DE USO ══════════════════════════════════════════ -->
-            <h2 class="text-xl font-bold text-gray-800 mb-4 px-4 w-full max-w-7xl mx-auto mt-10">Auditoria de Uso</h2>
+            <div class="flex items-center justify-between px-4 w-full max-w-7xl mx-auto mt-10 mb-4">
+                <h2 class="text-xl font-bold text-gray-800">Auditoria de Uso</h2>
+                {% if request.user.is_superuser %}
+                <button onclick="confirmarResetAuditoria()"
+                    class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition">
+                    <i class="ph ph-trash"></i> Zerar Monitoramento
+                </button>
+                {% endif %}
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-6 px-4">
 
                 <!-- Funil do Wizard -->
@@ -1827,5 +1835,24 @@ flowchart TD
             Suporte
         </span>
     </a>
+    <script>
+    function confirmarResetAuditoria() {
+        if (!confirm('⚠️ Isso irá apagar TODOS os registros de AuditEvent e AiRequestLog permanentemente.\n\nO monitoramento recomeçará do zero a partir de agora.\n\nConfirma?')) return;
+        fetch("{% url 'resetar_auditoria' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                alert(`✅ Monitoramento zerado com sucesso!\n\n${data.removidos.audit_events} eventos de auditoria e ${data.removidos.ai_request_logs} logs de IA removidos.`);
+                location.reload();
+            } else {
+                alert('Erro: ' + data.erro);
+            }
+        })
+        .catch(() => alert('Erro de conexão ao servidor.'));
+    }
+    </script>
     </body>
 </html>

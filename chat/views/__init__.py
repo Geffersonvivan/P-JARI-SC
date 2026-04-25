@@ -9,7 +9,7 @@ from .chat import (  # noqa: F401
     check_task_status_view, stream_task_status_view,
 )
 from .billing import planos_view, checkout_view, stripe_webhook  # noqa: F401
-from .stats import estatisticas_view, estatisticas_gerais_view  # noqa: F401
+from .stats import estatisticas_view, estatisticas_gerais_view, resetar_auditoria_view  # noqa: F401
 from .forum import (  # noqa: F401
     criar_post_forum_view, comentar_post_forum_view, curtir_post_forum_view,
     get_comentarios_forum_view, update_forum_access_view,

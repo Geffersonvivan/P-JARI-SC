@@ -25,6 +25,7 @@ urlpatterns = [
     path('stripe/webhook/', views.stripe_webhook),  # URL cadastrada no Stripe Dashboard
     path('estatisticas/', views.estatisticas_view, name='estatisticas'),
     path('estatisticas-gerais/', views.estatisticas_gerais_view, name='estatisticas_gerais'),
+    path('estatisticas-gerais/resetar-auditoria/', views.resetar_auditoria_view, name='resetar_auditoria'),
     path('onboarding/dismiss/', views.dismiss_onboarding_view, name='dismiss_onboarding'),
     path('api/reorder-folders/', views.reorder_folders_view, name='reorder_folders'),
     path('api/pasta/create/', views.criar_pasta_view, name='criar_pasta'),
