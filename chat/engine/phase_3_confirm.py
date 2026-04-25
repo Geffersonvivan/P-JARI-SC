@@ -177,6 +177,12 @@ def process(engine, message: str) -> str:
                 "[FASE31] Filtro 1 BLOQUEIO: parecer=%s data_infracao=%s — declaração de Decadência SIM vetada",
                 parecer.id, data_inf,
             )
+            try:
+                from chat.models import log_audit
+                log_audit('filtro_bloqueado', parecer=parecer, fase=31,
+                          dados={'filtro': 1, 'data_infracao': str(data_inf)})
+            except Exception:
+                pass
             return (
                 "⛔ **CONVERSÃO BLOQUEADA — Filtro 1 (CETRAN/SC 381/2022)**\n\n"
                 f"A infração ocorreu em **{data_inf.strftime('%d/%m/%Y')}**, anterior a 12/04/2021. "
@@ -203,6 +209,12 @@ def process(engine, message: str) -> str:
                 "[FASE31] Filtro 2 Suspensão BLOQUEIO: parecer=%s tipo=%s data_inf=%s — declaração de Decadência SIM vetada",
                 parecer.id, tipo_pen_f2, data_inf_f2,
             )
+            try:
+                from chat.models import log_audit
+                log_audit('filtro_bloqueado', parecer=parecer, fase=31,
+                          dados={'filtro': 2, 'tipo_penalidade': tipo_pen_f2, 'data_infracao': str(data_inf_f2)})
+            except Exception:
+                pass
             return (
                 "⛔ **CONVERSÃO BLOQUEADA — Filtro 2 Suspensão/Cassação (Nota CETRAN/SC 02/03/2023)**\n\n"
                 f"A infração ocorreu em **{data_inf_f2.strftime('%d/%m/%Y')}** "
@@ -219,6 +231,17 @@ def process(engine, message: str) -> str:
     parecer.julgador_prescricao_intercorrente = julgador_inter
     parecer.julgador_decadencia               = julgador_decad
     parecer.save()
+
+    try:
+        from chat.models import log_audit
+        log_audit('admissibilidade_decisao', parecer=parecer, fase=31, dados={
+            'tempestivo':    julgador_temp,
+            'punitiva':      julgador_punit,
+            'intercorrente': julgador_inter,
+            'decadencia':    julgador_decad,
+        })
+    except Exception:
+        pass
 
     # Roteamento por precedência: C (Decadência) > B (Prescrição) > A (Intempestividade) > D (mérito)
     prejudica = (

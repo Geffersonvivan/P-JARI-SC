@@ -212,6 +212,13 @@ def run(engine) -> str:
     parecer.status_fase = FASE_SELECAO_PASTA
     parecer.save()
 
+    try:
+        from chat.models import log_audit
+        log_audit('blindagem_score', parecer=parecer, fase=6,
+                  dados={'score': int(indice), 'erro_fatal': erro_fatal, 'num_inconsistencias': len(inconsistencias)})
+    except Exception:
+        pass
+
     # ── Checklist qualitativo via Gemini ──────────────────────────────────────
     gemini = GeminiClient()
     checklist_texto = gemini.audit_parecer(parecer)

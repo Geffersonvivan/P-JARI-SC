@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog, Subscription
+from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog, AuditEvent, Subscription
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
@@ -24,6 +24,14 @@ class AiRequestLogAdmin(admin.ModelAdmin):
     list_display = ('provider', 'fase', 'user', 'input_tokens', 'output_tokens', 'data_requisicao')
     list_filter = ('provider', 'fase')
     search_fields = ('user__username', 'parecer_referencia__nome_processo')
+
+
+@admin.register(AuditEvent)
+class AuditEventAdmin(admin.ModelAdmin):
+    list_display = ('evento', 'fase', 'user', 'timestamp', 'dados')
+    list_filter = ('evento', 'fase')
+    search_fields = ('user__username', 'parecer__nome_processo')
+    readonly_fields = ('timestamp', 'evento', 'user', 'parecer', 'fase', 'dados')
 
 
 class UserAdmin(BaseUserAdmin):

@@ -259,6 +259,52 @@ class PjariCacheEntry(models.Model):
         return f"{self.cache_key} (Usos: {self.hit_count})"
 
 
+class AuditEvent(models.Model):
+    """Audit trail de eventos de negócio do wizard — complementa AiRequestLog (LLM/RAG)."""
+
+    EVENTOS = [
+        ('fase_concluida',        'Fase Concluída'),
+        ('fase_erro',             'Erro de Fase'),
+        ('parecer_finalizado',    'Parecer Finalizado'),
+        ('filtro_bloqueado',      'Filtro Bloqueado (Admissibilidade)'),
+        ('admissibilidade_decisao', 'Decisão de Admissibilidade'),
+        ('blindagem_score',       'Score de Blindagem Registrado'),
+        ('credito_consumido',     'Crédito Consumido'),
+        ('upload_documentos',     'Upload de Documentos'),
+    ]
+
+    timestamp  = models.DateTimeField(auto_now_add=True, db_index=True)
+    evento     = models.CharField(max_length=60, choices=EVENTOS, db_index=True)
+    user       = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_events')
+    parecer    = models.ForeignKey('Parecer', on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_events')
+    fase       = models.IntegerField(null=True, blank=True)
+    dados      = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['evento', 'timestamp']),
+            models.Index(fields=['user', 'timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.evento} | fase={self.fase} | {self.timestamp:%d/%m/%Y %H:%M}"
+
+
+def log_audit(evento: str, parecer=None, fase: int = None, dados: dict = None):
+    """Helper para registrar eventos de auditoria sem bloquear o fluxo principal."""
+    try:
+        AuditEvent.objects.create(
+            evento=evento,
+            user=parecer.user if parecer else None,
+            parecer=parecer,
+            fase=fase,
+            dados=dados or {},
+        )
+    except Exception:
+        pass  # Nunca deve travar o fluxo principal
+
+
 class AiRequestLog(models.Model):
     parecer_referencia = models.ForeignKey(Parecer, on_delete=models.CASCADE, related_name='ai_logs', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='ai_logs')

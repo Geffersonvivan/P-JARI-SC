@@ -65,4 +65,20 @@ def process(engine, message: str) -> str:
         except Exception:
             pass
 
+    try:
+        from chat.models import log_audit
+        profile = parecer.user.profile if parecer.user else None
+        log_audit('parecer_finalizado', parecer=parecer, fase=8, dados={
+            'pasta': target_folder.nome_pasta,
+            'blindagem_score': parecer.blindagem_score,
+            'tempo_julgamento_segundos': parecer.tempo_julgamento_segundos,
+        })
+        if profile and not profile.is_pro:
+            log_audit('credito_consumido', parecer=parecer, fase=8, dados={
+                'saldo_anterior': profile.credits + 1,
+                'saldo_atual': profile.credits,
+            })
+    except Exception:
+        pass
+
     return f"**Sucesso!** O projeto foi salvo na pasta **{target_folder.nome_pasta}**."

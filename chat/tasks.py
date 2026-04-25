@@ -1,5 +1,5 @@
 from celery import shared_task
-from .models import Parecer
+from .models import Parecer, log_audit
 from .jari_engine import JariEngine
 import traceback
 import logging
@@ -45,6 +45,7 @@ def processar_fase1_task(self, parecer_id):
         reply = engine.run_fase1_autopreenchimento()
         from .models import ChatMessage
         ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        log_audit('fase_concluida', parecer=parecer, fase=1)
         return "SUCCESS"
     except SoftTimeLimitExceeded:
         # PDF muito grande para o Gemini processar no prazo — cai para fluxo manual
@@ -68,6 +69,11 @@ def processar_fase1_task(self, parecer_id):
                 raise self.retry(exc=e, countdown=countdown)
             except self.MaxRetriesExceededError:
                 pass
+        try:
+            _p = Parecer.objects.get(id=parecer_id)
+            log_audit('fase_erro', parecer=_p, fase=1, dados={'erro': str(e)[:200]})
+        except Exception:
+            pass
         logger.error(f"ERRO CELERY FASE1 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 1 (Celery Worker): {str(e)}")
 
@@ -93,6 +99,7 @@ def processar_fase2_task(self, parecer_id):
             processar_fase3_precompute_task.delay(parecer_id)
         except Exception:
             pass  # Nunca deve bloquear o fluxo principal
+        log_audit('fase_concluida', parecer=parecer, fase=2)
         return "SUCCESS"
     except SoftTimeLimitExceeded:
         logger.warning(f"FASE2 soft time limit atingido (Parecer {parecer_id}). Retornando prompt de fase 2.")
@@ -115,6 +122,11 @@ def processar_fase2_task(self, parecer_id):
                 raise self.retry(exc=e, countdown=countdown)
             except self.MaxRetriesExceededError:
                 pass
+        try:
+            _p = Parecer.objects.get(id=parecer_id)
+            log_audit('fase_erro', parecer=_p, fase=2, dados={'erro': str(e)[:200]})
+        except Exception:
+            pass
         logger.error(f"ERRO CELERY FASE2 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 2 (Celery Worker): {str(e)}")
 
@@ -155,6 +167,7 @@ def processar_fase4_task(self, parecer_id):
         reply = engine.run_phase_4_extraction()
         from .models import ChatMessage
         ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+        log_audit('fase_concluida', parecer=parecer, fase=4)
         return "SUCCESS"
     except SoftTimeLimitExceeded:
         logger.warning(f"FASE4 soft time limit atingido (Parecer {parecer_id}). Retornando prompt de fase 4.")
@@ -177,6 +190,11 @@ def processar_fase4_task(self, parecer_id):
                 raise self.retry(exc=e, countdown=countdown)
             except self.MaxRetriesExceededError:
                 pass
+        try:
+            _p = Parecer.objects.get(id=parecer_id)
+            log_audit('fase_erro', parecer=_p, fase=4, dados={'erro': str(e)[:200]})
+        except Exception:
+            pass
         logger.error(f"ERRO CELERY FASE4 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 4 (Celery Worker): {str(e)}")
 
