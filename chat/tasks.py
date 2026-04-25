@@ -24,7 +24,13 @@ def _sentry_task_context(parecer_id: int, task_name: str):
     except Exception:
         pass
 
-@shared_task(bind=True, time_limit=360, soft_time_limit=300, queue='fast')
+def _is_gemini_transient(e) -> bool:
+    """Retorna True para erros transitórios do Gemini (504, DEADLINE_EXCEEDED, timeout)."""
+    s = str(e)
+    return any(k in s for k in ('504', 'DEADLINE_EXCEEDED', 'ServerError', 'timeout', 'Timeout'))
+
+
+@shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
 def processar_fase1_task(self, parecer_id):
     """
     Processa o auto-preenchimento da Fase 1 no worker Celery.
@@ -55,16 +61,24 @@ def processar_fase1_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
+        if _is_gemini_transient(e):
+            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            logger.warning(f"FASE1 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
+            try:
+                raise self.retry(exc=e, countdown=countdown)
+            except self.MaxRetriesExceededError:
+                pass
         logger.error(f"ERRO CELERY FASE1 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 1 (Celery Worker): {str(e)}")
 
 
-@shared_task(bind=True, time_limit=360, soft_time_limit=300, queue='fast')
+@shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
 def processar_fase2_task(self, parecer_id):
     """
     Processa a Fase 2 (extração de datas + tabela via Gemini) no worker Celery.
     Evita que a chamada síncrona ao Gemini (até 60s) bloqueie o Gunicorn.
     Ao terminar, dispara pré-cálculo da Fase 3 em background (otimização UX).
+    Retry automático (3x, backoff 30s) para erros transitórios do Gemini (504/DEADLINE_EXCEEDED).
     """
     from billiard.exceptions import SoftTimeLimitExceeded
     _sentry_task_context(parecer_id, "fase2")
@@ -94,6 +108,13 @@ def processar_fase2_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
+        if _is_gemini_transient(e):
+            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            logger.warning(f"FASE2 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
+            try:
+                raise self.retry(exc=e, countdown=countdown)
+            except self.MaxRetriesExceededError:
+                pass
         logger.error(f"ERRO CELERY FASE2 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 2 (Celery Worker): {str(e)}")
 
@@ -119,11 +140,12 @@ def processar_fase3_precompute_task(self, parecer_id):
         return f"ERRO (ignorado): {e}"
 
 
-@shared_task(bind=True, time_limit=360, soft_time_limit=300, queue='fast')
+@shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
 def processar_fase4_task(self, parecer_id):
     """
     Extrai a tese defensiva via Gemini (Fase 4) no worker Celery.
     Evita que a chamada síncrona ao Gemini bloqueie o Gunicorn e cause WORKER TIMEOUT.
+    Retry automático (3x, backoff 30s) para erros transitórios do Gemini (504/DEADLINE_EXCEEDED).
     """
     from billiard.exceptions import SoftTimeLimitExceeded
     _sentry_task_context(parecer_id, "fase4")
@@ -148,15 +170,23 @@ def processar_fase4_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
+        if _is_gemini_transient(e):
+            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            logger.warning(f"FASE4 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
+            try:
+                raise self.retry(exc=e, countdown=countdown)
+            except self.MaxRetriesExceededError:
+                pass
         logger.error(f"ERRO CELERY FASE4 (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 4 (Celery Worker): {str(e)}")
 
 
-@shared_task(bind=True, time_limit=480, soft_time_limit=420, queue='fast')
+@shared_task(bind=True, time_limit=480, soft_time_limit=420, max_retries=3, queue='fast')
 def processar_fase4_analise_task(self, parecer_id):
     """
     Executa a análise cruzada de teses (Perplexity + Vertex + Gemini) no worker Celery.
     Evita que as chamadas síncronas às APIs (~90s cada) bloqueiem o Gunicorn.
+    Retry automático (3x, backoff 30s) para erros transitórios do Gemini (504/DEADLINE_EXCEEDED).
     """
     from billiard.exceptions import SoftTimeLimitExceeded
     _sentry_task_context(parecer_id, "fase4_analise")
@@ -181,6 +211,13 @@ def processar_fase4_analise_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
+        if _is_gemini_transient(e):
+            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            logger.warning(f"FASE4-ANALISE Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
+            try:
+                raise self.retry(exc=e, countdown=countdown)
+            except self.MaxRetriesExceededError:
+                pass
         logger.error(f"ERRO CELERY FASE4-ANALISE (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         raise Exception(f"Erro na Fase 4 Análise (Celery Worker): {str(e)}")
 
