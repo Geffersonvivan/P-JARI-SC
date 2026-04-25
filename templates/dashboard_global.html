@@ -824,12 +824,11 @@
                     <h3 class="text-base font-bold text-gray-800 mb-1 flex items-center gap-2">
                         <i class="ph ph-funnel text-blue-500"></i> Funil do Wizard (snapshot atual)
                     </h3>
-                    <p class="text-xs text-gray-400 mb-4">Processos ativos por etapa no momento. Passe o mouse em cada linha para mais detalhes.</p>
-                    {% with funil_tooltips="Documentos sendo coletados/aguardando upload (Fases 1 e 10)|DIR e tabela sendo validados (Fases 2 e 3)|Julgador definindo admissibilidade do recurso (Fase 3.1)|Tese jurídica sendo analisada (Fases 4 e 4.1)|Parecer sendo gerado ou em auditoria (Fases 5 e 6)|Processo salvo com sucesso (Fase 8)" %}
+                    <p class="text-xs text-gray-400 mb-4">Processos ativos por etapa no momento.</p>
                     <div class="space-y-3">
                         {% for item in funil_data %}
-                        {% with max_count=funil_data.0.count tooltip=funil_tooltips|cut:"" %}
-                        <div class="relative group flex items-center gap-3 cursor-default">
+                        {% with max_count=funil_data.0.count %}
+                        <div class="flex items-center gap-3">
                             <span class="text-xs text-gray-500 w-36 flex-shrink-0">{{ item.label }}</span>
                             <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
                                 <div class="h-5 rounded-full bg-blue-500 transition-all"
@@ -840,7 +839,6 @@
                         {% endwith %}
                         {% endfor %}
                     </div>
-                    {% endwith %}
                     <p class="text-xs text-gray-300 mt-4">* Snapshot do banco — independe do filtro de mês.</p>
                 </div>
 
