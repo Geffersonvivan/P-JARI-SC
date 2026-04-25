@@ -583,6 +583,39 @@
             </div>
         </div>
 
+        <!-- ═══ MODAL ERRO GERAL ═══ -->
+        <div id="modal-erro-geral" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+             style="background:rgba(0,0,0,0.55);">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-4" style="background:#fee2e2;border-bottom:1px solid #fca5a5;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                    <span class="font-bold text-base" style="color:#991b1b;">Atenção — Ação Necessária</span>
+                </div>
+                <div class="px-6 py-5 max-h-72 overflow-y-auto">
+                    <div id="modal-erro-geral-msg" class="text-sm leading-relaxed prose prose-sm max-w-none" style="color:#374151;"></div>
+                </div>
+                <div class="flex justify-between items-center gap-3 px-6 py-4" style="border-top:1px solid #f3f4f6;">
+                    <span id="modal-erro-geral-dica" class="text-xs text-gray-400 italic"></span>
+                    <div class="flex gap-2">
+                        <button onclick="fecharModalErroGeral()"
+                                class="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all">
+                            Fechar
+                        </button>
+                        <button onclick="reiniciarModalErroGeral()"
+                                class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                                style="background:#2563eb;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582M20 20v-5h-.581M4.582 9A8 8 0 0120 15M19.418 15A8 8 0 014 9"/>
+                            </svg>
+                            Reiniciar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ═══ PAINEL 2: ADMISSIBILIDADE ═══ -->
         <div id="panel-2" class="wizard-panel hidden">
 
@@ -1918,18 +1951,52 @@ function reiniciarEscolhasAdm() {
     renderPhase(31);
 }
 
+// ─── MODAL ERRO GERAL ──────────────────────────────
+let _erroGeralFaseAnterior = null;
+
+function mostrarModalErroGeral(mensagem) {
+    setLoading(false);  // sempre desbloqueio o botão
+
+    // Fase anterior para o botão Reiniciar
+    const mapa = { 1:1, 10:1, 2:1, 3:1, 31:2, 4:2, 41:2, 5:3, 6:3, 7:4, 8:4 };
+    _erroGeralFaseAnterior = mapa[currentFase] || 1;
+
+    // Dicas contextuais por fase
+    const dicas = {
+        2: 'Verifique os dados da Tabela e corrija o campo indicado.',
+        3: 'Corrija os dados antes de confirmar a admissibilidade.',
+        31:'Revise as decisões de admissibilidade.',
+        4: 'Revise a tese jurídica selecionada.',
+        5: 'O parecer não pôde ser gerado. Verifique os dados.',
+        6: 'Corrija o parecer antes de prosseguir com a auditoria.',
+    };
+    const dica = dicas[currentFase] || 'Corrija o problema indicado e tente novamente.';
+
+    document.getElementById('modal-erro-geral-msg').innerHTML = md(mensagem);
+    document.getElementById('modal-erro-geral-dica').textContent = dica;
+    document.getElementById('modal-erro-geral').classList.remove('hidden');
+}
+
+function fecharModalErroGeral() {
+    document.getElementById('modal-erro-geral').classList.add('hidden');
+}
+
+function reiniciarModalErroGeral() {
+    document.getElementById('modal-erro-geral').classList.add('hidden');
+    location.reload();
+}
+
 async function handleResponse(data, skipDetect = false) {
     if (data.error) {
         const msg = data.error || '';
-        // Erros de bloqueio da fase 31 (admissibilidade) → modal em vez de toast
+        // Erros de bloqueio da fase 31 (admissibilidade) → modal específico de admissibilidade
         const isBloqueioAdm = currentFase === 31 ||
             msg.includes('BLOQUEADA') || msg.includes('BLOQUEIO') ||
             msg.includes('CETRAN') || msg.includes('Filtro');
         if (isBloqueioAdm) {
             mostrarModalBloqueioAdm(msg);
         } else {
-            toast(msg.replace(/\*\*/g,'').replace(/^[⚠️❌⛔ ]+/,'').substring(0,220), 'error');
-            if (data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); } else { setLoading(false); }
+            mostrarModalErroGeral(msg);
         }
         return false;  // sinaliza bloqueio para avancar()
     }
