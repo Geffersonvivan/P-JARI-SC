@@ -280,6 +280,15 @@ class AnthropicClient:
             output_tokens = message.usage.output_tokens
             self._log_tokens(parecer_obj, input_tokens, output_tokens, 'Fase 5 (Parecer)', model_name=model_to_use, start_time=start_time)
 
+            # D2 FIX: validação pós-geração — forçar EMENTA em MAIÚSCULAS
+            import re as _re
+            _ementa_m = _re.search(r'\*\*EMENTA\*\*\s*\n+([\s\S]+?)(?=\n\*\*|\Z)', final_text)
+            if _ementa_m:
+                _ementa_orig = _ementa_m.group(1)
+                _ementa_upper = _ementa_orig.upper()
+                if _ementa_orig != _ementa_upper:
+                    final_text = final_text[:_ementa_m.start(1)] + _ementa_upper + final_text[_ementa_m.end(1):]
+
             return final_text
         except Exception as e:
             err_str = str(e)

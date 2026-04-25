@@ -470,7 +470,16 @@ def estatisticas_gerais_view(request):
 
     for fb in feedbacks_data:
         if fb['feedback_tags']:
-            for tag in [t.strip() for t in fb['feedback_tags'].split(',') if t.strip()]:
+            # M10 FIX: aceita JSON array (novo formato) e CSV legado
+            import json as _json
+            _raw_tags = fb['feedback_tags']
+            try:
+                _tag_list = _json.loads(_raw_tags)
+                if not isinstance(_tag_list, list):
+                    _tag_list = [str(_tag_list)]
+            except (ValueError, TypeError):
+                _tag_list = [t.strip() for t in _raw_tags.split(',') if t.strip()]
+            for tag in _tag_list:
                 tags_contagem[tag] = tags_contagem.get(tag, 0) + 1
         if fb['feedback_notes']:
             feedbacks_com_texto.append({

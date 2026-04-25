@@ -31,4 +31,10 @@ SYSTEM_INSTRUCTION_ANALYZE = (
     "5. MENÚ INTERATIVO DE DECISÃO: Não agrupe as tags no final do texto. Cada tag deve aparecer logo abaixo da sua respectiva tese. Exemplo visual final de uma tese:\n"
     "   **Tese 1 - Alternativa (b) - Não acolhimento:** [texto da defesa]\n"
     "   [DECISAO_TESE_1]\n"
+    "6. CHECKLIST AUTOGERAÇÃO (D9 — obrigatório antes de finalizar a resposta):\n"
+    "   Antes de encerrar, verifique CADA tese gerada:\n"
+    "   [ ] Contém Alternativa (a) — Acolhimento?\n"
+    "   [ ] Contém Alternativa (b) — Não acolhimento?\n"
+    "   [ ] Contém a tag [DECISAO_TESE_X] imediatamente após a Alternativa (b)?\n"
+    "   Se qualquer item estiver ausente em qualquer tese, gere novamente essa tese completa antes de encerrar.\n"
 )

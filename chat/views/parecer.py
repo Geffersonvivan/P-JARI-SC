@@ -313,10 +313,19 @@ def salvar_feedback_parecer_view(request, parecer_id):
             parecer.feedback_score = int(score)
 
         if tags is not None:
+            # M10 FIX: normalizar para JSON string — robusto contra tags com vírgulas
+            import json as _json
             if isinstance(tags, list):
-                parecer.feedback_tags = ','.join(tags)
+                _tags_clean = [str(t).strip() for t in tags if str(t).strip()]
             else:
-                parecer.feedback_tags = str(tags)
+                # Aceita string CSV legada ou JSON string
+                _raw = str(tags).strip()
+                try:
+                    _parsed = _json.loads(_raw)
+                    _tags_clean = [str(t).strip() for t in (_parsed if isinstance(_parsed, list) else [_parsed]) if str(t).strip()]
+                except (ValueError, TypeError):
+                    _tags_clean = [t.strip() for t in _raw.split(',') if t.strip()]
+            parecer.feedback_tags = _json.dumps(_tags_clean, ensure_ascii=False)
 
         if notes:
             parecer.feedback_notes = str(notes)

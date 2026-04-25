@@ -56,10 +56,12 @@ class JariMath:
         ano_aniversario = data_base.year + 5
         dia = data_base.day
         mes = data_base.month
-        # 29/02 em ano não-bissexto → 28/02 (conservador: prescrição começa 1 dia antes)
+        # 29/02 em ano não-bissexto → 01/03: preserva os 5 anos completos
+        # (28/02 declararia prescrição 1 dia antes — D18 fix)
         import calendar
         if mes == 2 and dia == 29 and not calendar.isleap(ano_aniversario):
-            dia = 28
+            mes = 3
+            dia = 1
         return data_base.replace(year=ano_aniversario, month=mes, day=dia)
 
     @staticmethod
@@ -172,9 +174,15 @@ class JariMath:
         incidencia_covid_texto = "Não aplicável."
 
         if data_infracao <= JariMath.FIM_COVID_SUSPENSAO:
-            desconto_covid = JariMath.DIAS_SUSPENSAO_COVID
+            # D7 FIX: desconto proporcional para infrações durante o período COVID
+            if data_infracao >= JariMath.INICIO_COVID_SUSPENSAO:
+                # Infração dentro do período COVID → desconto apenas dos dias restantes
+                desconto_covid = (JariMath.FIM_COVID_SUSPENSAO - data_infracao).days + 1
+            else:
+                # Infração anterior ao período COVID → desconto integral (256 dias)
+                desconto_covid = JariMath.DIAS_SUSPENSAO_COVID
             dias_infracao_notificacao = max(0, dias_infracao_notificacao - desconto_covid)
-            incidencia_covid_texto = "Sim (Res. 782/CONTRAN gerou desconto de -256 dias ao cômputo)."
+            incidencia_covid_texto = f"Sim (Res. 782/CONTRAN gerou desconto de -{desconto_covid} dias ao cômputo)."
 
         faixa_temporal = ""
         regra_aplicada = ""

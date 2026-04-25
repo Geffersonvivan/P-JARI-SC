@@ -9,7 +9,7 @@ def get_prompt(parecer) -> str:
 
     pastas = list(Pasta.objects.filter(user=parecer.user).order_by('nome_pasta'))
 
-    prompt = "[FEEDBACK_FORM]\n\n**Organização e Salvamento**\n\nSelecione qual pasta você deseja usar para salvar esta análise clicando no card correspondente:\n\n"
+    prompt = "**Organização e Salvamento**\n\nSelecione qual pasta você deseja usar para salvar esta análise clicando no card correspondente:\n\n"
     folder_payloads = [f"{i}::{p.nome_pasta}" for i, p in enumerate(pastas, 1)]
     prompt += f"[FOLDER_SELECT:{'|'.join(folder_payloads)}]"
     return prompt
@@ -46,13 +46,23 @@ def process(engine, message: str) -> str:
     parecer.save()
 
     # Desconta 1 crédito ao salvar (apenas usuários não-PRO)
+    # D16 FIX: decremento atômico via F() para evitar race condition de crédito negativo
     if parecer.user:
         try:
+            from django.db.models import F
+            from django.db import transaction
             profile = parecer.user.profile
-            if not profile.is_pro and profile.credits > 0:
-                profile.credits -= 1
-                profile.save(update_fields=['credits'])
+            if not profile.is_pro:
+                with transaction.atomic():
+                    updated = profile.__class__.objects.filter(
+                        pk=profile.pk, credits__gt=0
+                    ).update(credits=F('credits') - 1)
+                    if not updated:
+                        import logging as _log
+                        _log.getLogger(__name__).warning(
+                            "[FASE7] Crédito não decrementado — saldo zero ou conta PRO. user=%s", parecer.user.id
+                        )
         except Exception:
             pass
 
-    return f"✅ **Sucesso!** O projeto foi salvo na pasta **{target_folder.nome_pasta}**."
+    return f"**Sucesso!** O projeto foi salvo na pasta **{target_folder.nome_pasta}**."

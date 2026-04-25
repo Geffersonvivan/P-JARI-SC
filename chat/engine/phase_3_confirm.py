@@ -10,8 +10,9 @@ Semântica ABSOLUTA: A/B expressam o resultado final diretamente, sem depender d
   None = sem escolha explícita → usa resultado automático do JariMath.
   "ok"/"confirmo" etc.  → confirma todos os resultados automáticos.
 
-Avisos informativos (aplicados sobre o resultado absoluto resolvido):
-  Filtro 1 (data_inf < 12/04/2021): julgador_decad=True → permitido, com aviso CETRAN/SC 381/2022.
+Bloqueios obrigatórios (logica-pjari_v2 §371-374):
+  Filtro 1 (data_inf < 12/04/2021): declarar Decadência SIM é VETADO (CETRAN/SC 381/2022).
+    Conversão bloqueada — o sistema recusa e exige redigitação sem Decadência SIM.
   Filtro 2 Suspensão/Cassação: julgador_decad=True → permitido, com aviso informativo.
 """
 
@@ -59,23 +60,33 @@ def process(engine, message: str) -> str:
         False = NÃO / não configurada / não se aplica / não acolhida.
         None  = não identificado.
         """
-        # Negativos antes (padrões mais específicos primeiro)
+        # Negativos antes (padrões mais específicos primeiro) — D14: variações naturais incluídas
         neg = [
             r'NAO\s+ACOLHID',
             r'NAO\s+SE\s+APLIC',
             r'NAO\s+CONFIGURAD',
+            r'NAO\s+RECONHEC',
+            r'NAO\s+OCORR',
             r'\bNAO\b',
             r'\bB\b',
+            r'\bNEGO\b',
+            r'\bREJEIT',
         ]
         for p in neg:
             if re.search(p, janela):
                 return False
-        # Positivos
+        # Positivos — D14: "concordo", "aprovado", "correto", "aceito", "reconheço"
         pos = [
             r'ACOLHID',
             r'CONFIGURAD',
             r'\bSIM\b',
             r'\bA\b',
+            r'\bCONCORD',
+            r'\bAPROV',
+            r'\bCORRET',
+            r'\bACEIT',
+            r'\bRECONHEC',
+            r'\bOCORR',
         ]
         for p in pos:
             if re.search(p, janela):
@@ -89,16 +100,17 @@ def process(engine, message: str) -> str:
         False = INTEMPESTIVO / inadmissível / CONFIGURADA.
         None  = não identificado.
         Atenção: "NÃO CONFIGURADA" precede "CONFIGURADA" para evitar falso negativo.
+        D14 FIX: variações naturais ("concordo", "aprovado" etc.) incluídas.
         """
         if re.search(r'NAO\s+CONFIGURAD', janela):
             return True   # NÃO CONFIGURADA = tempestivo
         if re.search(r'\bCONFIGURAD', janela):
             return False  # CONFIGURADA (sozinha) = intempestivo
-        neg = [r'NAO\s+ACOLHID', r'INTEMPESTIV', r'INADMISSIV', r'\bB\b']
+        neg = [r'NAO\s+ACOLHID', r'INTEMPESTIV', r'INADMISSIV', r'\bB\b', r'\bNEGO\b', r'\bREJEIT']
         for p in neg:
             if re.search(p, janela):
                 return False
-        pos = [r'ACOLHID', r'TEMPESTIV', r'ADMISSIV', r'\bA\b']
+        pos = [r'ACOLHID', r'TEMPESTIV', r'ADMISSIV', r'\bA\b', r'\bCONCORD', r'\bAPROV', r'\bCORRET', r'\bACEIT']
         for p in pos:
             if re.search(p, janela):
                 return True
@@ -155,43 +167,51 @@ def process(engine, message: str) -> str:
         message,
     )
 
-    # ── Aviso Filtro 1: decadência declarada pelo julgador para infração < 12/04/2021 ──
-    # Autonomia do julgador prevalece; aviso informa que contraria CETRAN/SC 381/2022.
-    aviso_filtro1 = ""
+    # ── BLOQUEIO HARD — Filtro 1 (logica-pjari_v2 §371-374) ──────────────────────
+    # Declarar Decadência SIM para infrações anteriores a 12/04/2021 é VETADO (CETRAN/SC 381/2022).
+    # Conversão bloqueada — o sistema recusa e exige redigitação sem Decadência SIM.
     if julgador_decad is True:
         data_inf = getattr(parecer, 'data_infracao', None)
         if data_inf and data_inf < _LIMIAR_FILTRO_1:
-            aviso_filtro1 = (
-                "\n\n⚠️ **AVISO — Filtro 1 (CETRAN/SC 381/2022)**\n"
-                "A infração ocorreu antes de 12/04/2021. O Parecer CETRAN/SC 381/2022 indica que "
-                "os prazos decadenciais dos arts. 281-A e 282, §6°-A do CTB não retroagem. "
-                "O julgador optou por declarar Decadência: **SIM** (escolha prevalece)."
-            )
             logger.warning(
-                "[FASE31] Filtro 1 aviso emitido: parecer=%s data_infracao=%s — julgador declarou SIM (permitido)",
+                "[FASE31] Filtro 1 BLOQUEIO: parecer=%s data_infracao=%s — declaração de Decadência SIM vetada",
                 parecer.id, data_inf,
             )
+            return (
+                "⛔ **CONVERSÃO BLOQUEADA — Filtro 1 (CETRAN/SC 381/2022)**\n\n"
+                f"A infração ocorreu em **{data_inf.strftime('%d/%m/%Y')}**, anterior a 12/04/2021. "
+                "O Parecer CETRAN/SC 381/2022 veda absolutamente a declaração de decadência "
+                "para infrações neste período (arts. 281-A e 282, §6°-A do CTB não retroagem).\n\n"
+                "Não é possível declarar **Decadência: SIM** para este caso. "
+                "Redigite suas escolhas sem marcar Decadência."
+            )
 
-    # ── Filtro 2 Suspensão/Cassação: julgador pode declarar SIM (não bloqueado) ──
-    # Emite aviso informativo quando o automático era NÃO SE APLICA e o julgador forçou SIM.
+    aviso_filtro1 = ""
+
+    # ── D5 FIX: BLOQUEIO Filtro 2 Suspensão/Cassação (Nota CETRAN/SC 02/03/2023) ──
+    # Declarar Decadência SIM para suspensão/cassação no período 12/04/2021–21/10/2021 é VETADO.
     aviso_filtro2_suspensao = ""
-    if julgador_decad is True and not aviso_filtro1:
+    if julgador_decad is True:
         data_inf_f2  = getattr(parecer, 'data_infracao', None)
         tipo_pen_f2  = (getattr(parecer, 'tipo_penalidade', None) or '').lower()
         _e_grave     = tipo_pen_f2 in ('suspensao', 'cassacao')
         _e_filtro2   = (data_inf_f2 and
                         data_inf_f2 >= _LIMIAR_FILTRO_1 and
                         data_inf_f2 < datetime.date(2021, 10, 22))
-        if _e_grave and _e_filtro2 and parecer.has_decadencia is False:
-            aviso_filtro2_suspensao = (
-                "\n\n✅ **CONVERSÃO FILTRO 2 SUSPENSÃO — NÃO SE APLICA → SIM**\n"
-                "O julgador declarou Decadência: SIM para penalidade de suspensão/cassação "
-                "no período Filtro 2 (12/04/2021–21/10/2021). A Nota CETRAN/SC 02/03/2023 "
-                "não é absoluta; o julgador pode forçar análise decadencial. Decadência: **SIM**."
-            )
+        if _e_grave and _e_filtro2:
             logger.warning(
-                "[FASE31] Filtro 2 Suspensão — julgador declarou SIM: parecer=%s tipo=%s data_inf=%s",
+                "[FASE31] Filtro 2 Suspensão BLOQUEIO: parecer=%s tipo=%s data_inf=%s — declaração de Decadência SIM vetada",
                 parecer.id, tipo_pen_f2, data_inf_f2,
+            )
+            return (
+                "⛔ **CONVERSÃO BLOQUEADA — Filtro 2 Suspensão/Cassação (Nota CETRAN/SC 02/03/2023)**\n\n"
+                f"A infração ocorreu em **{data_inf_f2.strftime('%d/%m/%Y')}** "
+                "(período 12/04/2021 a 21/10/2021) com penalidade de **{tipo_pen_f2}**. "
+                "A Nota CETRAN/SC 02/03/2023 restringe os prazos decadenciais de 180/360 dias "
+                "exclusivamente a multas e advertências neste período. "
+                "Suspensões e cassações são encaminhadas à Prescrição Punitiva.\n\n"
+                "Não é possível declarar **Decadência: SIM** para este caso. "
+                "Redigite suas escolhas sem marcar Decadência."
             )
 
     parecer.julgador_tempestivo               = julgador_temp

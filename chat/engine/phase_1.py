@@ -48,14 +48,17 @@ def process(engine, message: str, uploaded_files: list) -> str:
         if uploaded_files:
             return _handle_upload(engine, uploaded_files)
         elif val.lower() == 'ok':
-            # Modo simulado offline
+            # D12 FIX: modo simulado offline só disponível em DEBUG
+            from django.conf import settings as _settings
+            if not getattr(_settings, 'DEBUG', False):
+                return "❌ Modo simulado indisponível em produção. Anexe os arquivos reais para prosseguir."
             parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
             parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
             parecer.infracao_documento = "DIRIGIR SOB A INFLUENCIA DE ALCOOL"
             parecer.save()
             return engine.get_current_prompt()
         else:
-            return "❌ Por favor, os arquivos são essenciais para avançarmos. Anexe-os juntos e envie. (Ou digite 'ok' para modo simulado se estiver testando offline)."
+            return "Por favor, os arquivos são essenciais para avançarmos. Anexe-os juntos e envie. (Ou digite 'ok' para modo simulado se estiver testando offline)."
 
     # 2. Dados sequenciais após upload
     if not parecer.data_sessao:
@@ -109,33 +112,45 @@ def process_confirm(engine, message: str) -> str:
     except Exception:
         return "❌ Erro ao processar formulário. Tente novamente."
 
+    def _parse_date_flex(s):
+        """D6 FIX: normaliza datas do Gemini para date — aceita DD/MM/AAAA e YYYY-MM-DD."""
+        s = (s or "").strip()
+        if not s:
+            return None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%Y/%m/%d"):
+            try:
+                return datetime.datetime.strptime(s, fmt).date()
+            except ValueError:
+                pass
+        return None
+
     # data_sessao é obrigatória
     ds = payload.get("data_sessao", "").strip()
     if not ds:
         return "❌ A **Data da Sessão** é obrigatória. Preencha o campo e confirme novamente."
-    try:
-        parecer.data_sessao = datetime.datetime.strptime(ds, "%d/%m/%Y").date()
-    except ValueError:
+    _ds_parsed = _parse_date_flex(ds)
+    if not _ds_parsed:
         return f"❌ Data da Sessão inválida: '{ds}'. Use o formato DD/MM/AAAA."
+    parecer.data_sessao = _ds_parsed
 
     # Campos opcionais
     parecer.pa = payload.get("pa") or parecer.pa
     parecer.sgpe = payload.get("sgpe") or parecer.sgpe
-    parecer.recorrente = payload.get("recorrente") or parecer.recorrente
+    parecer.recorrente = (payload.get("recorrente") or parecer.recorrente or "").upper() or None
 
     pf = payload.get("prazo_final", "").strip()
     if pf:
-        try:
-            parecer.prazo_final = datetime.datetime.strptime(pf, "%d/%m/%Y").date()
-        except ValueError:
+        _pf_parsed = _parse_date_flex(pf)
+        if not _pf_parsed:
             return f"❌ Prazo Final inválido: '{pf}'. Use DD/MM/AAAA."
+        parecer.prazo_final = _pf_parsed
 
     dp = payload.get("data_protocolo", "").strip()
     if dp:
-        try:
-            parecer.data_protocolo = datetime.datetime.strptime(dp, "%d/%m/%Y").date()
-        except ValueError:
+        _dp_parsed = _parse_date_flex(dp)
+        if not _dp_parsed:
             return f"❌ Data de Protocolo inválida: '{dp}'. Use DD/MM/AAAA."
+        parecer.data_protocolo = _dp_parsed
 
     pg = payload.get("paginas_defesa", "").strip()
     if pg:
@@ -190,7 +205,10 @@ def run_autopreenchimento(engine) -> str:
         dados = None
 
     if not dados:
-        return engine.get_current_prompt()
+        # Gemini falhou na extração automática.
+        # Avança para FASE_AGUARDA_CONFIRMACAO_FASE1 com formulário vazio
+        # para que o usuário preencha manualmente — sem bloquear na tela de upload.
+        dados = {}
 
     def _parse_date(s):
         try:

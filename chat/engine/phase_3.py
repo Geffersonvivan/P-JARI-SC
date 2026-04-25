@@ -43,10 +43,19 @@ def run(engine) -> str:
     _datas_sem_fase1 = [d for d in datas_processadas if d not in _datas_fase1]
 
     def _data_por_label(texto, *patterns):
+        """M6 FIX: regex robusta — aceita pipe Markdown E formatos sem delimitador."""
         for pat in patterns:
+            # 1. Formato tabela Markdown: label ... | DD/MM/AAAA
             m = re.search(rf'{pat}[^|\n]{{0,60}}\|\s*(\d{{2}}/\d{{2}}/\d{{4}})', texto, re.IGNORECASE)
             if not m:
+                # 2. Formato invertido: DD/MM/AAAA | ... label
                 m = re.search(rf'\|\s*(\d{{2}}/\d{{2}}/\d{{4}})\s*\|[^|\n]{{0,60}}{pat}', texto, re.IGNORECASE)
+            if not m:
+                # 3. Formato livre: label seguido de data sem pipe (ex: "Infração: 15/03/2022")
+                m = re.search(rf'{pat}[^\n\d]{{0,40}}(\d{{2}}/\d{{2}}/\d{{4}})', texto, re.IGNORECASE)
+            if not m:
+                # 4. Data antes do label sem pipe (ex: "15/03/2022 — Infração")
+                m = re.search(rf'(\d{{2}}/\d{{2}}/\d{{4}})\s*[—\-–]\s*{pat}', texto, re.IGNORECASE)
             if m:
                 try:
                     return datetime.datetime.strptime(m.group(1), "%d/%m/%Y").date()
@@ -61,10 +70,20 @@ def run(engine) -> str:
         min(_datas_sem_fase1) if _datas_sem_fase1 else
         (min(datas_processadas) if datas_processadas else None)
     )
+    # D13: emitir aviso quando fallback é usado (data pode ser errada em processos complexos)
+    _usou_fallback_infracao = False
     data_infracao = _data_por_label(
         texto_tabela,
         r'\bINFRACAO\b', r'[Ii]nfra[çc][ãa]o', r'Auto\s+de\s+[Ii]nfra[çc][ãa]o', r'\bAIT\b', r'\bAI\b',
     ) or _fallback_infracao
+
+    # D13: log quando fallback é usado
+    if data_infracao and data_infracao == _fallback_infracao:
+        _usou_fallback_infracao = True
+        logger.warning(
+            "[FASE3] data_infracao via fallback min() — pode ser data errada em processos complexos: "
+            "%s | parecer=%s", data_infracao, parecer.id if hasattr(parecer, 'id') else '?'
+        )
 
     # ── Bloqueio: data_infracao obrigatória para cálculos corretos ────────────
     if not data_infracao:
@@ -87,12 +106,16 @@ def run(engine) -> str:
         r'\bNA\b',
         r'Notifica[çc][ãa]o\s+de\s+Autua[çc][ãa]o',
         r'Notifica[çc][ãa]o\s+Auto',
+        r'\bAUTUA[CÇ][AÃ]O\b',          # D3 FIX: rótulo "Autuação" sem prefixo "Notificação"
+        r'Auto\s+de\s+[Ii]nfra[çc][ãa]o',
     )
 
     data_np = _data_por_label(
         texto_tabela,
         r'\bNP\b',
         r'Notifica[çc][ãa]o\s+de\s+Penalidade',
+        r'\bPENALIDADE\b',              # D3 FIX: rótulo "Penalidade" isolado
+        r'Notifica[çc][ãa]o\s+[Pp]uniti',
     )
 
     data_instauracao = _data_por_label(
@@ -101,6 +124,8 @@ def run(engine) -> str:
         r'[Ii]nstaura[çc][ãa]o\s+do\s+[Pp]rocesso',
         r'[Ii]nstaura[çc][ãa]o',
         r'[Aa]bertura\s+do\s+[Pp]rocesso',
+        r'\bPAD\b',                     # D3 FIX: "PAD" = Processo Administrativo Disciplinar
+        r'[Ii]nicio\s+do\s+[Pp]rocesso',
     )
 
     _datas_apos_infracao = [d for d in _datas_sem_fase1 if d > data_infracao] if data_infracao else []
@@ -168,12 +193,17 @@ def run(engine) -> str:
         marcos_validos = []
 
     # COVID-19 (Res. CONTRAN 782/2020): suspensão de dias se último marco ≤ FIM_COVID
+    # D8 FIX: desconto proporcional para marcos dentro do período COVID (20/03-30/11/2020)
     _ultimo_marco_punit = max(marcos_validos) if marcos_validos else data_inicio_prescricao_punitiva
-    _desconto_covid_punit = (
-        JariMath.DIAS_SUSPENSAO_COVID
-        if (_ultimo_marco_punit and _ultimo_marco_punit <= JariMath.FIM_COVID_SUSPENSAO)
-        else 0
-    )
+    if _ultimo_marco_punit and _ultimo_marco_punit <= JariMath.FIM_COVID_SUSPENSAO:
+        if _ultimo_marco_punit >= JariMath.INICIO_COVID_SUSPENSAO:
+            # Marco dentro do período COVID → desconto proporcional (dias restantes do período)
+            _desconto_covid_punit = (JariMath.FIM_COVID_SUSPENSAO - _ultimo_marco_punit).days + 1
+        else:
+            # Marco anterior ao COVID → desconto integral (256 dias)
+            _desconto_covid_punit = JariMath.DIAS_SUSPENSAO_COVID
+    else:
+        _desconto_covid_punit = 0
 
     parecer.has_prescricao_punitiva = JariMath.check_prescription_punitiva(
         data_inicio_prescricao_punitiva, parecer.data_sessao, marcos_validos or None,
@@ -229,11 +259,20 @@ def run(engine) -> str:
     else:
         decadencia_final = "NÃO"
 
-    _aviso_data_infracao = (
-        "⚠️ **ATENÇÃO AO JULGADOR:** A data da infração não foi localizada automaticamente "
-        "na tabela de datas. Os cálculos de prescrição punitiva e decadência podem estar incorretos. "
-        "Verifique a tabela e use 'corrigir' na Fase 2 se necessário.\n\n"
-    ) if not data_infracao else ""
+    _aviso_data_infracao = ""
+    if not data_infracao:
+        _aviso_data_infracao = (
+            "⚠️ **ATENÇÃO AO JULGADOR:** A data da infração não foi localizada automaticamente "
+            "na tabela de datas. Os cálculos de prescrição punitiva e decadência podem estar incorretos. "
+            "Verifique a tabela e use 'corrigir' na Fase 2 se necessário.\n\n"
+        )
+    elif _usou_fallback_infracao:
+        # D13: aviso de fallback — data pode estar errada em processos complexos
+        _aviso_data_infracao = (
+            f"⚠️ **ATENÇÃO:** A data da infração ({data_infracao.strftime('%d/%m/%Y')}) foi inferida "
+            "automaticamente como a menor data da tabela (rótulo 'INFRACAO' não localizado). "
+            "Confirme se está correta antes de prosseguir.\n\n"
+        )
 
     matematica_detalhes = _bloco_consistencia + _aviso_data_infracao + (
         f"- Tempestividade: Diferença em dias corridos (Protocolo x Prazo Final) = {dias_tempestividade} dias de atraso "

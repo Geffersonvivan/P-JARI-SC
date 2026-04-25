@@ -30,13 +30,26 @@ def process(engine, message: str) -> str:
 
 
 def run_extraction(engine) -> str:
-    """Extrai a tese automaticamente do PDF via Gemini."""
+    """Extrai a tese automaticamente do PDF via Gemini.
+    Se nenhuma tese for identificada, seta mensagem padrão e roteia diretamente para INDEFERIDO (§425-427).
+    """
+    import json
     from chat.integrations import GeminiClient
-    from chat.engine import FASE_MERITO
+    from chat.engine import FASE_MERITO, FASE_RESULTADO
 
     parecer = engine.parecer
     gemini = GeminiClient()
     tese_extraida = gemini.extract_tese(parecer)
+
+    # C5 FIX §425-427: tese vazia → INDEFERIDO por ausência de fundamentação recursal
+    if not tese_extraida or not tese_extraida.strip():
+        logger.warning("[FASE4] Nenhuma tese identificada — roteando para INDEFERIDO (§425-427): parecer=%s", parecer.id)
+        parecer.tese = "Nenhuma tese defensiva identificada na peça recursal."
+        parecer.status_fase = FASE_RESULTADO
+        parecer.save()
+        from chat.tasks import gerar_parecer_task
+        task = gerar_parecer_task.delay(parecer.id)
+        return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
 
     parecer.tese = tese_extraida
     parecer.status_fase = FASE_MERITO
@@ -80,6 +93,9 @@ def analise_tese(engine) -> str:
     if cache_config.is_active:
         cache_config.total_requests += 1
         nucleo = gemini.get_cache_key_from_tese(tese)
+        # M7 FIX: sanitizar nucleo — remover caracteres inválidos para cache keys
+        import re as _re_cache
+        nucleo = _re_cache.sub(r'[^a-zA-Z0-9_\-]', '_', nucleo)[:200]
         chave = f"tese_{nucleo}"
         cache_entry = PjariCacheEntry.objects.filter(cache_key=chave).first()
         if cache_entry:
@@ -92,11 +108,32 @@ def analise_tese(engine) -> str:
 
     # ── Busca externa (cache miss ou desativado) ──────────────────────────────
     if not vertex_result or not perplexity_result:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+        try:
             v_future = executor.submit(vertex.search_documents, parecer, tese)
             p_future = executor.submit(perplexity.search_tese, parecer, tese)
-            vertex_result = v_future.result(timeout=90)
-            perplexity_result = p_future.result(timeout=90)
+
+            try:
+                vertex_result = v_future.result(timeout=120)  # M8: 120s (era 90s)
+            except concurrent.futures.TimeoutError:
+                logger.warning("Vertex timeout na análise de tese (parecer=%s) — fallback vazio.", parecer.id)
+                vertex_result = ""
+            except Exception as e:
+                logger.warning("Vertex erro na análise de tese (parecer=%s): %s — fallback vazio.", parecer.id, e)
+                vertex_result = ""
+
+            try:
+                perplexity_result = p_future.result(timeout=150)  # M8: 150s para Perplexity em consultas complexas (era 90s)
+            except concurrent.futures.TimeoutError:
+                logger.warning("Perplexity timeout na análise de tese (parecer=%s) — fallback vazio.", parecer.id)
+                perplexity_result = ""
+            except Exception as e:
+                logger.warning("Perplexity erro na análise de tese (parecer=%s): %s — fallback vazio.", parecer.id, e)
+                perplexity_result = ""
+        finally:
+            # shutdown(wait=False): não bloqueia o worker aguardando threads travadas de rede.
+            # Threads daemon são encerradas automaticamente quando o processo termina.
+            executor.shutdown(wait=False)
 
         if cache_config.is_active and "erro" not in chave.lower():
             try:

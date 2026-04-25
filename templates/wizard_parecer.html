@@ -900,6 +900,8 @@ const AUTO_TEMP  = {{ is_tempestivo|yesno:"true,false" }};
 const AUTO_PUNIT = {{ has_prescricao_punitiva|yesno:"true,false" }};
 const AUTO_INTER = {{ has_prescricao_intercorrente|yesno:"true,false" }};
 const AUTO_DECAD = {{ has_decadencia|yesno:"true,false" }};
+// Indica se os PDFs já foram salvos no DB (usado para evitar que tela de upload reapareça após falha do Gemini)
+const HAS_AUTUACAO = {{ has_autuacao|yesno:"true,false" }};
 
 const FASE_STEP  = {1:2,10:2,2:2,3:2,31:3,4:4,41:4,5:5,6:5,7:6,8:6};
 const STEP_NAMES = ['Identificação','Documentos','Admissibilidade','Tese','Parecer','Finalizar'];
@@ -1056,10 +1058,34 @@ function renderPhase(f) {
     const show = (id) => { const e=document.getElementById(id); if(e) e.classList.remove('hidden'); };
     const hide = (id) => { const e=document.getElementById(id); if(e) e.classList.add('hidden'); };
 
-    if (f===1)  { show('p1-upload'); hide('p1-loading'); hide('p1-confirm'); hide('p1-tabela'); hide('p1-dados');
-                  document.getElementById('p1-footer').style.display = '';
-                  if('{{ parecer.nome_processo }}'.trim()) show('nome-field');
-                  collapsePdf(); }
+    if (f===1)  {
+        // Safety net: se arquivos já estão no DB mas status_fase=1 (Gemini falhou),
+        // não reexibe tela de upload — mostra loading enquanto aguarda ou recarrega.
+        if (HAS_AUTUACAO) {
+            hide('p1-upload'); hide('p1-confirm'); hide('p1-tabela'); hide('p1-dados');
+            show('p1-loading');
+            document.getElementById('p1-footer').style.display = 'none';
+            rotateLabel('p1-loading-lbl',['Processando documentos...','Aguarde...']);
+            // Polling leve: verifica se o backend já avançou a fase
+            if (!window._fase1FallbackActive) {
+                window._fase1FallbackActive = true;
+                setTimeout(function pollFase1Status() {
+                    fetch(`/parecer/${PARECER_ID}/wizard/status/`)
+                        .then(r => r.json())
+                        .then(d => {
+                            if (d.status_fase !== 1) { window.location.reload(); }
+                            else { setTimeout(pollFase1Status, 4000); }
+                        })
+                        .catch(() => setTimeout(pollFase1Status, 6000));
+                }, 3000);
+            }
+        } else {
+            show('p1-upload'); hide('p1-loading'); hide('p1-confirm'); hide('p1-tabela'); hide('p1-dados');
+            document.getElementById('p1-footer').style.display = '';
+            if('{{ parecer.nome_processo }}'.trim()) show('nome-field');
+            collapsePdf();
+        }
+    }
     if (f===10) {
         hide('p1-upload'); hide('p1-loading'); hide('p1-confirm'); hide('p1-tabela');
         show('p1-dados');
@@ -1879,19 +1905,41 @@ async function doUpload(nome) {
     fd.append('message', nome);
     fd.append('parecer_id', PARECER_ID || '');
     selectedFiles.forEach((f,i) => fd.append(`file_${i}`, f));
-    selectedFiles = [];
+    // Mantém selectedFiles até confirmação de sucesso para permitir nova tentativa
+    const filesToSend = [...selectedFiles];
     try {
         const data = await new Promise((res, rej) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST','/chat/message/',true);
             xhr.setRequestHeader('X-CSRFToken', getCsrf());
             xhr.upload.onprogress = e => { if(e.lengthComputable) setBtnLabel(`Enviando... ${Math.round(e.loaded/e.total*100)}%`); };
-            xhr.onload = () => xhr.status<400 ? res(JSON.parse(xhr.responseText)) : rej();
-            xhr.onerror = () => rej();
+            xhr.onload = () => {
+                if (xhr.status < 400) {
+                    res(JSON.parse(xhr.responseText));
+                } else {
+                    // Tenta extrair mensagem de erro do corpo da resposta
+                    try {
+                        const errData = JSON.parse(xhr.responseText);
+                        rej(errData.error || `Erro HTTP ${xhr.status}`);
+                    } catch {
+                        rej(`Erro HTTP ${xhr.status}. Verifique o tamanho dos arquivos (máx. 20 MB) e tente novamente.`);
+                    }
+                }
+            };
+            xhr.onerror = () => rej('Erro de rede. Verifique sua conexão e tente novamente.');
             xhr.send(fd);
         });
+        // Só limpa os arquivos após sucesso confirmado
+        selectedFiles = [];
         await handleResponse(data);
-    } catch { toast('Erro ao enviar arquivos.','error'); setLoading(false); }
+    } catch(errMsg) {
+        // Restaura arquivos para nova tentativa sem precisar reselecionar
+        selectedFiles = filesToSend;
+        renderFileList();
+        const msg = typeof errMsg === 'string' ? errMsg : 'Erro ao enviar arquivos. Tente novamente.';
+        toast(msg, 'error');
+        setLoading(false);
+    }
 }
 
 // ─── POLLING (substituiu SSE para compatibilidade WSGI) ────────────

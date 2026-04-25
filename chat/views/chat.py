@@ -167,7 +167,12 @@ def check_task_status_view(request, task_id):
         return JsonResponse({'status': 'SUCCESS', 'reply': "Tarefa concluída, mas Parecer ID não fornecido.", 'status_fase': 6})
 
     elif task.state == 'FAILURE':
-        return JsonResponse({'status': 'FAILURE', 'error': str(task.info)})
+        err = task.info
+        err_msg = str(err) if err else 'Falha no processamento. Abra o processo e tente novamente.'
+        return JsonResponse({'status': 'FAILURE', 'error': err_msg})
+
+    elif task.state == 'REVOKED':
+        return JsonResponse({'status': 'FAILURE', 'error': 'O processamento excedeu o tempo limite e foi interrompido. Abra o processo e tente novamente.'})
 
     return JsonResponse({'status': 'PROCESSING'})
 

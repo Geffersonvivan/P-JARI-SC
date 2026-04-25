@@ -67,6 +67,23 @@ def _parse_field(campo, valor_str):
     return valor_str[:255] if valor_str else None, None
 
 
+def _extrair_data_infracao_tabela(tabela_texto: str):
+    """Extrai data_infracao da tabela F2 usando as mesmas labels de phase_3.py."""
+    import re, datetime as _dt
+    for pat in (
+        r'\bINFRACAO\b', r'[Ii]nfra[çc][ãa]o', r'Auto\s+de\s+[Ii]nfra[çc][ãa]o', r'\bAIT\b', r'\bAI\b',
+    ):
+        m = re.search(rf'{pat}[^|\n]{{0,60}}\|\s*(\d{{2}}/\d{{2}}/\d{{4}})', tabela_texto, re.IGNORECASE)
+        if not m:
+            m = re.search(rf'\|\s*(\d{{2}}/\d{{2}}/\d{{4}})\s*\|[^|\n]{{0,60}}{pat}', tabela_texto, re.IGNORECASE)
+        if m:
+            try:
+                return _dt.datetime.strptime(m.group(1), "%d/%m/%Y").date()
+            except Exception:
+                pass
+    return None
+
+
 def process(engine, message: str) -> str:
     """Processa a resposta do julgador na fase 2."""
     parecer = engine.parecer
@@ -74,6 +91,32 @@ def process(engine, message: str) -> str:
 
     if msg == 'ok':
         from chat.engine import FASE_ADMISSIBILIDADE_GERADA, FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
+
+        # D4 FIX: bloquear avanço quando data_sessao < data_infracao (fatal)
+        _data_inf_f2 = _extrair_data_infracao_tabela(parecer.tabela_datas_sensiveis or "")
+        if _data_inf_f2 and parecer.data_sessao and parecer.data_sessao < _data_inf_f2:
+            return (
+                f"⛔ **BLOQUEIO — Inconsistência Cronológica Fatal**\n\n"
+                f"A data da sessão (**{parecer.data_sessao.strftime('%d/%m/%Y')}**) é anterior à "
+                f"data da infração (**{_data_inf_f2.strftime('%d/%m/%Y')}**) identificada na tabela. "
+                "Os cálculos ficariam matematicamente incorretos.\n\n"
+                "Corrija antes de prosseguir:\n"
+                "- `data_sessao: DD/MM/AAAA` — ou —\n"
+                "- `corrigir` para reiniciar com novos documentos."
+            )
+
+        # D17 FIX: bloquear quando suspensão por pontos sem data_totalizacao
+        if parecer.tipo_penalidade == 'suspensao' and not parecer.data_totalizacao_pontos:
+            return (
+                "⚠️ **Data de Totalização de Pontos obrigatória**\n\n"
+                "O tipo de penalidade é **Suspensão**. Se for **suspensão por acúmulo de pontos**, "
+                "a data de totalização é o marco inicial da prescrição punitiva (logica-pjari §221) "
+                "e sem ela o cálculo ficará errado.\n\n"
+                "Informe uma das opções:\n"
+                "- `data_totalizacao_pontos: DD/MM/AAAA` — para suspensão por pontos;\n"
+                "- `tipo_penalidade: multa` — se for suspensão por infração direta (não por pontos)."
+            )
+
         # Invalida pré-cálculo F3 se campos foram editados (admissibilidade_texto pode estar desatualizado)
         # A flag _f2_campos_editados é setada pelo processo de edição inline
         if getattr(parecer, '_f2_campos_editados', False) and parecer.admissibilidade_texto:
@@ -188,7 +231,7 @@ def run(engine) -> str:
     if _pdfs_enviados > 0:
         if _total_chars < 500:
             _aviso_ilegivel = (
-                "⚠️ **ATENÇÃO — PDF possivelmente digitalizado sem OCR:** "
+                "**ATENCAO — PDF possivelmente digitalizado sem OCR:** "
                 f"O sistema extraiu apenas {_total_chars} caracteres dos documentos enviados. "
                 "O PDF pode ser uma imagem sem texto selecionável. "
                 "O Gemini tentará análise visual, mas as datas abaixo podem estar incompletas — "
@@ -197,7 +240,7 @@ def run(engine) -> str:
             logger.warning(f"[FASE2] PDF crítico — {_total_chars} chars — parecer={parecer.id}, pdfs={_pdfs_enviados}")
         elif _total_chars < 2000:
             _aviso_ilegivel = (
-                "ℹ️ **ATENÇÃO — PDF com texto limitado:** "
+                "**ATENCAO — PDF com texto limitado:** "
                 f"O sistema extraiu {_total_chars} caracteres dos documentos. "
                 "Podem existir datas não capturadas pela varredura automática. "
                 "Confira as datas na tabela abaixo antes de prosseguir.\n\n"
@@ -212,7 +255,7 @@ def run(engine) -> str:
     if isinstance(resultado, dict) and 'erro' not in resultado:
         _rec = resultado.get('recorrente', '')
         if _rec and 'NÃO LOCALIZADO' not in _rec.upper() and '[NOME' not in _rec.upper():
-            parecer.recorrente = _rec[:250]
+            parecer.recorrente = _rec[:250].upper()  # D1 FIX: forçar MAIÚSCULAS
 
         _tp = resultado.get('tipo_penalidade', '').lower().strip()
         if _tp and _tp != 'nao_determinado':

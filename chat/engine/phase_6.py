@@ -73,49 +73,137 @@ def run(engine) -> str:
             erro_fatal = True
             incompatibilidade_msg = "❌ Resultado incompatível com a Intempestividade do recurso (Deveria ser INDEFERIDO)"
 
-    itens_conformes = 10
+    # ── Checklist programático (10 itens §504-515) ───────────────────────────
+    # M9 FIX: ponderação separada — erro fatal (peso 5) vs advertência (peso 1)
+    # Score = (pontos_conformes / 10) * 100. Erros fatais pesam 5x mais que advertências.
+    pontos_fatais = 0    # acumulado de erros fatais (máx 5)
+    pontos_avisos = 0    # acumulado de advertências (máx 5)
     inconsistencias = []
+    advertencias = []    # itens de advertência (cabeçalho, vedações)
+    parecer_final = parecer.parecer_final or ""
 
+    # Item 2 — RESULTADO: incompatibilidade fatal (peso 5 de 10)
     if erro_fatal:
-        itens_conformes -= 5
+        pontos_fatais += 5
         inconsistencias.append(incompatibilidade_msg)
 
-    if parecer.sgpe and parecer.sgpe not in parecer.parecer_final:
-        itens_conformes -= 1
-        inconsistencias.append("❌ Inconsistente: SGPE ausente ou errado no Parecer.")
+    # Item 1 — CABEÇALHO: PA, SGPE, Recorrente, Data Sessão (peso 1 cada, máx 4)
+    if parecer.sgpe and parecer.sgpe not in parecer_final:
+        pontos_avisos += 1
+        advertencias.append("CABEÇALHO: SGPE ausente ou incorreto no Parecer.")
 
-    if parecer.pa and parecer.pa not in parecer.parecer_final:
-        itens_conformes -= 1
-        inconsistencias.append("❌ Inconsistente: Processo Administrativo ausente ou errado no Parecer.")
+    if parecer.pa and parecer.pa not in parecer_final:
+        pontos_avisos += 1
+        advertencias.append("CABEÇALHO: PA ausente ou incorreto no Parecer.")
 
-    indice = (itens_conformes / 10) * 100
-    if erro_fatal and indice > 50:
-        indice = 50.0
+    if parecer.recorrente:
+        nome_partes = parecer.recorrente.strip().split()
+        sobrenome = nome_partes[-1] if nome_partes else ""
+        if sobrenome and sobrenome.upper() not in parecer_final.upper():
+            pontos_avisos += 1
+            advertencias.append(f"CABEÇALHO: Nome do recorrente ('{parecer.recorrente}') ausente no Parecer.")
+
+    if parecer.data_sessao:
+        data_str_br = parecer.data_sessao.strftime("%d/%m/%Y")
+        if data_str_br not in parecer_final:
+            pontos_avisos += 1
+            advertencias.append(f"CABEÇALHO: Data da sessão ({data_str_br}) ausente no Parecer.")
+
+    # Item 10 — VEDAÇÕES §515: emojis, fases internas, motores de IA (peso 1 total)
+    _VEDACOES_AI = ['PERPLEXITY', 'GEMINI', 'VERTEX', 'CLAUDE', 'ANTHROPIC', 'CHATGPT', 'OPENAI']
+    texto_upper = parecer_final.upper()
+    _ai_encontrada = next((n for n in _VEDACOES_AI if n in texto_upper), None)
+    if _ai_encontrada:
+        pontos_avisos += 1
+        advertencias.append(f"VEDACOES: Parecer menciona motor de IA '{_ai_encontrada}' (vedado §515).")
+
+    if re.search(r'\bFASE\s*\d', parecer_final, re.IGNORECASE):
+        pontos_avisos += 1
+        advertencias.append("VEDACOES: Parecer menciona fases internas do sistema (vedado §515).")
+
+    if re.search(r'[\U00010000-\U0010FFFF\U00002600-\U000027BF\U0001F000-\U0001FFFF]', parecer_final):
+        pontos_avisos += 1
+        advertencias.append("VEDACOES: Parecer contém emojis (vedado §515).")
+
+    # Score ponderado: erros fatais (5 pts max) + advertências (5 pts max) = 10 pts total
+    pontos_conformes = max(0, 10 - pontos_fatais - pontos_avisos)
+    indice = (pontos_conformes / 10) * 100
+
+    # Unificar inconsistencias para log/email — erros fatais primeiro, depois advertências
+    inconsistencias += [f"Aviso: {a}" for a in advertencias]
 
     parecer.blindagem_score = int(indice)
+
+    # ── C2 FIX: bloquear avanço quando há incompatibilidade fatal ────────────
+    # O julgador deve usar "Editar texto" para corrigir o parecer e depois digitar "ok" novamente.
+    if erro_fatal:
+        detalhe_bloco = "\n".join(inconsistencias)
+        parecer.blindagem_detalhes = detalhe_bloco
+        parecer.save(update_fields=['blindagem_score', 'blindagem_detalhes'])
+        logger.warning(
+            "[FASE6] BLOQUEIO por incompatibilidade fatal: parecer=%s | %s",
+            parecer.id, incompatibilidade_msg,
+        )
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            _admin_email = getattr(settings, 'ADMIN_EMAIL', settings.DEFAULT_FROM_EMAIL)
+            assunto = f"P-JARI: Inconsistencia Critica detectada na IA ({parecer.sgpe or parecer.nome_processo})"
+            mensagem = (
+                f"O JariEngine detectou incompatibilidade fatal na Fase 6.\n\n"
+                f"Processo: {parecer.nome_processo}\n"
+                f"SGPE / PA: {parecer.sgpe or parecer.pa or 'Não Informado'}\n"
+                f"Inconsistência: {incompatibilidade_msg}\n\n"
+                f"--- Trecho do Parecer ---\n"
+                f"{parecer.parecer_final[:1500]}... [Ver Completo na Ferramenta]\n\n"
+                f"Session Key: {parecer.session_key}"
+            )
+            send_mail(
+                subject=assunto, message=mensagem,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[_admin_email], fail_silently=True,
+            )
+        except Exception as e:
+            import sentry_sdk
+            sentry_sdk.capture_exception(e)
+            logger.error("Erro ao disparar email de auditoria Fase 6: %s", e)
+        return (
+            f"⛔ **AUDITORIA BLOQUEADA — Incompatibilidade Fatal**\n\n"
+            f"{incompatibilidade_msg}\n\n"
+            f"O parecer não pode avançar com esta inconsistência. Use o botão **Editar texto** "
+            f"para corrigir o resultado do parecer e depois digite **ok** novamente."
+        )
+
     if inconsistencias:
         parecer.blindagem_detalhes = "\n".join(inconsistencias)
         try:
             from django.core.mail import send_mail
             from django.conf import settings
-            _admin_email = getattr(settings, 'ADMIN_EMAIL', settings.DEFAULT_FROM_EMAIL)
-            assunto = f"🚨 P-JARI: Inconsistência Crítica detectada na IA ({parecer.sgpe or parecer.nome_processo})"
-            mensagem = (
-                f"O JariEngine detectou inconsistências de validação matemática durante a auditoria (Fase 6).\n\n"
-                f"Processo: {parecer.nome_processo}\n"
-                f"SGPE / PA: {parecer.sgpe or parecer.pa or 'Não Informado'}\n"
-                f"Inconsistências Listadas:\n{parecer.blindagem_detalhes}\n\n"
-                f"--- Trecho do Parecer (Problema) ---\n"
-                f"{parecer.parecer_final[:1500]}... [Ver Completo na Ferramenta]\n\n"
-                f"Session Key para Bug Tracking: {parecer.session_key}"
-            )
-            send_mail(
-                subject=assunto,
-                message=mensagem,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[_admin_email],
-                fail_silently=True,
-            )
+            # D15 FIX: avisar explicitamente quando ADMIN_EMAIL não configurado
+            _admin_email = getattr(settings, 'ADMIN_EMAIL', None)
+            if not _admin_email:
+                logger.warning(
+                    "[FASE6] ADMIN_EMAIL não configurado — email de auditoria NÃO enviado. "
+                    "Configure ADMIN_EMAIL no settings para receber alertas. parecer=%s", parecer.id
+                )
+            else:
+                assunto = f"P-JARI: Inconsistencia Critica detectada na IA ({parecer.sgpe or parecer.nome_processo})"
+                mensagem = (
+                    f"O JariEngine detectou inconsistências de validação matemática durante a auditoria (Fase 6).\n\n"
+                    f"Processo: {parecer.nome_processo}\n"
+                    f"SGPE / PA: {parecer.sgpe or parecer.pa or 'Não Informado'}\n"
+                    f"Inconsistências Listadas:\n{parecer.blindagem_detalhes}\n\n"
+                    f"--- Trecho do Parecer (Problema) ---\n"
+                    f"{parecer.parecer_final[:1500]}... [Ver Completo na Ferramenta]\n\n"
+                    f"Session Key para Bug Tracking: {parecer.session_key}"
+                )
+                send_mail(
+                    subject=assunto,
+                    message=mensagem,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[_admin_email],
+                    fail_silently=True,
+                )
         except Exception as e:
             import sentry_sdk
             sentry_sdk.capture_exception(e)
@@ -149,7 +237,13 @@ def run(engine) -> str:
         }
         parecer.save(update_fields=['checklist_auditoria_json'])
     except Exception as e:
-        logger.warning(f"Erro ao salvar checklist_auditoria_json: {e}")
+        # D10 FIX: erro silencioso substituído por log crítico com sentry
+        import sentry_sdk
+        sentry_sdk.capture_exception(e)
+        logger.error(
+            "[FASE6] FALHA ao salvar checklist_auditoria_json — rastreabilidade comprometida: "
+            "parecer=%s erro=%s", parecer.id, e
+        )
 
     # ── Tempo total de julgamento ─────────────────────────────────────────────
     try:
