@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# P-JARI/SC — Sentry Alert Rules (Configuration as Code)
+# Aplicar via:  python .sentry/apply.py
+# Requer:       SENTRY_AUTH_TOKEN e SENTRY_ORG no ambiente
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: 1
+
+project: p-jarisc
+
+# ── E-mail Subject Template ───────────────────────────────────────────────────
+email_subject_template: "[$tag:environment] $shortID - $title"
+
+# ── Digest ────────────────────────────────────────────────────────────────────
+digest:
+  minimum_interval: 5    # minutos — mínimo entre notificações (anti-spam)
+  maximum_interval: 10   # minutos — máximo sem notificar (reduzido de 30)
+
+# ── Alert Rules ───────────────────────────────────────────────────────────────
+alert_rules:
+
+  - name: "Erro Novo — Notificação Imediata"
+    environment: production
+    conditions:
+      - id: sentry.rules.conditions.first_seen_event.FirstSeenEventCondition
+    filters: []
+    actions:
+      - id: sentry.mail.actions.NotifyEmailAction
+        targetType: IssueOwners
+        fallthroughType: ActiveMembers
+    action_match: all
+    filter_match: all
+    frequency: 5           # mínimo entre disparos (minutos)
+
+  - name: "Erro Frequente (5x / 1h)"
+    environment: production
+    conditions:
+      - id: sentry.rules.conditions.event_frequency.EventFrequencyCondition
+        value: 5
+        comparisonType: count
+        interval: 1h
+    filters: []
+    actions:
+      - id: sentry.mail.actions.NotifyEmailAction
+        targetType: IssueOwners
+        fallthroughType: ActiveMembers
+    action_match: all
+    filter_match: all
+    frequency: 60          # notifica no máximo 1x/hora para o mesmo issue
+
+  - name: "Gemini Timeout (504 / DEADLINE_EXCEEDED)"
+    environment: production
+    conditions:
+      - id: sentry.rules.conditions.first_seen_event.FirstSeenEventCondition
+      - id: sentry.rules.conditions.tagged_event.TaggedEventCondition
+        key: transaction
+        value: processar_fase
+    filters:
+      - id: sentry.rules.filters.event_attribute.EventAttributeFilter
+        attribute: message
+        match: contains
+        value: "DEADLINE_EXCEEDED"
+    actions:
+      - id: sentry.mail.actions.NotifyEmailAction
+        targetType: IssueOwners
+        fallthroughType: ActiveMembers
+    action_match: any
+    filter_match: any
+    frequency: 30
+
+  - name: "Erro Crítico — Fase 6 Auditoria Bloqueada"
+    environment: production
+    conditions:
+      - id: sentry.rules.conditions.first_seen_event.FirstSeenEventCondition
+    filters:
+      - id: sentry.rules.filters.event_attribute.EventAttributeFilter
+        attribute: message
+        match: contains
+        value: "AUDITORIA BLOQUEADA"
+    actions:
+      - id: sentry.mail.actions.NotifyEmailAction
+        targetType: IssueOwners
+        fallthroughType: ActiveMembers
+    action_match: all
+    filter_match: all
+    frequency: 5
