@@ -545,6 +545,35 @@
             </div>
         </div>
 
+        <!-- ═══ MODAL BLOQUEIO ADMISSIBILIDADE ═══ -->
+        <div id="modal-bloqueio-adm" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+             style="background:rgba(0,0,0,0.55);">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+                <!-- Cabeçalho vermelho -->
+                <div class="flex items-center gap-3 px-6 py-4" style="background:#fee2e2;border-bottom:1px solid #fca5a5;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                    <span id="modal-bloqueio-titulo" class="font-bold text-base" style="color:#991b1b;">Conversão Bloqueada</span>
+                </div>
+                <!-- Corpo -->
+                <div class="px-6 py-5">
+                    <p id="modal-bloqueio-msg" class="text-sm leading-relaxed" style="color:#374151;"></p>
+                </div>
+                <!-- Rodapé -->
+                <div class="flex justify-end gap-3 px-6 py-4" style="border-top:1px solid #f3f4f6;">
+                    <button onclick="reiniciarEscolhasAdm()"
+                            class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                            style="background:#2563eb;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582M20 20v-5h-.581M4.582 9A8 8 0 0120 15M19.418 15A8 8 0 014 9"/>
+                        </svg>
+                        Reiniciar Escolhas
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- ═══ PAINEL 2: ADMISSIBILIDADE ═══ -->
         <div id="panel-2" class="wizard-panel hidden">
 
@@ -1746,14 +1775,17 @@ async function wizardNext() {
         }
         case 31: {
             const s = buildAdmString();
+            // Envia ao backend ANTES de navegar — backend pode bloquear (Filtro 1/2)
+            const ok = await avancar(s);
+            if (!ok) break; // avancar() já exibiu o modal de bloqueio via handleResponse
+            // Só navega se não houve bloqueio (handleResponse teria exibido modal e retornado)
             window.decisions = {};
-            // Navega imediatamente para painel de teses com loading antes de aguardar backend
             currentStep = 4;
             updateProgress(currentStep);
             document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
             document.getElementById('panel-3')?.classList.remove('hidden');
             renderPhase(4);
-            await avancar(s); break;
+            break;
         }
         case 41: {
             const s = buildTeseString();
@@ -1828,8 +1860,8 @@ async function avancar(message, skipDetect = false) {
             setLoading(false);
             return false;
         }
-        await handleResponse(data, skipDetect);
-        return true;
+        const ok = await handleResponse(data, skipDetect);
+        return ok !== false;  // false = bloqueio/erro; undefined/true = sucesso
     } catch(e) { toast('Erro de comunicação.','error'); setLoading(false); return false; }
 }
 
@@ -1847,12 +1879,47 @@ async function send(message) {
     } catch(e) { toast('Erro de comunicação.','error'); setLoading(false); }
 }
 
+// ─── MODAL BLOQUEIO ADM ────────────────────────────
+function mostrarModalBloqueioAdm(mensagem) {
+    // Extrai título (primeira linha) e corpo do restante
+    const linhas = mensagem.replace(/\*\*/g, '').replace(/^[⚠️❌⛔ ]+/gm, '').trim().split('\n').filter(l => l.trim());
+    const titulo = linhas[0] || 'Conversão Bloqueada';
+    const corpo  = linhas.slice(1).join(' ').trim() || mensagem;
+
+    document.getElementById('modal-bloqueio-titulo').textContent = titulo;
+    document.getElementById('modal-bloqueio-msg').textContent    = corpo;
+    document.getElementById('modal-bloqueio-adm').classList.remove('hidden');
+    setLoading(false);
+}
+
+function reiniciarEscolhasAdm() {
+    // Fecha o modal
+    document.getElementById('modal-bloqueio-adm').classList.add('hidden');
+    // Reseta todas as decisões
+    window.decisions = {};
+    // Volta ao painel de admissibilidade (panel-2) na fase 31
+    document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+    document.getElementById('panel-2')?.classList.remove('hidden');
+    currentStep = 3;
+    updateProgress(currentStep);
+    currentFase = 31;
+    renderPhase(31);
+}
+
 async function handleResponse(data, skipDetect = false) {
     if (data.error) {
-        // Mostra o erro e atualiza a fase (para o backend poder regredir o estado)
-        toast(data.error.replace(/\*\*/g,'').replace(/^[⚠️❌⛔ ]+/,'').substring(0,220), 'error');
-        if (data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); } else { setLoading(false); }
-        return;
+        const msg = data.error || '';
+        // Erros de bloqueio da fase 31 (admissibilidade) → modal em vez de toast
+        const isBloqueioAdm = currentFase === 31 ||
+            msg.includes('BLOQUEADA') || msg.includes('BLOQUEIO') ||
+            msg.includes('CETRAN') || msg.includes('Filtro');
+        if (isBloqueioAdm) {
+            mostrarModalBloqueioAdm(msg);
+        } else {
+            toast(msg.replace(/\*\*/g,'').replace(/^[⚠️❌⛔ ]+/,'').substring(0,220), 'error');
+            if (data.status_fase !== undefined) { currentFase = data.status_fase; detectState(); } else { setLoading(false); }
+        }
+        return false;  // sinaliza bloqueio para avancar()
     }
     if (data.is_processing && data.task_id) { startSSE(data.task_id, data.task_type); return; }
     if (data.blindagem_score !== undefined && data.blindagem_score !== null) _jariMatchScore = data.blindagem_score;
