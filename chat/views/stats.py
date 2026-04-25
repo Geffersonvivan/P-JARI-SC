@@ -494,50 +494,61 @@ def estatisticas_gerais_view(request):
     tags_ranking = sorted(tags_contagem.items(), key=lambda x: x[1], reverse=True)
 
     # ── Auditoria de Uso ────────────────────────────────────────────────────────
-    audit_qs = AuditEvent.objects.filter(timestamp__year=ano, timestamp__month=mes)
-
-    # Funil: pareceres por status_fase (snapshot atual — independe do mês)
-    funil_fases = [
-        ('Coleta Docs',    [1, 10]),
-        ('DIR/Tabela',     [2, 3]),
-        ('Admissibilidade',[31]),
-        ('Tese',           [4, 41]),
-        ('Parecer',        [5, 6]),
-        ('Finalizado',     [8]),
-    ]
     funil_data = []
-    for label, fases in funil_fases:
-        count = Parecer.objects.filter(status_fase__in=fases).count()
-        funil_data.append({'label': label, 'count': count})
-
-    # Eventos de auditoria por tipo
-    filtros_bloqueados = audit_qs.filter(evento='filtro_bloqueado').count()
-    erros_fase = audit_qs.filter(evento='fase_erro').count()
-    pareceres_finalizados_audit = audit_qs.filter(evento='parecer_finalizado').count()
-    creditos_consumidos = audit_qs.filter(evento='credito_consumido').count()
-
-    # Score médio de blindagem (do mês)
-    score_medio_blindagem = Parecer.objects.filter(
-        is_saved=True, created_at__year=ano, created_at__month=mes,
-        blindagem_score__isnull=False
-    ).aggregate(avg=Avg('blindagem_score'))['avg']
-    score_medio_blindagem = round(score_medio_blindagem or 0, 1)
-
-    # Decisões de admissibilidade
-    adm_eventos = list(audit_qs.filter(evento='admissibilidade_decisao').values('dados'))
+    filtros_bloqueados = 0
+    erros_fase = 0
+    pareceres_finalizados_audit = 0
+    creditos_consumidos = 0
+    score_medio_blindagem = 0
     adm_counts = {'punitiva': 0, 'intercorrente': 0, 'decadencia': 0, 'intempestivo': 0, 'merito': 0}
-    for ev in adm_eventos:
-        d = ev.get('dados') or {}
-        if d.get('punitiva'):      adm_counts['punitiva'] += 1
-        elif d.get('intercorrente'): adm_counts['intercorrente'] += 1
-        elif d.get('decadencia'):  adm_counts['decadencia'] += 1
-        elif d.get('tempestivo') is False: adm_counts['intempestivo'] += 1
-        else:                      adm_counts['merito'] += 1
+    ultimos_erros_fase = []
 
-    # Erros por fase (últimos 20)
-    ultimos_erros_fase = list(
-        audit_qs.filter(evento='fase_erro').order_by('-timestamp').values('timestamp', 'fase', 'dados')[:20]
-    )
+    try:
+        audit_qs = AuditEvent.objects.filter(timestamp__year=ano, timestamp__month=mes)
+
+        # Funil: pareceres por status_fase (snapshot atual — independe do mês)
+        funil_fases = [
+            ('Coleta Docs',    [1, 10]),
+            ('DIR/Tabela',     [2, 3]),
+            ('Admissibilidade',[31]),
+            ('Tese',           [4, 41]),
+            ('Parecer',        [5, 6]),
+            ('Finalizado',     [8]),
+        ]
+        for label, fases in funil_fases:
+            count = Parecer.objects.filter(status_fase__in=fases).count()
+            funil_data.append({'label': label, 'count': count})
+
+        # Eventos de auditoria por tipo
+        filtros_bloqueados = audit_qs.filter(evento='filtro_bloqueado').count()
+        erros_fase = audit_qs.filter(evento='fase_erro').count()
+        pareceres_finalizados_audit = audit_qs.filter(evento='parecer_finalizado').count()
+        creditos_consumidos = audit_qs.filter(evento='credito_consumido').count()
+
+        # Score médio de blindagem (do mês)
+        score_medio_blindagem = Parecer.objects.filter(
+            is_saved=True, created_at__year=ano, created_at__month=mes,
+            blindagem_score__isnull=False
+        ).aggregate(avg=Avg('blindagem_score'))['avg']
+        score_medio_blindagem = round(score_medio_blindagem or 0, 1)
+
+        # Decisões de admissibilidade
+        adm_eventos = list(audit_qs.filter(evento='admissibilidade_decisao').values('dados'))
+        for ev in adm_eventos:
+            d = ev.get('dados') or {}
+            if d.get('punitiva'):             adm_counts['punitiva'] += 1
+            elif d.get('intercorrente'):      adm_counts['intercorrente'] += 1
+            elif d.get('decadencia'):         adm_counts['decadencia'] += 1
+            elif d.get('tempestivo') is False: adm_counts['intempestivo'] += 1
+            else:                             adm_counts['merito'] += 1
+
+        # Erros por fase (últimos 20)
+        ultimos_erros_fase = list(
+            audit_qs.filter(evento='fase_erro').order_by('-timestamp').values('timestamp', 'fase', 'dados')[:20]
+        )
+    except Exception:
+        import logging as _log
+        _log.getLogger(__name__).exception('[stats] AuditEvent query falhou — migration pendente?')
 
     context = {
         'total_julgados': total_julgados_global,
