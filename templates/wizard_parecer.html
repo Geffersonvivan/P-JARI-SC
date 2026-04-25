@@ -1813,10 +1813,8 @@ async function wizardNext() {
             await avancar(s); break;
         }
         case 6: {
-            // Aguarda o audit Gemini completar antes de mostrar a tela de pasta.
-            // Renderizar f=7 de forma otimista causava isProcessing=true bloqueando btn-confirmar-pasta.
-            document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
-            document.getElementById('panel-5')?.classList.remove('hidden');
+            // Mantém o painel atual enquanto o audit roda (isProcessing=true bloqueia interação).
+            // Não pré-exibe panel-5: detectState() navega para a seleção de pasta ao terminar.
             await avancar('ok'); break;
         }
         case 7: {
