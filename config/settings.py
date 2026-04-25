@@ -18,18 +18,70 @@ load_dotenv()
 
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
+import logging as _logging
+
+def _sentry_before_send(event, hint):
+    """Filtra e enriquece eventos antes de enviar ao Sentry."""
+    # Remove erros 404 e 403 — não são bugs do sistema
+    if "exc_info" in hint:
+        exc_type, _, _ = hint["exc_info"]
+        try:
+            from django.http import Http404
+            from django.core.exceptions import PermissionDenied
+            if exc_type in (Http404, PermissionDenied):
+                return None
+        except ImportError:
+            pass
+    return event
+
 
 sentry_dsn = os.environ.get('SENTRY_DSN')
 _is_debug = os.environ.get('DEBUG', 'False') == 'True'
+
 if sentry_dsn:
     sentry_sdk.init(
         dsn=sentry_dsn,
-        integrations=[DjangoIntegration()],
-        send_default_pii=False,
-        enable_logs=True,
+        environment="development" if _is_debug else "production",
+        release=os.environ.get('GIT_COMMIT', 'unknown'),
+
+        integrations=[
+            DjangoIntegration(
+                transaction_style="url",      # agrupa por rota, não por view
+                http_methods_to_capture=("GET", "POST", "PUT", "PATCH", "DELETE"),
+            ),
+            CeleryIntegration(
+                monitor_beat_tasks=False,     # não temos beat schedulado
+                propagate_traces=True,        # rastreia tarefa pai→filho
+            ),
+            RedisIntegration(),
+            LoggingIntegration(
+                level=_logging.WARNING,       # captura WARNING+ como breadcrumbs
+                event_level=_logging.ERROR,   # envia ao Sentry apenas ERROR+
+            ),
+        ],
+
+        # Performance — amostra 100% em prod para ver cada task Celery lenta
         traces_sample_rate=0.0 if _is_debug else 1.0,
-        profile_session_sample_rate=0.0 if _is_debug else 1.0,
+        profile_session_sample_rate=0.0 if _is_debug else 0.2,  # profiling: 20%
         profile_lifecycle="trace",
+
+        # Dados pessoais: manter desativado (LGPD)
+        send_default_pii=False,
+
+        # Captura variáveis locais nos stack frames (muito útil para depurar)
+        include_local_variables=True,
+
+        # Ignora erros operacionais esperados que poluem o painel
+        ignore_errors=[
+            KeyboardInterrupt,
+            SystemExit,
+        ],
+
+        # Antes de enviar: filtra 404/403 que poluem o painel
+        before_send=_sentry_before_send,
     )
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

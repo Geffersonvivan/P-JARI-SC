@@ -3,8 +3,26 @@ from .models import Parecer
 from .jari_engine import JariEngine
 import traceback
 import logging
+import sentry_sdk
 
 logger = logging.getLogger(__name__)
+
+
+def _sentry_task_context(parecer_id: int, task_name: str):
+    """Define contexto rico no Sentry para cada task Celery."""
+    sentry_sdk.set_tag("task", task_name)
+    sentry_sdk.set_tag("parecer_id", str(parecer_id))
+    try:
+        p = Parecer.objects.only("pa", "sgpe", "status_fase", "session_key").get(pk=parecer_id)
+        sentry_sdk.set_context("parecer", {
+            "id": parecer_id,
+            "pa": p.pa,
+            "sgpe": p.sgpe,
+            "status_fase": p.status_fase,
+        })
+        sentry_sdk.set_user({"id": str(p.session_key)})
+    except Exception:
+        pass
 
 @shared_task(bind=True, time_limit=360, soft_time_limit=300, queue='fast')
 def processar_fase1_task(self, parecer_id):
@@ -14,6 +32,7 @@ def processar_fase1_task(self, parecer_id):
     o Gunicorn e cause WORKER TIMEOUT no Railway.
     """
     from billiard.exceptions import SoftTimeLimitExceeded
+    _sentry_task_context(parecer_id, "fase1")
     try:
         parecer = Parecer.objects.get(id=parecer_id)
         engine = JariEngine(parecer)
@@ -48,6 +67,7 @@ def processar_fase2_task(self, parecer_id):
     Ao terminar, dispara pré-cálculo da Fase 3 em background (otimização UX).
     """
     from billiard.exceptions import SoftTimeLimitExceeded
+    _sentry_task_context(parecer_id, "fase2")
     try:
         parecer = Parecer.objects.get(id=parecer_id)
         engine = JariEngine(parecer)
@@ -106,6 +126,7 @@ def processar_fase4_task(self, parecer_id):
     Evita que a chamada síncrona ao Gemini bloqueie o Gunicorn e cause WORKER TIMEOUT.
     """
     from billiard.exceptions import SoftTimeLimitExceeded
+    _sentry_task_context(parecer_id, "fase4")
     try:
         parecer = Parecer.objects.get(id=parecer_id)
         engine = JariEngine(parecer)
@@ -138,6 +159,7 @@ def processar_fase4_analise_task(self, parecer_id):
     Evita que as chamadas síncronas às APIs (~90s cada) bloqueiem o Gunicorn.
     """
     from billiard.exceptions import SoftTimeLimitExceeded
+    _sentry_task_context(parecer_id, "fase4_analise")
     try:
         parecer = Parecer.objects.get(id=parecer_id)
         engine = JariEngine(parecer)
@@ -169,6 +191,7 @@ def gerar_parecer_task(self, parecer_id, tese=None):
     Worker task que roda as pesadas Fases 5 e 6 do motor JARI.
     Até 2 retries automáticos (intervalo 30s) para falhas transitórias de API.
     """
+    _sentry_task_context(parecer_id, "parecer")
     try:
         # Puxa o objeto do banco de dados na thread do Worker
         parecer = Parecer.objects.get(id=parecer_id)
