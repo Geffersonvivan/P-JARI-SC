@@ -821,13 +821,15 @@
 
                 <!-- Funil do Wizard -->
                 <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <h3 class="text-base font-bold text-gray-800 mb-1 flex items-center gap-2">
                         <i class="ph ph-funnel text-blue-500"></i> Funil do Wizard (snapshot atual)
                     </h3>
+                    <p class="text-xs text-gray-400 mb-4">Processos ativos por etapa no momento. Passe o mouse em cada linha para mais detalhes.</p>
+                    {% with funil_tooltips="Documentos sendo coletados/aguardando upload (Fases 1 e 10)|DIR e tabela sendo validados (Fases 2 e 3)|Julgador definindo admissibilidade do recurso (Fase 3.1)|Tese jurídica sendo analisada (Fases 4 e 4.1)|Parecer sendo gerado ou em auditoria (Fases 5 e 6)|Processo salvo com sucesso (Fase 8)" %}
                     <div class="space-y-3">
                         {% for item in funil_data %}
-                        {% with max_count=funil_data.0.count %}
-                        <div class="flex items-center gap-3">
+                        {% with max_count=funil_data.0.count tooltip=funil_tooltips|cut:"" %}
+                        <div class="relative group flex items-center gap-3 cursor-default">
                             <span class="text-xs text-gray-500 w-36 flex-shrink-0">{{ item.label }}</span>
                             <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
                                 <div class="h-5 rounded-full bg-blue-500 transition-all"
@@ -838,11 +840,17 @@
                         {% endwith %}
                         {% endfor %}
                     </div>
+                    {% endwith %}
+                    <p class="text-xs text-gray-300 mt-4">* Snapshot do banco — independe do filtro de mês.</p>
                 </div>
 
                 <!-- Cards de resumo -->
                 <div class="flex flex-col gap-4">
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="relative group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 cursor-default">
+                        <div class="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed pointer-events-none">
+                            Pareceres que chegaram até a Fase 7 (salvo em pasta) neste mês, registrados via AuditEvent.
+                            <div class="absolute left-1/2 -translate-x-1/2 top-full w-2.5 h-2.5 bg-gray-900 rotate-45 -mt-1"></div>
+                        </div>
                         <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
                             <i class="ph ph-check-circle text-green-500 text-xl"></i>
                         </div>
@@ -851,7 +859,11 @@
                             <p class="text-2xl font-bold text-gray-800">{{ pareceres_finalizados_audit }}</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="relative group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 cursor-default">
+                        <div class="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed pointer-events-none">
+                            Média do JariMath Score (0–100) dos pareceres finalizados. 100 = nenhuma inconsistência detectada pelo auditor automático.
+                            <div class="absolute left-1/2 -translate-x-1/2 top-full w-2.5 h-2.5 bg-gray-900 rotate-45 -mt-1"></div>
+                        </div>
                         <div class="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
                             <i class="ph ph-shield-check text-yellow-500 text-xl"></i>
                         </div>
@@ -860,7 +872,11 @@
                             <p class="text-2xl font-bold text-gray-800">{{ score_medio_blindagem }}<span class="text-sm font-normal text-gray-400">/100</span></p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="relative group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 cursor-default">
+                        <div class="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed pointer-events-none">
+                            Falhas capturadas nas tasks Celery (Gemini timeout, erro de API, etc.) neste mês. Ideal: zero.
+                            <div class="absolute left-1/2 -translate-x-1/2 top-full w-2.5 h-2.5 bg-gray-900 rotate-45 -mt-1"></div>
+                        </div>
                         <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
                             <i class="ph ph-x-circle text-red-400 text-xl"></i>
                         </div>
@@ -869,7 +885,11 @@
                             <p class="text-2xl font-bold text-gray-800">{{ erros_fase }}</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                    <div class="relative group bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 cursor-default">
+                        <div class="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 text-center leading-relaxed pointer-events-none">
+                            Recursos bloqueados pela admissibilidade automática (prescrição ou intempestividade confirmada pelo julgador) antes de chegar na IA.
+                            <div class="absolute left-1/2 -translate-x-1/2 top-full w-2.5 h-2.5 bg-gray-900 rotate-45 -mt-1"></div>
+                        </div>
                         <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
                             <i class="ph ph-prohibit text-orange-400 text-xl"></i>
                         </div>
@@ -882,16 +902,42 @@
 
                 <!-- Decisões de Admissibilidade -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <h3 class="text-base font-bold text-gray-800 mb-1 flex items-center gap-2">
                         <i class="ph ph-scales text-purple-500"></i> Decisões de Admissibilidade
                     </h3>
+                    <p class="text-xs text-gray-400 mb-4">Como o julgador classificou cada recurso neste mês.</p>
                     <div class="space-y-3">
                         {% with total_adm=adm_counts.punitiva|add:adm_counts.intercorrente|add:adm_counts.decadencia|add:adm_counts.intempestivo|add:adm_counts.merito %}
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Prescrição Punitiva</span><span class="font-semibold text-blue-600">{{ adm_counts.punitiva }}</span></div>
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Prescrição Intercorrente</span><span class="font-semibold text-indigo-600">{{ adm_counts.intercorrente }}</span></div>
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Decadência</span><span class="font-semibold text-violet-600">{{ adm_counts.decadencia }}</span></div>
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Intempestividade</span><span class="font-semibold text-orange-600">{{ adm_counts.intempestivo }}</span></div>
-                        <div class="flex justify-between text-xs py-1"><span class="text-gray-600">Mérito (prossegue)</span><span class="font-semibold text-green-600">{{ adm_counts.merito }}</span></div>
+                        <div class="relative group flex justify-between text-xs py-1 border-b border-gray-50 cursor-default">
+                            <div class="invisible group-hover:visible absolute bottom-full left-0 mb-1 w-60 p-2.5 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 leading-relaxed pointer-events-none">
+                                Punibilidade extinta por decurso do prazo prescricional punitivo (art. 1º, I, Lei 9.873/99). Recurso deferido de ofício.
+                            </div>
+                            <span class="text-gray-600">Prescrição Punitiva</span><span class="font-semibold text-blue-600">{{ adm_counts.punitiva }}</span>
+                        </div>
+                        <div class="relative group flex justify-between text-xs py-1 border-b border-gray-50 cursor-default">
+                            <div class="invisible group-hover:visible absolute bottom-full left-0 mb-1 w-60 p-2.5 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 leading-relaxed pointer-events-none">
+                                Processo paralisado por mais de 3 anos após início do rito (art. 1º, §1º, Lei 9.873/99). Recurso deferido.
+                            </div>
+                            <span class="text-gray-600">Prescrição Intercorrente</span><span class="font-semibold text-indigo-600">{{ adm_counts.intercorrente }}</span>
+                        </div>
+                        <div class="relative group flex justify-between text-xs py-1 border-b border-gray-50 cursor-default">
+                            <div class="invisible group-hover:visible absolute bottom-full left-0 mb-1 w-60 p-2.5 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 leading-relaxed pointer-events-none">
+                                Direito da Administração de constituir o crédito extinto pelo prazo decadencial de 5 anos. Recurso deferido.
+                            </div>
+                            <span class="text-gray-600">Decadência</span><span class="font-semibold text-violet-600">{{ adm_counts.decadencia }}</span>
+                        </div>
+                        <div class="relative group flex justify-between text-xs py-1 border-b border-gray-50 cursor-default">
+                            <div class="invisible group-hover:visible absolute bottom-full left-0 mb-1 w-60 p-2.5 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 leading-relaxed pointer-events-none">
+                                Recurso interposto fora do prazo legal de 30 dias. Bloqueado na admissibilidade — não analisa mérito.
+                            </div>
+                            <span class="text-gray-600">Intempestividade</span><span class="font-semibold text-orange-600">{{ adm_counts.intempestivo }}</span>
+                        </div>
+                        <div class="relative group flex justify-between text-xs py-1 cursor-default">
+                            <div class="invisible group-hover:visible absolute bottom-full left-0 mb-1 w-60 p-2.5 bg-gray-900 text-white text-xs rounded-xl shadow-xl z-50 leading-relaxed pointer-events-none">
+                                Recurso tempestivo sem prescrição — análise de mérito prossegue normalmente pelas fases seguintes.
+                            </div>
+                            <span class="text-gray-600">Mérito (prossegue)</span><span class="font-semibold text-green-600">{{ adm_counts.merito }}</span>
+                        </div>
                         <div class="flex justify-between text-xs pt-3 border-t border-gray-200 mt-1"><span class="text-gray-500 font-medium">Total</span><span class="font-bold text-gray-800">{{ total_adm }}</span></div>
                         {% endwith %}
                     </div>
@@ -899,9 +945,10 @@
 
                 <!-- Últimos erros de fase -->
                 <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <h3 class="text-base font-bold text-gray-800 mb-1 flex items-center gap-2">
                         <i class="ph ph-warning text-red-400"></i> Últimos Erros de Fase
                     </h3>
+                    <p class="text-xs text-gray-400 mb-4">Falhas capturadas nas tarefas Celery neste mês — útil para rastrear timeouts e erros de API.</p>
                     {% if ultimos_erros_fase %}
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs">
