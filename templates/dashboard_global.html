@@ -807,6 +807,120 @@
                 </div>
             </div>
 
+            <!-- ══ AUDITORIA DE USO ══════════════════════════════════════════ -->
+            <h2 class="text-xl font-bold text-gray-800 mb-4 px-4 w-full max-w-7xl mx-auto mt-10">Auditoria de Uso</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-6 px-4">
+
+                <!-- Funil do Wizard -->
+                <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="ph ph-funnel text-blue-500"></i> Funil do Wizard (snapshot atual)
+                    </h3>
+                    <div class="space-y-3">
+                        {% for item in funil_data %}
+                        {% with max_count=funil_data.0.count %}
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-gray-500 w-36 flex-shrink-0">{{ item.label }}</span>
+                            <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                                <div class="h-5 rounded-full bg-blue-500 transition-all"
+                                     style="width:{% if max_count > 0 %}{{ item.count|floatformat:0 }}{% else %}0{% endif %}%{% if max_count > 0 %};max-width:100%{% endif %}"></div>
+                            </div>
+                            <span class="text-xs font-semibold text-gray-700 w-8 text-right">{{ item.count }}</span>
+                        </div>
+                        {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Cards de resumo -->
+                <div class="flex flex-col gap-4">
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                            <i class="ph ph-check-circle text-green-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Finalizados (mês)</p>
+                            <p class="text-2xl font-bold text-gray-800">{{ pareceres_finalizados_audit }}</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
+                            <i class="ph ph-shield-check text-yellow-500 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Score Médio Blindagem</p>
+                            <p class="text-2xl font-bold text-gray-800">{{ score_medio_blindagem }}<span class="text-sm font-normal text-gray-400">/100</span></p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                            <i class="ph ph-x-circle text-red-400 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Erros de Fase (mês)</p>
+                            <p class="text-2xl font-bold text-gray-800">{{ erros_fase }}</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                            <i class="ph ph-prohibit text-orange-400 text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400">Filtros Bloqueados (mês)</p>
+                            <p class="text-2xl font-bold text-gray-800">{{ filtros_bloqueados }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decisões de Admissibilidade -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="ph ph-scales text-purple-500"></i> Decisões de Admissibilidade
+                    </h3>
+                    <div class="space-y-3">
+                        {% with total_adm=adm_counts.punitiva|add:adm_counts.intercorrente|add:adm_counts.decadencia|add:adm_counts.intempestivo|add:adm_counts.merito %}
+                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Prescrição Punitiva</span><span class="font-semibold text-blue-600">{{ adm_counts.punitiva }}</span></div>
+                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Prescrição Intercorrente</span><span class="font-semibold text-indigo-600">{{ adm_counts.intercorrente }}</span></div>
+                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Decadência</span><span class="font-semibold text-violet-600">{{ adm_counts.decadencia }}</span></div>
+                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Intempestividade</span><span class="font-semibold text-orange-600">{{ adm_counts.intempestivo }}</span></div>
+                        <div class="flex justify-between text-xs py-1"><span class="text-gray-600">Mérito (prossegue)</span><span class="font-semibold text-green-600">{{ adm_counts.merito }}</span></div>
+                        <div class="flex justify-between text-xs pt-3 border-t border-gray-200 mt-1"><span class="text-gray-500 font-medium">Total</span><span class="font-bold text-gray-800">{{ total_adm }}</span></div>
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <!-- Últimos erros de fase -->
+                <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i class="ph ph-warning text-red-400"></i> Últimos Erros de Fase
+                    </h3>
+                    {% if ultimos_erros_fase %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs">
+                            <thead><tr class="text-gray-400 border-b border-gray-100">
+                                <th class="text-left pb-2 pr-4">Data</th>
+                                <th class="text-left pb-2 pr-4">Fase</th>
+                                <th class="text-left pb-2">Erro</th>
+                            </tr></thead>
+                            <tbody>
+                            {% for ev in ultimos_erros_fase %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50">
+                                <td class="py-2 pr-4 text-gray-500">{{ ev.timestamp|date:"d/m H:i" }}</td>
+                                <td class="py-2 pr-4"><span class="px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold">F{{ ev.fase }}</span></td>
+                                <td class="py-2 text-gray-600 truncate max-w-xs">{{ ev.dados.erro|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-gray-400 text-center py-6">Nenhum erro registrado neste mês.</p>
+                    {% endif %}
+                </div>
+
+            </div>
+            <!-- ══ FIM AUDITORIA DE USO ════════════════════════════════════ -->
+
         </div>
 </div><!-- /conteúdo -->
 
@@ -1523,120 +1637,6 @@
                     {% endif %}
                 </div>
             </div>
-
-            <!-- ══ AUDITORIA DE USO ══════════════════════════════════════════ -->
-            <h2 class="text-xl font-bold text-gray-800 mb-4 px-4 w-full max-w-7xl mx-auto mt-10">Auditoria de Uso</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto pb-6 px-4">
-
-                <!-- Funil do Wizard -->
-                <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <i class="ph ph-funnel text-blue-500"></i> Funil do Wizard (snapshot atual)
-                    </h3>
-                    <div class="space-y-3">
-                        {% for item in funil_data %}
-                        {% with max_count=funil_data.0.count %}
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs text-gray-500 w-36 flex-shrink-0">{{ item.label }}</span>
-                            <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
-                                <div class="h-5 rounded-full bg-blue-500 transition-all"
-                                     style="width:{% if max_count > 0 %}{{ item.count|floatformat:0 }}{% else %}0{% endif %}%{% if max_count > 0 %};max-width:100%{% endif %}"></div>
-                            </div>
-                            <span class="text-xs font-semibold text-gray-700 w-8 text-right">{{ item.count }}</span>
-                        </div>
-                        {% endwith %}
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Cards de resumo -->
-                <div class="flex flex-col gap-4">
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
-                            <i class="ph ph-check-circle text-green-500 text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400">Finalizados (mês)</p>
-                            <p class="text-2xl font-bold text-gray-800">{{ pareceres_finalizados_audit }}</p>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center flex-shrink-0">
-                            <i class="ph ph-shield-check text-yellow-500 text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400">Score Médio Blindagem</p>
-                            <p class="text-2xl font-bold text-gray-800">{{ score_medio_blindagem }}<span class="text-sm font-normal text-gray-400">/100</span></p>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-                            <i class="ph ph-x-circle text-red-400 text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400">Erros de Fase (mês)</p>
-                            <p class="text-2xl font-bold text-gray-800">{{ erros_fase }}</p>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-                            <i class="ph ph-prohibit text-orange-400 text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-400">Filtros Bloqueados (mês)</p>
-                            <p class="text-2xl font-bold text-gray-800">{{ filtros_bloqueados }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Decisões de Admissibilidade -->
-                <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <i class="ph ph-scales text-purple-500"></i> Decisões de Admissibilidade
-                    </h3>
-                    <div class="space-y-3">
-                        {% with total_adm=adm_counts.punitiva|add:adm_counts.intercorrente|add:adm_counts.decadencia|add:adm_counts.intempestivo|add:adm_counts.merito %}
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Prescrição Punitiva</span><span class="font-semibold text-blue-600">{{ adm_counts.punitiva }}</span></div>
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Prescrição Intercorrente</span><span class="font-semibold text-indigo-600">{{ adm_counts.intercorrente }}</span></div>
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Decadência</span><span class="font-semibold text-violet-600">{{ adm_counts.decadencia }}</span></div>
-                        <div class="flex justify-between text-xs py-1 border-b border-gray-50"><span class="text-gray-600">Intempestividade</span><span class="font-semibold text-orange-600">{{ adm_counts.intempestivo }}</span></div>
-                        <div class="flex justify-between text-xs py-1"><span class="text-gray-600">Mérito (prossegue)</span><span class="font-semibold text-green-600">{{ adm_counts.merito }}</span></div>
-                        <div class="flex justify-between text-xs pt-3 border-t border-gray-200 mt-1"><span class="text-gray-500 font-medium">Total</span><span class="font-bold text-gray-800">{{ total_adm }}</span></div>
-                        {% endwith %}
-                    </div>
-                </div>
-
-                <!-- Últimos erros de fase -->
-                <div class="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                    <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <i class="ph ph-warning text-red-400"></i> Últimos Erros de Fase
-                    </h3>
-                    {% if ultimos_erros_fase %}
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs">
-                            <thead><tr class="text-gray-400 border-b border-gray-100">
-                                <th class="text-left pb-2 pr-4">Data</th>
-                                <th class="text-left pb-2 pr-4">Fase</th>
-                                <th class="text-left pb-2">Erro</th>
-                            </tr></thead>
-                            <tbody>
-                            {% for ev in ultimos_erros_fase %}
-                            <tr class="border-b border-gray-50 hover:bg-gray-50">
-                                <td class="py-2 pr-4 text-gray-500">{{ ev.timestamp|date:"d/m H:i" }}</td>
-                                <td class="py-2 pr-4"><span class="px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold">F{{ ev.fase }}</span></td>
-                                <td class="py-2 text-gray-600 truncate max-w-xs">{{ ev.dados.erro|default:"—" }}</td>
-                            </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <p class="text-sm text-gray-400 text-center py-6">Nenhum erro registrado neste mês.</p>
-                    {% endif %}
-                </div>
-
-            </div>
-            <!-- ══ FIM AUDITORIA DE USO ════════════════════════════════════ -->
 
         </div>
     </div>
