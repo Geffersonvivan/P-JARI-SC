@@ -102,6 +102,14 @@
         /* ── SCORE BADGE ─────────────────────────── */
         .score-badge { border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
+        /* ── JARIMATCH PULSE ─────────────────────── */
+        @keyframes jari-pulse-green  { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}  50%{box-shadow:0 0 0 6px rgba(34,197,94,.35)} }
+        @keyframes jari-pulse-yellow { 0%,100%{box-shadow:0 0 0 0 rgba(234,179,8,0)}  50%{box-shadow:0 0 0 6px rgba(234,179,8,.35)} }
+        @keyframes jari-pulse-red    { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}  50%{box-shadow:0 0 0 6px rgba(239,68,68,.35)} }
+        .jari-pulse-green  { animation: jari-pulse-green  2s ease-in-out infinite; }
+        .jari-pulse-yellow { animation: jari-pulse-yellow 2s ease-in-out infinite; }
+        .jari-pulse-red    { animation: jari-pulse-red    2s ease-in-out infinite; }
+
         /* ── SHIMMER ─────────────────────────────── */
         @keyframes shimmer { 0%{transform:translateX(-150%)} 100%{transform:translateX(300%)} }
         .shimmer-track {
@@ -1573,6 +1581,9 @@ function toggleBlindagem() {
     if (!panel) return;
     const open = !panel.classList.contains('hidden');
     if (!open) {
+        // Remove pulse ao expandir — usuário já interagiu
+        const card = document.getElementById('p5-blindagem-card');
+        if (card) card.classList.remove('jari-pulse-green', 'jari-pulse-yellow', 'jari-pulse-red');
         // Renderiza o conteúdo mais recente ao abrir
         if (_blindagemDetalhes) {
             panel.innerHTML = md(_blindagemDetalhes);
@@ -1604,7 +1615,9 @@ function renderJariMatch() {
             cls = 'bg-red-50 border border-red-200 text-red-700';
             iconCls = 'ph-shield-slash'; txt = `${_jariMatchScore}/100 · Inconsistências`;
         }
-        card.className = `flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold flex-1 ${cls}`;
+        const pulseMap = { green: 'jari-pulse-green', yellow: 'jari-pulse-yellow', red: 'jari-pulse-red' };
+        const pulseColor = _jariMatchScore >= 80 ? 'green' : _jariMatchScore >= 50 ? 'yellow' : 'red';
+        card.className = `flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold flex-1 ${cls} ${pulseMap[pulseColor]}`;
         icon.className = `ph ${iconCls} text-lg flex-shrink-0`;
         label.textContent = txt;
         card.classList.remove('hidden');
