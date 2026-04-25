@@ -303,6 +303,7 @@ else:
     ]
 
 PJARI_VERSION = '1.2'
+CLARITY_PROJECT_ID = os.environ.get('CLARITY_PROJECT_ID', '')
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
