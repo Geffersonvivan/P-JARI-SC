@@ -373,7 +373,7 @@ async function submitCitacao(event) {
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 flex-shrink-0">
             <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><span>📚</span> Gerenciar Citações</h3>
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><span>📚</span> Gerenciar Citações/Teses</h3>
                 <div class="flex bg-gray-200/50 p-1 rounded-lg">
                     <button id="tab-btn-nova" onclick="switchCitacaoTab('nova')" class="px-4 py-1.5 text-sm font-medium rounded-md bg-white text-gray-800 shadow-sm transition-all focus:outline-none">Ficha da Citação</button>
                     <button id="tab-btn-lista" onclick="switchCitacaoTab('lista')" class="px-4 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700 transition-all focus:outline-none">Minhas Citações (<span id="count-citacoes">{% if banco_teses %}{{ banco_teses|length }}{% else %}0{% endif %}</span>)</button>
