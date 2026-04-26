@@ -623,13 +623,19 @@
     page-break-inside: avoid;
     margin-bottom: 10px;
   }
-  h1, h2, h3, h4, h5, h6, strong {
+  h1, h2, h3, h4, h5, h6 {
     break-inside: avoid;
     page-break-inside: avoid;
     break-after: avoid;
     page-break-after: avoid;
   }
-  /* Parágrafo imediatamente após heading: não quebrar antes dele (mantém colado ao título) */
+  /* TinyMCE gera títulos como <p><strong>TÍTULO</strong></p>, não <h*>.
+     :has() seleciona esses parágrafos e os mantém colados ao próximo bloco. */
+  p:has(> strong:only-child) {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  p:has(> strong:only-child) + p,
   h1 + p, h2 + p, h3 + p, h4 + p, h5 + p, h6 + p {
     break-before: avoid;
     page-break-before: avoid;
