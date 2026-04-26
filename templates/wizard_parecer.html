@@ -636,16 +636,26 @@
                 <!-- Corpo -->
                 <div class="px-6 py-5">
                     <p id="modal-confirma-data-msg" class="text-sm leading-relaxed mb-4" style="color:#374151;"></p>
-                    <div class="flex gap-2 items-center">
+                    <div class="flex gap-2 items-center" style="position:relative;">
                         <input id="modal-confirma-data-input"
                                type="text"
                                placeholder="DD/MM/AAAA (opcional)"
                                maxlength="10"
+                               autocomplete="off"
                                class="flex-1 px-3 py-2 text-sm border rounded-lg"
                                style="border-color:#e5e7eb;outline:none;"
-                               onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"
+                               onfocus="this.style.borderColor='#2563eb'; abrirCalendarioInfracao();" onblur="this.style.borderColor='#e5e7eb'"
                                oninput="formatarDataInput(this); atualizarBtnConfirmaData(this.value);"
                                onkeydown="if(event.key==='Enter'){confirmarDataInfracao();}" />
+                        <!-- Calendário popup data infração -->
+                        <div id="cal-infracao" style="display:none;position:absolute;top:100%;left:0;z-index:99999;background:#fff;border:1px solid #d1d5db;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:12px;width:260px;margin-top:4px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                <button type="button" onclick="calInfNavegar(-1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;">‹</button>
+                                <span id="cal-inf-titulo" style="font-size:13px;font-weight:700;color:#111827;"></span>
+                                <button type="button" onclick="calInfNavegar(1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;">›</button>
+                            </div>
+                            <div id="cal-inf-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;"></div>
+                        </div>
                     </div>
                     <p class="text-xs mt-2" style="color:#6b7280;">Deixe em branco e clique em <strong>Confirmar</strong> para aceitar a data inferida, ou digite a data correta acima.</p>
                 </div>
@@ -2487,106 +2497,95 @@ function startProgressAnim() {
     startFakeProgress('p4-progress-bar','p4-pct',700,2.5);
 }
 
-// ─── CALENDÁRIO DATA DA SESSÃO ──────────────────────
-(function() {
+// ─── CALENDÁRIO GENÉRICO (fábrica) ──────────────────
+function _criarCalendario({ calId, tituloId, gridId, inputId, onSelect }) {
     const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const DIAS  = ['D','S','T','Q','Q','S','S'];
     let _ano, _mes;
 
-    function _hoje() { const d=new Date(); return {ano:d.getFullYear(), mes:d.getMonth()}; }
-
-    function _renderizar() {
-        const titulo = document.getElementById('cal-titulo');
-        const grid   = document.getElementById('cal-grid');
+    function _render() {
+        const titulo = document.getElementById(tituloId);
+        const grid   = document.getElementById(gridId);
         if (!titulo || !grid) return;
-
         titulo.textContent = MESES[_mes] + ' ' + _ano;
         grid.innerHTML = '';
-
-        // Cabeçalho dias da semana
         DIAS.forEach(d => {
             const el = document.createElement('div');
             el.textContent = d;
             el.style.cssText = 'font-size:10px;font-weight:700;color:#9ca3af;padding:2px 0;';
             grid.appendChild(el);
         });
-
-        const primeiroDia = new Date(_ano, _mes, 1).getDay(); // 0=dom
+        const primeiroDia = new Date(_ano, _mes, 1).getDay();
         const totalDias   = new Date(_ano, _mes + 1, 0).getDate();
-
-        // Células vazias antes do dia 1
-        for (let i = 0; i < primeiroDia; i++) {
-            grid.appendChild(document.createElement('div'));
-        }
-
-        // Dias do mês
+        for (let i = 0; i < primeiroDia; i++) grid.appendChild(document.createElement('div'));
         const hoje = new Date();
-        const inputVal = (document.getElementById('f2-data_sessao')?.value || '').split('/');
+        const inputVal = (document.getElementById(inputId)?.value || '').split('/');
         const diaSel = inputVal.length===3 && parseInt(inputVal[2])===_ano && parseInt(inputVal[1])-1===_mes
                        ? parseInt(inputVal[0]) : -1;
-
         for (let d = 1; d <= totalDias; d++) {
             const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = d;
+            btn.type = 'button'; btn.textContent = d;
             const isHoje = d===hoje.getDate() && _mes===hoje.getMonth() && _ano===hoje.getFullYear();
             const isSel  = d===diaSel;
-            btn.style.cssText = [
-                'border:none;cursor:pointer;border-radius:6px;font-size:12px;padding:5px 2px;width:100%;transition:background .1s;',
-                isSel  ? 'background:#2563eb;color:#fff;font-weight:700;' :
-                isHoje ? 'background:#dbeafe;color:#1d4ed8;font-weight:600;' :
-                         'background:none;color:#374151;'
-            ].join('');
-            btn.onmouseover = () => { if (!isSel) btn.style.background='#f3f4f6'; };
+            btn.style.cssText = 'border:none;cursor:pointer;border-radius:6px;font-size:12px;padding:5px 2px;width:100%;transition:background .1s;'
+                + (isSel ? 'background:#2563eb;color:#fff;font-weight:700;' : isHoje ? 'background:#dbeafe;color:#1d4ed8;font-weight:600;' : 'background:none;color:#374151;');
+            btn.onmouseover = () => { if (!isSel) btn.style.background = '#f3f4f6'; };
             btn.onmouseout  = () => { if (!isSel) btn.style.background = isHoje ? '#dbeafe' : 'none'; };
-            btn.onclick = () => _selecionar(d);
+            btn.onclick = () => {
+                const dd = String(d).padStart(2,'0'), mm = String(_mes+1).padStart(2,'0');
+                const val = `${dd}/${mm}/${_ano}`;
+                const inp = document.getElementById(inputId);
+                if (inp) { inp.value = val; inp.style.borderColor = '#2563eb'; }
+                if (onSelect) onSelect(val);
+                fechar();
+            };
             grid.appendChild(btn);
         }
     }
 
-    function _selecionar(dia) {
-        const input = document.getElementById('f2-data_sessao');
-        if (!input) return;
-        const dd = String(dia).padStart(2,'0');
-        const mm = String(_mes+1).padStart(2,'0');
-        input.value = `${dd}/${mm}/${_ano}`;
-        input.style.borderColor = '#2563eb';
-        fecharCalendarioSessao();
+    function _fecHandler(e) {
+        const cal = document.getElementById(calId);
+        const inp = document.getElementById(inputId);
+        if (cal && !cal.contains(e.target) && e.target !== inp) fechar();
     }
 
-    window.abrirCalendarioSessao = function() {
-        const cal = document.getElementById('cal-sessao');
-        if (!cal) return;
-        const h = _hoje();
-        _ano = h.ano; _mes = h.mes;
-        _renderizar();
-        cal.style.display = 'block';
-        // Fecha ao clicar fora
-        setTimeout(() => document.addEventListener('click', _fecHanlter), 0);
-    };
-
-    function _fecHanlter(e) {
-        const cal   = document.getElementById('cal-sessao');
-        const input = document.getElementById('f2-data_sessao');
-        if (cal && !cal.contains(e.target) && e.target !== input) {
-            fecharCalendarioSessao();
-        }
-    }
-
-    window.fecharCalendarioSessao = function() {
-        const cal = document.getElementById('cal-sessao');
+    function fechar() {
+        const cal = document.getElementById(calId);
         if (cal) cal.style.display = 'none';
-        document.removeEventListener('click', _fecHanlter);
-    };
+        document.removeEventListener('click', _fecHandler);
+    }
 
-    window.calNavegar = function(delta) {
+    function abrir() {
+        const cal = document.getElementById(calId);
+        if (!cal) return;
+        const h = new Date(); _ano = h.getFullYear(); _mes = h.getMonth();
+        _render();
+        cal.style.display = 'block';
+        setTimeout(() => document.addEventListener('click', _fecHandler), 0);
+    }
+
+    return { abrir, fechar, navegar: (delta) => {
         _mes += delta;
         if (_mes < 0)  { _mes = 11; _ano--; }
         if (_mes > 11) { _mes = 0;  _ano++; }
-        _renderizar();
-    };
-})();
+        _render();
+    }};
+}
+
+// ─── CALENDÁRIO DATA DA SESSÃO ──────────────────────
+const _calSessao = _criarCalendario({ calId:'cal-sessao', tituloId:'cal-titulo', gridId:'cal-grid', inputId:'f2-data_sessao' });
+window.abrirCalendarioSessao  = () => _calSessao.abrir();
+window.fecharCalendarioSessao = () => _calSessao.fechar();
+window.calNavegar             = (d) => _calSessao.navegar(d);
+
+// ─── CALENDÁRIO DATA DA INFRAÇÃO (modal confirmação) ─
+const _calInfracao = _criarCalendario({
+    calId:'cal-infracao', tituloId:'cal-inf-titulo', gridId:'cal-inf-grid', inputId:'modal-confirma-data-input',
+    onSelect: (val) => atualizarBtnConfirmaData(val)
+});
+window.abrirCalendarioInfracao = () => _calInfracao.abrir();
+window.calInfNavegar           = (d) => _calInfracao.navegar(d);
 
 // ─── UI HELPERS ────────────────────────────────────
 function setLoading(val, label='') {
