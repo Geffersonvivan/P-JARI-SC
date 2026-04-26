@@ -629,6 +629,11 @@
     break-after: avoid;
     page-break-after: avoid;
   }
+  /* Parágrafo imediatamente após heading: não quebrar antes dele (mantém colado ao título) */
+  h1 + p, h2 + p, h3 + p, h4 + p, h5 + p, h6 + p {
+    break-before: avoid;
+    page-break-before: avoid;
+  }
   table { width: 100%; border-collapse: collapse; break-inside: auto; }
   td, th { padding: 4px 8px; border: 1px solid #ccc; }
   img { max-width: 100%; height: auto; }
@@ -647,11 +652,17 @@
                     setTimeout(resolve, 1000); // fallback
                 });
 
+                // Troca temporariamente o título da página pai — Safari usa document.title
+                // da janela pai (não do iframe) para sugerir o nome do arquivo no diálogo.
+                const _originalTitle = document.title;
+                document.title = filename;
+
                 iframe.contentWindow.focus();
                 iframe.contentWindow.print();
 
-                // Restaura botão e limpa o iframe após o diálogo fechar
+                // Restaura botão, título e limpa o iframe após o diálogo fechar
                 setTimeout(() => {
+                    document.title = _originalTitle;
                     if (btn) btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Salvar em PDF';
                     if (document.body.contains(iframe)) document.body.removeChild(iframe);
                 }, 2000);
