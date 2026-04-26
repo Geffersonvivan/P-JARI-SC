@@ -455,10 +455,12 @@ EMENTA "bold"
 
 [Resumo: infração, tese(s), prescrição/decadência, resultado]
 Texto EMENTA "Maiúsculo"
+Limite: máximo 6 linhas. Texto corrido, coeso e objetivo, sem marcadores.
 
 RELATÓRIO "bold"
 
-[Síntese: infração, notificações, defesa/recurso, envio à JARI.]
+[Síntese cronológica: infração, autuação, notificação, recurso e tese(s) apresentada(s). Sem reproduzir dados do cabeçalho.]
+Limite: máximo 10 linhas. Texto corrido, sem listas.
 
 Este é o relatório.
 
@@ -466,15 +468,15 @@ FUNDAMENTAÇÃO JURÍDICA "bold"
 
 1. ADMISSIBILIDADE "bold"
 
-[Data notificação x data protocolo. Indicar se prazo foi observado.]
-
-Conclusão: [INTEMPESTIVIDADE NÃO CONFIGURADA — recurso tempestivo / INTEMPESTIVIDADE CONFIGURADA — recurso intempestivo]
+[Conclusão expressa: tempestivo/intempestivo + fundamento normativo objetivo.]
+Limite: máximo 10 linhas. Texto corrido, sem listas.
 
 1. TESES DEFENSIVAS "bold"
 
 Obs. Se intempestivo, prescrito ou decadente (conforme resultado escolhido na Fase 3), declarar:
 "Desnecessária a análise das teses defensivas — extinção da pretensão punitiva ou inadmissibilidade recursal."
 Em caso contrário, analisar cada tese isoladamente, conforme Fase 4, com base normativa e conclusão. Vedado agrupar.
+Limite: máximo 10 linhas. Texto corrido, sem listas.
 
 [Tese 1: ...]
 
@@ -482,19 +484,24 @@ Em caso contrário, analisar cada tese isoladamente, conforme Fase 4, com base n
 
 1. PRESCRIÇÃO E DECADÊNCIA "bold"
 
-3.1 Prescrição punitiva: [linha do tempo + conclusão]
+3.1 Prescrição punitiva: [data da infração, último marco interruptivo, conclusão normativa sucinta]
+Limite: máximo 10 linhas. Texto corrido.
 
 3.2 Prescrição intercorrente: [protocolo JARI (Pergunta 5) → sessão JARI (Pergunta 1): intervalo em dias corridos — aniversário de 3 anos em DD/MM/AAAA + conclusão. Vedada a menção a outros marcos processuais.]
+Limite: máximo 10 linhas. Texto corrido.
 
 3.3 Decadência: [regime temporal (Filtro 1/2/3) + conclusão — usar exclusivamente o resultado escolhido pelo julgador na Fase 3, nunca o resultado técnico automático]
+Limite: máximo 10 linhas. Texto corrido.
 
 1. MATERIALIDADE "bold"
 
-[Verificação campos essenciais AIT + conclusão.]
+[Fundamento normativo objetivo sobre a materialidade da infração, ancorado na presunção de legitimidade dos atos administrativos.]
+Limite: máximo 10 linhas. Texto corrido, sem listas.
 
 1. GARANTIAS PROCESSUAIS "bold"
 
-[Notificações e prazos + contraditório/ampla defesa.]
+[Verificação objetiva das notificações e respeito ao contraditório, com fundamento normativo sucinto.]
+Limite: máximo 10 linhas. Texto corrido, sem listas.
 
 Esta é a fundamentação.
 
