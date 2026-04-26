@@ -1244,9 +1244,9 @@ function renderPhase(f) {
                       window._fase4FallbackActive = true;
                       setTimeout(function _pollF4() {
                           fetch(`/parecer/${PARECER_ID}/wizard/status/`)
-                              .then(r => r.json())
-                              .then(d => { if (d.status_fase > 4) window.location.reload(); else setTimeout(_pollF4, 5000); })
-                              .catch(() => setTimeout(_pollF4, 7000));
+                              .then(r => { if (!r.ok) { window.location.reload(); return null; } return r.json(); })
+                              .then(d => { if (!d) return; if (d.status_fase > 4) window.location.reload(); else setTimeout(_pollF4, 4000); })
+                              .catch(() => setTimeout(_pollF4, 5000));
                       }, 8000);
                   }
     }
@@ -2240,6 +2240,16 @@ function startSSE(taskId, taskType) {
                 const newLabels = SSE_LABELS[taskType] || ['Processando...'];
                 const lbl2 = getLabelEl(); if (lbl2) rotateLabel(lbl2.id, newLabels);
                 polls = 0; pendingStreak = 0;
+                // Garante fallback independente para FASE4_ANALISE mesmo sem renderPhase(4)
+                if (!window._fase4FallbackActive) {
+                    window._fase4FallbackActive = true;
+                    setTimeout(function _pollF4chained() {
+                        fetch(`/parecer/${PARECER_ID}/wizard/status/`)
+                            .then(r => { if (!r.ok) { window.location.reload(); return null; } return r.json(); })
+                            .then(sd => { if (!sd) return; if (sd.status_fase > 4) window.location.reload(); else setTimeout(_pollF4chained, 4000); })
+                            .catch(() => setTimeout(_pollF4chained, 5000));
+                    }, 3000);
+                }
                 setTimeout(poll, 2000); return;
             } else if (d.status === 'SUCCESS') {
                 const b = document.getElementById('_stuck-banner'); if (b) b.remove();
