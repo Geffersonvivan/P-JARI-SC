@@ -634,8 +634,8 @@
                                class="flex-1 px-3 py-2 text-sm border rounded-lg"
                                style="border-color:#e5e7eb;outline:none;"
                                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'"
-                               oninput="formatarDataInput(this)"
-                               onkeydown="if(event.key==='Enter'){corrigirDataInfracao();}" />
+                               oninput="formatarDataInput(this); atualizarBtnConfirmaData(this.value);"
+                               onkeydown="if(event.key==='Enter'){confirmarDataInfracao();}" />
                     </div>
                     <p class="text-xs mt-2" style="color:#6b7280;">Deixe em branco e clique em <strong>Confirmar</strong> para aceitar a data inferida, ou digite a data correta acima.</p>
                 </div>
@@ -2070,6 +2070,25 @@ function formatarDataInput(input) {
     if (v.length > 4) v = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
     else if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
     input.value = v;
+}
+
+function atualizarBtnConfirmaData(valorDigitado) {
+    const btn = document.getElementById('modal-confirma-data-btn-confirmar');
+    const label = document.getElementById('modal-confirma-data-btn-label');
+    const dataInferida = btn.dataset.dataInferida;
+    const dataDigitada = (valorDigitado || '').trim();
+    const dataValida = /^\d{2}\/\d{2}\/\d{4}$/.test(dataDigitada);
+    if (dataValida) {
+        label.textContent = `Usar ${dataDigitada}`;
+        btn.style.background = '#d97706'; // âmbar — indica mudança
+        btn.onmouseover = () => btn.style.background = '#b45309';
+        btn.onmouseout  = () => btn.style.background = '#d97706';
+    } else {
+        label.textContent = dataInferida ? `Confirmar ${dataInferida}` : 'Confirmar data';
+        btn.style.background = '#16a34a';
+        btn.onmouseover = () => btn.style.background = '#15803d';
+        btn.onmouseout  = () => btn.style.background = '#16a34a';
+    }
 }
 
 async function confirmarDataInfracao() {
