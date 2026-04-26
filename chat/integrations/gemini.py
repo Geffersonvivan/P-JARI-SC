@@ -321,12 +321,29 @@ class GeminiClient:
             "4. Retorne EXCLUSIVAMENTE um JSON válido, sem texto adicional, sem markdown."
         )
 
+        # Âncoras para SGPE: PA e recorrente já conhecidos (podem ser None na primeira extração)
+        _pa_anchor   = parecer_obj.pa or ""
+        _rec_anchor  = parecer_obj.recorrente or ""
+        _anchor_hint = ""
+        if _pa_anchor:
+            _anchor_hint = (
+                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela com vários processos. "
+                f"Localize a linha cujo campo Processo/PA é exatamente '{_pa_anchor}' "
+                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
+            )
+        elif _rec_anchor:
+            _anchor_hint = (
+                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela com vários processos. "
+                f"Localize a linha cujo recorrente é '{_rec_anchor}' "
+                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
+            )
+
         prompt_text = (
             "Extraia dos documentos em anexo os seguintes campos e retorne um JSON com esta estrutura exata:\n\n"
             "{\n"
             '  "pa": "número do processo administrativo (ex: 2024/00123) ou null",\n'
             '  "pa_conf": "alta|baixa|nulo",\n'
-            '  "sgpe": "número SGPE ou null",\n'
+            '  "sgpe": "número SGPE correspondente ao processo analisado ou null",\n'
             '  "sgpe_conf": "alta|baixa|nulo",\n'
             '  "prazo_final": "data limite para protocolo do recurso JARI em DD/MM/AAAA ou null",\n'
             '  "prazo_final_conf": "alta|baixa|nulo",\n'
@@ -338,6 +355,7 @@ class GeminiClient:
             '  "recorrente_conf": "alta|baixa|nulo"\n'
             "}\n\n"
             "Não retorne nada além do JSON."
+            + _anchor_hint
         )
 
         import logging as _logging
@@ -345,10 +363,11 @@ class GeminiClient:
 
         contents = [prompt_text]
 
-        # Upload paralelo dos PDFs para reduzir o tempo de espera
+        # Upload paralelo dos PDFs para reduzir o tempo de espera.
+        # A Ata é incluída pois o SGPE correto fica na tabela da sessão.
         import concurrent.futures as _cf
         paths_para_upload = []
-        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
+        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path, parecer_obj.ata_pdf_path]:
             _path = _p(path_field)
             if _path and "upload_simulado" not in _path:
                 paths_para_upload.append(_path)
