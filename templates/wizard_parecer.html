@@ -1975,9 +1975,19 @@ async function wizardNext() {
             await avancar(s); break;
         }
         case 6: {
-            // Mantém o painel atual enquanto o audit roda (isProcessing=true bloqueia interação).
-            // Não pré-exibe panel-5: detectState() navega para a seleção de pasta ao terminar.
-            await avancar('ok'); break;
+            // Feedback imediato: spinner no botão antes mesmo do fetch sair.
+            // Mantém o painel atual enquanto o audit roda; detectState() navega ao terminar.
+            const _btn6 = document.getElementById('btn-next-4');
+            const _btn6Html = _btn6 ? _btn6.innerHTML : '';
+            if (_btn6) {
+                _btn6.disabled = true;
+                _btn6.innerHTML = '<div class="btn-spinner"></div> Arquivando...';
+            }
+            const _ok6 = await avancar('ok');
+            // Sucesso → wizard navega para próxima fase, restauração desnecessária.
+            // Falha → setLoading(false) já re-habilitou; restauramos o HTML do botão.
+            if (!_ok6 && _btn6) { _btn6.disabled = false; _btn6.innerHTML = _btn6Html; }
+            break;
         }
         case 7: {
             if (!_selectedPasta) { toast('Selecione uma pasta.','warning'); return; }
