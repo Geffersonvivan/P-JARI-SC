@@ -578,6 +578,9 @@
         }
 
         async function saveAsPDF() {
+            // Usa window.print() via iframe oculto — o motor nativo do navegador respeita
+            // break-inside: avoid corretamente, ao contrário do html2canvas que fatia um canvas
+            // em pixels na borda de página, cortando parágrafos ao meio.
             const editorInstance = tinymce.get('editor');
             if (!editorInstance) return;
 
@@ -586,127 +589,76 @@
 
             try {
                 const htmlContent = editorInstance.getContent();
+                const filename = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}';
 
-                // Criar um container limpo apenas para impressão
-                const printElement = document.createElement('div');
-                printElement.innerHTML = htmlContent;
-                printElement.style.padding = '0'; // Tira borda excessiva
-                printElement.style.paddingBottom = '40px'; // Força espaço extra no final para evitar corte do html2canvas
-                printElement.style.fontFamily = 'Arial, Helvetica, sans-serif';
-                printElement.style.fontSize = '13px';
-                printElement.style.lineHeight = '1.6'; // Linhas mais espaçadas ajudam a biblioteca a não fatiar palavras ao meio
-                printElement.style.color = '#000';
-                printElement.style.backgroundColor = '#fff';
-                printElement.style.textAlign = 'justify'; // Puxa preenchimento total lateral como padrão
+                // Cria iframe oculto para impressão isolada (não interfere na página atual)
+                const iframe = document.createElement('iframe');
+                iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;';
+                document.body.appendChild(iframe);
 
-                // Buscar e converter todas as imagens para Base64 para garantir a renderização no PDF pelo html2canvas
-                const images = printElement.querySelectorAll('img');
-                for (let i = 0; i < images.length; i++) {
-                    let img = images[i];
-                    let originalSrc = img.src;
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                doc.open();
+                doc.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>${filename}</title>
+<style>
+  @page { size: A4; margin: 20mm 15mm 20mm 15mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #000;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+    text-align: justify;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  p, li, blockquote, tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 10px;
+  }
+  h1, h2, h3, h4, h5, h6, strong {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  table { width: 100%; border-collapse: collapse; break-inside: auto; }
+  td, th { padding: 4px 8px; border: 1px solid #ccc; }
+  img { max-width: 100%; height: auto; }
+  /* Parecer Final centralizado */
+  div[style*="text-align: center"], div[style*="text-align:center"] { text-align: center !important; }
+</style>
+</head>
+<body>${htmlContent}</body>
+</html>`);
+                doc.close();
 
-                    // Ignora se já for base64
-                    if (originalSrc.startsWith('data:')) continue;
+                // Aguarda recursos carregarem antes de imprimir
+                await new Promise(resolve => {
+                    if (iframe.contentDocument.readyState === 'complete') { resolve(); return; }
+                    iframe.contentWindow.onload = resolve;
+                    setTimeout(resolve, 1000); // fallback
+                });
 
-                    try {
-                        const proxyUrl = '/api/proxy-image/?url=' + encodeURIComponent(originalSrc);
-                        const response = await fetch(proxyUrl);
-                        if (!response.ok) {
-                            console.warn("Proxy falhou para o PDF, usando URL original com CORS direto.", originalSrc);
-                            continue;
-                        }
-                        const blob = await response.blob();
-                        const reader = new FileReader();
-                        const base64data = await new Promise((resolve) => {
-                            reader.onloadend = () => resolve(reader.result);
-                            reader.readAsDataURL(blob);
-                        });
-                        
-                        // Espera o navegador aplicar o base64 para evitar PDF em branco
-                        await new Promise((resolve) => {
-                            img.onload = resolve;
-                            img.onerror = resolve;
-                            img.src = base64data; // Substitui o URL remoto pelo dado binário local
-                        });
-                        
-                        // Garante proporção exata no PDF. Como o HTML2Canvas processará a imagem inteira (pano ou não)
-                        // Podemos delegar ao CSS nativo para encaixar no limite da pagina renderizada
-                        img.style.width = '100%';
-                        img.style.maxWidth = '100%';
-                        img.style.height = 'auto';
-                        img.style.objectFit = 'contain';
-                        img.setAttribute('width', '100%');
-                        img.removeAttribute('height');
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
 
-                    } catch (e) {
-                        console.error('Erro ao pré-carregar imagem para o PDF', e);
-                    }
-                }
+                // Restaura botão e limpa o iframe após o diálogo fechar
+                setTimeout(() => {
+                    if (btn) btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Salvar em PDF';
+                    if (document.body.contains(iframe)) document.body.removeChild(iframe);
+                }, 2000);
 
-                // Força a quebra de linha em tabelas ou textos longos
-                printElement.style.wordWrap = 'break-word';
-                printElement.style.overflowWrap = 'break-word';
-
-            // Controle de quebra de página via CSS puro (sem avoid-all, que causa duplicação de títulos)
-            // Parágrafos e listas: não quebrar internamente
-            printElement.querySelectorAll('p, li, tr, blockquote').forEach(el => {
-                el.style.display = 'block';
-                el.style.pageBreakInside = 'avoid';
-                el.style.breakInside = 'avoid';
-                el.style.marginBottom = '12px';
-                el.style.paddingTop = '4px';
-                el.style.paddingBottom = '4px';
-            });
-            // Headings: nunca quebrar internamente nem ficar isolado (break-after:avoid mantém com o próximo bloco)
-            printElement.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
-                el.style.display = 'block';
-                el.style.pageBreakInside = 'avoid';
-                el.style.breakInside = 'avoid';
-                el.style.pageBreakAfter = 'avoid';
-                el.style.breakAfter = 'avoid';
-                el.style.marginBottom = '6px';
-                el.style.paddingTop = '4px';
-            });
-
-            // Ocultar a UI principal para não conflitar com a captura
-            const mainUI = document.querySelector('.max-w-5xl');
-            if (mainUI) mainUI.style.display = 'none';
-
-            // Adicionar elemento de impressão no corpo
-            document.body.appendChild(printElement);
-
-            // Limpa CSS global indesejado vindo do rodapé que quebra a margem no PDF
-            const styleTags = printElement.querySelectorAll('style');
-            styleTags.forEach(style => {
-                style.innerHTML = style.innerHTML.replace(/body\s*\{[^}]*\}/gi, '');
-            });
-
-            const opt = {
-                margin: [20, 15, 20, 15], // Top, Right, Bottom, Left
-                filename: '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    letterRendering: true,
-                    scrollY: 0
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: {
-                    mode: ['css', 'legacy']
-                }
-            };
-
-            // Gerar PDF e restaurar a tela original
-            await html2pdf().set(opt).from(printElement).save();
-            document.body.removeChild(printElement);
-            if (mainUI) mainUI.style.display = 'block';
-            
             } catch (error) {
                 console.error("Erro ao gerar PDF:", error);
                 alert("Ocorreu um erro ao gerar o arquivo PDF. Detalhes no console.");
-            } finally {
                 if (btn) btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Salvar em PDF';
             }
         }
