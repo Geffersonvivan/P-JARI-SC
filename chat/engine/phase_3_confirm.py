@@ -33,6 +33,16 @@ _MSG_CONFIRMA = {
 }
 
 
+_PROMPT_CONFIRMA_DATA_INFRACAO = (
+    "⚠️ **Confirmação obrigatória — Data da Infração**\n\n"
+    "A data da infração **não foi localizada pelo rótulo** na tabela de datas. "
+    "O sistema inferiu automaticamente **{data}** como a menor data disponível.\n\n"
+    "Esta data é o marco inicial dos cálculos de prescrição punitiva e decadência. "
+    "Se estiver errada, o resultado matemático do parecer será incorreto.\n\n"
+    "Digite **sim** para confirmar essa data ou informe a data correta no formato **DD/MM/AAAA**."
+)
+
+
 def process(engine, message: str) -> str:
     """
     Parseia a resposta do julgador com semântica absoluta e roteia:
@@ -40,6 +50,39 @@ def process(engine, message: str) -> str:
     - Nenhum item prejudica → FASE4 (extração de teses via Celery).
     """
     parecer = engine.parecer
+
+    # ── BLOQUEIO: data_infracao via fallback — exige confirmação explícita ────
+    if getattr(parecer, 'data_infracao_fallback', False):
+        msg = message.strip()
+        data_atual = parecer.data_infracao
+
+        # Tenta interpretar uma data no formato DD/MM/AAAA
+        _data_nova = None
+        _match_data = re.match(r'^(\d{2}/\d{2}/\d{4})$', msg)
+        if _match_data:
+            try:
+                _data_nova = datetime.datetime.strptime(_match_data.group(1), "%d/%m/%Y").date()
+            except ValueError:
+                pass
+
+        if msg.lower() == 'sim':
+            # Confirmação explícita da data inferida — libera o fluxo
+            parecer.data_infracao_fallback = False
+            parecer.save(update_fields=['data_infracao_fallback'])
+            logger.info("[FASE31] data_infracao confirmada pelo julgador (fallback aceito): %s | parecer=%s",
+                        data_atual, parecer.id)
+        elif _data_nova:
+            # Julgador forneceu a data correta — substitui e libera
+            parecer.data_infracao = _data_nova
+            parecer.data_infracao_fallback = False
+            parecer.save(update_fields=['data_infracao', 'data_infracao_fallback'])
+            logger.info("[FASE31] data_infracao corrigida pelo julgador: %s → %s | parecer=%s",
+                        data_atual, _data_nova, parecer.id)
+        else:
+            # Resposta inválida — repete o bloqueio
+            data_str = data_atual.strftime('%d/%m/%Y') if data_atual else '(não identificada)'
+            return _PROMPT_CONFIRMA_DATA_INFRACAO.format(data=data_str)
+    # ── fim do bloqueio ───────────────────────────────────────────────────────
 
     def _n(s):
         """Remove acentos e converte para maiúsculas."""

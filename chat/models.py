@@ -66,6 +66,8 @@ class Parecer(models.Model):
     data_conhecimento_infracao = models.DateField(blank=True, null=True)
     # Data da infração extraída dos documentos na Fase 3 — usada para blindagem Filtro 1 na F31
     data_infracao = models.DateField(blank=True, null=True)
+    # True = data_infracao veio do fallback min() — exige confirmação explícita do julgador na F31
+    data_infracao_fallback = models.BooleanField(default=False)
     # Suspensão por acúmulo de pontos: marco inicial da prescrição punitiva = dia seguinte à totalização
     # logica_jari.md §221 — quando preenchido, substitui data_infracao no check_prescription_punitiva
     data_totalizacao_pontos = models.DateField(blank=True, null=True)

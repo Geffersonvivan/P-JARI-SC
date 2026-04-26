@@ -83,13 +83,16 @@ def run(engine) -> str:
         r'\bINFRACAO\b', r'[Ii]nfra[çc][ãa]o', r'Auto\s+de\s+[Ii]nfra[çc][ãa]o', r'\bAIT\b', r'\bAI\b',
     ) or _fallback_infracao
 
-    # D13: log quando fallback é usado
+    # D13: log quando fallback é usado e sinaliza no model para bloqueio na F31
     if data_infracao and data_infracao == _fallback_infracao:
         _usou_fallback_infracao = True
+        parecer.data_infracao_fallback = True
         logger.warning(
             "[FASE3] data_infracao via fallback min() — pode ser data errada em processos complexos: "
             "%s | parecer=%s", data_infracao, parecer.id if hasattr(parecer, 'id') else '?'
         )
+    else:
+        parecer.data_infracao_fallback = False
 
     # ── Bloqueio: data_infracao obrigatória para cálculos corretos ────────────
     if not data_infracao:
