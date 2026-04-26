@@ -275,13 +275,37 @@ def processar_fase4_analise_task(self, parecer_id):
     except SoftTimeLimitExceeded:
         logger.warning(f"FASE4-ANALISE soft time limit atingido (Parecer {parecer_id}).")
         try:
-            parecer = Parecer.objects.get(id=parecer_id)
-            from .models import ChatMessage
-            reply = JariEngine(parecer).get_current_prompt()
-            ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+            import sentry_sdk
+            sentry_sdk.capture_message(
+                f"FASE4-ANALISE SoftTimeLimitExceeded — parecer={parecer_id}",
+                level="warning",
+            )
         except Exception:
             pass
-        return "SUCCESS"
+        try:
+            parecer = Parecer.objects.get(id=parecer_id)
+            from .models import ChatMessage
+            if parecer.analise_tese_texto:
+                # Análise foi salva antes do timeout — avança normalmente
+                reply = JariEngine(parecer).get_current_prompt()
+                ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
+                logger.info(f"FASE4-ANALISE timeout mas analise_tese_texto presente — avançando. Parecer {parecer_id}")
+                return "SUCCESS"
+            else:
+                # Save não completou — salva mensagem de erro no chat e lança exceção
+                # para que o Celery marque a task como FAILURE (o SSE frontend exibe o modal de erro)
+                ChatMessage.objects.create(
+                    parecer=parecer, role='assistant',
+                    content=(
+                        "⚠️ **Tempo limite atingido durante a análise de teses.**\n\n"
+                        "O processamento foi interrompido antes de concluir. "
+                        "Clique em **Recarregar** ou aguarde alguns instantes e tente novamente."
+                    ),
+                )
+                logger.error(f"FASE4-ANALISE timeout SEM analise_tese_texto — lançando FAILURE. Parecer {parecer_id}")
+        except Exception as _inner:
+            logger.error(f"FASE4-ANALISE timeout handler falhou: {_inner} — Parecer {parecer_id}")
+        raise Exception(f"FASE4-ANALISE timeout sem resultado salvo — Parecer {parecer_id}")
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
