@@ -5,6 +5,7 @@ from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from ..models import UserProfile, Pasta
 from .home import _get_filter_kwargs
@@ -169,6 +170,7 @@ def visualizar_termos_view(request):
     return render(request, 'termos.html', context)
 
 
+@csrf_exempt
 @login_required
 @require_POST
 def criar_pasta_view(request):
