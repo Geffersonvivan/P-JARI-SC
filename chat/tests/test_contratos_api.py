@@ -190,7 +190,7 @@ class TestAnthropicFlagsBlock(unittest.TestCase):
     def test_flags_block_presente_no_prompt(self):
         """O bloco de FLAGS está sempre no início do conteúdo enviado."""
         content = self._call_e_capturar_prompt()
-        self.assertIn("FLAGS JARIMATH", content)
+        self.assertIn("FLAGS MATEMÁTICAS", content)
         self.assertIn("SOBERANAS", content)
         self.assertIn("RESULTADO OBRIGATÓRIO", content)
 

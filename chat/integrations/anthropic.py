@@ -135,7 +135,7 @@ class AnthropicClient:
         _resultado_obrigatorio = "DEFERIDO" if (_prejudica or _rota_d_deferido) else "INDEFERIDO"
 
         _flags_block = (
-            "🔒 FLAGS JARIMATH — SOBERANAS, INVIOLÁVEIS, NÃO RECALCULE:\n"
+            "🔒 FLAGS MATEMÁTICAS — SOBERANAS, INVIOLÁVEIS, NÃO RECALCULE:\n"
             f"• Tempestividade: {'TEMPESTIVO — dentro do prazo' if _f_temp else 'INTEMPESTIVO — fora do prazo'}\n"
             f"• Prescrição Punitiva: {'SIM — CONFIGURADA' if _f_punit else 'NÃO configurada'}\n"
             f"• Prescrição Intercorrente: {'SIM — CONFIGURADA' if _f_inter else 'NÃO configurada'}\n"

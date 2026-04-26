@@ -311,7 +311,7 @@ class GeminiClient:
             return None
 
         system_instruction = (
-            "Você é um extrator de dados jurídicos para o sistema P-JARI/SC.\n"
+            "Você é um extrator de dados jurídicos.\n"
             "Analise os documentos PDF anexados e extraia EXCLUSIVAMENTE os campos solicitados.\n"
             "REGRAS ABSOLUTAS:\n"
             "1. NUNCA invente ou deduza valores — se não encontrar, use null.\n"
@@ -438,8 +438,8 @@ class GeminiClient:
                 'data_totalizacao_pontos': _gtypes.Schema(
                     type=_gtypes.Type.STRING,
                     description=(
-                        'DD/MM/AAAA ou NAO_SE_APLICA — data de totalização de pontos que gerou a suspensão '
-                        '(logica_jari §221). Preencher APENAS se tipo_penalidade=suspensao E o documento indicar '
+                        'DD/MM/AAAA ou NAO_SE_APLICA — data de totalização de pontos que gerou a suspensão. '
+                        'Preencher APENAS se tipo_penalidade=suspensao E o documento indicar '
                         'que a suspensão originou-se de acúmulo de pontos; caso contrário, NAO_SE_APLICA.'
                     ),
                 ),
@@ -466,7 +466,7 @@ class GeminiClient:
         )
 
         system_instruction = (
-            "SYSTEM P-JARI - FASE 2 (DIR - INTEGRIDADE/REGULARIDADE)\n"
+            "INTEGRIDADE/REGULARIDADE DOCUMENTAL\n"
             "Sua função é organizar as datas essenciais do processo, garantindo base objetiva para análise de prazos na Fase 3.\n\n"
             "REGRAS DE CLASSIFICAÇÃO:\n"
             "1. Utilize o Bloco A (Informado pelo Julgador) SEMPRE, ainda que não haja documento equivalente.\n"
@@ -563,9 +563,9 @@ class GeminiClient:
             f"1. Sessão JARI: {data_sessao_str}\n"
             f"4. Prazo Final Recurso: {prazo_final_str}\n"
             f"5. Protocolo Recurso: {data_protocolo_str}\n\n"
-            f"=== Fatos Documentais (Fase 2) ===\n"
-            f"{_tab_f3 or 'Não há tabela F2 gerada.'}\n\n"
-            f"=== Flags Matemáticas e Intervalos do Python (Fase 3) ===\n"
+            f"=== Fatos Documentais ===\n"
+            f"{_tab_f3 or 'Não há tabela de fatos gerada.'}\n\n"
+            f"=== Flags Matemáticas e Intervalos Calculados ===\n"
             f"{matematica_detalhes}\n\n"
             "Aplique estritamente o roteiro obrigatório e devolva os resultados solicitados baseando-se unicamente nas flags matemáticas acima."
         )
@@ -954,10 +954,10 @@ class GeminiClient:
 
     def audit_parecer(self, parecer_obj):
         if not self.client:
-            return "✅ Simulação: Conformidade integral. (Score calculado pelo JariMath)"
+            return "✅ Simulação: Conformidade integral."
 
         system_instruction = (
-            "Você é o Auditor Corregedor do P-JARI/SC (Fase 6 - AUDITORIA).\n"
+            "Você é o Auditor Corregedor responsável pela verificação final do parecer.\n"
             "Sua única função é realizar um checklist sobre o Parecer Final submetido, cruzando a compatibilidade narrativa do Relator com a tabela matemática anterior.\n\n"
             "REGRA DE OURO (SOBERANIA DA MATEMÁTICA OBRIGATÓRIA):\n"
             "Não tente recalcular a tempestividade do recurso subtraindo ou somando dias de notificações citadas no texto. "

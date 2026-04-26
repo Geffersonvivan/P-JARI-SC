@@ -11,7 +11,7 @@ def get_prompt(parecer) -> str:
     """Exibe a tese extraída e pede confirmação."""
     return (
         f"**Extração da Tese da Defesa**\n\n"
-        f"O P-JARI analisou o recurso nas páginas informadas ({parecer.paginas_defesa}) e identificou a seguinte tese principal:\n\n"
+        f"O recurso nas páginas informadas ({parecer.paginas_defesa}) foi analisado e a seguinte tese principal foi identificada:\n\n"
         f"**{parecer.tese}**\n\n"
         f"Digite **'ok'** para prosseguir."
     )

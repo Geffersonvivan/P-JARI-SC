@@ -132,8 +132,8 @@ def process(engine, message: str) -> str:
                 f"data da infração (**{_data_inf_f2.strftime('%d/%m/%Y')}**) identificada na tabela. "
                 "Os cálculos ficariam matematicamente incorretos.\n\n"
                 "Corrija antes de prosseguir:\n"
-                "- `data_sessao: DD/MM/AAAA` — ou —\n"
-                "- `corrigir` para reiniciar com novos documentos."
+                "- Informe a data da sessão correta no formato DD/MM/AAAA — ou —\n"
+                "- Digite **corrigir** para reiniciar com novos documentos."
             )
 
         # D17 FIX: bloquear quando suspensão por pontos sem data_totalizacao
@@ -141,11 +141,11 @@ def process(engine, message: str) -> str:
             return (
                 "⚠️ **Data de Totalização de Pontos obrigatória**\n\n"
                 "O tipo de penalidade é **Suspensão**. Se for **suspensão por acúmulo de pontos**, "
-                "a data de totalização é o marco inicial da prescrição punitiva (logica-pjari §221) "
+                "a data de totalização é o marco inicial da análise de prescrição punitiva "
                 "e sem ela o cálculo ficará errado.\n\n"
                 "Informe uma das opções:\n"
-                "- `data_totalizacao_pontos: DD/MM/AAAA` — para suspensão por pontos;\n"
-                "- `tipo_penalidade: multa` — se for suspensão por infração direta (não por pontos)."
+                "- A data de totalização de pontos no formato DD/MM/AAAA — para suspensão por pontos;\n"
+                "- Ou informe que se trata de suspensão por infração direta (não por acúmulo de pontos)."
             )
 
         # Invalida pré-cálculo F3 se campos foram editados (admissibilidade_texto pode estar desatualizado)

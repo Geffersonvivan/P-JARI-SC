@@ -226,7 +226,7 @@ def run(engine) -> str:
     # Salva o relatório completo em blindagem_detalhes (usado pelo wizard JariMatch)
     full_blindagem = "### 🛡️ Auditoria Final de Conformidade\n\n"
     if inconsistencias:
-        full_blindagem += f"⚠️ **Inconsistências Críticas (JariMath):** {' '.join(inconsistencias)}\n\n"
+        full_blindagem += f"⚠️ **Inconsistências Críticas:** {' '.join(inconsistencias)}\n\n"
     full_blindagem += checklist_texto
     parecer.blindagem_detalhes = full_blindagem
     parecer.save(update_fields=['blindagem_detalhes'])
@@ -269,15 +269,15 @@ def run(engine) -> str:
     report = "### 🛡️ Auditoria Final de Conformidade\n\n"
 
     if indice != 100:
-        report += f"⚠️ **Inconsistências Críticas (JariMath):**\n{parecer.blindagem_detalhes}\n\n"
+        report += f"⚠️ **Inconsistências Críticas:**\n{parecer.blindagem_detalhes}\n\n"
 
     report += f"---\n\n{checklist_texto}\n\n"
     report += "---\n\n"
 
     if indice == 100:
-        report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM 100% ✅**\n\n⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
+        report += f"**ÍNDICE DE CONFORMIDADE: 100% ✅**\n\n⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
     else:
-        report += f"**JARI-MATH: ÍNDICE DE BLINDAGEM {int(indice)}% ⚠️**\n\n⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
+        report += f"**ÍNDICE DE CONFORMIDADE: {int(indice)}% ⚠️**\n\n⏳ **Tempo de Julgamento da Sessão:** {tempo_str}\n\n"
 
     report += f"---\n{engine.get_current_prompt()}"
     return report

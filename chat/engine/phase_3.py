@@ -99,12 +99,12 @@ def run(engine) -> str:
         parecer.save()
         return (
             "⚠️ **Data da Infração não localizada na tabela.**\n\n"
-            "O sistema não conseguiu identificar a data da infração (tipo `INFRACAO`) na tabela gerada na Fase 2. "
+            "Não foi possível identificar a data da infração na tabela de datas. "
             "Sem essa data, os cálculos de prescrição punitiva e decadência ficam matematicamente incorretos.\n\n"
             "**O que fazer:**\n"
-            "- Digite **`corrigir`** para voltar à Fase 1 e reenviar os documentos;\n"
-            "- Ou edite manualmente a tabela (campo *Tipo* deve conter exatamente `INFRACAO`) e depois reinicie com **`corrigir`**.\n\n"
-            "O processo foi retornado à Fase 2 aguardando sua decisão."
+            "- Digite **corrigir** para voltar ao início e reenviar os documentos;\n"
+            "- Ou edite manualmente a tabela (o campo *Tipo* deve conter exatamente a infração) e depois reinicie com **corrigir**.\n\n"
+            "O processo foi retornado à etapa anterior aguardando sua decisão."
         )
 
     data_na = _data_por_label(
@@ -283,7 +283,7 @@ def run(engine) -> str:
     matematica_detalhes = _bloco_consistencia + _aviso_data_infracao + (
         f"- Tempestividade: Diferença em dias corridos (Protocolo x Prazo Final) = {dias_tempestividade} dias de atraso "
         f"(valores positivos indicam atraso). "
-        f"(Conclusão JariMath: {'RECURSO TEMPESTIVO – dentro do prazo' if parecer.is_tempestivo else 'RECURSO INTEMPESTIVO – fora do prazo'}).\n"
+        f"(Conclusão:{'RECURSO TEMPESTIVO – dentro do prazo' if parecer.is_tempestivo else 'RECURSO INTEMPESTIVO – fora do prazo'}).\n"
         f"- Prescrição Punitiva (Exige atingir 5 anos civis, verificado data a data): "
         + (
             f"⚠️ SUSPENSÃO POR PONTOS — marco inicial = dia seguinte à totalização ({data_inicio_prescricao_punitiva}, "
@@ -292,11 +292,11 @@ def run(engine) -> str:
             f"Marco inicial = data da infração ({data_infracao}). "
         )
         + f"Maior intervalo desde último marco válido identificado = {dias_punitiva} dias corridos calculados. "
-        f"(Valor final exigido pelo JariMath: {'SIM' if parecer.has_prescricao_punitiva else 'NÃO'}).\n"
+        f"(Valor calculado:{'SIM' if parecer.has_prescricao_punitiva else 'NÃO'}).\n"
         f"- Prescrição Intercorrente (Aniversário de 3 anos alcançado): {relatorio_intercorrente} "
-        f"(Valor final exigido pelo JariMath: {'SIM' if parecer.has_prescricao_intercorrente else 'NÃO'}).\n"
+        f"(Valor calculado:{'SIM' if parecer.has_prescricao_intercorrente else 'NÃO'}).\n"
         f"- Decadência (Regimes temporais do CTB / Resolução):\n{relatorio_decadencia}\n"
-        f"(Valor final exigido pelo JariMath: {decadencia_final})\n"
+        f"(Valor calculado:{decadencia_final})\n"
     )
 
     # ── Geração do texto de admissibilidade via Gemini ────────────────────────

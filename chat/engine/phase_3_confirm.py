@@ -144,7 +144,7 @@ def process(engine, message: str) -> str:
             "(Tempestividade: **tempestivo** | Prescrição/Decadência: **SIM** / configurada)\n"
             "**B** = resultado negativo  "
             "(Tempestividade: **intempestivo** | Prescrição/Decadência: **NÃO**)\n\n"
-            "Ou digite **ok** para confirmar todos os resultados automáticos do JariMath."
+            "Ou digite **ok** para confirmar todos os resultados calculados automaticamente."
         )
 
     # Resultado final: escolha explícita prevalece; None → usa automático
