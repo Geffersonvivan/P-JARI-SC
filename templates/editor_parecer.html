@@ -561,7 +561,7 @@
                 const link = document.createElement("a");
                 document.body.appendChild(link);
                 link.href = url;
-                link.download = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}.doc';
+                link.download = 'Parecer {{ parecer.recorrente|default:parecer.nome_processo|escapejs }} - {{ parecer.sgpe|default:parecer.pa|default:""|escapejs }}.doc';
                 link.click();
 
                 setTimeout(() => {
@@ -589,7 +589,7 @@
 
             try {
                 const htmlContent = editorInstance.getContent();
-                const filename = '{{ parecer.nome_processo|escapejs|default:"Parecer" }}';
+                const filename = 'Parecer {{ parecer.recorrente|default:parecer.nome_processo|escapejs }} - {{ parecer.sgpe|default:parecer.pa|default:""|escapejs }}';
 
                 // Cria iframe oculto para impressão isolada (não interfere na página atual)
                 const iframe = document.createElement('iframe');
@@ -604,7 +604,7 @@
 <meta charset="UTF-8">
 <title>${filename}</title>
 <style>
-  @page { size: A4; margin: 20mm 15mm 20mm 15mm; }
+  @page { size: A4; margin: 0; } /* margin:0 elimina o cabeçalho/rodapé automático do Chrome */
   * { box-sizing: border-box; }
   body {
     font-family: Arial, Helvetica, sans-serif;
@@ -613,7 +613,7 @@
     color: #000;
     background: #fff;
     margin: 0;
-    padding: 0;
+    padding: 20mm 15mm; /* espaçamento de página via padding, não via @page margin */
     text-align: justify;
     word-wrap: break-word;
     overflow-wrap: break-word;
