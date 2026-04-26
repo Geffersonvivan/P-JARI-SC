@@ -205,13 +205,27 @@ def processar_fase4_task(self, parecer_id):
     from billiard.exceptions import SoftTimeLimitExceeded
     _sentry_task_context(parecer_id, "fase4")
     try:
+        import json as _json
         parecer = Parecer.objects.get(id=parecer_id)
         engine = JariEngine(parecer)
         reply = engine.run_phase_4_extraction()
         from .models import ChatMessage
+        # Detecta encadeamento (PREJUDICIALIDADE ou rota normal)
+        try:
+            _chained = _json.loads(reply)
+            if _chained.get('__chained'):
+                # PREJUDICIALIDADE: gerar_parecer_task já disparado dentro de run_extraction
+                logger.info(f"FASE4 encadeando para {_chained['task_type']} (Parecer {parecer_id})")
+                ChatMessage.objects.create(parecer=parecer, role='assistant', content="Recurso sem tese identificada — gerando parecer automaticamente.")
+                return _json.dumps({"chained": True, "task_id": _chained['task_id'], "task_type": _chained['task_type']})
+        except (ValueError, KeyError, TypeError):
+            pass
+        # Tese extraída com sucesso — auto-dispara análise sem confirmação do usuário
         ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
         log_audit('fase_concluida', parecer=parecer, fase=4)
-        return "SUCCESS"
+        analise_task = processar_fase4_analise_task.delay(parecer_id)
+        logger.info(f"FASE4 tese extraída — encadeando FASE4_ANALISE task={analise_task.id} (Parecer {parecer_id})")
+        return _json.dumps({"chained": True, "task_id": analise_task.id, "task_type": "FASE4_ANALISE"})
     except SoftTimeLimitExceeded:
         logger.warning(f"FASE4 soft time limit atingido (Parecer {parecer_id}). Retornando prompt de fase 4.")
         try:

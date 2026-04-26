@@ -149,6 +149,21 @@ def check_task_status_view(request, task_id):
     task = AsyncResult(task_id)
 
     if task.state == 'SUCCESS':
+        # Verifica se a task retornou um encadeamento (ex: FASE4 → FASE4_ANALISE)
+        result = task.result
+        if isinstance(result, str) and result.startswith('{'):
+            try:
+                import json as _json
+                result_data = _json.loads(result)
+                if result_data.get('chained'):
+                    return JsonResponse({
+                        'status': 'CHAINED',
+                        'next_task_id': result_data['task_id'],
+                        'next_task_type': result_data['task_type'],
+                    })
+            except Exception:
+                pass
+
         parecer_id = request.GET.get('parecer_id')
         if parecer_id:
             from ..models import Parecer

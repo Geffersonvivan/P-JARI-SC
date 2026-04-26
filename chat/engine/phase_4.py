@@ -49,7 +49,8 @@ def run_extraction(engine) -> str:
         parecer.save()
         from chat.tasks import gerar_parecer_task
         task = gerar_parecer_task.delay(parecer.id)
-        return json.dumps({"status": "celery", "task_id": task.id, "type": "PREJUDICIALIDADE"})
+        # Retorna marcador interno para processar_fase4_task encadear via SSE
+        return json.dumps({"__chained": True, "task_id": task.id, "task_type": "PREJUDICIALIDADE"})
 
     parecer.tese = tese_extraida
     parecer.status_fase = FASE_MERITO

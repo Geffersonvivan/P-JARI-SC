@@ -1236,8 +1236,20 @@ function renderPhase(f) {
         hide('p2-loading'); show('p2-content'); renderAdmCards();
     }
     if (f===4)  { collapsePdf(); show('p3-loading'); hide('p3-content');
-                  rotateLabel('p3-loading-lbl',['Extraindo teses defensivas...','Analisando argumentos...','Pesquisando jurisprudência...']);
-                  startFakeProgress('p3-progress-bar','p3-pct',750,2.0); }
+                  rotateLabel('p3-loading-lbl',['Extraindo teses defensivas...','Analisando argumentos...','Pesquisando jurisprudência...','Consultando doutrina...']);
+                  startFakeProgress('p3-progress-bar','p3-pct',750,2.0);
+                  // Fallback resiliente: se a página recarregar com f=4 e o SSE não estiver ativo,
+                  // aguarda o status avançar (FASE4_ANALISE seta status>4 ao concluir).
+                  if (!window._fase4FallbackActive) {
+                      window._fase4FallbackActive = true;
+                      setTimeout(function _pollF4() {
+                          fetch(`/parecer/${PARECER_ID}/wizard/status/`)
+                              .then(r => r.json())
+                              .then(d => { if (d.status_fase > 4) window.location.reload(); else setTimeout(_pollF4, 5000); })
+                              .catch(() => setTimeout(_pollF4, 7000));
+                      }, 8000);
+                  }
+    }
     if (f===41) { stopFakeProgress('p3-progress-bar','p3-pct'); hide('p3-loading'); show('p3-content'); renderTeseCards(); }
     if (f===5)  { collapsePdf(); show('p4-loading'); hide('p4-content'); startProgressAnim(); }
     if (f===6)  { hide('p4-loading'); show('p4-content'); renderParecer(); }
@@ -2149,6 +2161,7 @@ const SSE_LABELS = {
     FASE3:['Calculando admissibilidade...','Verificando prescrições...'],
     FASE3_ADM:['Calculando prazos...','Verificando prescrição...','Analisando admissibilidade...'],
     FASE4:['Extraindo teses...','Analisando argumentos...'],
+    FASE4_ANALISE:['Pesquisando jurisprudência...','Consultando doutrina...','Analisando precedentes...','Cruzando fundamentos...'],
     FASE5:['Gerando Parecer Técnico...','Elaborando fundamentação...','Finalizando...'],
     PREJUDICIALIDADE:['Gerando Parecer...','Calculando resultado...'],
     MERITO:['Elaborando fundamentos...','Redigindo conclusão...','Finalizando parecer...'],
@@ -2219,9 +2232,18 @@ function startSSE(taskId, taskType) {
         try {
             const res = await fetch(`/chat/task-status/${taskId}/?parecer_id=${PARECER_ID}`);
             const d = await res.json();
-            if (d.status === 'SUCCESS') {
+            if (d.status === 'CHAINED') {
+                // Task encadeou para próxima (ex: FASE4 → FASE4_ANALISE): continua SSE sem reload
                 const b = document.getElementById('_stuck-banner'); if (b) b.remove();
-                if (window._reloadAfterFase1 || ['FASE1','FASE2','FASE3_ADM','FASE4','PREJUDICIALIDADE','MERITO'].includes(taskType)) { if(window._slowProgressInterval)clearInterval(window._slowProgressInterval); window.location.reload(); return; }
+                taskType = d.next_task_type;
+                taskId   = d.next_task_id;
+                const newLabels = SSE_LABELS[taskType] || ['Processando...'];
+                const lbl2 = getLabelEl(); if (lbl2) rotateLabel(lbl2.id, newLabels);
+                polls = 0; pendingStreak = 0;
+                setTimeout(poll, 2000); return;
+            } else if (d.status === 'SUCCESS') {
+                const b = document.getElementById('_stuck-banner'); if (b) b.remove();
+                if (window._reloadAfterFase1 || ['FASE1','FASE2','FASE3_ADM','FASE4','FASE4_ANALISE','PREJUDICIALIDADE','MERITO'].includes(taskType)) { if(window._slowProgressInterval)clearInterval(window._slowProgressInterval); window.location.reload(); return; }
                 if (d.status_fase !== undefined) currentFase = d.status_fase;
                 setLoading(false); detectState();
             } else if (d.status === 'FAILURE') {
