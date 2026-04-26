@@ -78,14 +78,21 @@
                         Salvar em .DOCX
                     </button>
 
-                    <button type="button" onclick="openExportModal('pdf')"
-                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
-                        Salvar em PDF
-                    </button>
+                    <div class="relative group">
+                        <button type="button" onclick="openExportModal('pdf')"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Salvar em PDF
+                        </button>
+                        <!-- Dica: desmarcar cabeçalhos no Chrome -->
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 text-center leading-relaxed">
+                            No diálogo de impressão, desmarque <strong>"Cabeçalhos e rodapés"</strong> para remover data e título automáticos.
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </div>
 
                     <button type="submit"
                         class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition flex items-center gap-2">
@@ -604,7 +611,7 @@
 <meta charset="UTF-8">
 <title>${filename}</title>
 <style>
-  @page { size: A4; margin: 0; } /* margin:0 elimina o cabeçalho/rodapé automático do Chrome */
+  @page { size: A4; margin: 20mm 15mm; }
   * { box-sizing: border-box; }
   body {
     font-family: Arial, Helvetica, sans-serif;
@@ -613,7 +620,7 @@
     color: #000;
     background: #fff;
     margin: 0;
-    padding: 20mm 15mm; /* espaçamento de página via padding, não via @page margin */
+    padding: 0;
     text-align: justify;
     word-wrap: break-word;
     overflow-wrap: break-word;
