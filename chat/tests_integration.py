@@ -125,7 +125,7 @@ class TestFase2Integracao(TestCase):
     @patch('chat.integrations.GeminiClient')
     @patch('chat.pdf_extractor.PDFExtractor.extract_dates_from_pdf')
     def test_f2_aviso_pdf_texto_limitado_500_a_2000_chars(self, mock_pdf, MockGemini):
-        """PDFs com 500-2000 chars devem gerar aviso de texto limitado (ℹ️)."""
+        """PDFs com 500-2000 chars pós-OCR devem gerar aviso de texto limitado."""
         mock_pdf.return_value = ([], 1200)  # 1200 chars — limitado
         retorno = dict(_RETORNO_GEMINI_F2)
         retorno['tabela_markdown'] = '| INFRACAO | 15/01/2023 |'

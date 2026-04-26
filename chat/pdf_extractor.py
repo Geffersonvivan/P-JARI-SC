@@ -71,8 +71,10 @@ class PDFExtractor:
                     total_chars += len(text)
                     page_texts.append(text)
 
-                # ── OCR fallback: PDF escaneado (texto nativo insuficiente) ─
-                OCR_THRESHOLD = 500
+                # ── OCR fallback: PDF escaneado ou texto limitado ────────────
+                # Threshold elevado de 500→2000: PDFs entre 500-2000 chars têm extração
+                # de datas comprometida (scan parcial). OCR via Tesseract recupera o texto.
+                OCR_THRESHOLD = 2000
                 if total_chars < OCR_THRESHOLD:
                     logger.info("PDFExtractor (%s): texto nativo=%d chars < %d — tentando OCR",
                                 doc_type, total_chars, OCR_THRESHOLD)

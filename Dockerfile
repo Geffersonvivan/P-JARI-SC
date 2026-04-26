@@ -17,6 +17,8 @@ RUN apt-get update \
         libgl1 \
         libglib2.0-0 \
         curl \
+        tesseract-ocr \
+        tesseract-ocr-por \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*

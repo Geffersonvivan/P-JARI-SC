@@ -258,7 +258,11 @@ def run(engine) -> str:
     contexto_textual_datas = PDFExtractor.format_extraction_for_llm(datas_autuacao, datas_consolidado)
 
     # ── Detecção de PDF ilegível por contagem de chars ────────────────────────
-    # <500 chars → imagem sem OCR (crítico); 500-2000 → texto limitado (alerta); >2000 → ok.
+    # O PDFExtractor já tentou OCR quando total_chars < 2000, então _total_chars
+    # reflete o melhor resultado disponível (texto nativo OU pós-OCR Tesseract).
+    # <500 → OCR falhou ou PDF completamente ilegível (crítico)
+    # 500-2000 → OCR tentado mas resultado ainda limitado (alerta)
+    # >2000 → extração suficiente (ok)
     _pdfs_enviados = sum(1 for p in [_aut, _con] if p and "upload_simulado" not in p)
     _total_chars = _chars_aut + _chars_con
     _aviso_ilegivel = ""
@@ -266,20 +270,20 @@ def run(engine) -> str:
         if _total_chars < 500:
             _aviso_ilegivel = (
                 "**ATENCAO — PDF possivelmente digitalizado sem OCR:** "
-                f"O sistema extraiu apenas {_total_chars} caracteres dos documentos enviados. "
-                "O PDF pode ser uma imagem sem texto selecionável. "
+                f"O sistema extraiu apenas {_total_chars} caracteres dos documentos enviados (após tentativa de OCR automático). "
+                "O PDF pode ser uma imagem de baixa qualidade ou sem texto reconhecível. "
                 "O Gemini tentará análise visual, mas as datas abaixo podem estar incompletas — "
                 "**verifique cuidadosamente antes de prosseguir.**\n\n"
             )
-            logger.warning(f"[FASE2] PDF crítico — {_total_chars} chars — parecer={parecer.id}, pdfs={_pdfs_enviados}")
+            logger.warning(f"[FASE2] PDF crítico pós-OCR — {_total_chars} chars — parecer={parecer.id}, pdfs={_pdfs_enviados}")
         elif _total_chars < 2000:
             _aviso_ilegivel = (
-                "**ATENCAO — PDF com texto limitado:** "
-                f"O sistema extraiu {_total_chars} caracteres dos documentos. "
-                "Podem existir datas não capturadas pela varredura automática. "
+                "**ATENCAO — PDF com texto limitado (OCR aplicado automaticamente):** "
+                f"O sistema extraiu {_total_chars} caracteres após processamento OCR. "
+                "Podem existir datas não capturadas. "
                 "Confira as datas na tabela abaixo antes de prosseguir.\n\n"
             )
-            logger.info(f"[FASE2] PDF texto limitado — {_total_chars} chars — parecer={parecer.id}")
+            logger.info(f"[FASE2] PDF texto limitado pós-OCR — {_total_chars} chars — parecer={parecer.id}")
 
     resultado = gemini.generate_phase2_report(parecer, contexto_textual_datas, pdf_chars=_total_chars)
 
