@@ -1298,8 +1298,32 @@ function renderPhase(f) {
                       }, 8000);
                   }
     }
-    if (f===41) { stopFakeProgress('p3-progress-bar','p3-pct'); hide('p3-loading'); show('p3-content'); renderTeseCards(); }
-    if (f===5)  { collapsePdf(); show('p4-loading'); hide('p4-content'); startProgressAnim(); }
+    if (f===41) {
+        stopFakeProgress('p3-progress-bar','p3-pct'); hide('p3-loading'); show('p3-content'); renderTeseCards();
+        // Fallback resiliente: se o SSE morrer após confirmação de teses, recarrega automaticamente.
+        if (!window._fase41FallbackActive) {
+            window._fase41FallbackActive = true;
+            setTimeout(function _pollF41() {
+                fetch(`/parecer/${PARECER_ID}/wizard/status/`)
+                    .then(r => { if (!r.ok) { window.location.reload(); return null; } return r.json(); })
+                    .then(d => { if (!d) return; if (d.status_fase > 41) window.location.reload(); else setTimeout(_pollF41, 5000); })
+                    .catch(() => setTimeout(_pollF41, 7000));
+            }, 10000); // 10s: não dispara durante transição SSE normal
+        }
+    }
+    if (f===5)  {
+        collapsePdf(); show('p4-loading'); hide('p4-content'); startProgressAnim();
+        // Fallback: se o SSE morrer durante a geração do parecer, detecta conclusão e recarrega.
+        if (!window._fase5FallbackActive) {
+            window._fase5FallbackActive = true;
+            setTimeout(function _pollF5() {
+                fetch(`/parecer/${PARECER_ID}/wizard/status/`)
+                    .then(r => { if (!r.ok) { window.location.reload(); return null; } return r.json(); })
+                    .then(d => { if (!d) return; if (d.status_fase > 5) window.location.reload(); else setTimeout(_pollF5, 8000); })
+                    .catch(() => setTimeout(_pollF5, 10000));
+            }, 20000); // 20s: parecer demora; não ativa polling antes do tempo mínimo
+        }
+    }
     if (f===6)  { hide('p4-loading'); show('p4-content'); renderParecer(); }
     if (f===7)  { show('p5-pasta');   hide('p5-final');
                   const _btnPasta = document.getElementById('btn-confirmar-pasta');
