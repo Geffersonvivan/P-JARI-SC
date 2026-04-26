@@ -264,9 +264,16 @@ class TestFase2(unittest.TestCase):
 
     def test_ok_avanca_para_fase3(self):
         engine = self._engine()
-        with patch.object(engine, 'run_phase_3', return_value="fase3"):
+        mock_task = MagicMock()
+        mock_task.id = 'test-task-id'
+        with patch('chat.tasks.processar_fase3_admissibilidade_task') as mock_f3_task:
+            mock_f3_task.delay.return_value = mock_task
             result = engine.process_message("ok")
-        self.assertEqual(result, "fase3")
+        import json
+        data = json.loads(result)
+        self.assertEqual(data['status'], 'celery')
+        self.assertEqual(data['type'], 'FASE3_ADM')
+        mock_f3_task.delay.assert_called_once_with(engine.parecer.id)
         self.assertEqual(engine.parecer.status_fase, 3)
 
     def test_corrigir_reseta_e_volta_para_fase1(self):

@@ -10,8 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 def process(engine) -> str:
-    """Fase 3 acionada diretamente (ex: retry). Apenas delega para run()."""
-    return run(engine)
+    """
+    Fase 3 acionada quando o julgador confirma a tabela F2.
+    Despacha para Celery para evitar que o Gemini bloqueie o Gunicorn indefinidamente.
+    """
+    import json
+    from chat.tasks import processar_fase3_admissibilidade_task
+    task = processar_fase3_admissibilidade_task.delay(engine.parecer.id)
+    return json.dumps({"status": "celery", "task_id": task.id, "type": "FASE3_ADM"})
 
 
 def run(engine) -> str:

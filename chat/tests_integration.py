@@ -510,14 +510,15 @@ class TestFluxoEncadeadoF2F3F31(TestCase):
         self.assertEqual(parecer.status_fase, 2)
         self.assertIn('INFRACAO', parecer.tabela_datas_sensiveis)
 
-        # Julgador confirma F2 com 'ok' (o engine chama run_phase_3 internamente)
-        # Mockamos run_phase_3 para controlar a fronteira
-        with patch.object(engine, 'run_phase_3', return_value='fase3_simulada'):
+        # Julgador confirma F2 com 'ok' — agora despacha FASE3_ADM para Celery (não síncrono)
+        # Mockamos a task Celery para controlar a fronteira
+        with patch('chat.tasks.processar_fase3_admissibilidade_task') as mock_f3_task:
+            mock_f3_task.delay.return_value = MagicMock(id='test-f3-task')
             engine.process_message('ok')
         parecer.refresh_from_db()
         self.assertEqual(parecer.status_fase, 3)
 
-        # ── F3: executa com JariMath real ────────────────────────────────────
+        # ── F3: executa com JariMath real (simula o worker Celery rodando a task)
         # Recarrega engine do banco para simular nova requisição HTTP
         engine2 = JariEngine(Parecer.objects.get(pk=parecer.pk))
         run_f3(engine2)
@@ -577,7 +578,8 @@ class TestFluxoEncadeadoF2F3F31(TestCase):
         # F2
         engine = JariEngine(parecer)
         engine.run_phase_2()
-        with patch.object(engine, 'run_phase_3', return_value='f3'):
+        with patch('chat.tasks.processar_fase3_admissibilidade_task') as mock_f3_task:
+            mock_f3_task.delay.return_value = MagicMock(id='test-f3-task')
             engine.process_message('ok')
 
         # F3

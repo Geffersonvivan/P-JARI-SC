@@ -131,9 +131,12 @@ def process(engine, message: str) -> str:
             logger.info("[FASE2→31] pré-cálculo F3 reutilizado. parecer=%s", parecer.id)
             return engine.get_current_prompt()
 
+        import json
+        from chat.tasks import processar_fase3_admissibilidade_task
         parecer.status_fase = FASE_ADMISSIBILIDADE_GERADA
         parecer.save(update_fields=['status_fase'])
-        return engine.run_phase_3()
+        task = processar_fase3_admissibilidade_task.delay(parecer.id)
+        return json.dumps({"status": "celery", "task_id": task.id, "type": "FASE3_ADM"})
 
     if msg == 'corrigir':
         from chat.engine import FASE_COLETA

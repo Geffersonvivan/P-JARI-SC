@@ -131,6 +131,49 @@ def processar_fase2_task(self, parecer_id):
         raise Exception(f"Erro na Fase 2 (Celery Worker): {str(e)}")
 
 
+@shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
+def processar_fase3_admissibilidade_task(self, parecer_id):
+    """
+    Executa a Fase 3 (JariMath + Gemini) no worker Celery quando o julgador confirma a tabela F2.
+    Evita que a chamada síncrona ao Gemini bloqueie o Gunicorn indefinidamente (bug "99% travado").
+    Se admissibilidade_texto já foi pré-calculado, apenas avança o status (caminho rápido sem Gemini).
+    Retry automático (3x, backoff 30s) para erros transitórios do Gemini.
+    """
+    from billiard.exceptions import SoftTimeLimitExceeded
+    _sentry_task_context(parecer_id, "fase3_adm")
+    try:
+        parecer = Parecer.objects.get(id=parecer_id)
+        engine = JariEngine(parecer)
+        from chat.engine.phase_3 import run as run_fase3
+        result = run_fase3(engine)
+        # run() retorna string de erro (⚠️/❌) sem lançar exceção em alguns casos (ex: data_infracao ausente)
+        if result and isinstance(result, str) and (result.startswith('⚠️') or result.startswith('❌')):
+            raise Exception(result)
+        log_audit('fase_concluida', parecer=parecer, fase='3_adm')
+        return "SUCCESS"
+    except SoftTimeLimitExceeded:
+        logger.warning(f"FASE3_ADM soft time limit atingido (Parecer {parecer_id}).")
+        return "SUCCESS"
+    except Parecer.DoesNotExist:
+        return f"Processo ({parecer_id}) não encontrado."
+    except Exception as e:
+        trace = traceback.format_exc()
+        if _is_gemini_transient(e):
+            countdown = 30 * (self.request.retries + 1)
+            logger.warning(f"FASE3_ADM Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
+            try:
+                raise self.retry(exc=e, countdown=countdown)
+            except self.MaxRetriesExceededError:
+                pass
+        try:
+            _p = Parecer.objects.get(id=parecer_id)
+            log_audit('fase_erro', parecer=_p, fase='3_adm', dados={'erro': str(e)[:200]})
+        except Exception:
+            pass
+        logger.error(f"ERRO CELERY FASE3_ADM (Parecer {parecer_id}): {str(e)}\n\n{trace}")
+        raise Exception(f"Erro na Fase 3/Admissibilidade (Celery Worker): {str(e)}")
+
+
 @shared_task(bind=True, time_limit=120, soft_time_limit=100, queue='fast')
 def processar_fase3_precompute_task(self, parecer_id):
     """

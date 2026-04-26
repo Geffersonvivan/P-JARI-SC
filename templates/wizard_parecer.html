@@ -2094,6 +2094,7 @@ const SSE_LABELS = {
     FASE1:['Lendo documentos...','Extraindo informações...','Verificando prazos...'],
     FASE2:['Organizando argumentos...','Consultando normas...','Verificando datas...'],
     FASE3:['Calculando admissibilidade...','Verificando prescrições...'],
+    FASE3_ADM:['Calculando prazos...','Verificando prescrição...','Analisando admissibilidade...'],
     FASE4:['Extraindo teses...','Analisando argumentos...'],
     FASE5:['Gerando Parecer Técnico...','Elaborando fundamentação...','Finalizando...'],
     PREJUDICIALIDADE:['Gerando Parecer...','Calculando resultado...'],
@@ -2167,7 +2168,7 @@ function startSSE(taskId, taskType) {
             const d = await res.json();
             if (d.status === 'SUCCESS') {
                 const b = document.getElementById('_stuck-banner'); if (b) b.remove();
-                if (window._reloadAfterFase1 || ['FASE1','FASE2','FASE4','PREJUDICIALIDADE','MERITO'].includes(taskType)) { if(window._slowProgressInterval)clearInterval(window._slowProgressInterval); window.location.reload(); return; }
+                if (window._reloadAfterFase1 || ['FASE1','FASE2','FASE3_ADM','FASE4','PREJUDICIALIDADE','MERITO'].includes(taskType)) { if(window._slowProgressInterval)clearInterval(window._slowProgressInterval); window.location.reload(); return; }
                 if (d.status_fase !== undefined) currentFase = d.status_fase;
                 setLoading(false); detectState();
             } else if (d.status === 'FAILURE') {
