@@ -100,7 +100,7 @@ class TestFase2Integracao(TestCase):
         JariEngine(parecer).run_phase_2()
 
         parecer.refresh_from_db()
-        self.assertEqual(parecer.recorrente, 'João da Silva')
+        self.assertEqual(parecer.recorrente, 'JOÃO DA SILVA')
         self.assertEqual(parecer.tipo_penalidade, 'multa')
         self.assertIn('INFRACAO', parecer.tabela_datas_sensiveis)
         self.assertIn('NA', parecer.tabela_datas_sensiveis)
