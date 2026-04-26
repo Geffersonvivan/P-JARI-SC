@@ -5,8 +5,17 @@ Fase 3 — Cálculos matemáticos de admissibilidade (JariMath) + geração de t
 import re
 import datetime
 import logging
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+
+def _normalizar(texto: str) -> str:
+    """Remove acentos e converte para maiúsculas — normalização para matching robusto."""
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', texto)
+        if unicodedata.category(c) != 'Mn'
+    ).upper()
 
 
 def process(engine) -> str:
@@ -48,25 +57,40 @@ def run(engine) -> str:
     _datas_fase1 = {d for d in [parecer.data_protocolo, parecer.prazo_final] if d is not None}
     _datas_sem_fase1 = [d for d in datas_processadas if d not in _datas_fase1]
 
+    # Versão normalizada da tabela (sem acentos, uppercase) para matching robusto.
+    # Resolve casos em que o Gemini gera INFRAÇÃO, Infração, AIT etc. com variações de encoding.
+    # As datas DD/MM/AAAA não são afetadas pela normalização.
+    _texto_norm = _normalizar(texto_tabela)
+
     def _data_por_label(texto, *patterns):
-        """M6 FIX: regex robusta — aceita pipe Markdown E formatos sem delimitador."""
-        for pat in patterns:
-            # 1. Formato tabela Markdown: label ... | DD/MM/AAAA
-            m = re.search(rf'{pat}[^|\n]{{0,60}}\|\s*(\d{{2}}/\d{{2}}/\d{{4}})', texto, re.IGNORECASE)
-            if not m:
-                # 2. Formato invertido: DD/MM/AAAA | ... label
-                m = re.search(rf'\|\s*(\d{{2}}/\d{{2}}/\d{{4}})\s*\|[^|\n]{{0,60}}{pat}', texto, re.IGNORECASE)
-            if not m:
-                # 3. Formato livre: label seguido de data sem pipe (ex: "Infração: 15/03/2022")
-                m = re.search(rf'{pat}[^\n\d]{{0,40}}(\d{{2}}/\d{{2}}/\d{{4}})', texto, re.IGNORECASE)
-            if not m:
-                # 4. Data antes do label sem pipe (ex: "15/03/2022 — Infração")
-                m = re.search(rf'(\d{{2}}/\d{{2}}/\d{{4}})\s*[—\-–]\s*{pat}', texto, re.IGNORECASE)
-            if m:
-                try:
-                    return datetime.datetime.strptime(m.group(1), "%d/%m/%Y").date()
-                except Exception:
-                    pass
+        """M6 FIX: regex robusta — aceita pipe Markdown E formatos sem delimitador.
+        Tenta primeiro no texto original, depois no texto normalizado (sem acentos/uppercase).
+        """
+        # Versão normalizada dos patterns (sem acentos, uppercase) para busca no texto normalizado
+        def _norm_pat(p):
+            return _normalizar(p.replace(r'\b', '').replace('[Ii]', 'I').replace('[çc]', 'C').replace('[ãa]', 'A').replace('[Çç]', 'C').replace('[Ãã]', 'A'))
+
+        for orig_texto, busca_texto in [(texto, texto), (_texto_norm, _texto_norm)]:
+            for pat in patterns:
+                t = busca_texto
+                # Ao usar texto normalizado, normaliza também o pattern
+                p = _normalizar(pat.replace('\\b', '').replace('[Ii]', 'I').replace('[çc]', 'C').replace('[ãa]', 'A')) if t is _texto_norm else pat
+                # 1. Formato tabela Markdown: label ... | DD/MM/AAAA
+                m = re.search(rf'{p}[^|\n]{{0,60}}\|\s*(\d{{2}}/\d{{2}}/\d{{4}})', t, re.IGNORECASE)
+                if not m:
+                    # 2. Formato invertido: DD/MM/AAAA | ... label
+                    m = re.search(rf'\|\s*(\d{{2}}/\d{{2}}/\d{{4}})\s*\|[^|\n]{{0,60}}{p}', t, re.IGNORECASE)
+                if not m:
+                    # 3. Formato livre: label seguido de data (ex: "Infração: 15/03/2022")
+                    m = re.search(rf'{p}[^\n\d]{{0,40}}(\d{{2}}/\d{{2}}/\d{{4}})', t, re.IGNORECASE)
+                if not m:
+                    # 4. Data antes do label (ex: "15/03/2022 — Infração")
+                    m = re.search(rf'(\d{{2}}/\d{{2}}/\d{{4}})\s*[—\-–]\s*{p}', t, re.IGNORECASE)
+                if m:
+                    try:
+                        return datetime.datetime.strptime(m.group(1), "%d/%m/%Y").date()
+                    except Exception:
+                        pass
         return None
 
     # Labels canônicos emitidos pelo Gemini F2 (coluna Tipo) têm prioridade sobre regex textual.
