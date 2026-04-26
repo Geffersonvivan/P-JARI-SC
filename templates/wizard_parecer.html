@@ -1245,7 +1245,7 @@ function renderPhase(f) {
                       setTimeout(function _pollF4() {
                           fetch(`/parecer/${PARECER_ID}/wizard/status/`)
                               .then(r => { if (!r.ok) { window.location.reload(); return null; } return r.json(); })
-                              .then(d => { if (!d) return; if (d.status_fase > 4) window.location.reload(); else setTimeout(_pollF4, 4000); })
+                              .then(d => { if (!d) return; if (d.status_fase > 4 && d.status_fase !== 31) window.location.reload(); else setTimeout(_pollF4, 4000); })
                               .catch(() => setTimeout(_pollF4, 5000));
                       }, 8000);
                   }
