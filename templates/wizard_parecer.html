@@ -647,15 +647,6 @@
                                onfocus="this.style.borderColor='#2563eb'; abrirCalendarioInfracao();" onblur="this.style.borderColor='#e5e7eb'"
                                oninput="formatarDataInput(this); atualizarBtnConfirmaData(this.value);"
                                onkeydown="if(event.key==='Enter'){confirmarDataInfracao();}" />
-                        <!-- Calendário popup data infração -->
-                        <div id="cal-infracao" style="display:none;position:absolute;top:100%;left:0;z-index:99999;background:#fff;border:1px solid #d1d5db;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:12px;width:260px;margin-top:4px;">
-                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                                <button type="button" onclick="calInfNavegar(-1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;">‹</button>
-                                <span id="cal-inf-titulo" style="font-size:13px;font-weight:700;color:#111827;"></span>
-                                <button type="button" onclick="calInfNavegar(1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;">›</button>
-                            </div>
-                            <div id="cal-inf-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;"></div>
-                        </div>
                     </div>
                     <p class="text-xs mt-2" style="color:#6b7280;">Deixe em branco e clique em <strong>Confirmar</strong> para aceitar a data inferida, ou digite a data correta acima.</p>
                 </div>
@@ -2561,7 +2552,23 @@ function _criarCalendario({ calId, tituloId, gridId, inputId, onSelect }) {
         if (!cal) return;
         const h = new Date(); _ano = h.getFullYear(); _mes = h.getMonth();
         _render();
-        cal.style.display = 'block';
+        // Se o calendário usa position:fixed, posiciona via getBoundingClientRect do input
+        if (getComputedStyle(cal).position === 'fixed' || cal.style.position === 'fixed') {
+            const inp = document.getElementById(inputId);
+            if (inp) {
+                const r = inp.getBoundingClientRect();
+                cal.style.top  = (r.bottom + 4) + 'px';
+                cal.style.left = r.left + 'px';
+                // Garante que não saia da viewport pela direita
+                cal.style.display = 'block';
+                const calW = cal.offsetWidth;
+                if (r.left + calW > window.innerWidth - 8) {
+                    cal.style.left = Math.max(8, window.innerWidth - calW - 8) + 'px';
+                }
+            } else { cal.style.display = 'block'; }
+        } else {
+            cal.style.display = 'block';
+        }
         setTimeout(() => document.addEventListener('click', _fecHandler), 0);
     }
 
@@ -2647,5 +2654,14 @@ function setClerkAvatar(imageUrl) {
         Suporte
     </span>
 </a>
+<!-- Calendário Data da Infração — fora do modal para não ser cortado pelo overflow -->
+<div id="cal-infracao" style="display:none;position:fixed;z-index:999999;background:#fff;border:1px solid #d1d5db;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);padding:12px;width:260px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <button type="button" onclick="calInfNavegar(-1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;">‹</button>
+        <span id="cal-inf-titulo" style="font-size:13px;font-weight:700;color:#111827;"></span>
+        <button type="button" onclick="calInfNavegar(1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;">›</button>
+    </div>
+    <div id="cal-inf-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;"></div>
+</div>
 </body>
 </html>
