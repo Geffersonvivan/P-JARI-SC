@@ -135,6 +135,10 @@ def analise_tese(engine) -> str:
             # shutdown(wait=False): não bloqueia o worker aguardando threads travadas de rede.
             # Threads daemon são encerradas automaticamente quando o processo termina.
             executor.shutdown(wait=False)
+            # Fecha conexões DB deixadas pelas threads (Vertex/Perplexity abrem logs de tokens).
+            # Sem isso, conexões ficam em estado inconsistente para o próximo save() do worker.
+            from django.db import close_old_connections
+            close_old_connections()
 
         if cache_config.is_active and "erro" not in chave.lower():
             try:

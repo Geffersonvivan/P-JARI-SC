@@ -72,6 +72,8 @@ def run_llm_phases(engine, task_id=None) -> str:
                 perplexity_result = f"Perplexity indisponível: {e}"
         finally:
             executor.shutdown(wait=False, cancel_futures=True)
+            from django.db import close_old_connections
+            close_old_connections()
 
     # ── Geração do parecer (Anthropic + fallback Gemini) ─────────────────────
     _provider = "Claude" if anthropic.client else "Gemini (fallback — Anthropic indisponível)"
