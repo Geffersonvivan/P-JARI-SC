@@ -87,6 +87,37 @@ def _extrair_data_infracao_tabela(tabela_texto: str):
 def process(engine, message: str) -> str:
     """Processa a resposta do julgador na fase 2."""
     parecer = engine.parecer
+
+    # Suporte a edição inline de tipo_penalidade / data_totalizacao_pontos via tabela F2.
+    # Mensagem: 'F2_FIELDS:{"tipo_penalidade":"multa","data_totalizacao_pontos":"15/03/2022"}'
+    if message.startswith('F2_FIELDS:'):
+        import json as _json
+        try:
+            fields = _json.loads(message[len('F2_FIELDS:'):])
+            _upd = []
+            _tp = fields.get('tipo_penalidade', '').lower().strip()
+            if _tp in ('multa', 'advertencia', 'suspensao', 'cassacao', ''):
+                parecer.tipo_penalidade = _tp or None
+                _upd.append('tipo_penalidade')
+            _dtp = fields.get('data_totalizacao_pontos', '').strip()
+            if _dtp:
+                import datetime as _dt2f
+                try:
+                    parecer.data_totalizacao_pontos = _dt2f.datetime.strptime(_dtp, '%d/%m/%Y').date()
+                    _upd.append('data_totalizacao_pontos')
+                except ValueError:
+                    pass
+            elif 'data_totalizacao_pontos' in fields:
+                parecer.data_totalizacao_pontos = None
+                _upd.append('data_totalizacao_pontos')
+            if _upd:
+                parecer._f2_campos_editados = True
+                parecer.save(update_fields=_upd)
+                logger.info("[FASE2] F2_FIELDS salvos — campos=%s parecer=%s", _upd, parecer.id)
+        except Exception as _e:
+            logger.warning("[FASE2] F2_FIELDS parse error: %s", _e)
+        message = 'ok'
+
     msg = message.lower().strip()
 
     if msg == 'ok':

@@ -429,6 +429,34 @@
                 <h2 class="text-xl font-bold text-gray-900 mb-1">Tabela de datas sensíveis</h2>
                 <p class="text-gray-400 text-sm mb-6">Verifique se todas as datas estão corretas antes de avançar.</p>
                 <div id="p1-tabela-content" class="prose max-w-none w-full bg-slate-50 rounded-xl p-5 border border-gray-200"></div>
+
+                <!-- Campos de penalidade — editáveis pelo julgador antes de avançar -->
+                <div style="margin-top:16px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 16px;">
+                    <p style="font-size:11px;font-weight:600;color:#92400e;margin-bottom:10px;">
+                        Corrija se a IA extraiu incorretamente:
+                    </p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+                        <div>
+                            <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Tipo de Penalidade</label>
+                            <select id="f2-tabela-tipo_penalidade" onchange="toggleTotalizacaoF2()"
+                                    style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff;outline:none;">
+                                <option value="">Não determinado</option>
+                                <option value="multa" {% if parecer.tipo_penalidade == 'multa' %}selected{% endif %}>Multa</option>
+                                <option value="advertencia" {% if parecer.tipo_penalidade == 'advertencia' %}selected{% endif %}>Advertência</option>
+                                <option value="suspensao" {% if parecer.tipo_penalidade == 'suspensao' %}selected{% endif %}>Suspensão</option>
+                                <option value="cassacao" {% if parecer.tipo_penalidade == 'cassacao' %}selected{% endif %}>Cassação</option>
+                            </select>
+                        </div>
+                        <div id="f2-tabela-totalizacao-wrap" {% if parecer.tipo_penalidade != 'suspensao' %}style="display:none"{% endif %}>
+                            <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">
+                                Data Totalização de Pontos <span style="color:#dc2626">*</span>
+                            </label>
+                            <input id="f2-tabela-data_totalizacao_pontos" type="text" placeholder="DD/MM/AAAA"
+                                   value="{{ parecer.data_totalizacao_pontos|date:'d/m/Y'|default:'' }}"
+                                   style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Sub: dados extraídos F10 — formulário (PDF fica no sidebar persistente) -->
@@ -1813,13 +1841,28 @@ async function wizardNext() {
         case 10: await confirmarDocumentos(); break;
         case 2:
         case 3: {
+            // Coleta tipo_penalidade / data_totalizacao_pontos editados na tabela F2
+            const _tpEl  = document.getElementById('f2-tabela-tipo_penalidade');
+            const _dtpEl = document.getElementById('f2-tabela-data_totalizacao_pontos');
+            let _msg = 'ok';
+            if (_tpEl && _tpEl.value !== '') {
+                const _extra = {tipo_penalidade: _tpEl.value};
+                if (_dtpEl && _dtpEl.value.trim()) _extra.data_totalizacao_pontos = _dtpEl.value.trim();
+                _msg = 'F2_FIELDS:' + JSON.stringify(_extra);
+            }
             // Navega imediatamente para o painel de admissibilidade com loading
             currentStep = 3;
             updateProgress(currentStep);
             document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
             document.getElementById('panel-2')?.classList.remove('hidden');
             renderPhase(32); // estado loading do painel 2
-            await avancar('ok'); break;
+            const _okF2 = await avancar(_msg);
+            if (!_okF2) {
+                // Bloqueio/erro: para o fake progress e restaura o painel da tabela
+                stopFakeProgress('p2-progress-bar','p2-pct');
+                detectState();
+            }
+            break;
         }
         case 31: {
             const s = buildAdmString();
@@ -1978,8 +2021,18 @@ function mostrarModalErroGeral(mensagem) {
     document.getElementById('modal-erro-geral').classList.remove('hidden');
 }
 
+function toggleTotalizacaoF2() {
+    const tp   = document.getElementById('f2-tabela-tipo_penalidade');
+    const wrap = document.getElementById('f2-tabela-totalizacao-wrap');
+    if (tp && wrap) wrap.style.display = (tp.value === 'suspensao') ? '' : 'none';
+}
+
 function fecharModalErroGeral() {
     document.getElementById('modal-erro-geral').classList.add('hidden');
+    // Para fake progress que possa ter ficado ativo e restaura o painel correto
+    stopFakeProgress('p2-progress-bar','p2-pct');
+    stopFakeProgress('p1-progress-bar','p1-pct');
+    detectState();
 }
 
 function reiniciarModalErroGeral() {
