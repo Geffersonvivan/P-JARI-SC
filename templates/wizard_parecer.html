@@ -2165,8 +2165,9 @@ async function confirmarDataInfracao() {
 }
 
 function reiniciarEscolhasAdm() {
-    // Fecha o modal
-    document.getElementById('modal-bloqueio-adm').classList.add('hidden');
+    // Fecha qualquer modal que possa estar aberto
+    document.getElementById('modal-bloqueio-adm')?.classList.add('hidden');
+    document.getElementById('modal-confirma-data-infracao')?.classList.add('hidden');
     // Reseta todas as decisões
     window.decisions = {};
     // Volta ao painel de admissibilidade (panel-2) na fase 31
