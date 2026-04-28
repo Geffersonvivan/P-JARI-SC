@@ -321,17 +321,19 @@ class GeminiClient:
             "4. Retorne EXCLUSIVAMENTE um JSON válido, sem texto adicional, sem markdown."
         )
 
-        # Âncoras para SGPE: PA e recorrente já conhecidos (podem ser None na primeira extração)
+        # Âncoras para SGPE: PA e recorrente já conhecidos (podem ser None na primeira extração).
+        # Só adiciona o hint se a Ata estiver disponível — sem Ata, o hint confunde o modelo.
         _pa_anchor   = parecer_obj.pa or ""
         _rec_anchor  = parecer_obj.recorrente or ""
+        _ata_disponivel = bool(_p(parecer_obj.ata_pdf_path))
         _anchor_hint = ""
-        if _pa_anchor:
+        if _ata_disponivel and _pa_anchor:
             _anchor_hint = (
                 f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela com vários processos. "
                 f"Localize a linha cujo campo Processo/PA é exatamente '{_pa_anchor}' "
                 f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
             )
-        elif _rec_anchor:
+        elif _ata_disponivel and _rec_anchor:
             _anchor_hint = (
                 f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela com vários processos. "
                 f"Localize a linha cujo recorrente é '{_rec_anchor}' "
@@ -354,8 +356,8 @@ class GeminiClient:
             '  "recorrente": "nome completo do condutor ou proprietário recorrente ou null",\n'
             '  "recorrente_conf": "alta|baixa|nulo"\n'
             "}\n\n"
-            "Não retorne nada além do JSON."
-            + _anchor_hint
+            + (_anchor_hint.strip() + "\n\n" if _anchor_hint else "")
+            + "Não retorne nada além do JSON."
         )
 
         import logging as _logging
@@ -364,13 +366,18 @@ class GeminiClient:
         contents = [prompt_text]
 
         # Upload paralelo dos PDFs para reduzir o tempo de espera.
-        # A Ata é incluída pois o SGPE correto fica na tabela da sessão.
+        # A Ata é incluída (quando disponível) pois o SGPE correto fica na tabela da sessão.
         import concurrent.futures as _cf
         paths_para_upload = []
         for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path, parecer_obj.ata_pdf_path]:
             _path = _p(path_field)
             if _path and "upload_simulado" not in _path:
                 paths_para_upload.append(_path)
+
+        _log.info(
+            f"extract_fase1_fields [FASE1] parecer={parecer_obj.id} "
+            f"paths={paths_para_upload} anchor_hint={'sim' if _anchor_hint else 'nao'}"
+        )
 
         uploaded_files = []
         if paths_para_upload:
@@ -381,6 +388,7 @@ class GeminiClient:
                         f = fut.result()
                         if f:
                             uploaded_files.append(f)
+                            _log.info(f"extract_fase1_fields: upload OK → {futures[fut]}")
                         else:
                             _log.warning(f"extract_fase1_fields: upload retornou None para {futures[fut]}")
                     except Exception as _upload_err:
@@ -395,7 +403,7 @@ class GeminiClient:
             _log.warning(f"extract_fase1_fields: nenhum PDF anexado para parecer={parecer_obj.id} — abortando")
             return None
 
-        _log.info(f"extract_fase1_fields: {pdfs_anexados} PDF(s) anexado(s) para parecer={parecer_obj.id}")
+        _log.info(f"extract_fase1_fields: {pdfs_anexados} PDF(s) anexado(s) para parecer={parecer_obj.id} — chamando Gemini")
 
         try:
             import json as _json
@@ -404,8 +412,11 @@ class GeminiClient:
                 contents=contents,
                 config={'system_instruction': system_instruction},
             )
-            raw = response.text.strip()
-            _log.info(f"extract_fase1_fields: Gemini raw response (100 chars): {raw[:100]}")
+            raw = response.text.strip() if response.text else ""
+            _log.info(f"extract_fase1_fields: Gemini raw response (200 chars): {raw[:200]}")
+            if not raw:
+                _log.warning(f"extract_fase1_fields: resposta vazia do Gemini para parecer={parecer_obj.id}")
+                return None
             # Remove markdown code fences se o modelo as incluir
             if raw.startswith('```'):
                 raw = raw.split('\n', 1)[-1]
@@ -414,11 +425,15 @@ class GeminiClient:
             # Se todos os campos extraíveis são null, retorna None para não exibir form vazio
             campos_extraiveis = ["pa", "sgpe", "prazo_final", "data_protocolo", "paginas_defesa", "recorrente"]
             if all(dados.get(c) is None for c in campos_extraiveis):
-                _log.warning(f"extract_fase1_fields: todos os campos retornaram null para parecer={parecer_obj.id}")
+                _log.warning(
+                    f"extract_fase1_fields: todos os campos retornaram null para parecer={parecer_obj.id} "
+                    f"— resposta completa: {raw[:500]}"
+                )
                 return None
+            _log.info(f"extract_fase1_fields: extração bem-sucedida para parecer={parecer_obj.id} campos={list(k for k,v in dados.items() if v and '_conf' not in k)}")
             return dados
         except Exception as e:
-            _log.warning(f"extract_fase1_fields falhou: {e}")
+            _log.warning(f"extract_fase1_fields falhou para parecer={parecer_obj.id}: {type(e).__name__}: {e}")
             return None
 
     def generate_phase2_report(self, parecer_obj, contexto_textual_datas, pdf_chars=9999):
