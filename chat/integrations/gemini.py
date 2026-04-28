@@ -307,7 +307,11 @@ class GeminiClient:
         Retorna dict com campos + nível de confiança ('alta'|'baixa'|'nulo').
         Retorna None se Gemini indisponível ou extração falhar.
         """
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+
         if not self.client:
+            _log.warning(f"extract_fase1_fields: cliente Gemini não configurado (GEMINI_API_KEY ausente?) — parecer={getattr(parecer_obj, 'id', '?')}")
             return None
 
         system_instruction = (
@@ -360,9 +364,6 @@ class GeminiClient:
             + "Não retorne nada além do JSON."
         )
 
-        import logging as _logging
-        _log = _logging.getLogger(__name__)
-
         contents = [prompt_text]
 
         # Upload paralelo dos PDFs para reduzir o tempo de espera.
@@ -408,16 +409,23 @@ class GeminiClient:
         try:
             import json as _json
             response = self.client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-2.5-flash',
                 contents=contents,
-                config={'system_instruction': system_instruction},
+                config={
+                    'system_instruction': system_instruction,
+                    'response_mime_type': 'application/json',
+                },
             )
-            raw = response.text.strip() if response.text else ""
+            try:
+                raw = (response.text or "").strip()
+            except Exception as _text_err:
+                _log.warning(f"extract_fase1_fields: response.text lançou exceção para parecer={parecer_obj.id}: {_text_err}")
+                raw = ""
             _log.info(f"extract_fase1_fields: Gemini raw response (200 chars): {raw[:200]}")
             if not raw:
                 _log.warning(f"extract_fase1_fields: resposta vazia do Gemini para parecer={parecer_obj.id}")
                 return None
-            # Remove markdown code fences se o modelo as incluir
+            # Remove markdown code fences caso o modelo as inclua mesmo com response_mime_type
             if raw.startswith('```'):
                 raw = raw.split('\n', 1)[-1]
                 raw = raw.rsplit('```', 1)[0].strip()
