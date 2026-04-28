@@ -377,11 +377,15 @@ class GeminiClient:
             with _cf.ThreadPoolExecutor(max_workers=len(paths_para_upload)) as ex:
                 futures = {ex.submit(self.upload_file, p): p for p in paths_para_upload}
                 for fut in _cf.as_completed(futures):
-                    f = fut.result()
-                    if f:
-                        uploaded_files.append(f)
-                    else:
-                        _log.warning(f"extract_fase1_fields: upload falhou para {futures[fut]}")
+                    try:
+                        f = fut.result()
+                        if f:
+                            uploaded_files.append(f)
+                        else:
+                            _log.warning(f"extract_fase1_fields: upload retornou None para {futures[fut]}")
+                    except Exception as _upload_err:
+                        # Falha no upload de um arquivo não derruba os demais (ex: Ata ausente)
+                        _log.warning(f"extract_fase1_fields: upload falhou para {futures[fut]}: {_upload_err}")
 
         pdfs_anexados = len(uploaded_files)
         for f in uploaded_files:
