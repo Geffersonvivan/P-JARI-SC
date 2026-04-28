@@ -204,14 +204,34 @@ class AnthropicClient:
                 "• PROIBIDO expor JariMath, flags, motor, fases ou qualquer mecanismo interno.\n\n"
             )
 
-        # Aviso no bloco de admissibilidade apenas se a tempestividade foi invertida
+        # Aviso no bloco de admissibilidade para cada item invertido pelo MJ
+        _adm_prefix_parts = []
         if _temp_invertido:
-            _adm_prompt = (
+            _adm_prefix_parts.append(
                 "🚫 CONCLUSÃO DE TEMPESTIVIDADE ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
                 "Use APENAS os dados factuais (datas, identificação do processo) para contextualização. "
-                "A conclusão sobre tempestividade obrigatória está na seção ADMISSIBILIDADE acima.\n\n"
-                f"{_adm}"
+                "A conclusão sobre tempestividade obrigatória está na seção ADMISSIBILIDADE acima."
             )
+        if _punit_invertido:
+            _adm_prefix_parts.append(
+                "🚫 CONCLUSÃO DE PRESCRIÇÃO PUNITIVA ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
+                f"Para a seção 3.1, use APENAS a decisão do Membro Julgador: {_decisao_punit}. "
+                "IGNORE a conclusão de prescrição punitiva que constar no texto de admissibilidade abaixo."
+            )
+        if _inter_invertido:
+            _adm_prefix_parts.append(
+                "🚫 CONCLUSÃO DE PRESCRIÇÃO INTERCORRENTE ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
+                f"Para a seção 3.2, use APENAS a decisão do Membro Julgador: {_decisao_inter}. "
+                "IGNORE a conclusão de prescrição intercorrente que constar no texto de admissibilidade abaixo."
+            )
+        if _decad_invertido:
+            _adm_prefix_parts.append(
+                "🚫 CONCLUSÃO DE DECADÊNCIA ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
+                f"Para a seção 3.3, use APENAS a decisão do Membro Julgador: {_decisao_decad}. "
+                "IGNORE a conclusão de decadência que constar no texto de admissibilidade abaixo."
+            )
+        if _adm_prefix_parts:
+            _adm_prompt = "\n\n".join(_adm_prefix_parts) + f"\n\n{_adm}"
         else:
             _adm_prompt = _adm
 
