@@ -1062,7 +1062,7 @@ async function deletarParecer(parecerId, btn) {
         <div class="flex-1 overflow-y-auto px-6 py-4 space-y-2" id="citacoes-list">
             {% if banco_teses %}
                 {% for tese in banco_teses %}
-                <div class="citacao-item flex items-start justify-between gap-3 p-3 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group" data-id="{{ tese.id }}" data-titulo="{{ tese.titulo|escapejs }}" data-conteudo="{{ tese.conteudo|escapejs }}" data-is-public="{{ tese.is_public|lower }}">
+                <div class="citacao-item flex items-start justify-between gap-3 p-3 rounded-xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all group" data-id="{{ tese.id }}" data-titulo="{{ tese.titulo|escape }}" data-conteudo="{{ tese.conteudo|escape }}" data-is-public="{{ tese.is_public|lower }}">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-gray-800 truncate">{{ tese.titulo|default:tese.conteudo|truncatechars:60 }}</p>
                         {% if tese.conteudo %}
