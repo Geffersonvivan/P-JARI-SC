@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, StreamingHttpResponse, Http404
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.core.cache import cache
 from django_ratelimit.decorators import ratelimit
 from django.core.files.storage import default_storage
 from django.conf import settings
@@ -129,7 +130,11 @@ def editar_parecer_view(request, id):
     from ..models import BancoTese
     if request.user.is_authenticated:
         banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
-        teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
+        teses_comunidade = cache.get('teses_comunidade_top20')
+        if teses_comunidade is None:
+            teses_comunidade = list(BancoTese.objects.filter(is_public=True).order_by('-usage_count')[:20])
+            cache.set('teses_comunidade_top20', teses_comunidade, timeout=300)
+        teses_comunidade = [t for t in teses_comunidade if t.user_id != request.user.pk]
     else:
         banco_teses = []
         teses_comunidade = []
