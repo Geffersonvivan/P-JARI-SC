@@ -4,8 +4,29 @@ Fase 2 — DIR (Integridade/Regularidade): extração autônoma de datas via Gem
 
 import datetime as _dt2
 import logging
+import re as _re
 
 logger = logging.getLogger(__name__)
+
+
+def _normalizar_markdown_tabela(texto: str) -> str:
+    """
+    Normaliza o markdown gerado pelo Gemini para renderização correta no marked.js.
+
+    Problemas conhecidos no output do Gemini:
+    1. Separador com primeira célula vazia: "||---|----|" — GFM exige ao menos um '-' por célula.
+       Fix: "||..." → "|---|..."
+    2. Tabela sem linha em branco após heading: "#### Título\\n| Col |..."
+       marked v13 requer linha em branco antes do bloco de tabela.
+       Fix: insere "\\n" extra entre linha não-tabela e início de tabela.
+    """
+    if not texto:
+        return texto
+    # Fix 1: primeira célula vazia no separador
+    texto = _re.sub(r'^\|\|([-: |]+)$', r'|---|\1', texto, flags=_re.MULTILINE)
+    # Fix 2: linha em branco antes de bloco de tabela
+    texto = _re.sub(r'^([^|\n\r].*)\n(\|)', r'\1\n\n\2', texto, flags=_re.MULTILINE)
+    return texto
 
 
 def get_prompt(parecer) -> str:
@@ -365,7 +386,9 @@ def run(engine) -> str:
         texto_tabela = resultado.get('tabela_markdown', _erro) if isinstance(resultado, dict) else str(resultado)
         logger.error(f"[FASE2] generate_phase2_report retornou erro — parecer={parecer.id}: {_erro}")
 
-    parecer.tabela_datas_sensiveis = _aviso_ilegivel + _aviso_consistencia_f2 + texto_tabela
+    parecer.tabela_datas_sensiveis = _normalizar_markdown_tabela(
+        _aviso_ilegivel + _aviso_consistencia_f2 + texto_tabela
+    )
     parecer.save()
 
     return engine.get_current_prompt()

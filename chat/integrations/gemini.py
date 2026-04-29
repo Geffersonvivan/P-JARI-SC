@@ -628,7 +628,7 @@ class GeminiClient:
             )
             return _json.loads(response.text)
         except Exception as e:
-            return {'erro': str(e), 'tabela_markdown': f"Erro ao acessar Gemini na Fase 2: {e}.\n"}
+            return {'erro': str(e), 'tabela_markdown': "⚠️ **Não foi possível processar os documentos com a IA.** Por favor, use o botão \"Corrigir\" para tentar novamente."}
 
     def generate_phase3_report(self, parecer_obj, matematica_detalhes):
         if not self.client:

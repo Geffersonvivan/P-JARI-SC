@@ -1103,7 +1103,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function md(t) {
     if (!t) return '';
-    return typeof marked !== 'undefined' ? marked.parse(t) : t.replace(/\n/g,'<br>');
+    if (typeof marked === 'undefined') return t.replace(/\n/g,'<br>');
+    return marked.parse(t);
 }
 
 // ─── USER MENU DROPDOWN ────────────────────────────
@@ -2340,6 +2341,11 @@ const SSE_LABELS = {
 };
 
 function showTaskError(msg) {
+    // Remove prefixo técnico do Celery Worker antes de exibir ao usuário
+    // Ex: "Erro na Fase 3/Admissibilidade (Celery Worker): ⚠️ ..." → "⚠️ ..."
+    const celeryMatch = msg && msg.match(/\(Celery Worker\):\s*([\s\S]*)/);
+    const displayMsg = celeryMatch ? celeryMatch[1].trim() : (msg || 'Falha no processamento. Tente novamente.');
+
     // Encontra o painel de loading visível (verifica offsetParent para checar visibilidade real)
     const loadingPanels = ['p1-loading','p2-loading','p3-loading','p4-loading'];
     let panel = null;
@@ -2348,7 +2354,7 @@ function showTaskError(msg) {
         if (el && el.offsetParent !== null && !el.classList.contains('hidden')) { panel = el; break; }
     }
     if (!panel) {
-        toast(`Erro: ${msg}`, 'error');
+        toast(`Erro: ${displayMsg}`, 'error');
         return;
     }
     panel.innerHTML = `
@@ -2358,7 +2364,7 @@ function showTaskError(msg) {
             </div>
             <div>
                 <p class="text-sm font-semibold text-gray-800 mb-1">Falha no processamento</p>
-                <p class="text-xs text-gray-500 max-w-xs">${msg}</p>
+                <p class="text-xs text-gray-500 max-w-xs">${displayMsg}</p>
             </div>
             <button onclick="window.location.reload()" class="mt-1 px-5 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
                 Tentar novamente
