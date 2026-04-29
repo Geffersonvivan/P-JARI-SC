@@ -624,6 +624,7 @@ class GeminiClient:
                 },
                 'Fase 2 (DIR)', parecer_obj, start_time,
                 retry_preferred=_retries,
+                per_call_timeout=90,  # timeout total por chamada — evita travar no 99%
             )
             return _json.loads(response.text)
         except Exception as e:
