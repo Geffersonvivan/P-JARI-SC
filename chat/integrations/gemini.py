@@ -35,6 +35,8 @@ def _trunc(texto: str, label: str, max_chars: int) -> str:
 def _load_gemini_keys() -> list[str]:
     """Lê GEMINI_API_KEYS (vírgula-separado) ou GEMINI_API_KEY como fallback."""
     raw = os.environ.get('GEMINI_API_KEYS') or os.environ.get('GEMINI_API_KEY', '')
+    # Remove quebras de linha e espaços que podem ser introduzidos pelo Railway
+    raw = raw.replace('\n', '').replace('\r', '').replace(' ', '')
     return [k.strip() for k in raw.split(',') if k.strip()]
 
 
