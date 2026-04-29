@@ -362,6 +362,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'chat' / 'static',
 ]
+
+# WhiteNoise: cache de estáticos por 1 ano no browser (hash no nome garante invalidação)
+WHITENOISE_MAX_AGE = 31536000  # 1 ano em segundos
+WHITENOISE_USE_FINDERS = False
 # Google Cloud Storage Configuration
 # Sempre usar Storage Local em Desenvolvimento (DEBUG=True), a menos que explicitamente forçado via .env
 USE_GCS = os.environ.get('USE_GCS', str(not DEBUG)) == 'True'

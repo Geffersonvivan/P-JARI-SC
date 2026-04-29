@@ -31,7 +31,30 @@ from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.views.generic import RedirectView
 
 def health_check(request):
-    return JsonResponse({'status': 'ok'})
+    checks = {}
+    ok = True
+
+    # Verifica banco de dados
+    try:
+        from django.db import connection
+        connection.ensure_connection()
+        checks['db'] = 'ok'
+    except Exception as e:
+        checks['db'] = str(e)
+        ok = False
+
+    # Verifica Redis
+    try:
+        from django.core.cache import cache
+        cache.set('_health', '1', timeout=5)
+        assert cache.get('_health') == '1'
+        checks['redis'] = 'ok'
+    except Exception as e:
+        checks['redis'] = str(e)
+        ok = False
+
+    status = 200 if ok else 503
+    return JsonResponse({'status': 'ok' if ok else 'degraded', 'checks': checks}, status=status)
 
 def robots_txt(request):
     lines = [
