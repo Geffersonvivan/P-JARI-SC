@@ -156,6 +156,19 @@ def analise_tese(engine) -> str:
     parecer.analise_tese_texto = analise_resultado
     parecer.vertex_result = vertex_result
     parecer.perplexity_result = perplexity_result
+
+    # Quando prejudicado (prescrição/decadência/inadmissibilidade), o gemini retorna texto
+    # sem marcadores [DECISAO_TESE_X]. Nesse caso não há confirmação do julgador —
+    # vai direto para FASE_RESULTADO e dispara o parecer automaticamente.
+    if '[DECISAO_TESE_' not in analise_resultado:
+        import json as _json
+        from chat.engine import FASE_RESULTADO
+        parecer.status_fase = FASE_RESULTADO
+        parecer.save()
+        from chat.tasks import gerar_parecer_task
+        task = gerar_parecer_task.delay(parecer.id)
+        return _json.dumps({"__chained": True, "task_id": task.id, "task_type": "PREJUDICIALIDADE"})
+
     parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_MERITO
     parecer.save()
 

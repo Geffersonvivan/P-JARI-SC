@@ -266,10 +266,20 @@ def processar_fase4_analise_task(self, parecer_id):
     from billiard.exceptions import SoftTimeLimitExceeded
     _sentry_task_context(parecer_id, "fase4_analise")
     try:
+        import json as _json
         parecer = Parecer.objects.get(id=parecer_id)
         engine = JariEngine(parecer)
         reply = engine.analise_tese_fase_4()
         from .models import ChatMessage
+        # Detecta encadeamento (prejudicialidade sem teses para confirmar)
+        try:
+            _chained = _json.loads(reply)
+            if _chained.get('__chained'):
+                logger.info(f"FASE4-ANALISE prejudicada — encadeando {_chained['task_type']} (Parecer {parecer_id})")
+                ChatMessage.objects.create(parecer=parecer, role='assistant', content="Processo prejudicado — gerando parecer automaticamente.")
+                return _json.dumps({"chained": True, "task_id": _chained['task_id'], "task_type": _chained['task_type']})
+        except (ValueError, KeyError, TypeError):
+            pass
         ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
         return "SUCCESS"
     except SoftTimeLimitExceeded:
