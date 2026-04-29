@@ -30,6 +30,9 @@ class DocumentoLegal(models.Model):
         if self.is_active:
             DocumentoLegal.objects.filter(tipo=self.tipo, is_active=True).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
+        # Invalida cache de IDs dos documentos ativos no middleware
+        from django.core.cache import cache
+        cache.delete('docs_ativos_ids')
 
 class AceiteDocumentoLegal(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='aceites_legais')

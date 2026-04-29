@@ -491,6 +491,7 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_RESULT_EXPIRES = 3600  # Resultados expiram em 1h — evita acúmulo no Redis
 
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {

@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.db.models import Prefetch, Count, Q
 from django.conf import settings
+from django.core.cache import cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from ..models import Parecer, Pasta
 
@@ -70,22 +71,37 @@ def home_view(request):
     from ..models import BancoTese, PostForum, ComentarioForum
     if request.user.is_authenticated:
         banco_teses = BancoTese.objects.filter(user=request.user).order_by('-created_at')
-        teses_comunidade = BancoTese.objects.filter(is_public=True).exclude(user=request.user).order_by('-usage_count')[:20]
 
-        # Correção severa de performance: Consulta otimizada apenas pelo timestamp para notificar novos posts.
-        ultimo_post = PostForum.objects.only('data_criacao').order_by('-data_criacao').first()
-        
+        # Teses da comunidade: mudam raramente — cache de 5 min global
+        teses_comunidade = cache.get('teses_comunidade_top20')
+        if teses_comunidade is None:
+            teses_comunidade = list(BancoTese.objects.filter(is_public=True).order_by('-usage_count')[:20])
+            cache.set('teses_comunidade_top20', teses_comunidade, timeout=300)
+        # Remove teses do próprio usuário do resultado cacheado
+        teses_comunidade = [t for t in teses_comunidade if t.user_id != request.user.pk]
+
+        # Último post do fórum: cache de 1 min para badge de novidade
+        ultimo_post = cache.get('forum_ultimo_post')
+        if ultimo_post is None:
+            ultimo_post = PostForum.objects.only('data_criacao').order_by('-data_criacao').first()
+            cache.set('forum_ultimo_post', ultimo_post, timeout=60)
+
         try:
             ultimo_acesso = request.user.profile.ultimo_acesso_forum
         except Exception:
             from ..models import UserProfile
             profile, _ = UserProfile.objects.get_or_create(user=request.user)
             ultimo_acesso = profile.ultimo_acesso_forum
-            
+
         tem_novidade_forum = bool(
             ultimo_post and (not ultimo_acesso or ultimo_post.data_criacao > ultimo_acesso)
         )
-        posts_forum = PostForum.objects.select_related('autor').prefetch_related('curtidas', 'comentarios__autor').order_by('-data_criacao')[:50]
+
+        # Posts do fórum: cache de 2 min — atualiza frequentemente mas tolerável
+        posts_forum = cache.get('forum_posts_top50')
+        if posts_forum is None:
+            posts_forum = list(PostForum.objects.select_related('autor').prefetch_related('curtidas', 'comentarios__autor').order_by('-data_criacao')[:50])
+            cache.set('forum_posts_top50', posts_forum, timeout=120)
     else:
         banco_teses = []
         teses_comunidade = []

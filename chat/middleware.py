@@ -32,18 +32,25 @@ class RequireTermsAcceptanceMiddleware:
                 if not termos_verificados:
                     precisa_aceitar = False
 
-                    # Busca os documentos atualmente ativos (buscamos Apenas ID para não baixar Textos Gigantes na RAM bloqueando o IO)
-                    termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).only('id').first()
-                    politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).only('id').first()
+                    # IDs dos documentos ativos cacheados globalmente por 1h (mudam raramente)
+                    doc_ids = cache.get('docs_ativos_ids')
+                    if doc_ids is None:
+                        termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).only('id').first()
+                        politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).only('id').first()
+                        doc_ids = {
+                            'termo': termo_ativo.pk if termo_ativo else None,
+                            'politica': politica_ativa.pk if politica_ativa else None,
+                        }
+                        cache.set('docs_ativos_ids', doc_ids, timeout=3600)  # 1h
 
                     # Verifica se o usuário logado aceitou a versão EXATA de ambos os documentos
-                    if termo_ativo:
-                        aceitou_termo = AceiteDocumentoLegal.objects.filter(user=request.user, documento=termo_ativo).exists()
+                    if doc_ids['termo']:
+                        aceitou_termo = AceiteDocumentoLegal.objects.filter(user=request.user, documento_id=doc_ids['termo']).exists()
                         if not aceitou_termo:
                             precisa_aceitar = True
 
-                    if politica_ativa:
-                        aceitou_politica = AceiteDocumentoLegal.objects.filter(user=request.user, documento=politica_ativa).exists()
+                    if doc_ids['politica']:
+                        aceitou_politica = AceiteDocumentoLegal.objects.filter(user=request.user, documento_id=doc_ids['politica']).exists()
                         if not aceitou_politica:
                             precisa_aceitar = True
 
