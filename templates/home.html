@@ -1001,7 +1001,7 @@ async function deletarParecer(parecerId, btn) {
 <!-- ══ MODAL GERENCIAR CITAÇÕES ═══════════════════ -->
 <div id="citacoes-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeCitacoesModal()"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+    <div class="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div class="flex items-center gap-2">
@@ -1045,11 +1045,11 @@ async function deletarParecer(parecerId, btn) {
 
                 <!-- Botões -->
                 <div class="flex justify-end gap-2">
-                    <button id="btn-cancelar-edicao" onclick="cancelarEdicaoCitacao()" style="display:none"
+                    <button type="button" id="btn-cancelar-edicao" onclick="cancelarEdicaoCitacao()" style="display:none"
                         class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-200 transition-colors">
                         Cancelar
                     </button>
-                    <button id="btn-salvar-citacao" onclick="salvarCitacao()"
+                    <button type="button" id="btn-salvar-citacao" onclick="salvarCitacao()"
                         class="px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-xl hover:bg-purple-700 transition-colors flex items-center gap-1.5">
                         <i class="ph ph-plus" id="btn-citacao-icon"></i>
                         <span id="btn-citacao-label">Adicionar</span>
@@ -1208,7 +1208,13 @@ async function salvarCitacao() {
     const conteudo = document.getElementById('nova-citacao-conteudo').value.trim();
     if (!titulo) { alert('Preencha o título da citação.'); return; }
 
-    const csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+    const btn = document.getElementById('btn-salvar-citacao');
+    const labelEl = document.getElementById('btn-citacao-label');
+    const originalLabel = labelEl.textContent;
+    btn.disabled = true;
+    labelEl.textContent = 'Salvando...';
+
+    const csrfToken = _csrf();
     const formData = new FormData();
     formData.append('titulo', titulo);
     formData.append('conteudo', conteudo);
@@ -1236,12 +1242,20 @@ async function salvarCitacao() {
                     } else if (preview) preview.remove();
                 }
                 cancelarEdicaoCitacao();
+            } else {
+                alert(data.error || 'Erro ao salvar citação.');
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            alert('Erro de comunicação ao salvar citação.');
+        } finally {
+            btn.disabled = false;
+            labelEl.textContent = originalLabel;
+        }
         return;
     }
 
-    // CRIAR (is_public já foi adicionado ao formData acima)
+    // CRIAR
     try {
         const res = await fetch('/api/citacao/create/', {
             method: 'POST',
@@ -1265,18 +1279,26 @@ async function salvarCitacao() {
                     ${conteudo ? `<p class="text-xs text-gray-400 line-clamp-2 mt-0.5">${escHtml(conteudo.substring(0, 120))}</p>` : ''}
                 </div>
                 <div class="flex items-center gap-1">
-                    <button onclick="editarCitacao(this)" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-all">
+                    <button type="button" onclick="editarCitacao(this)" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-all">
                         <i class="ph ph-pencil text-base"></i>
                     </button>
-                    <button onclick="excluirCitacao(${data.id}, this)" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                    <button type="button" onclick="excluirCitacao(${data.id}, this)" class="flex-shrink-0 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                         <i class="ph ph-trash text-base"></i>
                     </button>
                 </div>`;
             list.prepend(item);
             document.getElementById('nova-citacao-input').value = '';
             document.getElementById('nova-citacao-conteudo').value = '';
+        } else {
+            alert(data.error || 'Erro ao criar citação.');
         }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+        console.error(err);
+        alert('Erro de comunicação ao criar citação.');
+    } finally {
+        btn.disabled = false;
+        labelEl.textContent = originalLabel;
+    }
 }
 
 async function excluirCitacao(id, btn) {
