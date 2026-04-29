@@ -1,5 +1,7 @@
 import os
 import time
+import itertools
+import threading
 import logging as _logging
 from google import genai
 from django.core.mail import send_mail
@@ -30,13 +32,44 @@ def _trunc(texto: str, label: str, max_chars: int) -> str:
     return texto[:max_chars] + f'\n… [truncado: {len(texto) - max_chars} chars omitidos]'
 
 
+def _load_gemini_keys() -> list[str]:
+    """Lê GEMINI_API_KEYS (vírgula-separado) ou GEMINI_API_KEY como fallback."""
+    raw = os.environ.get('GEMINI_API_KEYS') or os.environ.get('GEMINI_API_KEY', '')
+    return [k.strip() for k in raw.split(',') if k.strip()]
+
+
+# Rotação round-robin entre keys — compartilhada entre todas as instâncias do processo.
+_gemini_keys: list[str] = _load_gemini_keys()
+_gemini_cycle = itertools.cycle(_gemini_keys) if _gemini_keys else None
+_gemini_lock = threading.Lock()
+
+
+def _next_gemini_key() -> str:
+    """Retorna a próxima API key em round-robin. Thread-safe."""
+    with _gemini_lock:
+        if _gemini_cycle:
+            return next(_gemini_cycle)
+    return ''
+
+
+def _make_gemini_client(api_key: str):
+    if not api_key:
+        return None
+    return genai.Client(api_key=api_key, http_options={'timeout': 90_000})
+
+
 class GeminiClient:
     def __init__(self):
-        self.api_key = os.environ.get('GEMINI_API_KEY')
-        self.client = (
-            genai.Client(api_key=self.api_key, http_options={'timeout': 90_000})  # 90s em ms
-            if self.api_key else None
-        )
+        self.api_key = _next_gemini_key()
+        self.client = _make_gemini_client(self.api_key)
+
+    def _rotate_client(self):
+        """Troca para a próxima key disponível. Chamado em caso de 429."""
+        if len(_gemini_keys) <= 1:
+            return
+        self.api_key = _next_gemini_key()
+        self.client = _make_gemini_client(self.api_key)
+        _log.warning("GeminiClient: rotacionando para próxima API key após 429.")
 
     def _call_with_fallback(self, preferred_model, fallback_model, contents, config, fase_label, parecer_obj, start_time, retry_preferred=1, per_call_timeout=None):
         """Chama generate_content com retry + fallback automático em caso de erros transitórios.
@@ -105,6 +138,8 @@ class GeminiClient:
                 )
                 if _transient and not is_last:
                     delay = _RETRY_DELAYS[min(attempt, len(_RETRY_DELAYS) - 1)]
+                    if '429' in err_str or 'Too Many Requests' in err_str:
+                        self._rotate_client()  # troca key imediatamente em caso de cota esgotada
                     if is_preferred and attempt < retry_preferred:
                         _log.warning(f"_call_with_fallback [{fase_label}]: {model} erro transitório (tentativa {attempt + 1}) — retry em {delay}s")
                     else:

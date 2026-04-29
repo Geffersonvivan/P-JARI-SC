@@ -5,11 +5,9 @@ set -e
 if [ "$RAILWAY_ENVIRONMENT" != "" ]; then
     echo "Starting Celery worker (production)..."
     exec celery -A config worker \
-        --beat \
         --loglevel=info \
-        --concurrency=4 \
-        --queues=fast,heavy \
-        --schedule=/tmp/celerybeat-schedule
+        --concurrency=16 \
+        --queues=fast,heavy
 fi
 
 # Em desenvolvimento: watchmedo reinicia automaticamente ao salvar qualquer .py
@@ -22,5 +20,5 @@ exec watchmedo auto-restart \
     celery -A config worker \
         --loglevel=info \
         --logfile=/tmp/pjari_celery.log \
-        --concurrency=4 \
+        --concurrency=16 \
         --queues=fast,heavy
