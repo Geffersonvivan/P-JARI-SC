@@ -8,12 +8,12 @@ from django_ratelimit.decorators import ratelimit
 @login_required
 @require_POST
 def create_citacao_view(request):
-    titulo = request.POST.get('titulo')
-    conteudo = request.POST.get('conteudo')
+    titulo = (request.POST.get('titulo') or '')[:200]
+    conteudo = (request.POST.get('conteudo') or '')[:10000]
     is_public_str = request.POST.get('is_public', 'true')
     is_public = str(is_public_str).lower() == 'true'
 
-    if not titulo:
+    if not titulo.strip():
         return JsonResponse({'error': 'Título é obrigatório.'}, status=400)
 
     from ..models import BancoTese
@@ -32,8 +32,8 @@ def create_citacao_view(request):
 def editar_citacao_view(request, id):
     from ..models import BancoTese
 
-    titulo = request.POST.get('titulo')
-    conteudo = request.POST.get('conteudo')
+    titulo = (request.POST.get('titulo') or '')[:200]
+    conteudo = (request.POST.get('conteudo') or '')[:10000]
     is_public_str = request.POST.get('is_public')
 
     if not titulo or not conteudo:

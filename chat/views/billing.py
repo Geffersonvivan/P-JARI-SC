@@ -48,7 +48,7 @@ def checkout_view(request):
         return redirect(session.url)
     except Exception as e:
         logger.error("Erro ao gerar checkout da Stripe: %s", e, exc_info=True)
-        return HttpResponse(f"Erro ao gerar checkout da Stripe: {e}", status=500)
+        return HttpResponse("Erro ao gerar checkout. Tente novamente.", status=500)
 
 
 @csrf_exempt
@@ -81,13 +81,13 @@ def stripe_webhook(request):
 
                 if session.get('payment_status') == 'paid':
                     user_id = session.get('client_reference_id')
-                    trans_amount_cents = session.get('amount_total', 0)
-                    trans_amount = trans_amount_cents / 100.0
+                    trans_amount_cents = int(session.get('amount_total', 0))
 
                     plan_key, plan = next(
-                        ((k, v) for k, v in PLANS.items() if v['price'] == trans_amount),
+                        ((k, v) for k, v in PLANS.items() if int(v['price'] * 100) == trans_amount_cents),
                         (None, None)
                     )
+                    trans_amount = trans_amount_cents / 100.0
 
                     if user_id and plan:
                         from django.db import transaction

@@ -25,6 +25,8 @@ def estatisticas_view(request):
     except (ValueError, TypeError):
         mes = hoje.month
         ano = hoje.year
+    if not (1 <= mes <= 12) or not (2000 <= ano <= 2100):
+        mes, ano = hoje.month, hoje.year
 
     _, ultimo_dia_mes = calendar.monthrange(ano, mes)
 
@@ -235,6 +237,8 @@ def estatisticas_gerais_view(request):
     except (ValueError, TypeError):
         mes = hoje.month
         ano = hoje.year
+    if not (1 <= mes <= 12) or not (2000 <= ano <= 2100):
+        mes, ano = hoje.month, hoje.year
 
     _, ultimo_dia_mes = calendar.monthrange(ano, mes)
 

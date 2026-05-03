@@ -179,7 +179,7 @@ def visualizar_termos_view(request):
 def criar_pasta_view(request):
     try:
         data = json.loads(request.body)
-        nome = (data.get('nome') or '').strip()
+        nome = (data.get('nome') or '').strip()[:100]
         if not nome:
             return JsonResponse({'error': 'Nome de pasta inválido.'}, status=400)
         pasta = Pasta.objects.create(user=request.user, nome_pasta=nome)
@@ -194,7 +194,7 @@ def renomear_pasta_view(request, id):
     pasta = get_object_or_404(Pasta, id=id, user=request.user)
     try:
         data = json.loads(request.body)
-        nome = (data.get('nome') or '').strip()
+        nome = (data.get('nome') or '').strip()[:100]
         if not nome:
             return JsonResponse({'error': 'Nome inválido.'}, status=400)
         pasta.nome_pasta = nome

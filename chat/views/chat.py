@@ -18,18 +18,18 @@ def chat_message_view(request):
         import json
 
         if request.content_type and 'multipart/form-data' in request.content_type:
-            message = request.POST.get('message', "")
+            message = (request.POST.get('message') or '')[:5000]
             parecer_id = request.POST.get('parecer_id')
             pasta_id = request.POST.get('pasta_id')
             uploaded_files = ChatService.save_uploaded_files(request.FILES)
         else:
             data = json.loads(request.body)
-            message = data.get('message', "")
+            message = (data.get('message') or '')[:5000]
             parecer_id = data.get('parecer_id')
             pasta_id = data.get('pasta_id')
             uploaded_files = []
 
-        if not (message or uploaded_files):
+        if not (message.strip() or uploaded_files):
             return JsonResponse({'error': 'Mensagem inválida'}, status=400)
 
         if message.strip() == 'RESUMO' and pasta_id:
@@ -70,10 +70,10 @@ def chat_agent_message_view(request):
         from ..integrations import GeminiClient, VertexAIClient, PerplexityClient
 
         data = json.loads(request.body)
-        message = data.get('message', "")
+        message = (data.get('message') or '')[:5000]
         parecer_id = data.get('parecer_id')
 
-        if not message:
+        if not message.strip():
             return JsonResponse({'error': 'Mensagem inválida'}, status=400)
 
         parecer = None

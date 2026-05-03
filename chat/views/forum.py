@@ -1,8 +1,29 @@
 import json
+import nh3
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
+
+_FORUM_ALLOWED_TAGS = {'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'a', 'code', 'pre'}
+_FORUM_ALLOWED_ATTRS = {'a': {'href', 'title'}}
+_FORUM_MAX_LEN = 5000
+_IMAGE_MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+_IMAGE_ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
+
+
+def _sanitize_forum(text: str) -> str:
+    """Sanitiza texto do fórum, limitando tamanho e removendo tags perigosas."""
+    return nh3.clean(text[:_FORUM_MAX_LEN], tags=_FORUM_ALLOWED_TAGS, attributes=_FORUM_ALLOWED_ATTRS)
+
+
+def _validate_forum_image(imagem):
+    """Valida tamanho e content_type de upload de imagem do fórum."""
+    if imagem.size > _IMAGE_MAX_SIZE:
+        return 'Imagem muito grande (máximo 5 MB).'
+    if imagem.content_type not in _IMAGE_ALLOWED_TYPES:
+        return 'Tipo de arquivo não permitido. Use JPEG, PNG, GIF ou WebP.'
+    return None
 
 
 @ratelimit(key='user', rate='10/m', method='POST', block=True)
@@ -11,11 +32,16 @@ from django_ratelimit.decorators import ratelimit
 def criar_post_forum_view(request):
     from ..models import PostForum
     try:
-        conteudo = request.POST.get('conteudo', '').strip()
+        conteudo = _sanitize_forum(request.POST.get('conteudo', '').strip())
         imagem = request.FILES.get('imagem')
 
         if not conteudo:
             return JsonResponse({'status': 'error', 'message': 'Conteúdo não pode estar vazio.'}, status=400)
+
+        if imagem:
+            erro_img = _validate_forum_image(imagem)
+            if erro_img:
+                return JsonResponse({'status': 'error', 'message': erro_img}, status=400)
 
         post = PostForum.objects.create(
             autor=request.user,
@@ -41,7 +67,7 @@ def comentar_post_forum_view(request, post_id):
     from ..models import PostForum, ComentarioForum
     try:
         data = json.loads(request.body)
-        conteudo = data.get('conteudo', '').strip()
+        conteudo = _sanitize_forum(data.get('conteudo', '').strip())
         if not conteudo:
             return JsonResponse({'status': 'error', 'message': 'Conteúdo não pode estar vazio.'}, status=400)
 

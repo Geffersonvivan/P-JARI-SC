@@ -85,7 +85,7 @@ def wizard_avancar_view(request, id):
     except (json.JSONDecodeError, ValueError):
         data = {}
 
-    message = data.get('message', 'ok')
+    message = (data.get('message') or 'ok')[:5000]
 
     try:
         from ..jari_engine import JariEngine

@@ -218,7 +218,7 @@ def create_parecer_view(request):
 
     try:
         data = json.loads(request.body)
-        nome_processo = data.get('nome_processo')
+        nome_processo = (data.get('nome_processo') or '').strip()[:200]
         if nome_processo:
             if request.user.is_authenticated:
                 pasta = Pasta.objects.create(user=request.user, nome_pasta=nome_processo)
@@ -229,7 +229,8 @@ def create_parecer_view(request):
             return JsonResponse({'id': pasta.id, 'nome_processo': pasta.nome_pasta, 'parecer_id': parecer.id})
         return JsonResponse({'error': 'Nome do processo inválido'}, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import logging; logging.getLogger(__name__).error("create_parecer_view: %s", e, exc_info=True)
+        return JsonResponse({'error': 'Erro interno. Tente novamente.'}, status=500)
 
 
 @require_POST
@@ -275,7 +276,8 @@ def mover_parecer_view(request, id):
 
         return JsonResponse({'success': True})
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import logging; logging.getLogger(__name__).error("mover_projeto_view: %s", e, exc_info=True)
+        return JsonResponse({'error': 'Erro interno. Tente novamente.'}, status=500)
 
 
 @ratelimit(key='user_or_ip', rate='30/m', method='POST', block=True)
@@ -297,7 +299,7 @@ def corrigir_campo_parecer_view(request, parecer_id):
     try:
         data = json.loads(request.body)
         campo = (data.get('campo') or '').strip().lower()
-        valor_str = str(data.get('valor', '') or '').strip()
+        valor_str = str(data.get('valor', '') or '').strip()[:500]
 
         from chat.engine.phase_2 import _CAMPOS_F2, _parse_field
         if campo not in _CAMPOS_F2:
@@ -344,19 +346,20 @@ def salvar_feedback_parecer_view(request, parecer_id):
             # M10 FIX: normalizar para JSON string — robusto contra tags com vírgulas
             import json as _json
             if isinstance(tags, list):
-                _tags_clean = [str(t).strip() for t in tags if str(t).strip()]
+                _tags_clean = [str(t).strip()[:50] for t in tags if str(t).strip()]
             else:
                 # Aceita string CSV legada ou JSON string
                 _raw = str(tags).strip()
                 try:
                     _parsed = _json.loads(_raw)
-                    _tags_clean = [str(t).strip() for t in (_parsed if isinstance(_parsed, list) else [_parsed]) if str(t).strip()]
+                    _tags_clean = [str(t).strip()[:50] for t in (_parsed if isinstance(_parsed, list) else [_parsed]) if str(t).strip()]
                 except (ValueError, TypeError):
-                    _tags_clean = [t.strip() for t in _raw.split(',') if t.strip()]
+                    _tags_clean = [t.strip()[:50] for t in _raw.split(',') if t.strip()]
+            _tags_clean = _tags_clean[:20]  # máximo 20 tags
             parecer.feedback_tags = _json.dumps(_tags_clean, ensure_ascii=False)
 
         if notes:
-            parecer.feedback_notes = str(notes)
+            parecer.feedback_notes = str(notes)[:2000]
 
         parecer.save(update_fields=['feedback_score', 'feedback_tags', 'feedback_notes'])
 
