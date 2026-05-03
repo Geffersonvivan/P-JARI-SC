@@ -19,13 +19,14 @@ _ALLOWED_TAGS = {
     'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li',
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span', 'table',
     'thead', 'tbody', 'tr', 'th', 'td', 'a', 'hr', 'blockquote',
-    'sup', 'sub', 'pre', 'code',
+    'sup', 'sub', 'pre', 'code', 'img',
 }
 _ALLOWED_ATTRS = {
     '*': {'class', 'style', 'id'},
-    'a': {'href', 'title', 'target', 'rel'},
+    'a': {'href', 'title', 'target'},
     'td': {'colspan', 'rowspan'},
     'th': {'colspan', 'rowspan'},
+    'img': {'src', 'alt', 'width', 'height'},
 }
 
 
@@ -33,7 +34,10 @@ def _sanitize_html(html: str) -> str:
     """Sanitiza HTML para prevenir XSS, permitindo apenas tags seguras."""
     if not html:
         return html
-    return nh3.clean(html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
+    return nh3.clean(
+        html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS,
+        link_rel=None, url_schemes={'http', 'https', 'data'},
+    )
 
 
 @login_required
