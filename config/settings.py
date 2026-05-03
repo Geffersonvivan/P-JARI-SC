@@ -93,14 +93,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
-    import warnings
-    SECRET_KEY = 'django-insecure-default-key'
     if os.environ.get('DEBUG', 'False') != 'True':
-        warnings.warn(
-            "SECRET_KEY not set! Using insecure fallback. "
-            "Set SECRET_KEY env var in production IMMEDIATELY.",
-            stacklevel=1,
+        raise RuntimeError(
+            "SECRET_KEY não definida! Defina a variável de ambiente SECRET_KEY antes de iniciar em produção."
         )
+    SECRET_KEY = 'django-insecure-default-key-dev-only'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'

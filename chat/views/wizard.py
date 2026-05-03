@@ -125,6 +125,9 @@ def wizard_status_view(request, id):
     """Retorna apenas o status_fase atual do parecer — usado pelo frontend para polling de fallback."""
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'unauthenticated'}, status=401)
+    # Proteção contra CSRF: navegadores não enviam headers custom cross-origin sem preflight CORS
+    if request.method == 'POST' and request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'Requisição inválida.'}, status=403)
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
     return JsonResponse({'status_fase': parecer.status_fase})
 

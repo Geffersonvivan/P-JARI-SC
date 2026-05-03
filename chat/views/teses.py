@@ -65,9 +65,12 @@ def excluir_citacao_view(request, id):
 @require_POST
 def increment_citacao_usage_view(request, id):
     from ..models import BancoTese
-    from django.db.models import F
+    from django.db.models import F, Q
     try:
-        updated = BancoTese.objects.filter(id=id).update(usage_count=F('usage_count') + 1)
+        # Permite incrementar citações públicas ou citações próprias do usuário
+        updated = BancoTese.objects.filter(
+            Q(id=id) & (Q(is_public=True) | Q(user=request.user))
+        ).update(usage_count=F('usage_count') + 1)
         if not updated:
             return JsonResponse({'error': 'Citação não encontrada.'}, status=404)
         usage_count = BancoTese.objects.values_list('usage_count', flat=True).get(id=id)

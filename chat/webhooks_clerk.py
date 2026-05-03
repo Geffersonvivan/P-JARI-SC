@@ -30,7 +30,7 @@ def clerk_webhook_view(request):
         wh = Webhook(clerk_webhook_secret)
         evt = wh.verify(payload, headers)
     except WebhookVerificationError as e:
-        return HttpResponseForbidden(f"Invalid webhook signature: {e}")
+        return HttpResponseForbidden("Invalid webhook signature")
 
     # Processar o evento do Clerk
     event_type = evt.get("type")
