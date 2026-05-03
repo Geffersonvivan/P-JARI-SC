@@ -451,9 +451,21 @@
                             <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">
                                 Data Totalização de Pontos <span style="color:#dc2626">*</span>
                             </label>
+                            <div style="position:relative;">
                             <input id="f2-tabela-data_totalizacao_pontos" type="text" placeholder="DD/MM/AAAA"
                                    value="{{ parecer.data_totalizacao_pontos|date:'d/m/Y'|default:'' }}"
+                                   autocomplete="off"
+                                   onfocus="abrirCalendarioTotalizacao()"
                                    style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
+                            <div id="cal-totalizacao" style="display:none;position:absolute;top:100%;left:0;z-index:9999;background:#fff;border:1px solid #d1d5db;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);padding:12px;width:260px;margin-top:4px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                    <button type="button" onclick="calTotalizacaoNavegar(-1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;" title="Mês anterior">‹</button>
+                                    <span id="cal-totalizacao-titulo" style="font-size:13px;font-weight:700;color:#111827;"></span>
+                                    <button type="button" onclick="calTotalizacaoNavegar(1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;" title="Próximo mês">›</button>
+                                </div>
+                                <div id="cal-totalizacao-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;"></div>
+                            </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2620,6 +2632,11 @@ window.calPrazoNavegar        = (d) => _calPrazo.navegar(d);
 const _calProtocolo = _criarCalendario({ calId:'cal-protocolo', tituloId:'cal-protocolo-titulo', gridId:'cal-protocolo-grid', inputId:'f2-data_protocolo' });
 window.abrirCalendarioProtocolo = () => _calProtocolo.abrir();
 window.calProtocoloNavegar      = (d) => _calProtocolo.navegar(d);
+
+// ─── CALENDÁRIO DATA TOTALIZAÇÃO DE PONTOS ──────────
+const _calTotalizacao = _criarCalendario({ calId:'cal-totalizacao', tituloId:'cal-totalizacao-titulo', gridId:'cal-totalizacao-grid', inputId:'f2-tabela-data_totalizacao_pontos' });
+window.abrirCalendarioTotalizacao = () => _calTotalizacao.abrir();
+window.calTotalizacaoNavegar      = (d) => _calTotalizacao.navegar(d);
 
 // ─── CALENDÁRIO DATA DA INFRAÇÃO (modal confirmação) ─
 const _calInfracao = _criarCalendario({
