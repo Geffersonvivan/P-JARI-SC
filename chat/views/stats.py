@@ -73,17 +73,11 @@ def estatisticas_view(request):
         created_at__month=mes
     ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
 
-    # Uma única query para obter IDs e flag de indeferimento simultaneamente
-    all_pareceres_info = list(pareceres_base.annotate(
-        is_indef_base=Case(
-            When(parecer_final__icontains='INDEFERID', then=Value(True)),
-            default=Value(False),
-            output_field=BooleanField()
-        )
-    ).values_list('id', 'is_indef_base'))
+    # Usa coluna denormalizada resultado_final (índice) em vez de icontains em TextField
+    all_pareceres_info = list(pareceres_base.values_list('id', 'resultado_final'))
 
     total_finais = len(all_pareceres_info)
-    ids_indeferidos_base = {pid for pid, is_indef in all_pareceres_info if is_indef}
+    ids_indeferidos_base = {pid for pid, res in all_pareceres_info if res == 'INDEFERIDO'}
     ids_base = [pid for pid, _ in all_pareceres_info]
 
     overrides_info = ParecerFinal.objects.filter(
@@ -286,17 +280,11 @@ def estatisticas_gerais_view(request):
         created_at__month=mes
     ).exclude(parecer_final__isnull=True).exclude(parecer_final__exact='')
 
-    # Uma única query para obter IDs e flag de indeferimento simultaneamente
-    all_pareceres_info = list(pareceres_base.annotate(
-        is_indef_base=Case(
-            When(parecer_final__icontains='INDEFERID', then=Value(True)),
-            default=Value(False),
-            output_field=BooleanField()
-        )
-    ).values_list('id', 'is_indef_base'))
+    # Usa coluna denormalizada resultado_final (índice) em vez de icontains em TextField
+    all_pareceres_info = list(pareceres_base.values_list('id', 'resultado_final'))
 
     total_finais = len(all_pareceres_info)
-    ids_indeferidos_base = {pid for pid, is_indef in all_pareceres_info if is_indef}
+    ids_indeferidos_base = {pid for pid, res in all_pareceres_info if res == 'INDEFERIDO'}
     ids_base = [pid for pid, _ in all_pareceres_info]
 
     overrides_info = ParecerFinal.objects.filter(

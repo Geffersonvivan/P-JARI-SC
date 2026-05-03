@@ -87,6 +87,12 @@ class Parecer(models.Model):
     perplexity_result = models.TextField(blank=True, null=True)
     analise_tese_texto = models.TextField(blank=True, null=True)
     parecer_final = models.TextField(blank=True, null=True)
+    # Coluna denormalizada: evita icontains em parecer_final (seq scan em TextField grande)
+    # Populada automaticamente via save() a partir do conteúdo de parecer_final
+    resultado_final = models.CharField(
+        max_length=15, blank=True, null=True, db_index=True,
+        help_text="DEFERIDO ou INDEFERIDO — derivado de parecer_final no save()"
+    )
     dossie_fontes = models.TextField(blank=True, null=True)
     nota_blindagem = models.TextField(blank=True, null=True)
     tabela_datas_sensiveis = models.TextField(blank=True, null=True)
@@ -105,6 +111,18 @@ class Parecer(models.Model):
     # Meta dados
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Deriva resultado_final a partir do parecer_final para evitar icontains em TextField
+        update_fields = kwargs.get('update_fields')
+        if update_fields is None or 'parecer_final' in update_fields:
+            if self.parecer_final:
+                self.resultado_final = 'INDEFERIDO' if 'INDEFERID' in self.parecer_final.upper() else 'DEFERIDO'
+            else:
+                self.resultado_final = None
+            if update_fields and 'resultado_final' not in update_fields:
+                kwargs['update_fields'] = list(update_fields) + ['resultado_final']
+        super().save(*args, **kwargs)
 
     def __str__(self):
         nome_usuario = self.user.username if self.user else "Anon"
