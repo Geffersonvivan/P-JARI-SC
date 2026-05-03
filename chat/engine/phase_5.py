@@ -75,25 +75,70 @@ def run_llm_phases(engine, task_id=None) -> str:
             from django.db import close_old_connections
             close_old_connections()
 
-    # ── Geração do parecer (Anthropic + fallback Gemini) ─────────────────────
-    _provider = "Claude" if anthropic.client else "Gemini (fallback — Anthropic indisponível)"
-    logger.info("[FASE5] Vertex/Perplexity prontos em %.1fs — chamando %s...", _time.time()-_t0, _provider)
-    try:
-        parecer_text = anthropic.validate_and_generate_parecer(
-            parecer, tese, perplexity_result, vertex_result, task_id=task_id
-        )
-        _provider_final = "Claude" if anthropic.client else "Gemini (fallback)"
-        logger.info("[FASE5] %s concluído em %.1fs — len=%d", _provider_final, _time.time()-_t0, len(parecer_text))
-    except Exception as _anthropic_err:
-        logger.error("[FASE5] Claude falhou (%s) — tentando fallback Gemini direto", _anthropic_err)
+    # ── Geração do parecer (Race: Claude vs Gemini em paralelo) ──────────────
+    _has_claude = bool(anthropic.client)
+    _has_gemini = bool(gemini.client)
+    logger.info(
+        "[FASE5] Vertex/Perplexity prontos em %.1fs — race Claude(%s) vs Gemini(%s)",
+        _time.time()-_t0, _has_claude, _has_gemini,
+    )
+
+    _race_args = (parecer, tese, perplexity_result, vertex_result)
+    _race_kwargs = {'task_id': task_id}
+
+    if _has_claude and _has_gemini:
+        # Race pattern: dispara ambos, usa o primeiro que retornar resultado válido
+        race_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
         try:
-            parecer_text = gemini.generate_parecer_gemini(
-                parecer, tese, perplexity_result, vertex_result, task_id=task_id
+            claude_fut = race_executor.submit(
+                anthropic.validate_and_generate_parecer, *_race_args, **_race_kwargs
             )
-            logger.warning("[FASE5] Fallback Gemini concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
-        except Exception as _gemini_err:
-            logger.error("[FASE5] Fallback Gemini também falhou: %s", _gemini_err)
-            raise _anthropic_err  # re-raise erro original para retry do Celery
+            # Gemini não recebe task_id para não publicar chunks duplicados no SSE
+            gemini_fut = race_executor.submit(
+                gemini.generate_parecer_gemini, *_race_args, task_id=None
+            )
+            futures = {claude_fut: 'Claude', gemini_fut: 'Gemini'}
+
+            parecer_text = None
+            winner = None
+            first_error = None
+
+            for fut in concurrent.futures.as_completed(futures, timeout=300):
+                provider_name = futures[fut]
+                try:
+                    result = fut.result()
+                    # Valida que o resultado não é erro/vazio
+                    if result and len(result) > 200 and not result.startswith("⚠️") and "ERRO" not in result[:50]:
+                        parecer_text = result
+                        winner = provider_name
+                        break
+                    else:
+                        logger.warning("[FASE5] %s retornou resultado inválido (len=%d) — aguardando outro", provider_name, len(result or ''))
+                        first_error = first_error or Exception(f"{provider_name}: resultado inválido")
+                except Exception as e:
+                    logger.warning("[FASE5] %s falhou no race: %s — aguardando outro", provider_name, e)
+                    first_error = first_error or e
+
+            if parecer_text:
+                loser = 'Gemini' if winner == 'Claude' else 'Claude'
+                logger.info("[FASE5] Race vencido por %s em %.1fs (len=%d) — %s descartado", winner, _time.time()-_t0, len(parecer_text), loser)
+            else:
+                raise first_error or Exception("Ambos providers falharam no race")
+        except concurrent.futures.TimeoutError:
+            logger.error("[FASE5] Race timeout (300s) — ambos providers excederam o limite")
+            raise Exception("Fase 5 race timeout: Claude e Gemini não responderam em 300s")
+        finally:
+            race_executor.shutdown(wait=False, cancel_futures=True)
+    elif _has_claude:
+        # Só Claude disponível
+        parecer_text = anthropic.validate_and_generate_parecer(*_race_args, **_race_kwargs)
+        logger.info("[FASE5] Claude (solo) concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
+    elif _has_gemini:
+        # Só Gemini disponível
+        parecer_text = gemini.generate_parecer_gemini(*_race_args, **_race_kwargs)
+        logger.info("[FASE5] Gemini (solo) concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
+    else:
+        raise Exception("Nenhum provider LLM configurado (ANTHROPIC_API_KEY e GEMINI_API_KEY ausentes)")
 
     # ── Extrai Dossiê de Fontes ───────────────────────────────────────────────
     dossie = ""
