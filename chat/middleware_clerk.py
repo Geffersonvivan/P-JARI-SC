@@ -19,6 +19,20 @@ class ClerkAuthenticationMiddleware:
         # O Publishable Key identifica esta instância Clerk — usado para validar o claim 'azp'
         self.clerk_publishable_key = os.getenv("CLERK_PUBLISHABLE_KEY", "")
 
+    @staticmethod
+    def _find_rsa_key(jwks, kid):
+        """Busca a chave RSA correspondente ao kid no JWKS."""
+        for key in jwks.get("keys", []):
+            if key.get("kid") == kid:
+                return {
+                    "kty": key.get("kty"),
+                    "kid": key.get("kid"),
+                    "use": key.get("use"),
+                    "n": key.get("n"),
+                    "e": key.get("e"),
+                }
+        return {}
+
     def __call__(self, request):
         auth_header = request.headers.get("Authorization")
         token = None
@@ -56,17 +70,22 @@ class ClerkAuthenticationMiddleware:
 
                 # Encontrar a chave pública que corresponde ao 'kid' do token
                 unverified_header = jwt.get_unverified_header(token)
-                rsa_key = {}
-                for key in jwks.get("keys", []):
-                    if key.get("kid") == unverified_header.get("kid"):
-                        rsa_key = {
-                            "kty": key.get("kty"),
-                            "kid": key.get("kid"),
-                            "use": key.get("use"),
-                            "n": key.get("n"),
-                            "e": key.get("e")
-                        }
-                        break
+                target_kid = unverified_header.get("kid")
+
+                rsa_key = self._find_rsa_key(jwks, target_kid)
+
+                # Fallback: se kid não encontrado (rotação de chaves), buscar JWKS fresco
+                if not rsa_key:
+                    jwks_url = "https://api.clerk.com/v1/jwks"
+                    headers = {"Authorization": f"Bearer {self.clerk_secret_key}"}
+                    try:
+                        response = requests.get(jwks_url, headers=headers, timeout=2)
+                        response.raise_for_status()
+                        jwks = response.json()
+                        cache.set("clerk_jwks", jwks, timeout=3600)
+                        rsa_key = self._find_rsa_key(jwks, target_kid)
+                    except Exception:
+                        pass  # mantém rsa_key vazio — será tratado abaixo
 
                 if rsa_key:
                     # PyJWT 2.0+ requer formato de chave PEM adequado se fornecemos apenas n e e

@@ -58,11 +58,14 @@ def _parse_adm_sections(adm_txt: str) -> dict:
 @require_POST
 def wizard_avancar_view(request, id):
     """Endpoint dedicado para avançar fases no wizard, sem depender do chat.
-    CSRF exempto: protegido por autenticação Clerk JWT + SameSite=Lax no cookie,
-    que impede CSRF cross-origin para requisições POST.
+    CSRF exempt mas protegido por verificação de header X-Requested-With (não enviável
+    cross-origin sem CORS preflight) + autenticação Clerk JWT.
     """
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Sessão expirada. Recarregue a página e tente novamente.'}, status=401)
+    # Proteção contra CSRF: navegadores não enviam headers custom cross-origin sem preflight CORS
+    if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'Requisição inválida.'}, status=403)
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
 
     try:

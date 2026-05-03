@@ -145,6 +145,9 @@ def chat_agent_message_view(request):
 
 def check_task_status_view(request, task_id):
     """View endpoint para o frontend perguntar (poll) a cada x segundos se a tarefa pesada de IA no Celery acabou."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Não autenticado.'}, status=401)
+
     from celery.result import AsyncResult
     task = AsyncResult(task_id)
 
@@ -168,7 +171,7 @@ def check_task_status_view(request, task_id):
         if parecer_id:
             from ..models import Parecer
             try:
-                p = Parecer.objects.get(id=parecer_id)
+                p = Parecer.objects.get(id=parecer_id, user=request.user)
                 reply = (
                     f"**Parecer Técnico Gerado com Sucesso!**\n\n"
                     f"{p.parecer_final}\n\n"
@@ -176,8 +179,8 @@ def check_task_status_view(request, task_id):
                     f"Digite **'ok'** para prosseguir."
                 )
                 return JsonResponse({'status': 'SUCCESS', 'reply': reply, 'status_fase': p.status_fase})
-            except Exception as e:
-                return JsonResponse({'status': 'FAILURE', 'error': f"Parecer não encontrado. {e}"})
+            except Parecer.DoesNotExist:
+                return JsonResponse({'status': 'FAILURE', 'error': 'Parecer não encontrado ou sem permissão.'})
 
         return JsonResponse({'status': 'SUCCESS', 'reply': "Tarefa concluída, mas Parecer ID não fornecido.", 'status_fase': 6})
 
@@ -197,6 +200,10 @@ async def stream_task_status_view(request, task_id):
     View SSE assíncrona (ASGI) — não bloqueia workers Gunicorn.
     Usa redis.asyncio (incluído em redis>=5) e asyncio.sleep para I/O não-bloqueante.
     """
+    if not request.user.is_authenticated:
+        from django.http import JsonResponse as _Jr
+        return _Jr({'error': 'Não autenticado.'}, status=401)
+
     import asyncio
     import json
     from django.http import StreamingHttpResponse
@@ -249,7 +256,7 @@ async def stream_task_status_view(request, task_id):
                                         from ..models import Parecer
                                         from ..jari_engine import JariEngine
                                         get_parecer = sync_to_async(Parecer.objects.get)
-                                        p = await get_parecer(id=parecer_id)
+                                        p = await get_parecer(id=parecer_id, user=request.user)
                                         if p.parecer_final:
                                             reply = (
                                                 f"**Parecer Técnico Gerado com Sucesso!**\n\n"

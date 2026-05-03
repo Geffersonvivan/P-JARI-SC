@@ -1,6 +1,7 @@
 import json
 import os
 import urllib.parse
+import nh3
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, StreamingHttpResponse, Http404
@@ -12,6 +13,27 @@ from django.core.files.storage import default_storage
 from django.conf import settings
 from ..models import Parecer, Pasta, ConfiguracaoParecer, ParecerFinal
 from .home import _get_filter_kwargs, PLANS
+
+# Tags HTML permitidas no parecer (whitelist de segurança contra XSS)
+_ALLOWED_TAGS = {
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'div', 'span', 'table',
+    'thead', 'tbody', 'tr', 'th', 'td', 'a', 'hr', 'blockquote',
+    'sup', 'sub', 'pre', 'code',
+}
+_ALLOWED_ATTRS = {
+    '*': {'class', 'style', 'id'},
+    'a': {'href', 'title', 'target', 'rel'},
+    'td': {'colspan', 'rowspan'},
+    'th': {'colspan', 'rowspan'},
+}
+
+
+def _sanitize_html(html: str) -> str:
+    """Sanitiza HTML para prevenir XSS, permitindo apenas tags seguras."""
+    if not html:
+        return html
+    return nh3.clean(html, tags=_ALLOWED_TAGS, attributes=_ALLOWED_ATTRS)
 
 
 @login_required
@@ -157,7 +179,7 @@ def editar_parecer_view(request, id):
 
     return render(request, 'editor_parecer.html', {
         'parecer': parecer,
-        'parecer_gerado': parecer_gerado,
+        'parecer_gerado': _sanitize_html(parecer_gerado),
         'config': config,
         'banco_teses': banco_teses,
         'teses_comunidade': teses_comunidade,

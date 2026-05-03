@@ -2032,7 +2032,7 @@ async function avancar(message, skipDetect = false) {
     try {
         const r = await fetch(`/parecer/${PARECER_ID}/wizard/next/`, {
             method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+            headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf(),'X-Requested-With':'XMLHttpRequest'},
             body: JSON.stringify({message}),
             credentials: 'same-origin',
         });
@@ -2066,7 +2066,7 @@ async function send(message) {
     try {
         const r = await fetch('/chat/message/', {
             method:'POST',
-            headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf()},
+            headers:{'Content-Type':'application/json','X-CSRFToken':getCsrf(),'X-Requested-With':'XMLHttpRequest'},
             body: JSON.stringify({message, parecer_id: PARECER_ID}),
         });
         const data = await r.json();

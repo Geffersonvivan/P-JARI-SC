@@ -71,8 +71,8 @@ if sentry_dsn:
         # Dados pessoais: manter desativado (LGPD)
         send_default_pii=False,
 
-        # Captura variáveis locais nos stack frames (muito útil para depurar)
-        include_local_variables=True,
+        # Captura variáveis locais nos stack frames (apenas em dev — risco de vazar tokens/dados em prod)
+        include_local_variables=_is_debug,
 
         # Ignora erros operacionais esperados que poluem o painel
         ignore_errors=[
@@ -91,7 +91,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key')
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if os.environ.get('DEBUG', 'False') == 'True':
+        SECRET_KEY = 'django-insecure-dev-only-key'
+    else:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("SECRET_KEY must be set in production environment.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
@@ -110,7 +116,12 @@ else:
     CSRF_TRUSTED_ORIGINS = []
 
 # Sempre forçar os domínios básicos para evitar erros de deploy vazio (evita 403 CSRF)
-base_origins = ['https://*.railway.app', 'https://pjarisc.com.br', 'https://www.pjarisc.com.br']
+_railway_url = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+base_origins = ['https://pjarisc.com.br', 'https://www.pjarisc.com.br']
+if _railway_url:
+    base_origins.append(f'https://{_railway_url}')
+elif DEBUG:
+    base_origins.append('https://*.railway.app')  # wildcard apenas em dev
 for origin in base_origins:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
@@ -177,6 +188,7 @@ _SILK_MIDDLEWARE = ['silk.middleware.SilkyMiddleware'] if SILK_ENABLED else []
 
 MIDDLEWARE = _SILK_MIDDLEWARE + [
     'django.middleware.security.SecurityMiddleware',
+    'csp.middleware.CSPMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -198,6 +210,16 @@ MIDDLEWARE = _SILK_MIDDLEWARE + [
 
 # Permitir Iframes (SplitScreen de PDFs nativo do painel)
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Content-Security-Policy (django-csp)
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://js.clerk.dev", "https://*.clerk.accounts.dev")
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com")
+CSP_IMG_SRC = ("'self'", "data:", "https:", "blob:")
+CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net")
+CSP_CONNECT_SRC = ("'self'", "https://*.clerk.dev", "https://*.clerk.accounts.dev", "https://api.clerk.com", "https://*.sentry.io")
+CSP_FRAME_SRC = ("'self'", "https://*.railway.app", "https://pjarisc.com.br")
+CSP_FRAME_ANCESTORS = ("'self'",)
 
 # django-silk: profiling de requests e queries
 if SILK_ENABLED:
