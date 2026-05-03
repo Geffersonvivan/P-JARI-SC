@@ -10,6 +10,16 @@ from django.conf import settings
 from ..models import Parecer, Pasta
 
 
+def _get_online_users_count():
+    """Conta usuários distintos com parecer, cacheado por 5 min."""
+    from django.core.cache import cache
+    count = cache.get('pjari_online_users_count')
+    if count is None:
+        count = Parecer.objects.filter(user__isnull=False).values('user').distinct().count()
+        cache.set('pjari_online_users_count', count, timeout=300)
+    return count
+
+
 def _parse_adm_sections(adm_txt: str) -> dict:
     """
     Extrai o texto do 'Cálculo fundamentado' para cada critério de admissibilidade.
@@ -189,6 +199,6 @@ def wizard_parecer_view(request, id):
         'nome_usuario': nome_usuario,
         'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', ''),
         'pjari_version': getattr(settings, 'PJARI_VERSION', '1.2'),
-        'online_users_count': Parecer.objects.filter(user__isnull=False).values('user').distinct().count(),
+        'online_users_count': _get_online_users_count(),
     }
     return render(request, 'wizard_parecer.html', context)

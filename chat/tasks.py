@@ -373,13 +373,24 @@ def gerar_parecer_task(self, parecer_id, tese=None):
     except Exception as e:
         trace = traceback.format_exc()
         logger.error(f"ERRO CELERY (Parecer {parecer_id}): {str(e)}\n\n{trace}")
-        # Retry automático para falhas transitórias de API (até max_retries=2, delay 30s)
+        # Retry apenas para erros transitórios do Gemini (504, timeout, etc.)
+        # Erros de código (AttributeError, KeyError) nunca se resolvem com retry
+        # e monopolizariam um slot heavy por até 30 min (3 × 600s)
+        if _is_gemini_transient(e):
+            countdown = 30 * (self.request.retries + 1)
+            logger.warning(f"PARECER Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/2 em {countdown}s: {e}")
+            try:
+                raise self.retry(exc=e, countdown=countdown)
+            except self.MaxRetriesExceededError:
+                pass
         try:
-            raise self.retry(exc=e, countdown=30)
-        except self.MaxRetriesExceededError:
-            raise Exception(f"Erro na Geração do Parecer (Celery Worker, após retries): {str(e)}")
+            _p = Parecer.objects.get(id=parecer_id)
+            log_audit('fase_erro', parecer=_p, fase=5, dados={'erro': str(e)[:200]})
+        except Exception:
+            pass
+        raise Exception(f"Erro na Geração do Parecer (Celery Worker): {str(e)}")
 
-@shared_task
+@shared_task(time_limit=600, soft_time_limit=540, max_retries=0, queue='fast')
 def rodar_testes_engine_task():
     """
     Executa os testes do JariEngine + JariMath + Integração de Fases e salva em TestRun.

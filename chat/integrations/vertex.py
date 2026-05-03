@@ -1,25 +1,49 @@
 import os
+import re
 import hashlib
+import logging
 from google.cloud import discoveryengine_v1 as discoveryengine
+
+_log = logging.getLogger(__name__)
 
 # TTL do cache RAG: 24 horas (base normativa não muda com frequência)
 _RAG_CACHE_TTL = 86_400
 
+# Singleton lazy do SearchServiceClient — evita re-parsear credenciais a cada chamada
+_search_client = None
+_search_credentials = None
+
 
 def _rag_cache_key(prefix: str, query: str) -> str:
     """Gera chave Redis determinística para o resultado de uma query RAG."""
-    digest = hashlib.sha256(query.strip().lower().encode()).hexdigest()[:16]
+    # Normaliza pontuação e espaços para melhorar hit rate
+    normalized = re.sub(r'[.\s]+', ' ', query.strip().lower())
+    digest = hashlib.sha256(normalized.encode()).hexdigest()[:16]
     return f"rag:{prefix}:{digest}"
 
 
-def _get_redis():
-    try:
-        import redis
-        from django.conf import settings
-        return redis.from_url(getattr(settings, 'CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-                              decode_responses=True)
-    except Exception:
-        return None
+def _get_search_client():
+    """Retorna SearchServiceClient singleton (lazy init)."""
+    global _search_client, _search_credentials
+    if _search_client is not None:
+        return _search_client, _search_credentials
+
+    _creds_env = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')
+    if _creds_env.strip().startswith('{'):
+        import json
+        from google.oauth2 import service_account
+        _search_credentials = service_account.Credentials.from_service_account_info(
+            json.loads(_creds_env)
+        )
+    else:
+        try:
+            from django.conf import settings as _dj_settings
+            _search_credentials = getattr(_dj_settings, 'GS_CREDENTIALS', None)
+        except Exception:
+            pass
+
+    _search_client = discoveryengine.SearchServiceClient(credentials=_search_credentials)
+    return _search_client, _search_credentials
 
 
 class VertexAIClient:
@@ -33,35 +57,14 @@ class VertexAIClient:
             return "Sistema RAG Offline. O Agente deve responder à pergunta utilizando seu amplo conhecimento prévio do Código de Trânsito Brasileiro (CTB) e resoluções do CONTRAN, informando as bases legais federais aplicáveis."
 
         # Cache hit — evita re-consultar Vertex para a mesma query
+        from django.core.cache import cache
         _cache_key = _rag_cache_key("vertex", query)
-        _r = _get_redis()
-        if _r:
-            try:
-                _cached = _r.get(_cache_key)
-                if _cached:
-                    return _cached
-            except Exception:
-                pass
+        _cached = cache.get(_cache_key)
+        if _cached:
+            return _cached
 
         try:
-            # Monta credenciais explicitamente para suportar JSON inline (Railway)
-            _credentials = None
-            _creds_env = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')
-            if _creds_env.strip().startswith('{'):
-                import json
-                from google.oauth2 import service_account
-                _credentials = service_account.Credentials.from_service_account_info(
-                    json.loads(_creds_env)
-                )
-            else:
-                # Tenta recuperar do Django settings (quando GCS já parseou e deletou a env var)
-                try:
-                    from django.conf import settings as _dj_settings
-                    _credentials = getattr(_dj_settings, 'GS_CREDENTIALS', None)
-                except Exception:
-                    pass
-
-            client = discoveryengine.SearchServiceClient(credentials=_credentials)
+            client, _credentials = _get_search_client()
             serving_config = client.serving_config_path(
                 project=self.project_id,
                 location=self.location,
@@ -144,11 +147,7 @@ class VertexAIClient:
                 return "Nenhum documento interno encontrado para esta busca."
 
             resultado_final = "\n\n---\n\n".join(resultados)
-            if _r:
-                try:
-                    _r.setex(_cache_key, _RAG_CACHE_TTL, resultado_final)
-                except Exception:
-                    pass
+            cache.set(_cache_key, resultado_final, timeout=_RAG_CACHE_TTL)
             return resultado_final
         except Exception as e:
             try:

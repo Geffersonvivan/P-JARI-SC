@@ -208,7 +208,7 @@ def estatisticas_view(request):
         'total_usos_global': total_usos_global,
         'creditos_usuario': creditos_usuario,
         'is_pro': is_pro,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
+        'banco_teses': BancoTese.objects.filter(user=request.user).defer('conteudo').order_by('-created_at'),
     }
 
     try:
@@ -349,7 +349,11 @@ def estatisticas_gerais_view(request):
         totais_por_dia.append(dados_dict.get(data_atual, 0))
 
     # 4. Uso de API (Custos e Tokens)
-    logs = AiRequestLog.objects.filter(data_requisicao__year=ano, data_requisicao__month=mes)
+    # Usa range de datas em vez de EXTRACT(year/month) para aproveitar índice B-tree
+    from datetime import datetime
+    _inicio_mes = datetime(ano, mes, 1)
+    _fim_mes = datetime(ano, mes + 1, 1) if mes < 12 else datetime(ano + 1, 1, 1)
+    logs = AiRequestLog.objects.filter(data_requisicao__gte=_inicio_mes, data_requisicao__lt=_fim_mes)
 
     tokens_gemini = logs.filter(provider__icontains='Gemini').aggregate(
         in_t=Sum('input_tokens'), out_t=Sum('output_tokens')
@@ -359,7 +363,7 @@ def estatisticas_gerais_view(request):
     )
     consultas_vertex = logs.filter(provider__icontains='Vertex').count()
 
-    vertex_misses = logs.filter(provider__icontains='Vertex', is_miss=True).order_by('-data_requisicao')
+    vertex_misses = list(logs.filter(provider__icontains='Vertex', is_miss=True).select_related('parecer_referencia').order_by('-data_requisicao'))
     taxa_uso_vertex = f"{int((consultas_vertex / total_julgados_global) * 100)}%" if total_julgados_global > 0 else "0%"
 
     custo_gemini = (tokens_gemini['in_t'] or 0) * (0.075 / 1000000) + (tokens_gemini['out_t'] or 0) * (0.30 / 1000000)
@@ -378,9 +382,9 @@ def estatisticas_gerais_view(request):
     pct_gemini_pro = int((gemini_pro_count / gemini_total_requests) * 100) if gemini_total_requests > 0 else 0
     pct_gemini_flash = int((gemini_flash_count / gemini_total_requests) * 100) if gemini_total_requests > 0 else 0
 
-    top_fatigue_logs = logs.filter(provider__icontains='Gemini', input_tokens__gt=0).order_by('-input_tokens')[:5]
-    pdf_defects_logs = logs.filter(provider__icontains='Gemini', is_pdf_defect=True).order_by('-data_requisicao')
-    pdf_defects_count = pdf_defects_logs.count()
+    top_fatigue_logs = list(logs.filter(provider__icontains='Gemini', input_tokens__gt=0).select_related('parecer_referencia').order_by('-input_tokens')[:5])
+    pdf_defects_logs = list(logs.filter(provider__icontains='Gemini', is_pdf_defect=True).select_related('parecer_referencia').order_by('-data_requisicao'))
+    pdf_defects_count = len(pdf_defects_logs)
 
     # --- NOVAS MÉTRICAS ESTRATÉGIAS ---
 
@@ -508,6 +512,7 @@ def estatisticas_gerais_view(request):
         audit_qs = AuditEvent.objects.filter(timestamp__year=ano, timestamp__month=mes)
 
         # Funil: pareceres por status_fase (snapshot atual — independe do mês)
+        # Uma única query agregada em vez de 6 COUNTs separados
         funil_fases = [
             ('Coleta Docs',    [1, 10]),
             ('DIR/Tabela',     [2, 3]),
@@ -516,9 +521,13 @@ def estatisticas_gerais_view(request):
             ('Parecer',        [5, 6]),
             ('Finalizado',     [8]),
         ]
+        _all_fases = [f for _, fases in funil_fases for f in fases]
+        _fase_counts = {
+            row['status_fase']: row['n']
+            for row in Parecer.objects.filter(status_fase__in=_all_fases).values('status_fase').annotate(n=Count('id'))
+        }
         for label, fases in funil_fases:
-            count = Parecer.objects.filter(status_fase__in=fases).count()
-            funil_data.append({'label': label, 'count': count})
+            funil_data.append({'label': label, 'count': sum(_fase_counts.get(f, 0) for f in fases)})
 
         # Eventos de auditoria por tipo
         filtros_bloqueados = audit_qs.filter(evento='filtro_bloqueado').count()
@@ -600,7 +609,7 @@ def estatisticas_gerais_view(request):
         'taxa_conversao': taxa_conversao,
         'radar_infracoes': radar_infracoes_global,
         'avg_dias_funil': avg_dias_funil,
-        'banco_teses': BancoTese.objects.filter(user=request.user).order_by('-created_at'),
+        'banco_teses': BancoTese.objects.filter(user=request.user).defer('conteudo').order_by('-created_at'),
         # Auditoria de Uso
         'funil_data': funil_data,
         'filtros_bloqueados': filtros_bloqueados,

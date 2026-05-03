@@ -514,6 +514,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_RESULT_EXPIRES = 3600  # Resultados expiram em 1h — evita acúmulo no Redis
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Evita starvation na fila heavy (tasks de 600s)
 
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {

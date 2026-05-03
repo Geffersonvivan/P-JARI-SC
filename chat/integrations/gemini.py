@@ -7,9 +7,49 @@ from google import genai
 from django.core.mail import send_mail
 from django.conf import settings
 
+import concurrent.futures as _cf
 from .perplexity import _p
 
 _log = _logging.getLogger(__name__)
+
+
+def _upload_pdfs_parallel(client_self, parecer_obj, check_storage=False):
+    """Upload paralelo de autuação + consolidado via ThreadPoolExecutor.
+    Retorna lista de gemini files (ordem: consolidado, autuação) para inserir em contents.
+    """
+    from django.core.files.storage import default_storage
+    paths = []
+    if parecer_obj.autuacao_pdf_path and "upload_simulado" not in _p(parecer_obj.autuacao_pdf_path):
+        p = _p(parecer_obj.autuacao_pdf_path)
+        if not check_storage or default_storage.exists(p):
+            paths.append(('autuacao', p))
+    if parecer_obj.consolidado_pdf_path and "upload_simulado" not in _p(parecer_obj.consolidado_pdf_path):
+        p = _p(parecer_obj.consolidado_pdf_path)
+        if p != _p(parecer_obj.autuacao_pdf_path) and (not check_storage or default_storage.exists(p)):
+            paths.append(('consolidado', p))
+
+    if not paths:
+        return []
+
+    results = {}
+    with _cf.ThreadPoolExecutor(max_workers=len(paths)) as ex:
+        futures = {ex.submit(client_self.upload_file, p): name for name, p in paths}
+        for fut in _cf.as_completed(futures):
+            name = futures[fut]
+            try:
+                f = fut.result()
+                if f:
+                    results[name] = f
+            except Exception as e:
+                _log.warning("_upload_pdfs_parallel: %s falhou: %s", name, e)
+
+    # Retorna na ordem consolidado, autuação (para inserir no início do contents)
+    uploaded = []
+    if 'consolidado' in results:
+        uploaded.append(results['consolidado'])
+    if 'autuacao' in results:
+        uploaded.append(results['autuacao'])
+    return uploaded
 
 # Limites de tamanho dos campos de texto antes de montar o prompt.
 _LIMITES = {
@@ -308,7 +348,7 @@ class GeminiClient:
             _log.info(f"upload_file [PERF] gemini_upload {path_str}: {_t_upload - _t_compress:.2f}s")
 
             # Aguarda o arquivo ficar ACTIVE (processamento assíncrono do Gemini)
-            max_wait = 60  # segundos
+            max_wait = 90  # segundos (PDFs grandes 150+ pgs podem precisar de mais tempo)
             waited = 0
             while getattr(getattr(gemini_file, 'state', None), 'name', 'ACTIVE') == 'PROCESSING':
                 if waited >= max_wait:
@@ -687,15 +727,9 @@ class GeminiClient:
 
         contents = [prompt_text]
 
-        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in _p(parecer_obj.autuacao_pdf_path):
-            file_autuacao = self.upload_file(_p(parecer_obj.autuacao_pdf_path))
-            if file_autuacao:
-                contents.insert(0, file_autuacao)
-
-        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in _p(parecer_obj.consolidado_pdf_path) and _p(parecer_obj.consolidado_pdf_path) != _p(parecer_obj.autuacao_pdf_path):
-            file_consolidado = self.upload_file(_p(parecer_obj.consolidado_pdf_path))
-            if file_consolidado:
-                contents.insert(0, file_consolidado)
+        # Upload paralelo dos PDFs (até ~60s economizados vs sequencial)
+        for f in _upload_pdfs_parallel(self, parecer_obj):
+            contents.insert(0, f)
 
         try:
             start_time = time.time()
@@ -734,15 +768,9 @@ class GeminiClient:
 
         contents = [prompt_text]
 
-        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in _p(parecer_obj.autuacao_pdf_path):
-            file_autuacao = self.upload_file(_p(parecer_obj.autuacao_pdf_path))
-            if file_autuacao:
-                contents.insert(0, file_autuacao)
-
-        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in _p(parecer_obj.consolidado_pdf_path) and _p(parecer_obj.consolidado_pdf_path) != _p(parecer_obj.autuacao_pdf_path):
-            file_consolidado = self.upload_file(_p(parecer_obj.consolidado_pdf_path))
-            if file_consolidado:
-                contents.insert(0, file_consolidado)
+        # Upload paralelo dos PDFs
+        for f in _upload_pdfs_parallel(self, parecer_obj):
+            contents.insert(0, f)
 
         try:
             start_time = time.time()
@@ -816,19 +844,9 @@ class GeminiClient:
 
         contents = [prompt_text]
 
-        # Anexar os PDFs no prompt se existirem
-        from django.core.files.storage import default_storage
-        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in _p(parecer_obj.autuacao_pdf_path):
-            if default_storage.exists(_p(parecer_obj.autuacao_pdf_path)):
-                file_autuacao = self.upload_file(_p(parecer_obj.autuacao_pdf_path))
-                if file_autuacao:
-                    contents.insert(0, file_autuacao)
-
-        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in _p(parecer_obj.consolidado_pdf_path):
-            if default_storage.exists(_p(parecer_obj.consolidado_pdf_path)):
-                file_consolidado = self.upload_file(_p(parecer_obj.consolidado_pdf_path))
-                if file_consolidado:
-                    contents.insert(0, file_consolidado)
+        # Upload paralelo dos PDFs (com verificação de existência no storage)
+        for f in _upload_pdfs_parallel(self, parecer_obj, check_storage=True):
+            contents.insert(0, f)
 
         try:
             start_time = time.time()
@@ -953,24 +971,9 @@ class GeminiClient:
 
         contents = [prompt]
 
-        # Anexar os PDFs no prompt se existirem para que a IA possa extrair "Interessado" da Autuação
-        from django.core.files.storage import default_storage
-
-        if parecer_obj.autuacao_pdf_path and "upload_simulado" not in _p(parecer_obj.autuacao_pdf_path):
-            try:
-                if default_storage.exists(_p(parecer_obj.autuacao_pdf_path)):
-                    file_autuacao = self.upload_file(_p(parecer_obj.autuacao_pdf_path))
-                    if file_autuacao:
-                        contents.insert(0, file_autuacao)
-            except Exception: pass
-
-        if parecer_obj.consolidado_pdf_path and "upload_simulado" not in _p(parecer_obj.consolidado_pdf_path) and _p(parecer_obj.consolidado_pdf_path) != _p(parecer_obj.autuacao_pdf_path):
-            try:
-                if default_storage.exists(_p(parecer_obj.consolidado_pdf_path)):
-                    file_consolidado = self.upload_file(_p(parecer_obj.consolidado_pdf_path))
-                    if file_consolidado:
-                        contents.insert(0, file_consolidado)
-            except Exception: pass
+        # Upload paralelo dos PDFs (com verificação de existência no storage)
+        for f in _upload_pdfs_parallel(self, parecer_obj, check_storage=True):
+            contents.insert(0, f)
 
         try:
             start_time = time.time()

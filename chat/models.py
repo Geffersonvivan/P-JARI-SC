@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.functional import cached_property
 
 class Pasta(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pastas', null=True, blank=True, db_index=True)
@@ -109,7 +110,7 @@ class Parecer(models.Model):
         nome_usuario = self.user.username if self.user else "Anon"
         return f'{self.nome_processo} - {nome_usuario}'
 
-    @property
+    @cached_property
     def conteudo_final(self) -> str:
         """
         Retorna o conteúdo canônico do parecer:
@@ -321,10 +322,16 @@ class AiRequestLog(models.Model):
     model_name = models.CharField(max_length=100, blank=True, null=True, help_text="Versão do modelo (ex: sonar-pro, gemini-2.5-flash)")
     is_pdf_defect = models.BooleanField(default=False, help_text="Se True, significa que o OCR do PDF falhou e a IA não conseguiu ler o conteúdo")
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['-data_requisicao']),
+            models.Index(fields=['provider', '-data_requisicao']),
+        ]
+
     def __str__(self):
         nome_usuario = self.user.username if self.user else "Anon"
         return f"{self.provider} - Fase {self.fase} - User: {nome_usuario}"
-        
+
 class Subscription(models.Model):
     PLANO_CHOICES = [
         ('basic', 'Básico'),
