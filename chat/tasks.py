@@ -30,6 +30,37 @@ def _is_gemini_transient(e) -> bool:
     return any(k in s for k in ('504', 'DEADLINE_EXCEEDED', 'ServerError', 'timeout', 'Timeout'))
 
 
+@shared_task(time_limit=180, soft_time_limit=150, max_retries=1, queue='fast',
+             ignore_result=True)
+def pre_upload_gemini_task(parecer_id):
+    """
+    Pré-aquece o cache Redis com os file handles do Gemini Files API.
+    Disparada em paralelo com processar_fase1_task logo após o upload dos PDFs.
+    Quando a Fase 1 (e fases seguintes) chamar upload_file(), encontrará cache hit
+    e pulará upload+polling (~30s economizados por PDF).
+    """
+    try:
+        parecer = Parecer.objects.only(
+            'autuacao_pdf_path', 'consolidado_pdf_path', 'ata_pdf_path'
+        ).get(id=parecer_id)
+        from chat.integrations import GeminiClient
+        client = GeminiClient()
+        if not client.client:
+            return
+        from chat.integrations.perplexity import _p
+        paths = []
+        for field in [parecer.autuacao_pdf_path, parecer.consolidado_pdf_path, parecer.ata_pdf_path]:
+            p = _p(field)
+            if p and 'upload_simulado' not in p and p not in paths:
+                paths.append(p)
+        import concurrent.futures as _cf
+        with _cf.ThreadPoolExecutor(max_workers=len(paths) or 1) as ex:
+            list(ex.map(client.upload_file, paths))
+        logger.info("pre_upload_gemini OK: parecer=%s paths=%s", parecer_id, paths)
+    except Exception as e:
+        logger.warning("pre_upload_gemini falhou (parecer=%s): %s — não bloqueia fluxo", parecer_id, e)
+
+
 @shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
 def processar_fase1_task(self, parecer_id):
     """

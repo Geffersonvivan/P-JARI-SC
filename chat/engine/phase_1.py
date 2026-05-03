@@ -278,6 +278,12 @@ def _handle_upload(engine, uploaded_files: list) -> str:
         parecer.ata_pdf_path = file_ata
 
     parecer.save()
+    # Pré-aquece cache Gemini Files API em paralelo (best-effort, não bloqueia)
+    try:
+        from chat.tasks import pre_upload_gemini_task
+        pre_upload_gemini_task.delay(parecer.id)
+    except Exception:
+        pass
     from chat.tasks import processar_fase1_task
     task = processar_fase1_task.delay(parecer.id)
     return _json.dumps({"status": "celery", "task_id": task.id, "type": "FASE1"})
