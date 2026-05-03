@@ -7,6 +7,7 @@ from django.middleware.csrf import get_token
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from django_ratelimit.decorators import ratelimit
 from ..models import Parecer, Pasta
 
 
@@ -64,6 +65,7 @@ def _parse_adm_sections(adm_txt: str) -> dict:
     return result
 
 
+@ratelimit(key='user_or_ip', rate='10/m', method='POST', block=True)
 @csrf_exempt
 @require_POST
 def wizard_avancar_view(request, id):
@@ -130,6 +132,7 @@ def wizard_avancar_view(request, id):
     })
 
 
+@ratelimit(key='user_or_ip', rate='60/m', method='ALL', block=True)
 @csrf_exempt
 def wizard_status_view(request, id):
     """Retorna apenas o status_fase atual do parecer — usado pelo frontend para polling de fallback."""

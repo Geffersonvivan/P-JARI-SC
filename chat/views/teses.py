@@ -1,8 +1,10 @@
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
 
 
+@ratelimit(key='user', rate='20/m', method='POST', block=True)
 @login_required
 @require_POST
 def create_citacao_view(request):

@@ -2,8 +2,10 @@ import json
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
 
 
+@ratelimit(key='user', rate='10/m', method='POST', block=True)
 @login_required
 @require_POST
 def criar_post_forum_view(request):
@@ -32,6 +34,7 @@ def criar_post_forum_view(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+@ratelimit(key='user', rate='20/m', method='POST', block=True)
 @login_required
 @require_POST
 def comentar_post_forum_view(request, post_id):
@@ -61,6 +64,7 @@ def comentar_post_forum_view(request, post_id):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+@ratelimit(key='user', rate='30/m', method='POST', block=True)
 @login_required
 @require_POST
 def curtir_post_forum_view(request, post_id):

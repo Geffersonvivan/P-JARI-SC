@@ -205,7 +205,7 @@ def salvar_parecer_view(request, id):
     return redirect('home')
 
 
-@ratelimit(key='ip', rate='20/h', method='POST', block=True)
+@ratelimit(key='user_or_ip', rate='20/h', method='POST', block=True)
 @require_POST
 def create_parecer_view(request):
     if not request.session.session_key:
@@ -278,6 +278,7 @@ def mover_parecer_view(request, id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@ratelimit(key='user_or_ip', rate='30/m', method='POST', block=True)
 @require_POST
 def corrigir_campo_parecer_view(request, parecer_id):
     """

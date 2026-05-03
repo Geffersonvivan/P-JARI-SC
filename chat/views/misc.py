@@ -7,6 +7,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from django_ratelimit.decorators import ratelimit
 from ..models import UserProfile, Pasta
 from .home import _get_filter_kwargs
 
@@ -64,6 +65,7 @@ _PROXY_ALLOWED_DOMAINS = {
     'storage.googleapis.com',
 }
 
+@ratelimit(key='user_or_ip', rate='120/m', method='GET', block=True)
 @login_required
 def proxy_image_view(request):
     from urllib.parse import urlparse
@@ -170,6 +172,7 @@ def visualizar_termos_view(request):
     return render(request, 'termos.html', context)
 
 
+@ratelimit(key='user', rate='30/m', method='POST', block=True)
 @csrf_exempt
 @login_required
 @require_POST

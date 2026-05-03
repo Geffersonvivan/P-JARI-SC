@@ -53,6 +53,7 @@ def chat_message_view(request):
         return JsonResponse({'error': 'Erro interno. Tente novamente.'}, status=500)
 
 
+@ratelimit(key='user_or_ip', rate='15/m', method='POST', block=True)
 @require_POST
 def chat_agent_message_view(request):
     """Novo endpoint isolado para o Agente Lateral (Drawer) da Fase 2."""
@@ -143,6 +144,7 @@ def chat_agent_message_view(request):
         return JsonResponse({'error': 'Erro interno. Tente novamente.'}, status=500)
 
 
+@ratelimit(key='user_or_ip', rate='60/m', method='GET', block=True)
 def check_task_status_view(request, task_id):
     """View endpoint para o frontend perguntar (poll) a cada x segundos se a tarefa pesada de IA no Celery acabou."""
     if not request.user.is_authenticated:
@@ -195,6 +197,7 @@ def check_task_status_view(request, task_id):
     return JsonResponse({'status': 'PROCESSING'})
 
 
+@ratelimit(key='user_or_ip', rate='30/m', method='GET', block=True)
 async def stream_task_status_view(request, task_id):
     """
     View SSE assíncrona (ASGI) — não bloqueia workers Gunicorn.

@@ -9,9 +9,11 @@ from django.views.decorators.http import require_POST
 from django.db.models import Count, Q, Avg, F, ExpressionWrapper, Sum, Case, When, Value, BooleanField, DurationField
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django_ratelimit.decorators import ratelimit
 from ..models import Parecer, BancoTese, ParecerFinal
 
 
+@ratelimit(key='user', rate='30/h', method='GET', block=True)
 @login_required
 def estatisticas_view(request):
 
@@ -218,6 +220,7 @@ def estatisticas_view(request):
     return render(request, 'dashboard.html', context)
 
 
+@ratelimit(key='user', rate='30/h', method='GET', block=True)
 @login_required
 def estatisticas_gerais_view(request):
     if not getattr(request.user.profile, 'can_view_global_stats', False) and not request.user.is_superuser:
