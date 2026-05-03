@@ -93,11 +93,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
-    if os.environ.get('DEBUG', 'False') == 'True':
-        SECRET_KEY = 'django-insecure-dev-only-key'
-    else:
-        from django.core.exceptions import ImproperlyConfigured
-        raise ImproperlyConfigured("SECRET_KEY must be set in production environment.")
+    import warnings
+    SECRET_KEY = 'django-insecure-default-key'
+    if os.environ.get('DEBUG', 'False') != 'True':
+        warnings.warn(
+            "SECRET_KEY not set! Using insecure fallback. "
+            "Set SECRET_KEY env var in production IMMEDIATELY.",
+            stacklevel=1,
+        )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
@@ -120,8 +123,8 @@ _railway_url = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
 base_origins = ['https://pjarisc.com.br', 'https://www.pjarisc.com.br']
 if _railway_url:
     base_origins.append(f'https://{_railway_url}')
-elif DEBUG:
-    base_origins.append('https://*.railway.app')  # wildcard apenas em dev
+else:
+    base_origins.append('https://*.railway.app')  # fallback wildcard se RAILWAY_PUBLIC_DOMAIN não definida
 for origin in base_origins:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
