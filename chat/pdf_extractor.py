@@ -230,6 +230,73 @@ class PDFExtractor:
         return infracao_encontrada
 
     @staticmethod
+    def extract_text_from_pdf(file_path, max_pages=10, max_chars=8000):
+        """
+        Extrai texto completo de um PDF (PyMuPDF + OCR fallback).
+        Retorna string com o texto ou string vazia se falhar.
+        """
+        if not file_path or "upload_simulado" in file_path:
+            return ""
+
+        temp_path = None
+        try:
+            with default_storage.open(file_path, 'rb') as f_in:
+                fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+                with os.fdopen(fd, 'wb') as f_out:
+                    if hasattr(f_in, 'chunks'):
+                        for chunk in f_in.chunks():
+                            f_out.write(chunk)
+                    else:
+                        f_out.write(f_in.read())
+
+            fitz.TOOLS.reset_mupdf_warnings()
+            with fitz.open(temp_path) as doc:
+                _w = fitz.TOOLS.mupdf_warnings()
+                if _w and ("xref" in _w.lower() or "format error" in _w.lower()):
+                    return ""
+
+                pages = min(max_pages, len(doc))
+                texts = []
+                total = 0
+                for i in range(pages):
+                    t = doc[i].get_text("text")
+                    total += len(t)
+                    texts.append(t)
+
+                # OCR fallback
+                if total < 2000:
+                    ocr_texts = []
+                    ocr_total = 0
+                    for i in range(pages):
+                        try:
+                            tp = doc[i].get_textpage_ocr(flags=0, language='por', dpi=300, full=True)
+                            ot = doc[i].get_text(textpage=tp)
+                            ocr_total += len(ot)
+                            ocr_texts.append(ot)
+                        except Exception:
+                            break
+                    if ocr_total > total:
+                        texts = ocr_texts
+
+                full = "\n--- Página {} ---\n".join([""] + ["{}" for _ in range(len(texts))])
+                # Build page-separated text
+                result = []
+                for idx, t in enumerate(texts):
+                    result.append(f"--- Página {idx+1} ---")
+                    result.append(t.strip())
+                return "\n".join(result)[:max_chars]
+
+        except Exception as e:
+            logger.warning("extract_text_from_pdf falhou para %s: %s", file_path, e)
+            return ""
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
+
+    @staticmethod
     def format_extraction_for_llm(datas_autuacao, datas_consolidado):
         """Formata a lista bruta de dicionários em texto simples para anexar ao prompt."""
         todas_ocorrencias = datas_autuacao + datas_consolidado

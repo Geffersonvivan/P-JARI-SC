@@ -421,6 +421,32 @@ class GeminiClient:
                 f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
             )
 
+        # ── Extração de texto via PyMuPDF (híbrido: texto + visual) ────────────
+        _text_context = ""
+        try:
+            from chat.pdf_extractor import PDFExtractor
+            _text_parts = []
+            for path_field, label in [
+                (parecer_obj.autuacao_pdf_path, "AUTUAÇÃO"),
+                (parecer_obj.consolidado_pdf_path, "CONSOLIDADO"),
+                (parecer_obj.ata_pdf_path, "ATA"),
+            ]:
+                _path = _p(path_field)
+                if _path and "upload_simulado" not in _path:
+                    txt = PDFExtractor.extract_text_from_pdf(_path, max_pages=8, max_chars=6000)
+                    if txt:
+                        _text_parts.append(f"[TEXTO EXTRAÍDO — {label}]\n{txt}")
+            if _text_parts:
+                _text_context = (
+                    "\n\n=== TEXTO EXTRAÍDO DOS PDFs VIA SISTEMA (PyMuPDF) ===\n"
+                    "Use este texto como referência auxiliar. Os PDFs visuais em anexo são a fonte primária.\n"
+                    "Se o texto abaixo contiver dados que você não consegue ler visualmente no PDF, use-os.\n\n"
+                    + "\n\n".join(_text_parts)
+                )
+                _log.info(f"extract_fase1_fields: texto PyMuPDF extraído ({len(_text_context)} chars)")
+        except Exception as _pymupdf_err:
+            _log.warning(f"extract_fase1_fields: extração PyMuPDF falhou (não-fatal): {_pymupdf_err}")
+
         prompt_text = (
             "Extraia dos documentos em anexo os seguintes campos e retorne um JSON com esta estrutura exata:\n\n"
             "{\n"
@@ -437,7 +463,18 @@ class GeminiClient:
             '  "recorrente": "nome completo do condutor ou proprietário recorrente ou null",\n'
             '  "recorrente_conf": "alta|baixa|nulo"\n'
             "}\n\n"
+            "=== DICAS DE LOCALIZAÇÃO DOS CAMPOS ===\n"
+            "• prazo_final: procure por 'PRAZO', 'VENCE EM', 'DATA LIMITE', 'DIAS PARA RECURSO', "
+            "'PRAZO PARA DEFESA/RECURSO'. Geralmente no documento de Autuação ou notificação.\n"
+            "• data_protocolo: procure por carimbo/selo de 'PROTOCOLO', 'RECEBIDO EM', 'ENTRADA', "
+            "'DATA DE RECEBIMENTO', 'PROTOCOLADO EM'. Frequentemente é um carimbo ou anotação manuscrita.\n"
+            "• paginas_defesa: identifique onde começa a peça recursal/defesa escrita pelo recorrente "
+            "(geralmente após as notificações e antes dos anexos). Informe o intervalo ex: '15-24'.\n"
+            "• recorrente: procure por 'RECORRENTE', 'CONDUTOR', 'PROPRIETÁRIO', 'AUTUADO', 'INFRATOR'.\n"
+            "• pa: procure por 'PROCESSO ADMINISTRATIVO', 'PA', 'Nº PROCESSO'. Formato típico: números com barras.\n"
+            "• sgpe: procure por 'SGPE' na Ata da Sessão de Julgamento, na linha correspondente ao PA deste processo.\n\n"
             + (_anchor_hint.strip() + "\n\n" if _anchor_hint else "")
+            + (_text_context + "\n\n" if _text_context else "")
             + "Não retorne nada além do JSON."
         )
 

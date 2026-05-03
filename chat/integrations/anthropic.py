@@ -336,3 +336,78 @@ class AnthropicClient:
             except Exception as _fe:
                 _log.error(f"Fase 5 fallback Gemini também falhou: {_fe}")
                 return f"Erro ao acessar Claude: {err_str}\nFallback Gemini: {str(_fe)}"
+
+    def audit_parecer(self, parecer_obj):
+        """
+        Fase 6 — Auditoria cruzada via Claude (quando o parecer foi escrito pelo Gemini).
+        Mesmo checklist de 10 itens que o Gemini.audit_parecer, mas por um modelo independente.
+        """
+        if not self.client:
+            return None  # caller fará fallback para Gemini
+
+        import time
+
+        system_instruction = (
+            "Você é o Auditor Corregedor responsável pela verificação final do parecer.\n"
+            "Sua única função é realizar um checklist sobre o Parecer Final submetido, cruzando a compatibilidade narrativa do Relator com a tabela matemática anterior.\n\n"
+            "REGRA DE OURO (SOBERANIA DA MATEMÁTICA OBRIGATÓRIA):\n"
+            "Não tente recalcular a tempestividade do recurso subtraindo ou somando dias de notificações citadas no texto. "
+            "Apenas valide se a conclusão do Relator (Tempestivo/Intempestivo) bate com o resultado da Matemática Obrigatória fornecida no prompt. Se o resultado for SIM (TEMPESTIVO), e o texto falar tempestivo, a nota é 🟢 Conforme. ATENÇÃO MÁXIMA: Se a Matemática acusar Prescrição ou Decadência como SIM, o fato de ser Intempestivo perde a relevância (matéria de ordem pública prevalece), devendo a tempestividade ser considerada 🟢 Conforme se o texto a apontar como prejudicada.\n\n"
+            "A Auditoria final apresentada deve ser FORMATADA EXCLUSIVAMENTE EM MARKDOWN (NÃO USE NENHUMA TAG HTML) DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
+            "OBRIGATÓRIO: Pule linha DUPLA (\\n\\n) no final de cada item de validação do checklist, para que eles não fiquem aglomerados em um único parágrafo.\n"
+            "Classifique de forma estrita cada um dos blocos abaixo. Use ícones ricos como 🟢, 🔴, ⚠️.\n"
+            "Exemplo visual: `**1. Identificação Processual:** 🟢 Conforme - O PA e SGPE coincidem com a base.`\n\n"
+            "ITENS OBRIGATÓRIOS DO CHECKLIST:\n"
+            "1. Identificação processual (PA, SGPE, Nome)\n"
+            "2. Conformidade das datas (infração, julgamento)\n"
+            "3. Tempestividade narrativa\n"
+            "4. Prescrição punitiva aplicada\n"
+            "5. Prescrição intercorrente\n"
+            "6. Decadência\n"
+            "7. Análise correta das teses (Se cabível)\n"
+            "8. Compatibilidade lógica entre fundamentação e RESULTADO (Criticamente importante)\n"
+            "9. Citação normativa presente\n"
+            "10. Ausência de inovação (Sem invencionices textuais)\n"
+        )
+
+        _ef_temp  = parecer_obj.julgador_tempestivo               if parecer_obj.julgador_tempestivo               is not None else parecer_obj.is_tempestivo
+        _ef_punit = parecer_obj.julgador_prescricao_punitiva      if parecer_obj.julgador_prescricao_punitiva      is not None else parecer_obj.has_prescricao_punitiva
+        _ef_inter = parecer_obj.julgador_prescricao_intercorrente if parecer_obj.julgador_prescricao_intercorrente is not None else parecer_obj.has_prescricao_intercorrente
+        _ef_decad = parecer_obj.julgador_decadencia               if parecer_obj.julgador_decadencia               is not None else parecer_obj.has_decadencia
+
+        data_protocolo_str = parecer_obj.data_protocolo.strftime('%d/%m/%Y') if parecer_obj.data_protocolo else "Não informada"
+        prazo_final_str = parecer_obj.prazo_final.strftime('%d/%m/%Y') if parecer_obj.prazo_final else "Não informado"
+
+        prompt = (
+            f"--- MATEMÁTICA OBRIGATÓRIA (Escolhas Soberanas do Julgador) ---\n"
+            f"Data do Protocolo Direto (Informado): {data_protocolo_str}\n"
+            f"Prazo Final Máximo (Informado/Calculado): {prazo_final_str}\n"
+            f"Tempestividade: {'DENTRO DO PRAZO (TEMPESTIVO)' if _ef_temp else 'FORA DO PRAZO (INTEMPESTIVO)'}\n"
+            f"Prescrição Punitiva: {'SIM' if _ef_punit else 'NÃO'}\n"
+            f"Intercorrente: {'SIM' if _ef_inter else 'NÃO'}\n"
+            f"Decadência: {'SIM' if _ef_decad else 'NÃO'}\n\n"
+            f"--- PARECER REDIGIDO PELA FASE 5 (O ALVO DA AUDITORIA) ---\n"
+            f"{parecer_obj.parecer_final}\n\n"
+            f"Execute o Checklist e devolva APENAS as 10 linhas avaliadas."
+        )
+
+        try:
+            start_time = time.time()
+            model_to_use = "claude-sonnet-4-6"
+
+            message = self.client.messages.create(
+                model=model_to_use,
+                max_tokens=2048,
+                system=system_instruction,
+                messages=[{"role": "user", "content": prompt}],
+            )
+
+            result = message.content[0].text
+            self._log_tokens(
+                parecer_obj, message.usage.input_tokens, message.usage.output_tokens,
+                'Fase 6 (Auditoria Cruzada)', model_name=model_to_use, start_time=start_time,
+            )
+            return result
+        except Exception as e:
+            _log.warning("[FASE6] Claude audit_parecer falhou: %s — caller fará fallback", e)
+            return None

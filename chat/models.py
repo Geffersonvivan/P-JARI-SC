@@ -97,6 +97,9 @@ class Parecer(models.Model):
     nota_blindagem = models.TextField(blank=True, null=True)
     tabela_datas_sensiveis = models.TextField(blank=True, null=True)
     
+    # Fase 5 — Provider que gerou o parecer (usado na Fase 6 para auditor cruzado)
+    fase5_provider = models.CharField(max_length=10, blank=True, null=True)
+
     # Fase 6 - Auditoria e Blindagem
     blindagem_score = models.IntegerField(null=True, blank=True)
     blindagem_detalhes = models.TextField(blank=True, null=True)

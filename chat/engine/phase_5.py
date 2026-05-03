@@ -155,6 +155,7 @@ def run_llm_phases(engine, task_id=None) -> str:
 
     parecer.parecer_final = parecer_text
     parecer.dossie_fontes = dossie
+    parecer.fase5_provider = winner if winner else ('Claude' if _has_claude else 'Gemini')
 
     # ── Limpeza de PDFs do storage (somente após parecer válido) ─────────────
     _parecer_valido = (
