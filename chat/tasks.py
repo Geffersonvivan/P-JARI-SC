@@ -519,6 +519,180 @@ def rodar_testes_engine_task():
     return f"{result.testsRun} testes | {num_falhas} falhas | {duracao_ms}ms"
 
 
+@shared_task(time_limit=600, soft_time_limit=540, queue='heavy', ignore_result=True)
+def predigerir_pacotes_task():
+    """
+    Celery Beat — Pré-digere pacotes normativos para as infrações mais comuns.
+    Roda 1x/dia. Consulta Vertex + Perplexity e sintetiza via Gemini em pacotes
+    compactos (~2000 tokens) reutilizáveis nas Fases 4/5.
+    """
+    from django.db.models import Count
+    from chat.models import PjariCacheEntry, PjariCacheConfig
+    from chat.integrations import VertexAIClient, PerplexityClient, GeminiClient
+    import concurrent.futures
+
+    logger.info("[CAG] Iniciando pré-digestão de pacotes normativos")
+
+    # ── Taxonomia: infrações mais frequentes nos últimos 90 dias ──────────
+    from django.utils import timezone
+    import datetime
+    cutoff = timezone.now() - datetime.timedelta(days=90)
+    top_infracoes = (
+        Parecer.objects
+        .filter(created_at__gte=cutoff, infracao_documento__isnull=False)
+        .exclude(infracao_documento='')
+        .values('infracao_documento')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:25]
+    )
+
+    if not top_infracoes:
+        logger.info("[CAG] Nenhuma infração encontrada — abortando")
+        return "0 pacotes"
+
+    # Normaliza tipo de infração para chave de cache
+    _TIPO_MAP = {
+        '165': 'art_165_embriaguez',
+        '165-a': 'art_165a_recusa_bafometro',
+        '170': 'art_170_manobra_perigosa',
+        '175': 'art_175_velocidade_incompativel',
+        '218': 'art_218_excesso_velocidade',
+        '230': 'art_230_cnh_vencida',
+        '232': 'art_232_conduzir_sem_cnh',
+        '244': 'art_244_sem_capacete',
+        '252': 'art_252_celular',
+        '261': 'art_261_pontuacao',
+    }
+
+    def _normalizar_infracao(descricao):
+        """Extrai tipo normalizado a partir da descrição da infração."""
+        desc = (descricao or '').lower()
+        for artigo, tipo in _TIPO_MAP.items():
+            if artigo in desc:
+                return tipo
+        # Fallback: primeiras 3 palavras como chave
+        import re
+        palavras = re.sub(r'[^a-z0-9\s]', '', desc).split()[:3]
+        return '_'.join(palavras)[:50] if palavras else 'generico'
+
+    vertex = VertexAIClient()
+    perplexity = PerplexityClient()
+    gemini = GeminiClient()
+    pacotes_gerados = 0
+    tipos_processados = set()
+
+    for item in top_infracoes:
+        infracao_desc = item['infracao_documento']
+        tipo = _normalizar_infracao(infracao_desc)
+
+        # Evita duplicatas de tipo normalizado
+        if tipo in tipos_processados:
+            continue
+        tipos_processados.add(tipo)
+
+        # Verifica se já existe pacote válido (< 7 dias)
+        cache_key = f"tese_{tipo}"
+        existing = PjariCacheEntry.objects.filter(cache_key=cache_key).first()
+        if existing and not existing.is_stale and existing.pacote_compilado:
+            logger.info("[CAG] Pacote '%s' ainda válido (hits=%d) — skip", cache_key, existing.hit_count)
+            continue
+
+        # Busca Vertex + Perplexity em paralelo
+        query_vertex = f"Legislação e normas aplicáveis à infração: {infracao_desc}"
+        query_perplexity = f"Jurisprudência CETRAN-SC e CONTRAN sobre: {infracao_desc}"
+
+        vertex_result = ""
+        perplexity_result = ""
+
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+                v_fut = ex.submit(vertex.search_documents, None, query_vertex)
+                p_fut = ex.submit(perplexity.search_tese, None, query_perplexity)
+                try:
+                    vertex_result = v_fut.result(timeout=120) or ""
+                except Exception as e:
+                    logger.warning("[CAG] Vertex falhou para '%s': %s", tipo, e)
+                try:
+                    perplexity_result = p_fut.result(timeout=150) or ""
+                except Exception as e:
+                    logger.warning("[CAG] Perplexity falhou para '%s': %s", tipo, e)
+        finally:
+            from django.db import close_old_connections
+            close_old_connections()
+
+        if not vertex_result and not perplexity_result:
+            logger.warning("[CAG] Sem resultado RAG para '%s' — skip", tipo)
+            continue
+
+        # Pré-digestão via Gemini
+        pacote = _digerir_pacote(gemini, infracao_desc, vertex_result, perplexity_result)
+        if not pacote:
+            continue
+
+        # Salva ou atualiza
+        if existing:
+            existing.vertex_result = vertex_result
+            existing.perplexity_result = perplexity_result
+            existing.pacote_compilado = pacote
+            existing.tipo_infracao = tipo
+            existing.save()
+        else:
+            PjariCacheEntry.objects.create(
+                cache_key=cache_key,
+                vertex_result=vertex_result,
+                perplexity_result=perplexity_result,
+                pacote_compilado=pacote,
+                tipo_infracao=tipo,
+            )
+
+        pacotes_gerados += 1
+        logger.info("[CAG] Pacote '%s' gerado/atualizado com sucesso (%d chars)", cache_key, len(pacote))
+
+    logger.info("[CAG] Concluído: %d pacotes gerados/atualizados de %d tipos", pacotes_gerados, len(tipos_processados))
+    return f"{pacotes_gerados} pacotes"
+
+
+def _digerir_pacote(gemini, infracao_desc, vertex_result, perplexity_result):
+    """Sintetiza Vertex + Perplexity em pacote normativo compacto via Gemini."""
+    if not gemini.client:
+        return None
+
+    prompt = (
+        f"INFRAÇÃO: {infracao_desc}\n\n"
+        f"=== CORPUS NORMATIVO (Vertex AI) ===\n{vertex_result[:6000]}\n\n"
+        f"=== JURISPRUDÊNCIA (Perplexity) ===\n{perplexity_result[:6000]}\n\n"
+        "Sintetize o material acima em um PACOTE NORMATIVO COMPACTO contendo:\n"
+        "1. Artigos do CTB aplicáveis (com redação resumida)\n"
+        "2. Resoluções CONTRAN/CETRAN-SC relevantes (número + ementa)\n"
+        "3. Top 5 jurisprudências mais citadas (tribunal + número + tese)\n"
+        "4. Teses de defesa mais comuns para esta infração\n"
+        "5. Pontos de atenção para o relator\n\n"
+        "REGRAS:\n"
+        "- Máximo 2000 tokens\n"
+        "- Sem opinião — apenas fatos normativos\n"
+        "- Formato: texto corrido com subtítulos em negrito\n"
+        "- Cite artigos e resoluções com números exatos"
+    )
+
+    try:
+        import time
+        start = time.time()
+        response = gemini.client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[prompt],
+            config={'temperature': 0.1},
+        )
+        result = (response.text or "").strip()
+        gemini._log_tokens(None, response, 'CAG Pré-digestão', model_name='gemini-2.5-flash', start_time=start)
+        if len(result) < 100:
+            logger.warning("[CAG] Pacote muito curto para '%s' (%d chars)", infracao_desc[:50], len(result))
+            return None
+        return result
+    except Exception as e:
+        logger.error("[CAG] Digestão falhou para '%s': %s", infracao_desc[:50], e)
+        return None
+
+
 @shared_task
 def send_payment_notification_task(nome_cliente, email_cliente, trans_amount, payment_id):
     from django.core.mail import send_mail

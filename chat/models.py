@@ -271,7 +271,10 @@ class PjariCacheEntry(models.Model):
     cache_key = models.CharField(max_length=255, unique=True, verbose_name="Chave de Cache (Artigo + Núcleo)")
     vertex_result = models.TextField(verbose_name="Resultado Vertex (Fundamentação)")
     perplexity_result = models.TextField(verbose_name="Resultado Perplexity (Jurisprudência)")
+    pacote_compilado = models.TextField(blank=True, null=True, verbose_name="Pacote Normativo Pré-digerido")
+    tipo_infracao = models.CharField(max_length=50, blank=True, null=True, db_index=True, verbose_name="Tipo de Infração Normalizado")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Última Atualização")
     hit_count = models.IntegerField(default=0, verbose_name="Vezes Utilizadas")
 
     class Meta:
@@ -281,6 +284,15 @@ class PjariCacheEntry(models.Model):
 
     def __str__(self):
         return f"{self.cache_key} (Usos: {self.hit_count})"
+
+    @property
+    def is_stale(self):
+        """Pacote com mais de 7 dias é considerado obsoleto."""
+        from django.utils import timezone
+        import datetime
+        if not self.updated_at:
+            return True
+        return (timezone.now() - self.updated_at) > datetime.timedelta(days=7)
 
 
 class AuditEvent(models.Model):

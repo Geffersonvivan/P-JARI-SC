@@ -48,9 +48,14 @@ class PjariCacheConfigAdmin(admin.ModelAdmin):
 
 @admin.register(PjariCacheEntry)
 class PjariCacheEntryAdmin(admin.ModelAdmin):
-    list_display = ('cache_key', 'hit_count', 'created_at')
-    search_fields = ('cache_key',)
-    readonly_fields = ('created_at', 'hit_count')
+    list_display = ('cache_key', 'tipo_infracao', 'hit_count', 'has_pacote', 'updated_at', 'created_at')
+    search_fields = ('cache_key', 'tipo_infracao')
+    list_filter = ('tipo_infracao',)
+    readonly_fields = ('created_at', 'updated_at', 'hit_count')
+
+    @admin.display(boolean=True, description='Pacote CAG')
+    def has_pacote(self, obj):
+        return bool(obj.pacote_compilado)
 
 from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog, PjariVersion
 

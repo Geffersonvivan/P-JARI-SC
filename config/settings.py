@@ -532,6 +532,11 @@ CELERY_BEAT_SCHEDULE = {
         # A cada 6 horas (00h, 06h, 12h, 18h)
         'schedule': crontab(minute=0, hour='0,6,12,18'),
     },
+    'predigerir-pacotes-normativos': {
+        'task': 'chat.tasks.predigerir_pacotes_task',
+        # 1x/dia às 03h (horário de baixo uso)
+        'schedule': crontab(minute=0, hour=3),
+    },
 }
 
 _LOG_HANDLERS_DJANGO = ['console'] if DEBUG else ['console', 'file']
