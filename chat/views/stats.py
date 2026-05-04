@@ -6,11 +6,13 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.core.cache import cache
 from django.db.models import Count, Q, Avg, F, ExpressionWrapper, Sum, Case, When, Value, BooleanField, DurationField
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django_ratelimit.decorators import ratelimit
 from ..models import Parecer, BancoTese, ParecerFinal
+from .home import _get_user_avatar_url
 
 
 @ratelimit(key='user', rate='30/h', method='GET', block=True)
@@ -19,6 +21,13 @@ def estatisticas_view(request):
 
     # Pegar mês e ano da requisição ou usar o atual
     hoje = timezone.localtime(timezone.now()).date()
+    # Cache: reutiliza dados pesados por 5 min (user + mês)
+    _mes_param = request.GET.get('mes', str(hoje.month))
+    _ano_param = request.GET.get('ano', str(hoje.year))
+    _cache_key = f'stats_user_{request.user.pk}_{_ano_param}_{_mes_param}'
+    _cached = cache.get(_cache_key)
+    if _cached is not None:
+        return render(request, 'dashboard.html', _cached)
     try:
         mes = int(request.GET.get('mes', hoje.month))
         ano = int(request.GET.get('ano', hoje.year))
@@ -206,19 +215,15 @@ def estatisticas_view(request):
         'total_usos_global': total_usos_global,
         'creditos_usuario': creditos_usuario,
         'is_pro': is_pro,
-        'banco_teses': BancoTese.objects.filter(user=request.user).defer('conteudo').order_by('-created_at'),
+        'banco_teses': list(BancoTese.objects.filter(user=request.user).defer('conteudo').order_by('-created_at')),
     }
 
-    try:
-        from allauth.socialaccount.models import SocialAccount
-        social = SocialAccount.objects.filter(user=request.user, provider='google').first()
-        context['user_avatar_url'] = social.extra_data.get('picture', '') if social else ''
-    except Exception:
-        context['user_avatar_url'] = ''
+    context['user_avatar_url'] = _get_user_avatar_url(request.user)
 
     from django.conf import settings as _s
     context['CLERK_PUBLISHABLE_KEY'] = getattr(_s, 'CLERK_PUBLISHABLE_KEY', '')
 
+    cache.set(_cache_key, context, timeout=300)
     return render(request, 'dashboard.html', context)
 
 
@@ -231,6 +236,13 @@ def estatisticas_gerais_view(request):
     from ..models import AiRequestLog, AuditEvent, UserProfile, PjariCacheConfig, SystemHealthCheck, TestRun
 
     hoje = timezone.localtime(timezone.now()).date()
+    # Cache: reutiliza dados globais por 10 min (mês)
+    _mes_param = request.GET.get('mes', str(hoje.month))
+    _ano_param = request.GET.get('ano', str(hoje.year))
+    _cache_key_global = f'stats_global_{request.user.pk}_{_ano_param}_{_mes_param}'
+    _cached = cache.get(_cache_key_global)
+    if _cached is not None:
+        return render(request, 'dashboard_global.html', _cached)
     try:
         mes = int(request.GET.get('mes', hoje.month))
         ano = int(request.GET.get('ano', hoje.year))
@@ -600,11 +612,11 @@ def estatisticas_gerais_view(request):
         'hit_rate': hit_rate,
         'total_economia': total_economia,
         'taxa_interceptacao': taxa_interceptacao,
-        'ultimas_inconsistencias': ultimas_inconsistencias,
+        'ultimas_inconsistencias': list(ultimas_inconsistencias),
         'taxa_conversao': taxa_conversao,
         'radar_infracoes': radar_infracoes_global,
         'avg_dias_funil': avg_dias_funil,
-        'banco_teses': BancoTese.objects.filter(user=request.user).defer('conteudo').order_by('-created_at'),
+        'banco_teses': list(BancoTese.objects.filter(user=request.user).defer('conteudo').order_by('-created_at')),
         # Auditoria de Uso
         'funil_data': funil_data,
         'filtros_bloqueados': filtros_bloqueados,
@@ -616,16 +628,12 @@ def estatisticas_gerais_view(request):
         'ultimos_erros_fase': ultimos_erros_fase,
     }
 
-    try:
-        from allauth.socialaccount.models import SocialAccount
-        social = SocialAccount.objects.filter(user=request.user, provider='google').first()
-        context['user_avatar_url'] = social.extra_data.get('picture', '') if social else ''
-    except Exception:
-        context['user_avatar_url'] = ''
+    context['user_avatar_url'] = _get_user_avatar_url(request.user)
 
     from django.conf import settings as _s
     context['CLERK_PUBLISHABLE_KEY'] = getattr(_s, 'CLERK_PUBLISHABLE_KEY', '')
 
+    cache.set(_cache_key_global, context, timeout=600)
     return render(request, 'dashboard_global.html', context)
 
 

@@ -12,6 +12,24 @@ def _get_filter_kwargs(request):
     return {'user': None, 'session_key': request.session.session_key}
 
 
+def _get_user_avatar_url(user):
+    """Retorna URL do avatar Google do usuário, cacheado por 1h."""
+    if not user or not user.is_authenticated:
+        return ''
+    cache_key = f'avatar_url_{user.pk}'
+    url = cache.get(cache_key)
+    if url is not None:
+        return url
+    try:
+        from allauth.socialaccount.models import SocialAccount
+        social = SocialAccount.objects.filter(user=user, provider='google').first()
+        url = social.extra_data.get('picture', '') if social else ''
+    except Exception:
+        url = ''
+    cache.set(cache_key, url, timeout=3600)
+    return url
+
+
 PLANS = {
     'extra': {
         'title': 'P-JARI/SC 1 Crédito Extra',
@@ -117,13 +135,7 @@ def home_view(request):
             user_is_pro = request.user.profile.is_pro
         except Exception:
             pass
-        try:
-            from allauth.socialaccount.models import SocialAccount
-            social = SocialAccount.objects.filter(user=request.user, provider='google').first()
-            if social:
-                user_avatar_url = social.extra_data.get('picture', '')
-        except Exception:
-            pass
+        user_avatar_url = _get_user_avatar_url(request.user)
 
     return render(request, 'home.html', {
         'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', ''),

@@ -77,6 +77,8 @@ def comentar_post_forum_view(request, post_id):
             autor=request.user,
             conteudo=conteudo
         )
+        from django.core.cache import cache as _cache
+        _cache.delete(f'forum_comentarios_{post_id}')
         return JsonResponse({
             'status': 'success',
             'comentario_id': comentario.id,
@@ -115,6 +117,12 @@ def curtir_post_forum_view(request, post_id):
 
 @login_required
 def get_comentarios_forum_view(request, post_id):
+    from django.core.cache import cache as _cache
+    _ck = f'forum_comentarios_{post_id}'
+    cached = _cache.get(_ck)
+    if cached is not None:
+        return JsonResponse(cached)
+
     from ..models import PostForum
     try:
         post = PostForum.objects.get(id=post_id)
@@ -126,7 +134,9 @@ def get_comentarios_forum_view(request, post_id):
             'data_criacao': c.data_criacao.strftime('%d/%m/%Y %H:%M')
         } for c in comentarios]
 
-        return JsonResponse({'status': 'success', 'comentarios': dados})
+        result = {'status': 'success', 'comentarios': dados}
+        _cache.set(_ck, result, timeout=60)
+        return JsonResponse(result)
     except PostForum.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Post não encontrado.'}, status=404)
 

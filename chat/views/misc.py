@@ -84,9 +84,20 @@ def proxy_image_view(request):
     if not is_allowed:
         return HttpResponse(status=403)
 
+    from django.core.cache import cache as _cache
+    import hashlib
+    _img_cache_key = f'proxy_img_{hashlib.md5(url.encode()).hexdigest()}'
+    _cached = _cache.get(_img_cache_key)
+    if _cached is not None:
+        response = HttpResponse(_cached['body'], content_type=_cached['ct'])
+        response['Cache-Control'] = 'public, max-age=86400'
+        return response
+
     try:
         r = requests.get(url, timeout=10, verify=True)
-        response = HttpResponse(r.content, content_type=r.headers.get('Content-Type', 'image/jpeg'))
+        ct = r.headers.get('Content-Type', 'image/jpeg')
+        _cache.set(_img_cache_key, {'body': r.content, 'ct': ct}, timeout=86400)
+        response = HttpResponse(r.content, content_type=ct)
         response['Cache-Control'] = 'public, max-age=86400'
         return response
     except Exception as e:
@@ -102,9 +113,17 @@ def aceitar_termos_view(request):
         return redirect('/')
 
     from legal.models import DocumentoLegal, AceiteDocumentoLegal
+    from django.core.cache import cache as _cache
 
-    termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).first()
-    politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).first()
+    termo_ativo = _cache.get('doc_legal_termo_uso')
+    if termo_ativo is None:
+        termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).first()
+        _cache.set('doc_legal_termo_uso', termo_ativo, timeout=3600)
+
+    politica_ativa = _cache.get('doc_legal_politica')
+    if politica_ativa is None:
+        politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).first()
+        _cache.set('doc_legal_politica', politica_ativa, timeout=3600)
 
     precisa_termo = False
     precisa_politica = False
@@ -159,10 +178,19 @@ def aceitar_termos_view(request):
 
 def visualizar_termos_view(request):
     """View pública para visualizar os termos de uso e políticas de privacidade atuais."""
-    from legal.models import DocumentoLegal
+    from django.core.cache import cache as _cache
 
-    termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).first()
-    politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).first()
+    termo_ativo = _cache.get('doc_legal_termo_uso')
+    if termo_ativo is None:
+        from legal.models import DocumentoLegal
+        termo_ativo = DocumentoLegal.objects.filter(tipo='TERMO_USO', is_active=True).first()
+        _cache.set('doc_legal_termo_uso', termo_ativo, timeout=3600)
+
+    politica_ativa = _cache.get('doc_legal_politica')
+    if politica_ativa is None:
+        from legal.models import DocumentoLegal
+        politica_ativa = DocumentoLegal.objects.filter(tipo='POLITICA_PRIVACIDADE', is_active=True).first()
+        _cache.set('doc_legal_politica', politica_ativa, timeout=3600)
 
     context = {
         'termo': termo_ativo,

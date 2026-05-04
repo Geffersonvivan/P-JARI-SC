@@ -156,8 +156,13 @@ def planos_view(request):
         request.session.create()
 
     from django.shortcuts import render
+    from django.core.cache import cache as _cache
     if request.user.is_authenticated:
-        total_julgados = Parecer.objects.filter(user=request.user).count()
+        _ck = f'planos_total_{request.user.pk}'
+        total_julgados = _cache.get(_ck)
+        if total_julgados is None:
+            total_julgados = Parecer.objects.filter(user=request.user).count()
+            _cache.set(_ck, total_julgados, timeout=300)
     else:
         total_julgados = Parecer.objects.filter(user__isnull=True, session_key=request.session.session_key).count()
 

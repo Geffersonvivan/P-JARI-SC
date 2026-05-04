@@ -217,14 +217,19 @@
         const badge = document.getElementById('forum-badge');
         if (badge) badge.style.display = 'none';
 
-        // Disparar requisição para atualizar o ultimo_acesso_forum do usuário
-        fetch("/api/forum/update-access/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": getCSRFTokenForum()
-            }
-        }).catch(e => console.error("Erro ao atualizar acesso ao fórum:", e));
+        // Debounce: só atualiza acesso no backend a cada 5 min (evita request a cada abertura)
+        const _lastAccess = localStorage.getItem('forum_last_access');
+        const _now = Date.now();
+        if (!_lastAccess || (_now - parseInt(_lastAccess)) > 300000) {
+            localStorage.setItem('forum_last_access', _now);
+            fetch("/api/forum/update-access/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCSRFTokenForum()
+                }
+            }).catch(e => console.error("Erro ao atualizar acesso ao fórum:", e));
+        }
     }
 
     function previewImagem(input) {

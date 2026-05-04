@@ -903,12 +903,36 @@
             }
         }
 
+        // Cache localStorage para respostas genéricas do agente (perguntas de legislação sem parecer_id)
+        function _agentCacheKey(msg) { return 'agent_cache_' + msg.trim().toLowerCase().replace(/\s+/g, '_').slice(0, 80); }
+        function _agentCacheGet(msg, parecerId) {
+            if (parecerId) return null; // Só cacheia perguntas genéricas
+            try {
+                const entry = JSON.parse(localStorage.getItem(_agentCacheKey(msg)));
+                if (entry && (Date.now() - entry.ts) < 3600000) return entry.reply; // 1h TTL
+            } catch(e) {}
+            return null;
+        }
+        function _agentCacheSet(msg, reply, parecerId) {
+            if (parecerId) return;
+            try { localStorage.setItem(_agentCacheKey(msg), JSON.stringify({reply, ts: Date.now()})); } catch(e) {}
+        }
+
         async function sendAgentMessageEditor() {
             const text = agentInput.value.trim();
             if (!text) return;
 
+            const parecerId = "{{ parecer.id|default:'' }}";
+
             appendAgentMessageEditor(text, 'user');
             agentInput.value = '';
+
+            // Verifica cache local antes de chamar o backend
+            const cachedReply = _agentCacheGet(text, parecerId);
+            if (cachedReply) {
+                appendAgentMessageEditor(cachedReply, 'agent');
+                return;
+            }
 
             const loadingId = 'agent-loading-' + Date.now();
             appendAgentMessageEditor('Pensando...', 'agent', loadingId);
@@ -920,19 +944,20 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
-                    body: JSON.stringify({ 
-                        message: text, 
-                        parecer_id: "{{ parecer.id|default:'' }}" // Manda o contexto do Parecer aberto!
+                    body: JSON.stringify({
+                        message: text,
+                        parecer_id: parecerId
                     })
                 });
 
                 const data = await response.json();
-                
+
                 const loadingEl = document.getElementById(loadingId);
                 if (loadingEl) loadingEl.remove();
 
                 if (response.ok) {
                     appendAgentMessageEditor(data.reply, 'agent');
+                    _agentCacheSet(text, data.reply, parecerId);
                 } else {
                     let errorMessage = data.error || data.trace || "Erro ao processar mensagem.";
                     appendAgentMessageEditor('**Erro Backend:** ```' + errorMessage + '```', 'agent');

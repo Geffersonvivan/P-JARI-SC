@@ -7,13 +7,13 @@ from django.middleware.csrf import get_token
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from django.core.cache import cache
 from django_ratelimit.decorators import ratelimit
 from ..models import Parecer, Pasta
 
 
 def _get_online_users_count():
     """Conta usuários distintos com parecer, cacheado por 5 min."""
-    from django.core.cache import cache
     count = cache.get('pjari_online_users_count')
     if count is None:
         count = Parecer.objects.filter(user__isnull=False).values('user').distinct().count()
@@ -141,7 +141,12 @@ def wizard_status_view(request, id):
     # Proteção contra CSRF: navegadores não enviam headers custom cross-origin sem preflight CORS
     if request.method == 'POST' and request.headers.get('X-Requested-With') != 'XMLHttpRequest':
         return JsonResponse({'error': 'Requisição inválida.'}, status=403)
+    _status_cache_key = f'wizard_status_{id}'
+    _cached_fase = cache.get(_status_cache_key)
+    if _cached_fase is not None:
+        return JsonResponse({'status_fase': _cached_fase})
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
+    cache.set(_status_cache_key, parecer.status_fase, timeout=2)
     return JsonResponse({'status_fase': parecer.status_fase})
 
 
@@ -163,7 +168,11 @@ def wizard_parecer_view(request, id):
     parecer_final_editado = parecer.pareceres_finais.order_by('-data_criacao').first()
     parecer_final_html = parecer_final_editado.conteudo_html if parecer_final_editado else ''
 
-    total_finalizados = Parecer.objects.filter(user=request.user, status_fase=8).count()
+    _cache_key_fin = f'total_finalizados_{request.user.pk}'
+    total_finalizados = cache.get(_cache_key_fin)
+    if total_finalizados is None:
+        total_finalizados = Parecer.objects.filter(user=request.user, status_fase=8).count()
+        cache.set(_cache_key_fin, total_finalizados, timeout=120)
 
     context = {
         'parecer': parecer,
