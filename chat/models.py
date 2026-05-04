@@ -212,6 +212,11 @@ class ConfiguracaoParecer(models.Model):
     rodape_deferido = models.TextField(help_text="HTML para caso de Deferimento")
     rodape_indeferido = models.TextField(help_text="HTML para caso de Indeferimento")
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('configuracao_parecer')
+
     def __str__(self):
         return "Configuração Global do Parecer"
 

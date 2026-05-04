@@ -141,7 +141,7 @@ def wizard_status_view(request, id):
     # Proteção contra CSRF: navegadores não enviam headers custom cross-origin sem preflight CORS
     if request.method == 'POST' and request.headers.get('X-Requested-With') != 'XMLHttpRequest':
         return JsonResponse({'error': 'Requisição inválida.'}, status=403)
-    _status_cache_key = f'wizard_status_{id}'
+    _status_cache_key = f'wizard_status_{request.user.pk}_{id}'
     _cached_fase = cache.get(_status_cache_key)
     if _cached_fase is not None:
         return JsonResponse({'status_fase': _cached_fase})

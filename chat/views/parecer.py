@@ -43,8 +43,9 @@ def _sanitize_html(html: str) -> str:
 @login_required
 def editar_parecer_view(request, id):
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
-    config = cache.get('configuracao_parecer')
-    if config is None:
+    _MISS = object()
+    config = cache.get('configuracao_parecer', _MISS)
+    if config is _MISS:
         config = ConfiguracaoParecer.objects.first()
         cache.set('configuracao_parecer', config, timeout=3600)
 

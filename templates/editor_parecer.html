@@ -64,7 +64,7 @@
             </textarea>
 
                 <div class="mt-6 pt-2 flex justify-end gap-4 shrink-0">
-                    <button type="button" onclick="window.history.back()"
+                    <button type="button" id="btn-cancelar-editor" onclick="window.history.back()"
                         class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Cancelar</button>
 
                     <!-- NEW WORD EXPORT BUTTON -->
@@ -903,36 +903,12 @@
             }
         }
 
-        // Cache localStorage para respostas genéricas do agente (perguntas de legislação sem parecer_id)
-        function _agentCacheKey(msg) { return 'agent_cache_' + msg.trim().toLowerCase().replace(/\s+/g, '_').slice(0, 80); }
-        function _agentCacheGet(msg, parecerId) {
-            if (parecerId) return null; // Só cacheia perguntas genéricas
-            try {
-                const entry = JSON.parse(localStorage.getItem(_agentCacheKey(msg)));
-                if (entry && (Date.now() - entry.ts) < 3600000) return entry.reply; // 1h TTL
-            } catch(e) {}
-            return null;
-        }
-        function _agentCacheSet(msg, reply, parecerId) {
-            if (parecerId) return;
-            try { localStorage.setItem(_agentCacheKey(msg), JSON.stringify({reply, ts: Date.now()})); } catch(e) {}
-        }
-
         async function sendAgentMessageEditor() {
             const text = agentInput.value.trim();
             if (!text) return;
 
-            const parecerId = "{{ parecer.id|default:'' }}";
-
             appendAgentMessageEditor(text, 'user');
             agentInput.value = '';
-
-            // Verifica cache local antes de chamar o backend
-            const cachedReply = _agentCacheGet(text, parecerId);
-            if (cachedReply) {
-                appendAgentMessageEditor(cachedReply, 'agent');
-                return;
-            }
 
             const loadingId = 'agent-loading-' + Date.now();
             appendAgentMessageEditor('Pensando...', 'agent', loadingId);
@@ -946,7 +922,7 @@
                     },
                     body: JSON.stringify({
                         message: text,
-                        parecer_id: parecerId
+                        parecer_id: "{{ parecer.id|default:'' }}"
                     })
                 });
 
@@ -957,7 +933,6 @@
 
                 if (response.ok) {
                     appendAgentMessageEditor(data.reply, 'agent');
-                    _agentCacheSet(text, data.reply, parecerId);
                 } else {
                     let errorMessage = data.error || data.trace || "Erro ao processar mensagem.";
                     appendAgentMessageEditor('**Erro Backend:** ```' + errorMessage + '```', 'agent');
@@ -972,10 +947,12 @@
     </script>
 
     <script>
-    // Esconde "Voltar" quando acessado via wizard
+    // Esconde "Voltar" e "Cancelar" quando acessado via wizard (primeiro acesso)
     if (new URLSearchParams(window.location.search).get('from') === 'wizard') {
         const btn = document.getElementById('btn-voltar-editor');
         if (btn) btn.style.display = 'none';
+        const btnCancelar = document.getElementById('btn-cancelar-editor');
+        if (btnCancelar) btnCancelar.style.display = 'none';
     }
     // Elimina FOUC: revela o body após DOM pronto
     document.addEventListener('DOMContentLoaded', function() {
