@@ -310,7 +310,7 @@
         {% if status_fase == 10 %}
         <div id="pdf-sidebar" style="flex:1.4;min-width:0;display:flex;flex-direction:column;border-right:1px solid #f1f5f9;overflow:hidden;transition:flex .3s ease,min-width .3s ease;">
         {% else %}
-        <div id="pdf-sidebar" style="flex:0 0 40px;min-width:40px;display:flex;flex-direction:column;border-right:1px solid #f1f5f9;overflow:hidden;transition:flex .3s ease,min-width .3s ease;">
+        <div id="pdf-sidebar" style="display:none;flex:0 0 40px;min-width:40px;flex-direction:column;border-right:1px solid #f1f5f9;overflow:hidden;transition:flex .3s ease,min-width .3s ease;">
         {% endif %}
 
             <!-- Estado expandido -->
@@ -1242,11 +1242,6 @@ function detectState() {
     const panel = document.getElementById(`panel-${stepToPanel(currentStep)}`);
     if (panel) panel.classList.remove('hidden');
     renderPhase(currentFase);
-
-    // Parecer salvo com PDFs: auto-expande o viewer lateral
-    if (currentFase > 1 && document.getElementById('pdf-sidebar')) {
-        expandPdf();
-    }
 }
 
 function renderPhase(f) {
@@ -1439,12 +1434,6 @@ function togglePdfCol() {
         sidebar.style.minWidth = '0';
         expanded.style.display = 'flex';
         strip.style.display    = 'none';
-        // Carrega o primeiro PDF se o iframe ainda está vazio
-        const _frame = document.getElementById('pdf-docs-frame');
-        if (_frame && !_frame.src.includes('/chat/pdf/')) {
-            const _firstTab = document.querySelector('.pdf-tab');
-            if (_firstTab) switchPdfTab(_firstTab);
-        }
     }
 }
 
