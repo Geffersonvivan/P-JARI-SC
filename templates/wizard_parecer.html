@@ -1242,6 +1242,11 @@ function detectState() {
     const panel = document.getElementById(`panel-${stepToPanel(currentStep)}`);
     if (panel) panel.classList.remove('hidden');
     renderPhase(currentFase);
+
+    // Parecer salvo com PDFs: auto-expande o viewer lateral
+    if (currentFase > 1 && document.getElementById('pdf-sidebar')) {
+        expandPdf();
+    }
 }
 
 function renderPhase(f) {
@@ -1434,6 +1439,12 @@ function togglePdfCol() {
         sidebar.style.minWidth = '0';
         expanded.style.display = 'flex';
         strip.style.display    = 'none';
+        // Carrega o primeiro PDF se o iframe ainda está vazio
+        const _frame = document.getElementById('pdf-docs-frame');
+        if (_frame && !_frame.src.includes('/chat/pdf/')) {
+            const _firstTab = document.querySelector('.pdf-tab');
+            if (_firstTab) switchPdfTab(_firstTab);
+        }
     }
 }
 
