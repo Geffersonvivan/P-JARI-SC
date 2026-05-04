@@ -246,7 +246,7 @@ def run(engine) -> str:
 
     # Limpa tags HTML que o LLM pode citar do parecer (evita renderização indevida)
     import re as _re_html
-    checklist_texto = _re_html.sub(r'<[^>]+>', '', checklist_texto)
+    checklist_texto = _re_html.sub(r'</?[a-zA-Z][^>]*>', '', checklist_texto)
 
     # Salva o relatório completo em blindagem_detalhes (usado pelo wizard JariMatch)
     full_blindagem = "### 🛡️ Auditoria Final de Conformidade\n\n"
