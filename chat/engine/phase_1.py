@@ -213,7 +213,7 @@ def run_autopreenchimento(engine) -> str:
             ]:
                 _path = _p(path_field)
                 if _path and "upload_simulado" not in _path:
-                    md = PDFExtractor.extract_structured_markdown(_path, label=label.upper(), max_pages=10)
+                    md = PDFExtractor.extract_structured_markdown(_path, label=label.upper())
                     if md:
                         markdown_texts[label] = md
             logger.info(f"[FASE1_TEXT] parecer={parecer.id} docs={list(markdown_texts.keys())} "

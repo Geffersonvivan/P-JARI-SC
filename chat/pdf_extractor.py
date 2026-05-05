@@ -297,7 +297,7 @@ class PDFExtractor:
                     pass
 
     @staticmethod
-    def extract_structured_markdown(file_path, label="DOCUMENTO", max_pages=15):
+    def extract_structured_markdown(file_path, label="DOCUMENTO", max_pages=50):
         """
         Converte PDF em Markdown estruturado: tabelas GFM via find_tables() +
         texto dos blocos fora das tabelas. Retorna string Markdown ou vazia.
