@@ -406,6 +406,11 @@ USE_GCS = os.environ.get('USE_GCS', str(not DEBUG)) == 'True'
 # False = modo legado (Files API visual) | True = modo texto-only (Markdown)
 FASE1_TEXT_ONLY = os.environ.get('FASE1_TEXT_ONLY', 'True') == 'True'
 
+# Unifica Fases 1+2 numa única chamada Gemini: extrai campos administrativos +
+# tabela de datas sensíveis + tipo_penalidade + flagrante de uma vez.
+# O julgador vê um único formulário de confirmação em vez de dois sequenciais.
+UNIFIED_FASE1_FASE2 = os.environ.get('UNIFIED_FASE1_FASE2', 'True') == 'True'
+
 if USE_GCS:
     GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', 'pjari-midias')
     google_creds_env = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')

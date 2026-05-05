@@ -166,6 +166,37 @@ def process_confirm(engine, message: str) -> str:
     if faltando:
         return f"❌ Os seguintes campos são obrigatórios: **{', '.join(faltando)}**. Preencha e confirme novamente."
 
+    # ── Modo unificado: salvar campos F2 do payload e pular direto para F3 ──
+    from django.conf import settings as _settings_confirm
+    if getattr(_settings_confirm, 'UNIFIED_FASE1_FASE2', False) and parecer.tabela_datas_sensiveis:
+        # Salvar edições de tipo_penalidade e data_totalizacao_pontos do formulário
+        _tp = payload.get("tipo_penalidade", "").lower().strip()
+        if _tp and _tp != 'nao_determinado':
+            parecer.tipo_penalidade = _tp
+        elif _tp == '':
+            pass  # Manter o que o Gemini extraiu
+
+        _dtp = payload.get("data_totalizacao_pontos", "").strip()
+        if _dtp:
+            _dtp_parsed = _parse_date_flex(_dtp)
+            if _dtp_parsed:
+                parecer.data_totalizacao_pontos = _dtp_parsed
+
+        # Fast-path: F3-PRE já calculou admissibilidade em background
+        from chat.engine import FASE_ADMISSIBILIDADE_GERADA, FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
+        if parecer.admissibilidade_texto:
+            parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
+            parecer.save()
+            logger.info("[UNIFIED→31] pré-cálculo F3 reutilizado. parecer=%s", parecer.id)
+            return engine.get_current_prompt()
+
+        parecer.status_fase = FASE_ADMISSIBILIDADE_GERADA
+        parecer.save()
+        from chat.tasks import processar_fase3_admissibilidade_task
+        task = processar_fase3_admissibilidade_task.delay(parecer.id)
+        return _json.dumps({"status": "celery", "task_id": task.id, "type": "FASE3_ADM"})
+
+    # ── Modo legado: disparar Fase 2 separada ──
     from chat.engine import FASE_DIR
     parecer.status_fase = FASE_DIR
     parecer.save()
@@ -200,36 +231,55 @@ def run_autopreenchimento(engine) -> str:
     try:
         from django.conf import settings as _settings
         from chat.integrations import GeminiClient
+        from chat.pdf_extractor import PDFExtractor
+        from chat.integrations.perplexity import _p
 
-        if getattr(_settings, 'FASE1_TEXT_ONLY', False):
-            # Novo caminho: PyMuPDF Markdown estruturado → Gemini texto-only (sem Files API)
-            from chat.pdf_extractor import PDFExtractor
-            from chat.integrations.perplexity import _p
-            markdown_texts = {}
-            for path_field, label in [
-                (parecer.autuacao_pdf_path, 'autuacao'),
-                (parecer.consolidado_pdf_path, 'consolidado'),
-                (parecer.ata_pdf_path, 'ata'),
-            ]:
-                _path = _p(path_field)
-                if _path and "upload_simulado" not in _path:
-                    md = PDFExtractor.extract_structured_markdown(_path, label=label.upper())
-                    if md:
-                        markdown_texts[label] = md
+        # Extrair Markdown estruturado dos PDFs (usado por ambos os modos)
+        markdown_texts = {}
+        for path_field, label in [
+            (parecer.autuacao_pdf_path, 'autuacao'),
+            (parecer.consolidado_pdf_path, 'consolidado'),
+            (parecer.ata_pdf_path, 'ata'),
+        ]:
+            _path = _p(path_field)
+            if _path and "upload_simulado" not in _path:
+                md = PDFExtractor.extract_structured_markdown(_path, label=label.upper())
+                if md:
+                    markdown_texts[label] = md
+
+        if getattr(_settings, 'UNIFIED_FASE1_FASE2', False):
+            # ── Modo unificado: F1+F2 numa única chamada ──
+            # Extrair datas brutas via regex (input para a tabela de datas sensíveis)
+            datas_aut, _chars_aut = [], 0
+            datas_con, _chars_con = [], 0
+            _aut = _p(parecer.autuacao_pdf_path)
+            _con = _p(parecer.consolidado_pdf_path)
+            if _aut and "upload_simulado" not in _aut:
+                datas_aut, _chars_aut = PDFExtractor.extract_dates_from_pdf(_aut, "Autuação")
+            if _con and "upload_simulado" not in _con and _aut != _con:
+                datas_con, _chars_con = PDFExtractor.extract_dates_from_pdf(_con, "Consolidado")
+            contexto_datas = PDFExtractor.format_extraction_for_llm(datas_aut, datas_con)
+            _total_chars = _chars_aut + _chars_con
+
+            logger.info(f"[UNIFIED] parecer={parecer.id} docs={list(markdown_texts.keys())} "
+                        f"md_chars={sum(len(v) for v in markdown_texts.values())} pdf_chars={_total_chars}")
+            dados = GeminiClient().extract_unified_fase1_fase2(
+                parecer, markdown_texts, contexto_datas, pdf_chars=_total_chars
+            )
+
+        elif getattr(_settings, 'FASE1_TEXT_ONLY', False):
+            # ── Modo texto-only: só F1 ──
             logger.info(f"[FASE1_TEXT] parecer={parecer.id} docs={list(markdown_texts.keys())} "
                         f"total_chars={sum(len(v) for v in markdown_texts.values())}")
             dados = GeminiClient().extract_fase1_fields_text_only(parecer, markdown_texts)
         else:
-            # Caminho legado: Files API visual
+            # ── Modo legado: Files API visual ──
             dados = GeminiClient().extract_fase1_fields(parecer)
     except Exception as e:
         logger.warning(f"run_fase1_autopreenchimento: erro na extração ({e}). Fallback manual.")
         dados = None
 
     if not dados:
-        # Gemini falhou na extração automática.
-        # Avança para FASE_AGUARDA_CONFIRMACAO_FASE1 com formulário vazio
-        # para que o usuário preencha manualmente — sem bloquear na tela de upload.
         dados = {}
 
     def _parse_date(s):
@@ -238,6 +288,7 @@ def run_autopreenchimento(engine) -> str:
         except (ValueError, AttributeError):
             return None
 
+    # ── Salvar campos F1 (administrativos) ──
     if dados.get("pa") and not parecer.pa:
         parecer.pa = dados["pa"]
     if dados.get("sgpe") and not parecer.sgpe:
@@ -250,6 +301,41 @@ def run_autopreenchimento(engine) -> str:
         parecer.data_protocolo = _parse_date(dados["data_protocolo"])
     if dados.get("paginas_defesa") and not parecer.paginas_defesa:
         parecer.paginas_defesa = dados["paginas_defesa"]
+
+    # ── Salvar campos F2 (DIR) se modo unificado ──
+    from django.conf import settings as _settings
+    if getattr(_settings, 'UNIFIED_FASE1_FASE2', False) and dados.get("tabela_markdown"):
+        _tp = (dados.get('tipo_penalidade') or '').lower().strip()
+        if _tp and _tp != 'nao_determinado':
+            parecer.tipo_penalidade = _tp
+
+        _flag = (dados.get('tem_flagrante') or '').upper().strip()
+        if _flag == 'SIM':
+            parecer.tem_flagrante = True
+        elif _flag == 'NAO':
+            parecer.tem_flagrante = False
+
+        _dc = dados.get('data_conclusao_multa', '')
+        if _dc and 'NAO_SE_APLICA' not in _dc.upper():
+            parecer.data_conclusao_multa = _parse_date(_dc)
+
+        _dci = dados.get('data_conhecimento_infracao', '')
+        if _dci and 'NAO_SE_APLICA' not in _dci.upper():
+            parecer.data_conhecimento_infracao = _parse_date(_dci)
+
+        _dtp = dados.get('data_totalizacao_pontos', '')
+        if _dtp and 'NAO_SE_APLICA' not in _dtp.upper():
+            parecer.data_totalizacao_pontos = _parse_date(_dtp)
+
+        _rec = (dados.get('recorrente') or '').strip()
+        if _rec and 'NÃO LOCALIZADO' not in _rec.upper():
+            parecer.recorrente = _rec[:250].upper()
+
+        # Normalizar markdown da tabela
+        from chat.engine.phase_2 import _normalizar_markdown_tabela
+        parecer.tabela_datas_sensiveis = _normalizar_markdown_tabela(dados['tabela_markdown'])
+
+        logger.info(f"[UNIFIED] parecer={parecer.id} campos F2 salvos: tp={_tp} flag={_flag}")
 
     from chat.engine import FASE_AGUARDA_CONFIRMACAO_FASE1
     parecer.fase1_extracao_json = dados

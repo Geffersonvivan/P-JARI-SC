@@ -212,5 +212,6 @@ def wizard_parecer_view(request, id):
         'CLERK_PUBLISHABLE_KEY': getattr(settings, 'CLERK_PUBLISHABLE_KEY', ''),
         'pjari_version': getattr(settings, 'PJARI_VERSION', '1.2'),
         'online_users_count': _get_online_users_count(),
+        'unified_mode': getattr(settings, 'UNIFIED_FASE1_FASE2', False),
     }
     return render(request, 'wizard_parecer.html', context)

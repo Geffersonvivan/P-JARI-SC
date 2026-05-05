@@ -684,6 +684,193 @@ class GeminiClient:
                          parecer_obj.id, type(e).__name__, e)
             return None
 
+    def extract_unified_fase1_fase2(self, parecer_obj, markdown_texts, contexto_textual_datas, pdf_chars=9999):
+        """
+        Extração unificada Fases 1+2: campos administrativos + tabela de datas
+        sensíveis + tipo_penalidade + flagrante numa única chamada Gemini.
+        Usa Markdown estruturado (texto-only) + datas brutas do PDFExtractor.
+        Retorna dict com todos os campos ou None se falhar.
+        """
+        if not self.client:
+            _log.warning("extract_unified: cliente Gemini não configurado — parecer=%s",
+                         getattr(parecer_obj, 'id', '?'))
+            return None
+
+        from google.genai import types as _gtypes
+
+        _schema = _gtypes.Schema(
+            type=_gtypes.Type.OBJECT,
+            properties={
+                # ── Campos Fase 1 (administrativos) ──
+                'pa': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='Número do processo administrativo (ex: 80226/2022) ou null.'),
+                'pa_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
+                'sgpe': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='Número SGPE correspondente ao PA na Ata da Sessão, ou null.'),
+                'sgpe_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
+                'recorrente': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='Nome completo do condutor/proprietário recorrente ou NÃO LOCALIZADO.'),
+                'recorrente_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
+                'prazo_final': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='Data limite para protocolo do recurso JARI em DD/MM/AAAA ou null.'),
+                'prazo_final_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
+                'data_protocolo': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='Data em que o recurso foi protocolado em DD/MM/AAAA ou null.'),
+                'data_protocolo_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
+                'paginas_defesa': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='Intervalo de páginas da defesa recursal (ex: 15-24) ou null.'),
+                'paginas_defesa_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
+                # ── Campos Fase 2 (DIR) ──
+                'tipo_penalidade': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    enum=['multa', 'advertencia', 'suspensao', 'cassacao', 'nao_determinado'],
+                    description='Tipo da autuação conforme documento.'),
+                'tem_flagrante': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    enum=['SIM', 'NAO', 'NAO_DETERMINADO'],
+                    description='A autuação foi lavrada em flagrante?'),
+                'data_conclusao_multa': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='DD/MM/AAAA ou NAO_SE_APLICA — data de conclusão do processo de multa.'),
+                'data_conhecimento_infracao': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='DD/MM/AAAA ou NAO_SE_APLICA — data em que o órgão tomou ciência (art. 282 §6º-A CTB).'),
+                'data_totalizacao_pontos': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description=(
+                        'DD/MM/AAAA ou NAO_SE_APLICA — data de totalização de pontos. '
+                        'Preencher APENAS se tipo_penalidade=suspensao E suspensão por acúmulo de pontos.'
+                    )),
+                'data_infracao_extraida': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='DD/MM/AAAA ou NAO_SE_APLICA — data da infração identificada nos documentos.'),
+                'data_notificacao_extraida': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description='DD/MM/AAAA ou NAO_SE_APLICA — data da primeira notificação (NA ou NP).'),
+                # ── Tabela Markdown (saída visual) ──
+                'tabela_markdown': _gtypes.Schema(type=_gtypes.Type.STRING,
+                    description=(
+                        'Saída completa em Markdown para exibição ao julgador. '
+                        'Deve conter: #### 1. Linha do Tempo Mínima (tabela com colunas Data|Tipo|Descritivo|Origem|Observações), '
+                        '#### 2. Tabela de Datas Sensíveis para Prazos (colunas Tipo|Data|Descritivo|Origem|Observações), '
+                        'e #### Atenção do Membro Julgador (bullets com divergências/NÃO LOCALIZADOS). '
+                        'Rótulos canônicos de Tipo: INFRACAO|NA|NP|INSTAURACAO|PROTOCOLO|SESSAO|PRAZO|CONCLUSAO_MULTA|DECISAO|OUTRO.'
+                    )),
+            },
+            required=['pa', 'recorrente', 'tipo_penalidade', 'tem_flagrante', 'tabela_markdown'],
+        )
+
+        # Âncora para SGPE na tabela da Ata
+        _pa_anchor = parecer_obj.pa or ""
+        _rec_anchor = parecer_obj.recorrente or ""
+        _ata_disponivel = 'ata' in markdown_texts if markdown_texts else False
+        _anchor_hint = ""
+        if _ata_disponivel and _pa_anchor:
+            _anchor_hint = (
+                f"AVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
+                f"Localize a linha cujo campo PSDD/PA é exatamente '{_pa_anchor}' "
+                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha.\n\n"
+            )
+        elif _ata_disponivel and _rec_anchor:
+            _anchor_hint = (
+                f"AVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
+                f"Localize a linha cujo recorrente é '{_rec_anchor}' "
+                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha.\n\n"
+            )
+
+        system_instruction = (
+            "Você é um extrator de dados jurídicos de processos de trânsito (JARI).\n"
+            "Analise os documentos abaixo e execute DUAS tarefas simultâneas:\n\n"
+            "TAREFA 1 — CAMPOS ADMINISTRATIVOS:\n"
+            "Extraia: pa, sgpe, recorrente, prazo_final, data_protocolo, paginas_defesa.\n"
+            "Para cada campo, indique confiança: 'alta' (explícito), 'baixa' (ambíguo), 'nulo' (não encontrado).\n\n"
+            "TAREFA 2 — TABELA DE DATAS SENSÍVEIS:\n"
+            "Organize TODAS as datas essenciais do processo numa tabela Markdown.\n"
+            "Extraia: tipo_penalidade, tem_flagrante, data_conclusao_multa, data_conhecimento_infracao, "
+            "data_totalizacao_pontos, data_infracao_extraida, data_notificacao_extraida.\n\n"
+            "REGRAS ABSOLUTAS:\n"
+            "1. NUNCA invente ou deduza valores — se não encontrar, use null ou NAO_SE_APLICA.\n"
+            "2. Datas SEMPRE no formato DD/MM/AAAA.\n"
+            "3. Se houver mais de uma data para o mesmo evento, liste TODAS na tabela como POSSÍVEL (1), (2).\n"
+            "4. NUNCA declare erro, nulidade ou conflito; apenas anote 'Divergente; julgador deve avaliar'.\n"
+            "5. No campo tabela_markdown, use rótulos canônicos MAIÚSCULOS na coluna Tipo: "
+            "INFRACAO|NA|NP|INSTAURACAO|PROTOCOLO|SESSAO|PRAZO|CONCLUSAO_MULTA|DECISAO|TOTALIZACAO_PONTOS|OUTRO.\n"
+            "6. data_totalizacao_pontos: preencher APENAS quando tipo_penalidade=suspensao E o documento indicar "
+            "explicitamente suspensão por acúmulo de pontos. Caso contrário: NAO_SE_APLICA.\n"
+            "7. As tabelas no Markdown dos documentos estão em formato GFM — use as colunas para identificar campos.\n"
+            "Escreva de forma fria e neutra."
+        )
+
+        # Montar contexto
+        docs_markdown = "\n\n---\n\n".join(markdown_texts.values()) if markdown_texts else ""
+
+        prompt_text = (
+            f"=== BLOCO A (Informações já conhecidas) ===\n"
+            f"1. Sessão JARI: {parecer_obj.data_sessao or 'NÃO INFORMADO'}\n"
+            f"2. PA: {parecer_obj.pa or 'A EXTRAIR'}\n"
+            f"3. SGPE: {parecer_obj.sgpe or 'A EXTRAIR'}\n"
+            f"4. Prazo Final Recurso: {parecer_obj.prazo_final or 'A EXTRAIR'}\n"
+            f"5. Protocolo Recurso: {parecer_obj.data_protocolo or 'A EXTRAIR'}\n\n"
+            f"=== BLOCO B (Datas extraídas dos PDFs via Python) ===\n"
+            f"{contexto_textual_datas}\n\n"
+            + (_anchor_hint if _anchor_hint else "")
+            + "=== DICAS DE LOCALIZAÇÃO ===\n"
+            "• pa: 'PROCESSO ADMINISTRATIVO', 'PA', 'Nº PROCESSO'.\n"
+            "• sgpe: 'SGPe' na tabela da Ata, na linha correspondente ao PA.\n"
+            "• prazo_final: 'PRAZO', 'DATA LIMITE', 'DIAS PARA RECURSO'.\n"
+            "• data_protocolo: 'PROTOCOLO', 'PROTOCOLADO EM', 'RECEBIDO EM'.\n"
+            "• paginas_defesa: onde começa a peça recursal/defesa escrita pelo recorrente.\n"
+            "• recorrente: 'RECORRENTE', 'CONDUTOR', 'AUTUADO'.\n\n"
+            "=== DOCUMENTOS ===\n\n"
+            + docs_markdown + "\n\n"
+            "Cruze as origens. Retorne o JSON conforme schema."
+        )
+
+        contents = [prompt_text]
+
+        # Upload PDFs na Files API para análise visual (tabela de datas precisa)
+        from django.core.files.storage import default_storage
+        for path_field, label in [
+            (parecer_obj.autuacao_pdf_path, 'autuacao'),
+            (parecer_obj.consolidado_pdf_path, 'consolidado'),
+            (parecer_obj.ata_pdf_path, 'ata'),
+        ]:
+            _path = _p(path_field)
+            if not _path or "upload_simulado" in _path:
+                continue
+            if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
+                continue
+            try:
+                if default_storage.exists(_path):
+                    f = self.upload_file(_path)
+                    if f:
+                        contents.insert(0, f)
+            except Exception:
+                pass
+
+        _log.info("extract_unified [UNIFIED] parecer=%s docs=%s total_chars=%d",
+                  parecer_obj.id, list(markdown_texts.keys()) if markdown_texts else [],
+                  len(docs_markdown))
+
+        try:
+            import json as _json
+            start_time = time.time()
+            _preferred = 'gemini-2.5-flash'
+            _fallback = 'gemini-2.0-flash' if pdf_chars >= 2000 else 'gemini-2.5-flash'
+            _retries = 2 if pdf_chars < 2000 else 1
+            response, _ = self._call_with_fallback(
+                _preferred, _fallback, contents,
+                {
+                    'system_instruction': system_instruction,
+                    'response_mime_type': 'application/json',
+                    'response_schema': _schema,
+                },
+                'Unified F1+F2', parecer_obj, start_time,
+                retry_preferred=_retries,
+                per_call_timeout=120,
+            )
+            dados = _json.loads(response.text)
+            _log.info("extract_unified: OK parecer=%s campos=%s",
+                      parecer_obj.id, [k for k, v in dados.items() if v and '_conf' not in k and k != 'tabela_markdown'])
+            return dados
+        except Exception as e:
+            _log.warning("extract_unified falhou parecer=%s: %s: %s",
+                         parecer_obj.id, type(e).__name__, e)
+            return None
+
     def generate_phase2_report(self, parecer_obj, contexto_textual_datas, pdf_chars=9999):
         """
         Retorna um dict com campos estruturados + tabela_markdown.

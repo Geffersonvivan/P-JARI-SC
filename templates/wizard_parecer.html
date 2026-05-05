@@ -602,9 +602,47 @@
                             </div>
                         </div>
 
+                        <!-- ═══ BLOCO UNIFICADO: Tabela de Datas + Tipo Penalidade (só aparece em UNIFIED_MODE) ═══ -->
+                        <div id="p1-unified-dates" class="hidden">
+                            <div style="border-top:1px solid #e5e7eb;margin:18px 0 14px;"></div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                                <i class="ph ph-calendar-check" style="color:#2563eb;font-size:16px;"></i>
+                                <span style="font-size:13px;font-weight:700;color:#1e40af;">Tabela de datas sensíveis</span>
+                            </div>
+                            <div id="p1-unified-tabela" class="prose max-w-none w-full bg-slate-50 rounded-xl p-5 border border-gray-200 mb-4"></div>
+
+                            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px 16px;">
+                                <p style="font-size:11px;font-weight:600;color:#92400e;margin-bottom:10px;">
+                                    Corrija se a IA extraiu incorretamente:
+                                </p>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+                                    <div>
+                                        <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Tipo de Penalidade</label>
+                                        <select id="f1u-tipo_penalidade" onchange="toggleTotalizacaoF1U()"
+                                                style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff;outline:none;">
+                                            <option value="">Não determinado</option>
+                                            <option value="multa" {% if parecer.tipo_penalidade == 'multa' %}selected{% endif %}>Multa</option>
+                                            <option value="advertencia" {% if parecer.tipo_penalidade == 'advertencia' %}selected{% endif %}>Advertência</option>
+                                            <option value="suspensao" {% if parecer.tipo_penalidade == 'suspensao' %}selected{% endif %}>Suspensão</option>
+                                            <option value="cassacao" {% if parecer.tipo_penalidade == 'cassacao' %}selected{% endif %}>Cassação</option>
+                                        </select>
+                                    </div>
+                                    <div id="f1u-totalizacao-wrap" {% if parecer.tipo_penalidade != 'suspensao' %}style="display:none"{% endif %}>
+                                        <label style="font-size:11px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">
+                                            Data Totalização de Pontos <span style="color:#dc2626">*</span>
+                                        </label>
+                                        <input id="f1u-data_totalizacao_pontos" type="text" placeholder="DD/MM/AAAA"
+                                               value="{{ parecer.data_totalizacao_pontos|date:'d/m/Y'|default:'' }}"
+                                               autocomplete="off"
+                                               style="width:100%;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;outline:none;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Confirmar -->
                         <button onclick="confirmarDocumentos()"
-                            style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;background:#1d4ed8;color:#fff;font-size:13px;font-weight:700;border-radius:12px;border:none;cursor:pointer;transition:background .15s;flex-shrink:0;"
+                            style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;background:#1d4ed8;color:#fff;font-size:13px;font-weight:700;border-radius:12px;border:none;cursor:pointer;transition:background .15s;flex-shrink:0;margin-top:18px;"
                             onmouseenter="this.style.background='#1e40af'" onmouseleave="this.style.background='#1d4ed8'">
                             <i class="ph ph-check"></i> Confirmar e Avançar
                         </button>
@@ -1091,6 +1129,7 @@ const AUTO_INTER = {{ has_prescricao_intercorrente|yesno:"true,false" }};
 const AUTO_DECAD = {{ has_decadencia|yesno:"true,false" }};
 // Indica se os PDFs já foram salvos no DB (usado para evitar que tela de upload reapareça após falha do Gemini)
 const HAS_AUTUACAO = {{ has_autuacao|yesno:"true,false" }};
+const UNIFIED_MODE = {{ unified_mode|yesno:"true,false" }};
 
 const FASE_STEP  = {1:2,10:2,2:2,3:2,31:3,4:4,41:4,5:5,6:5,7:6,8:6};
 const STEP_NAMES = ['Identificação','Documentos','Admissibilidade','Tese','Parecer','Finalizar'];
@@ -1282,6 +1321,13 @@ function renderPhase(f) {
         document.getElementById('p1-footer').style.display = 'none';
         expandPdf();
         initPdfTabs();
+        // Modo unificado: exibe tabela de datas + tipo_penalidade dentro do form F10
+        const unifiedDatesEl = document.getElementById('p1-unified-dates');
+        if (UNIFIED_MODE && TABELA_TXT && unifiedDatesEl) {
+            const tblEl = document.getElementById('p1-unified-tabela');
+            if (tblEl) tblEl.innerHTML = md(TABELA_TXT);
+            unifiedDatesEl.classList.remove('hidden');
+        }
     }
     if (f===2)  {
         hide('p1-upload'); show('p1-loading'); hide('p1-confirm'); hide('p1-tabela'); hide('p1-dados');
@@ -1479,8 +1525,25 @@ async function confirmarDocumentos() {
     }
     if (dsEl) dsEl.style.borderColor = '';
 
+    // Modo unificado: inclui campos F2 no payload para pular a fase 2
+    if (UNIFIED_MODE) {
+        const tpEl = document.getElementById('f1u-tipo_penalidade');
+        if (tpEl && tpEl.value) payload.tipo_penalidade = tpEl.value;
+        const dtpEl = document.getElementById('f1u-data_totalizacao_pontos');
+        if (dtpEl && dtpEl.value.trim()) payload.data_totalizacao_pontos = dtpEl.value.trim();
+    }
+
     // Feedback imediato — mostra loading antes de esperar o servidor
-    renderPhase(2);
+    if (UNIFIED_MODE) {
+        // No modo unificado, pula F2 e vai direto para loading de admissibilidade
+        currentStep = 3;
+        updateProgress(currentStep);
+        document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+        document.getElementById('panel-2')?.classList.remove('hidden');
+        renderPhase(32);
+    } else {
+        renderPhase(2);
+    }
 
     // PA e SGPE (readonly mas envia para o engine confirmar)
     const paEl = document.getElementById('f2-pa');
@@ -1494,7 +1557,16 @@ async function confirmarDocumentos() {
 
     const ok = await avancar('FASE1_CONFIRM:' + JSON.stringify(payload));
     // Se a requisição falhou, reverte para o formulário de confirmação
-    if (!ok) { renderPhase(10); }
+    if (!ok) {
+        if (UNIFIED_MODE) {
+            stopFakeProgress('p2-progress-bar','p2-pct');
+            currentStep = 2;
+            updateProgress(currentStep);
+            document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('panel-1')?.classList.remove('hidden');
+        }
+        renderPhase(10);
+    }
 }
 
 // ─── ADMISSIBILITY CARDS ───────────────────────────
@@ -2239,6 +2311,11 @@ function mostrarModalErroGeral(mensagem) {
 function toggleTotalizacaoF2() {
     const tp   = document.getElementById('f2-tabela-tipo_penalidade');
     const wrap = document.getElementById('f2-tabela-totalizacao-wrap');
+    if (tp && wrap) wrap.style.display = (tp.value === 'suspensao') ? '' : 'none';
+}
+function toggleTotalizacaoF1U() {
+    const tp   = document.getElementById('f1u-tipo_penalidade');
+    const wrap = document.getElementById('f1u-totalizacao-wrap');
     if (tp && wrap) wrap.style.display = (tp.value === 'suspensao') ? '' : 'none';
 }
 

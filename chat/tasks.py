@@ -77,6 +77,17 @@ def processar_fase1_task(self, parecer_id):
         from .models import ChatMessage
         ChatMessage.objects.create(parecer=parecer, role='assistant', content=reply)
         log_audit('fase_concluida', parecer=parecer, fase=1)
+
+        # No modo unificado F1+F2, já temos os dados de datas/tipo_penalidade.
+        # Dispara pré-cálculo da F3 para que esteja pronto quando o usuário confirmar.
+        from django.conf import settings as django_settings
+        if getattr(django_settings, 'UNIFIED_FASE1_FASE2', False) and parecer.tabela_datas_sensiveis:
+            try:
+                processar_fase3_precompute_task.delay(parecer_id)
+                logger.info("F1 unificada: pré-cálculo F3 disparado (Parecer %s)", parecer_id)
+            except Exception as e_pre:
+                logger.warning("F1 unificada: falha ao disparar pré-cálculo F3 (Parecer %s): %s", parecer_id, e_pre)
+
         return "SUCCESS"
     except SoftTimeLimitExceeded:
         # PDF muito grande para o Gemini processar no prazo — cai para fluxo manual
