@@ -558,6 +558,132 @@ class GeminiClient:
             _log.warning(f"extract_fase1_fields falhou para parecer={parecer_obj.id}: {type(e).__name__}: {e}")
             return None
 
+    def extract_fase1_fields_text_only(self, parecer_obj, markdown_texts):
+        """
+        Fase 1 texto-only: extrai campos estruturados a partir de Markdown
+        gerado pelo PyMuPDF (find_tables + blocks). Não usa Files API.
+        markdown_texts = {'autuacao': '...', 'consolidado': '...', 'ata': '...'}
+        Retorna dict com campos + confiança, ou None se falhar.
+        """
+        if not self.client:
+            _log.warning("extract_fase1_fields_text_only: cliente Gemini não configurado — parecer=%s",
+                         getattr(parecer_obj, 'id', '?'))
+            return None
+
+        if not markdown_texts:
+            _log.warning("extract_fase1_fields_text_only: nenhum Markdown fornecido — parecer=%s",
+                         getattr(parecer_obj, 'id', '?'))
+            return None
+
+        system_instruction = (
+            "Você é um extrator de dados jurídicos.\n"
+            "Analise os textos Markdown extraídos dos documentos PDF e extraia EXCLUSIVAMENTE os campos solicitados.\n"
+            "REGRAS ABSOLUTAS:\n"
+            "1. NUNCA invente ou deduza valores — se não encontrar, use null.\n"
+            "2. Datas SEMPRE no formato DD/MM/AAAA. Se encontrar em outro formato, converta.\n"
+            "3. Confiança: 'alta' = encontrou explicitamente no documento; "
+            "'baixa' = inferido/ambíguo/múltiplos valores; 'nulo' = não encontrado.\n"
+            "4. Retorne EXCLUSIVAMENTE um JSON válido, sem texto adicional, sem markdown.\n"
+            "5. As tabelas no Markdown estão em formato GFM — cada linha é um registro. "
+            "Use as colunas para identificar os campos corretos."
+        )
+
+        # Âncora para SGPE na tabela da Ata
+        _pa_anchor = parecer_obj.pa or ""
+        _rec_anchor = parecer_obj.recorrente or ""
+        _ata_disponivel = 'ata' in markdown_texts
+        _anchor_hint = ""
+        if _ata_disponivel and _pa_anchor:
+            _anchor_hint = (
+                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
+                f"Localize a linha cujo campo PSDD/PA é exatamente '{_pa_anchor}' "
+                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
+            )
+        elif _ata_disponivel and _rec_anchor:
+            _anchor_hint = (
+                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
+                f"Localize a linha cujo recorrente é '{_rec_anchor}' "
+                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
+            )
+
+        # Montar contexto textual
+        docs_context = "\n\n---\n\n".join(markdown_texts.values())
+        total_chars = len(docs_context)
+
+        prompt_text = (
+            "Extraia dos documentos abaixo os seguintes campos e retorne um JSON com esta estrutura exata:\n\n"
+            "{\n"
+            '  "pa": "número do processo administrativo (ex: 2024/00123) ou null",\n'
+            '  "pa_conf": "alta|baixa|nulo",\n'
+            '  "sgpe": "número SGPE correspondente ao processo analisado ou null",\n'
+            '  "sgpe_conf": "alta|baixa|nulo",\n'
+            '  "prazo_final": "data limite para protocolo do recurso JARI em DD/MM/AAAA ou null",\n'
+            '  "prazo_final_conf": "alta|baixa|nulo",\n'
+            '  "data_protocolo": "data em que o recurso foi protocolado em DD/MM/AAAA ou null",\n'
+            '  "data_protocolo_conf": "alta|baixa|nulo",\n'
+            '  "paginas_defesa": "intervalo de páginas da defesa recursal (ex: 15-24) ou null",\n'
+            '  "paginas_defesa_conf": "alta|baixa|nulo",\n'
+            '  "recorrente": "nome completo do condutor ou proprietário recorrente ou null",\n'
+            '  "recorrente_conf": "alta|baixa|nulo"\n'
+            "}\n\n"
+            "=== DICAS DE LOCALIZAÇÃO DOS CAMPOS ===\n"
+            "• prazo_final: procure por 'PRAZO', 'VENCE EM', 'DATA LIMITE', 'DIAS PARA RECURSO', "
+            "'PRAZO PARA DEFESA/RECURSO'. Geralmente no documento de Autuação ou notificação.\n"
+            "• data_protocolo: procure por carimbo/selo de 'PROTOCOLO', 'RECEBIDO EM', 'ENTRADA', "
+            "'DATA DE RECEBIMENTO', 'PROTOCOLADO EM'. Frequentemente é um carimbo ou anotação manuscrita.\n"
+            "• paginas_defesa: identifique onde começa a peça recursal/defesa escrita pelo recorrente "
+            "(geralmente após as notificações e antes dos anexos). Informe o intervalo ex: '15-24'.\n"
+            "• recorrente: procure por 'RECORRENTE', 'CONDUTOR', 'PROPRIETÁRIO', 'AUTUADO', 'INFRATOR'.\n"
+            "• pa: procure por 'PROCESSO ADMINISTRATIVO', 'PA', 'Nº PROCESSO'. Formato típico: números com barras.\n"
+            "• sgpe: procure por 'SGPE' ou 'SGPe' na tabela da Ata da Sessão, na linha correspondente ao PA.\n\n"
+            + (_anchor_hint.strip() + "\n\n" if _anchor_hint else "")
+            + "=== DOCUMENTOS ===\n\n"
+            + docs_context + "\n\n"
+            + "Não retorne nada além do JSON."
+        )
+
+        _log.info(
+            "extract_fase1_fields_text_only [FASE1-TEXT] parecer=%s docs=%s total_chars=%d",
+            parecer_obj.id, list(markdown_texts.keys()), total_chars
+        )
+
+        try:
+            import json as _json
+            response = self.client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[prompt_text],
+                config={
+                    'system_instruction': system_instruction,
+                    'response_mime_type': 'application/json',
+                },
+            )
+            try:
+                raw = (response.text or "").strip()
+            except Exception as _text_err:
+                _log.warning("extract_fase1_fields_text_only: response.text erro parecer=%s: %s",
+                             parecer_obj.id, _text_err)
+                raw = ""
+            _log.info("extract_fase1_fields_text_only: raw (200c): %s", raw[:200])
+            if not raw:
+                _log.warning("extract_fase1_fields_text_only: resposta vazia parecer=%s", parecer_obj.id)
+                return None
+            if raw.startswith('```'):
+                raw = raw.split('\n', 1)[-1]
+                raw = raw.rsplit('```', 1)[0].strip()
+            dados = _json.loads(raw)
+            campos_extraiveis = ["pa", "sgpe", "prazo_final", "data_protocolo", "paginas_defesa", "recorrente"]
+            if all(dados.get(c) is None for c in campos_extraiveis):
+                _log.warning("extract_fase1_fields_text_only: todos campos null parecer=%s raw=%s",
+                             parecer_obj.id, raw[:500])
+                return None
+            _log.info("extract_fase1_fields_text_only: OK parecer=%s campos=%s",
+                       parecer_obj.id, [k for k, v in dados.items() if v and '_conf' not in k])
+            return dados
+        except Exception as e:
+            _log.warning("extract_fase1_fields_text_only falhou parecer=%s: %s: %s",
+                         parecer_obj.id, type(e).__name__, e)
+            return None
+
     def generate_phase2_report(self, parecer_obj, contexto_textual_datas, pdf_chars=9999):
         """
         Retorna um dict com campos estruturados + tabela_markdown.

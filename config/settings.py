@@ -401,6 +401,11 @@ WHITENOISE_USE_FINDERS = False
 # Sempre usar Storage Local em Desenvolvimento (DEBUG=True), a menos que explicitamente forçado via .env
 USE_GCS = os.environ.get('USE_GCS', str(not DEBUG)) == 'True'
 
+# Fase 1 texto-only: extrai Markdown estruturado dos PDFs via PyMuPDF e envia
+# ao Gemini como texto puro (sem Files API visual). Reduz latência e custo.
+# False = modo legado (Files API visual) | True = modo texto-only (Markdown)
+FASE1_TEXT_ONLY = os.environ.get('FASE1_TEXT_ONLY', 'True') == 'True'
+
 if USE_GCS:
     GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', 'pjari-midias')
     google_creds_env = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')

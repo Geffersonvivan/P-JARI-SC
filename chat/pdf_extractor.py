@@ -297,6 +297,93 @@ class PDFExtractor:
                     pass
 
     @staticmethod
+    def extract_structured_markdown(file_path, label="DOCUMENTO", max_pages=15):
+        """
+        Converte PDF em Markdown estruturado: tabelas GFM via find_tables() +
+        texto dos blocos fora das tabelas. Retorna string Markdown ou vazia.
+        """
+        if not file_path or "upload_simulado" in file_path:
+            return ""
+
+        temp_path = None
+        try:
+            with default_storage.open(file_path, 'rb') as f_in:
+                fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+                with os.fdopen(fd, 'wb') as f_out:
+                    if hasattr(f_in, 'chunks'):
+                        for chunk in f_in.chunks():
+                            f_out.write(chunk)
+                    else:
+                        f_out.write(f_in.read())
+
+            fitz.TOOLS.reset_mupdf_warnings()
+            with fitz.open(temp_path) as doc:
+                _w = fitz.TOOLS.mupdf_warnings()
+                if _w and ("xref" in _w.lower() or "format error" in _w.lower()):
+                    logger.warning("extract_structured_markdown: MuPDF warning (%s): %s", label, _w.strip())
+
+                pages = min(max_pages, len(doc))
+                page_parts = []
+
+                # Detecção de scan: se o texto nativo é muito curto, tenta OCR
+                native_chars = sum(len(doc[i].get_text()) for i in range(pages))
+                use_ocr = native_chars < 2000
+
+                for i in range(pages):
+                    page = doc[i]
+                    section = [f"### Página {i + 1}"]
+
+                    # Tabelas → Markdown GFM
+                    tables = page.find_tables()
+                    table_rects = [t.bbox for t in tables.tables]
+
+                    for t_idx, table in enumerate(tables.tables):
+                        md = table.to_markdown()
+                        if md.strip():
+                            section.append(f"\n**Tabela {t_idx + 1}:**\n{md}")
+
+                    # Texto fora das tabelas
+                    if use_ocr:
+                        try:
+                            tp = page.get_textpage_ocr(flags=0, language='por', dpi=300, full=True)
+                            text_blocks = page.get_text("blocks", textpage=tp)
+                        except Exception:
+                            text_blocks = page.get_text("blocks")
+                    else:
+                        text_blocks = page.get_text("blocks")
+
+                    non_table_lines = []
+                    for block in text_blocks:
+                        if block[6] != 0:  # skip image blocks
+                            continue
+                        bx0, by0, bx1, by1 = block[:4]
+                        in_table = any(
+                            bx0 >= tx0 - 5 and by0 >= ty0 - 5 and bx1 <= tx1 + 5 and by1 <= ty1 + 5
+                            for tx0, ty0, tx1, ty1 in table_rects
+                        )
+                        if not in_table:
+                            txt = block[4].strip()
+                            if txt:
+                                non_table_lines.append(txt)
+
+                    if non_table_lines:
+                        section.append("\n".join(non_table_lines))
+
+                    page_parts.append("\n".join(section))
+
+                return f"## {label}\n\n" + "\n\n".join(page_parts)
+
+        except Exception as e:
+            logger.warning("extract_structured_markdown falhou para %s (%s): %s", file_path, label, e)
+            return ""
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
+
+    @staticmethod
     def format_extraction_for_llm(datas_autuacao, datas_consolidado):
         """Formata a lista bruta de dicionários em texto simples para anexar ao prompt."""
         todas_ocorrencias = datas_autuacao + datas_consolidado

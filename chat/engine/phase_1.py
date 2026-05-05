@@ -198,8 +198,30 @@ def run_autopreenchimento(engine) -> str:
             logger.warning(f"run_fase1_autopreenchimento: erro no pyMuPDF falha silenciosa permitida ({e})")
 
     try:
+        from django.conf import settings as _settings
         from chat.integrations import GeminiClient
-        dados = GeminiClient().extract_fase1_fields(parecer)
+
+        if getattr(_settings, 'FASE1_TEXT_ONLY', False):
+            # Novo caminho: PyMuPDF Markdown estruturado → Gemini texto-only (sem Files API)
+            from chat.pdf_extractor import PDFExtractor
+            from chat.integrations.perplexity import _p
+            markdown_texts = {}
+            for path_field, label in [
+                (parecer.autuacao_pdf_path, 'autuacao'),
+                (parecer.consolidado_pdf_path, 'consolidado'),
+                (parecer.ata_pdf_path, 'ata'),
+            ]:
+                _path = _p(path_field)
+                if _path and "upload_simulado" not in _path:
+                    md = PDFExtractor.extract_structured_markdown(_path, label=label.upper(), max_pages=10)
+                    if md:
+                        markdown_texts[label] = md
+            logger.info(f"[FASE1_TEXT] parecer={parecer.id} docs={list(markdown_texts.keys())} "
+                        f"total_chars={sum(len(v) for v in markdown_texts.values())}")
+            dados = GeminiClient().extract_fase1_fields_text_only(parecer, markdown_texts)
+        else:
+            # Caminho legado: Files API visual
+            dados = GeminiClient().extract_fase1_fields(parecer)
     except Exception as e:
         logger.warning(f"run_fase1_autopreenchimento: erro na extração ({e}). Fallback manual.")
         dados = None
@@ -278,7 +300,8 @@ def _handle_upload(engine, uploaded_files: list) -> str:
         parecer.ata_pdf_path = file_ata
 
     parecer.save()
-    # Pré-aquece cache Gemini Files API em paralelo (best-effort, não bloqueia)
+    # Pré-aquece cache Gemini Files API em paralelo (best-effort, não bloqueia).
+    # No modo texto-only a Fase 1 não usa Files API, mas Fases 2+ ainda usam.
     try:
         from chat.tasks import pre_upload_gemini_task
         pre_upload_gemini_task.delay(parecer.id)
