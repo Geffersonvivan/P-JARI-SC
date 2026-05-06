@@ -148,9 +148,13 @@ def sync_from_drive(folder_id: str = '', force: bool = False) -> dict:
                 stats['skipped'] += 1
                 continue
 
-            # Embedding
+            # Embedding (se sentence-transformers disponível)
             texts = [c['texto'] for c in chunks]
-            embeddings = _embed_in_batches(texts)
+            try:
+                embeddings = _embed_in_batches(texts)
+            except RuntimeError:
+                _log.info("sentence-transformers indisponível, salvando sem embedding")
+                embeddings = [[] for _ in texts]
 
             # Persiste (delete + bulk_create)
             DocumentoNormativo.objects.filter(nome_arquivo=nome).delete()
