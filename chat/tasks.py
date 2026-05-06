@@ -722,3 +722,42 @@ def send_payment_notification_task(nome_cliente, email_cliente, trans_amount, pa
         recipient_list=[admin_email],
         fail_silently=False,
     )
+
+
+@shared_task(time_limit=900, soft_time_limit=840, queue='heavy', ignore_result=True)
+def sync_normativo_drive_task():
+    """
+    Celery Beat — Sincroniza PDFs normativos do Google Drive para o banco local.
+    Roda a cada 6h. Baixa PDFs novos/atualizados, gera embeddings e indexa.
+    """
+    import os
+    _log = logging.getLogger(__name__)
+
+    folder_id = os.environ.get('GDRIVE_NORMATIVO_FOLDER_ID', '')
+    if not folder_id:
+        _log.info("sync_normativo_drive_task: GDRIVE_NORMATIVO_FOLDER_ID não configurado, pulando.")
+        return "SKIP: sem folder_id"
+
+    try:
+        from chat.integrations.gdrive_sync import sync_from_drive
+        stats = sync_from_drive(folder_id=folder_id)
+        msg = (f"Drive sync: {stats['downloaded']} novos, "
+               f"{stats['skipped']} pulados, {stats['errors']} erros, "
+               f"{stats['total_chunks']} chunks criados")
+        _log.info(msg)
+        return msg
+    except Exception as e:
+        _log.exception(f"sync_normativo_drive_task falhou: {e}")
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            send_mail(
+                "🚨 JARI: Erro na sincronização Drive → RAG",
+                f"A task sync_normativo_drive_task falhou.\n\nErro: {str(e)}",
+                settings.DEFAULT_FROM_EMAIL,
+                ['geffersonvivan@gmail.com'],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+        raise

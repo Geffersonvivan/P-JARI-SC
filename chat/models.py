@@ -558,3 +558,23 @@ class PjariVersion(models.Model):
         if not self.pk and PjariVersion.objects.exists():
             raise ValueError("PjariVersion é um singleton — já existe um registro. Use PjariVersion.objects.first() para atualizar.")
         super().save(*args, **kwargs)
+
+
+class DocumentoNormativo(models.Model):
+    """Chunk de documento normativo com embedding para busca vetorial (RAG local)."""
+    nome_arquivo  = models.CharField(max_length=255, db_index=True)
+    titulo        = models.CharField(max_length=500, blank=True)
+    chunk_index   = models.IntegerField()
+    pagina_inicio = models.IntegerField(default=0)
+    pagina_fim    = models.IntegerField(default=0)
+    texto         = models.TextField()
+    embedding     = models.JSONField(default=list, help_text="Vetor de embedding (sentence-transformers)")
+    indexado_em   = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('nome_arquivo', 'chunk_index')]
+        verbose_name = "Documento Normativo (RAG)"
+        verbose_name_plural = "Documentos Normativos (RAG)"
+
+    def __str__(self):
+        return f"{self.nome_arquivo} [chunk {self.chunk_index}]"

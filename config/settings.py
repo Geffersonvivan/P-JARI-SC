@@ -86,6 +86,9 @@ if sentry_dsn:
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Diretório dos PDFs normativos para RAG local (pgvector)
+NORMATIVO_DIR = os.environ.get('NORMATIVO_DIR', str(BASE_DIR / 'data' / 'normativo'))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -546,6 +549,11 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'chat.tasks.predigerir_pacotes_task',
         # 1x/dia às 03h (horário de baixo uso)
         'schedule': crontab(minute=0, hour=3),
+    },
+    'sync-normativo-drive': {
+        'task': 'chat.tasks.sync_normativo_drive_task',
+        # A cada 6h (01h, 07h, 13h, 19h) — sincroniza PDFs do Google Drive
+        'schedule': crontab(minute=0, hour='1,7,13,19'),
     },
 }
 
