@@ -30,37 +30,6 @@ def _is_gemini_transient(e) -> bool:
     return any(k in s for k in ('504', 'DEADLINE_EXCEEDED', 'ServerError', 'timeout', 'Timeout'))
 
 
-@shared_task(time_limit=180, soft_time_limit=150, max_retries=1, queue='fast',
-             ignore_result=True)
-def pre_upload_gemini_task(parecer_id):
-    """
-    Pré-aquece o cache Redis com os file handles do Gemini Files API.
-    Disparada em paralelo com processar_fase1_task logo após o upload dos PDFs.
-    Quando a Fase 1 (e fases seguintes) chamar upload_file(), encontrará cache hit
-    e pulará upload+polling (~30s economizados por PDF).
-    """
-    try:
-        parecer = Parecer.objects.only(
-            'autuacao_pdf_path', 'consolidado_pdf_path', 'ata_pdf_path'
-        ).get(id=parecer_id)
-        from chat.integrations import GeminiClient
-        client = GeminiClient()
-        if not client.client:
-            return
-        from chat.integrations.perplexity import _p
-        paths = []
-        for field in [parecer.autuacao_pdf_path, parecer.consolidado_pdf_path, parecer.ata_pdf_path]:
-            p = _p(field)
-            if p and 'upload_simulado' not in p and p not in paths:
-                paths.append(p)
-        import concurrent.futures as _cf
-        with _cf.ThreadPoolExecutor(max_workers=len(paths) or 1) as ex:
-            list(ex.map(client.upload_file, paths))
-        logger.info("pre_upload_gemini OK: parecer=%s paths=%s", parecer_id, paths)
-    except Exception as e:
-        logger.warning("pre_upload_gemini falhou (parecer=%s): %s — não bloqueia fluxo", parecer_id, e)
-
-
 @shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
 def processar_fase1_task(self, parecer_id):
     """
@@ -539,7 +508,7 @@ def predigerir_pacotes_task():
     """
     from django.db.models import Count
     from chat.models import PjariCacheEntry, PjariCacheConfig
-    from chat.integrations import VertexAIClient, PerplexityClient, GeminiClient
+    from chat.integrations import VertexAIClient, PerplexityClient, AnthropicClient
     import concurrent.futures
 
     logger.info("[CAG] Iniciando pré-digestão de pacotes normativos")
@@ -588,7 +557,7 @@ def predigerir_pacotes_task():
 
     vertex = VertexAIClient()
     perplexity = PerplexityClient()
-    gemini = GeminiClient()
+    anthropic = AnthropicClient()
     pacotes_gerados = 0
     tipos_processados = set()
 
@@ -635,8 +604,8 @@ def predigerir_pacotes_task():
             logger.warning("[CAG] Sem resultado RAG para '%s' — skip", tipo)
             continue
 
-        # Pré-digestão via Gemini
-        pacote = _digerir_pacote(gemini, infracao_desc, vertex_result, perplexity_result)
+        # Pré-digestão via Anthropic
+        pacote = _digerir_pacote(anthropic, infracao_desc, vertex_result, perplexity_result)
         if not pacote:
             continue
 
@@ -663,45 +632,9 @@ def predigerir_pacotes_task():
     return f"{pacotes_gerados} pacotes"
 
 
-def _digerir_pacote(gemini, infracao_desc, vertex_result, perplexity_result):
-    """Sintetiza Vertex + Perplexity em pacote normativo compacto via Gemini."""
-    if not gemini.client:
-        return None
-
-    prompt = (
-        f"INFRAÇÃO: {infracao_desc}\n\n"
-        f"=== CORPUS NORMATIVO (Vertex AI) ===\n{vertex_result[:6000]}\n\n"
-        f"=== JURISPRUDÊNCIA (Perplexity) ===\n{perplexity_result[:6000]}\n\n"
-        "Sintetize o material acima em um PACOTE NORMATIVO COMPACTO contendo:\n"
-        "1. Artigos do CTB aplicáveis (com redação resumida)\n"
-        "2. Resoluções CONTRAN/CETRAN-SC relevantes (número + ementa)\n"
-        "3. Top 5 jurisprudências mais citadas (tribunal + número + tese)\n"
-        "4. Teses de defesa mais comuns para esta infração\n"
-        "5. Pontos de atenção para o relator\n\n"
-        "REGRAS:\n"
-        "- Máximo 2000 tokens\n"
-        "- Sem opinião — apenas fatos normativos\n"
-        "- Formato: texto corrido com subtítulos em negrito\n"
-        "- Cite artigos e resoluções com números exatos"
-    )
-
-    try:
-        import time
-        start = time.time()
-        response = gemini.client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[prompt],
-            config={'temperature': 0.1},
-        )
-        result = (response.text or "").strip()
-        gemini._log_tokens(None, response, 'CAG Pré-digestão', model_name='gemini-2.5-flash', start_time=start)
-        if len(result) < 100:
-            logger.warning("[CAG] Pacote muito curto para '%s' (%d chars)", infracao_desc[:50], len(result))
-            return None
-        return result
-    except Exception as e:
-        logger.error("[CAG] Digestão falhou para '%s': %s", infracao_desc[:50], e)
-        return None
+def _digerir_pacote(anthropic_client, infracao_desc, vertex_result, perplexity_result):
+    """Sintetiza Vertex + Perplexity em pacote normativo compacto via Anthropic."""
+    return anthropic_client.digest_cag_package(infracao_desc, vertex_result, perplexity_result)
 
 
 @shared_task

@@ -38,7 +38,6 @@ def run(engine) -> str:
     4. Avança para FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE.
     """
     from chat.jari_math import JariMath
-    from chat.integrations import GeminiClient
     from chat.engine import FASE_AGUARDA_CONFIRMACAO_ADMISSIBILIDADE
 
     parecer = engine.parecer
@@ -332,11 +331,12 @@ def run(engine) -> str:
     if parecer.admissibilidade_texto:
         logger.info("[FASE3] admissibilidade_texto já disponível (pré-calculado) — pulando Gemini. parecer=%s", parecer.id)
     else:
-        gemini = GeminiClient()
+        from chat.integrations import AnthropicClient
+        anthropic = AnthropicClient()
         try:
-            parecer.admissibilidade_texto = gemini.generate_phase3_report(parecer, matematica_detalhes)
+            parecer.admissibilidade_texto = anthropic.generate_phase3_report(parecer, matematica_detalhes)
         except Exception as e:
-            logger.error("[FASE3] Falha ao chamar Gemini — parecer=%s | erro=%s", parecer.id, e)
+            logger.error("[FASE3] Falha ao chamar Anthropic — parecer=%s | erro=%s", parecer.id, e)
             return (
                 "⚠️ O serviço de IA está temporariamente indisponível. "
                 "Aguarde alguns instantes e tente novamente."
@@ -355,7 +355,6 @@ def run_precompute(parecer) -> bool:
     Retorna True se o pré-cálculo foi realizado, False se foi pulado.
     """
     from chat.jari_math import JariMath
-    from chat.integrations import GeminiClient
     from chat.engine import FASE_DIR
 
     # Guard: só pré-calcula se ainda está em F2 e F3 ainda não foi calculada

@@ -254,12 +254,12 @@ def run(engine) -> str:
     Executa a Fase 2: extração de datas via PDFExtractor + chamada Gemini para montar tabela.
     Retorna o prompt da fase 2 (tabela gerada) para o julgador confirmar.
     """
-    from chat.integrations import GeminiClient
+    from chat.integrations import AnthropicClient
     from chat.pdf_extractor import PDFExtractor
     from chat.engine import _p
 
     parecer = engine.parecer
-    gemini = GeminiClient()
+    anthropic = AnthropicClient()
 
     datas_autuacao = []
     datas_consolidado = []
@@ -293,7 +293,7 @@ def run(engine) -> str:
                 "**ATENCAO — PDF possivelmente digitalizado sem OCR:** "
                 f"O sistema extraiu apenas {_total_chars} caracteres dos documentos enviados (após tentativa de OCR automático). "
                 "O PDF pode ser uma imagem de baixa qualidade ou sem texto reconhecível. "
-                "O Gemini tentará análise visual, mas as datas abaixo podem estar incompletas — "
+                "A IA tentará análise visual, mas as datas abaixo podem estar incompletas — "
                 "**verifique cuidadosamente antes de prosseguir.**\n\n"
             )
             logger.warning(f"[FASE2] PDF crítico pós-OCR — {_total_chars} chars — parecer={parecer.id}, pdfs={_pdfs_enviados}")
@@ -306,7 +306,7 @@ def run(engine) -> str:
             )
             logger.info(f"[FASE2] PDF texto limitado pós-OCR — {_total_chars} chars — parecer={parecer.id}")
 
-    resultado = gemini.generate_phase2_report(parecer, contexto_textual_datas, pdf_chars=_total_chars)
+    resultado = anthropic.generate_phase2_report(parecer, contexto_textual_datas, pdf_chars=_total_chars)
 
     # ── Extração de campos estruturados (JSON) ────────────────────────────────
     # generate_phase2_report retorna dict via response_schema — sem regex frágil.

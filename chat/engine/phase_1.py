@@ -230,7 +230,6 @@ def run_autopreenchimento(engine) -> str:
 
     try:
         from django.conf import settings as _settings
-        from chat.integrations import GeminiClient
         from chat.pdf_extractor import PDFExtractor
         from chat.integrations.perplexity import _p
 
@@ -264,25 +263,10 @@ def run_autopreenchimento(engine) -> str:
             logger.info(f"[UNIFIED] parecer={parecer.id} docs={list(markdown_texts.keys())} "
                         f"md_chars={sum(len(v) for v in markdown_texts.values())} pdf_chars={_total_chars}")
 
-            # Anthropic (Claude) como primário, Gemini como fallback
             from chat.integrations.anthropic import AnthropicClient
             dados = AnthropicClient().extract_unified_fase1_fase2(
                 parecer, markdown_texts, contexto_datas, pdf_chars=_total_chars
             )
-            if not dados:
-                logger.info(f"[UNIFIED] Anthropic falhou, tentando Gemini — parecer={parecer.id}")
-                dados = GeminiClient().extract_unified_fase1_fase2(
-                    parecer, markdown_texts, contexto_datas, pdf_chars=_total_chars
-                )
-
-        elif getattr(_settings, 'FASE1_TEXT_ONLY', False):
-            # ── Modo texto-only: só F1 ──
-            logger.info(f"[FASE1_TEXT] parecer={parecer.id} docs={list(markdown_texts.keys())} "
-                        f"total_chars={sum(len(v) for v in markdown_texts.values())}")
-            dados = GeminiClient().extract_fase1_fields_text_only(parecer, markdown_texts)
-        else:
-            # ── Modo legado: Files API visual ──
-            dados = GeminiClient().extract_fase1_fields(parecer)
     except Exception as e:
         logger.warning(f"run_fase1_autopreenchimento: erro na extração ({e}). Fallback manual.")
         dados = None
@@ -394,13 +378,6 @@ def _handle_upload(engine, uploaded_files: list) -> str:
         parecer.ata_pdf_path = file_ata
 
     parecer.save()
-    # Pré-aquece cache Gemini Files API em paralelo (best-effort, não bloqueia).
-    # No modo texto-only a Fase 1 não usa Files API, mas Fases 2+ ainda usam.
-    try:
-        from chat.tasks import pre_upload_gemini_task
-        pre_upload_gemini_task.delay(parecer.id)
-    except Exception:
-        pass
     from chat.tasks import processar_fase1_task
     task = processar_fase1_task.delay(parecer.id)
     return _json.dumps({"status": "celery", "task_id": task.id, "type": "FASE1"})

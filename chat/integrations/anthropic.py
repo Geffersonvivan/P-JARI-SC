@@ -39,14 +39,14 @@ class AnthropicClient:
         if Anthropic is None:
             self.client = None
             if not AnthropicClient._missing_warned:
-                _log.error("Pacote 'anthropic' não instalado — FASE5 usará Gemini. Execute: pip install anthropic")
+                _log.error("Pacote 'anthropic' não instalado. Execute: pip install anthropic")
                 AnthropicClient._missing_warned = True
         elif not self.api_key:
             self.client = None
             if not AnthropicClient._missing_warned:
                 _log.error(
-                    "ANTHROPIC_API_KEY ausente — FASE5 usará Gemini como fallback. "
-                    "Configure a variável de ambiente ANTHROPIC_API_KEY no Railway para usar Claude."
+                    "ANTHROPIC_API_KEY ausente — todas as fases LLM ficarão indisponíveis. "
+                    "Configure a variável de ambiente ANTHROPIC_API_KEY no Railway."
                 )
                 AnthropicClient._missing_warned = True
         else:
@@ -245,6 +245,378 @@ class AnthropicClient:
                          parecer_obj.id, type(e).__name__, e)
             return None
 
+    def generate_phase2_report(self, parecer_obj, contexto_textual_datas, pdf_chars=9999):
+        """
+        Fase 2 — Tabela de datas sensíveis + campos estruturados.
+        Drop-in replacement para GeminiClient.generate_phase2_report().
+        Retorna dict com campos estruturados + tabela_markdown, ou dict com 'erro'.
+        """
+        if not self.client:
+            return {'erro': 'Cliente Anthropic não configurado.', 'tabela_markdown': 'Sem cliente configurado.'}
+
+        import json as _json
+        import time
+
+        system_instruction = (
+            "INTEGRIDADE/REGULARIDADE DOCUMENTAL\n"
+            "Sua função é organizar as datas essenciais do processo, garantindo base objetiva para análise de prazos na Fase 3.\n\n"
+            "REGRAS DE CLASSIFICAÇÃO:\n"
+            "1. Utilize o Bloco A (Informado pelo Julgador) SEMPRE, ainda que não haja documento equivalente.\n"
+            "2. Utilize o Bloco B (Extraído do PDF via Python em anexo).\n"
+            "3. Se houver mais de uma data para o mesmo evento, liste TODAS numerando como POSSÍVEL (1), (2), sem escolher 'a verdadeira'.\n"
+            "4. Se não encontrar um tipo essencial (Ex: Notificação, Julgamento), escreva 'NÃO LOCALIZADO - [tipo]' na coluna Observações.\n"
+            "5. NUNCA declare 'erro', 'nulidade' ou 'conflito'; apenas anote 'Divergente; julgador deve avaliar na Fase 3'.\n"
+            "6. Preencha TODOS os campos do JSON. Para datas ausentes use NAO_SE_APLICA. Para recorrente ausente use NÃO LOCALIZADO.\n"
+            "7. No campo tabela_markdown, use rótulos canônicos MAIÚSCULOS na coluna Tipo: "
+            "INFRACAO|NA|NP|INSTAURACAO|PROTOCOLO|SESSAO|PRAZO|CONCLUSAO_MULTA|DECISAO|TOTALIZACAO_PONTOS|OUTRO — sem variações.\n"
+            "8. data_totalizacao_pontos: preencher APENAS quando tipo_penalidade=suspensao E o documento indicar "
+            "explicitamente que a suspensão originou-se de acúmulo de pontos (art. 261 CTB). Caso contrário: NAO_SE_APLICA.\n"
+            "Escreva de forma fria e neutra.\n\n"
+            "RESPONDA EXCLUSIVAMENTE com um JSON válido (sem markdown fences) contendo estes campos:\n"
+            "recorrente (string), tipo_penalidade (multa|advertencia|suspensao|cassacao|nao_determinado), "
+            "data_conclusao_multa (DD/MM/AAAA ou NAO_SE_APLICA), "
+            "tem_flagrante (SIM|NAO|NAO_DETERMINADO), "
+            "data_conhecimento_infracao (DD/MM/AAAA ou NAO_SE_APLICA), "
+            "data_totalizacao_pontos (DD/MM/AAAA ou NAO_SE_APLICA), "
+            "data_infracao_extraida (DD/MM/AAAA ou NAO_SE_APLICA), "
+            "data_notificacao_extraida (DD/MM/AAAA ou NAO_SE_APLICA), "
+            "tabela_markdown (string com tabelas GFM completas: Linha do Tempo + Datas Sensíveis + Atenção do MJ)."
+        )
+
+        prompt_text = (
+            f"=== BLOCO A (EXTERNO - Informações da Fase 1) ===\n"
+            f"1. Sessão JARI: {parecer_obj.data_sessao or 'NÃO INFORMADO'}\n"
+            f"2. PA: {parecer_obj.pa}\n"
+            f"3. SGPE: {parecer_obj.sgpe}\n"
+            f"4. Prazo Final Recurso: {parecer_obj.prazo_final or 'NÃO INFORMADO'}\n"
+            f"5. Protocolo Recurso: {parecer_obj.data_protocolo or 'NÃO INFORMADO'}\n\n"
+            f"=== BLOCO B (Extração Bruta dos Documentos via Python) ===\n"
+            f"{contexto_textual_datas}\n\n"
+            "Cruze as origens. Dê prioridade a não omitir nada. "
+            "Retorne o JSON conforme instruções: campos estruturados + tabela_markdown completa."
+        )
+
+        # Montar content blocks: PDFs base64 + texto
+        content_blocks = []
+        from chat.integrations.perplexity import _p
+        from django.core.files.storage import default_storage
+        for path_field, label in [
+            (parecer_obj.autuacao_pdf_path, 'autuacao'),
+            (parecer_obj.consolidado_pdf_path, 'consolidado'),
+            (parecer_obj.ata_pdf_path, 'ata'),
+        ]:
+            _path = _p(path_field)
+            if not _path or "upload_simulado" in _path:
+                continue
+            if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
+                continue
+            try:
+                if default_storage.exists(_path):
+                    pdf_block = self.get_pdf_content(_path)
+                    if pdf_block:
+                        content_blocks.append(pdf_block)
+            except Exception:
+                pass
+
+        content_blocks.append({"type": "text", "text": prompt_text})
+
+        try:
+            start_time = time.time()
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system=system_instruction,
+                messages=[{"role": "user", "content": content_blocks}],
+            )
+            raw_text = response.content[0].text.strip()
+            if raw_text.startswith('```'):
+                raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
+                if raw_text.endswith('```'):
+                    raw_text = raw_text[:-3].strip()
+
+            dados = _json.loads(raw_text)
+            self._log_tokens(
+                parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
+                'Fase 2 (DIR)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+            )
+            return dados
+        except Exception as e:
+            _log.warning("generate_phase2_report falhou parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
+            return {'erro': str(e), 'tabela_markdown': "⚠️ **Não foi possível processar os documentos com a IA.** Por favor, use o botão \"Corrigir\" para tentar novamente."}
+
+    def generate_phase3_report(self, parecer_obj, matematica_detalhes):
+        """Fase 3 — Avaliação de admissibilidade (tempestividade/prescrição/decadência)."""
+        if not self.client:
+            return "Simulação: Admissibilidade checada. Tempestivo. Prescrições Afastadas."
+
+        import time
+        from chat.prompts.phase_3 import SYSTEM_INSTRUCTION as system_instruction
+
+        data_sessao_str = parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else 'NÃO INFORMADO'
+        prazo_final_str = parecer_obj.prazo_final.strftime('%d/%m/%Y') if parecer_obj.prazo_final else 'NÃO INFORMADO'
+        data_protocolo_str = parecer_obj.data_protocolo.strftime('%d/%m/%Y') if parecer_obj.data_protocolo else 'NÃO INFORMADO'
+
+        _tab_f3 = _trunc(parecer_obj.tabela_datas_sensiveis or '', 'tabela_datas', _LIMITES['tabela_datas'])
+        prompt_text = (
+            f"=== Respostas da Fase 1 ===\n"
+            f"1. Sessão JARI: {data_sessao_str}\n"
+            f"4. Prazo Final Recurso: {prazo_final_str}\n"
+            f"5. Protocolo Recurso: {data_protocolo_str}\n\n"
+            f"=== Fatos Documentais ===\n"
+            f"{_tab_f3 or 'Não há tabela de fatos gerada.'}\n\n"
+            f"=== Flags Matemáticas e Intervalos Calculados ===\n"
+            f"{matematica_detalhes}\n\n"
+            "Aplique estritamente o roteiro obrigatório e devolva os resultados solicitados baseando-se unicamente nas flags matemáticas acima."
+        )
+
+        try:
+            start_time = time.time()
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system=system_instruction,
+                messages=[{"role": "user", "content": prompt_text}],
+            )
+            self._log_tokens(
+                parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
+                'Fase 3 (Avaliação Prazos)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+            )
+            return response.content[0].text
+        except Exception as e:
+            _log.error("generate_phase3_report falhou parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
+            raise
+
+    def extract_tese(self, parecer_obj):
+        """Fase 4 — Extração de teses defensivas do PDF."""
+        if not self.client:
+            return "Simulação: O recorrente alega a não aferição do radar pelo INMETRO."
+
+        import time
+        from chat.prompts.phase_4 import SYSTEM_INSTRUCTION_EXTRACT as system_instruction
+
+        admissibilidade_julgador = _trunc(
+            parecer_obj.admissibilidade_texto or 'Não informada.',
+            'admissibilidade', _LIMITES['admissibilidade'],
+        )
+        prompt_text = (
+            f"--- DECISÃO DE ADMISSIBILIDADE E PRAZOS (FASE 3) ---\n"
+            f"Os resultados abaixo refletem a escolha SOBERANA do membro julgador. Você NÃO pode contrariá-los:\n"
+            f"{admissibilidade_julgador}\n\n"
+            f"--- INSTRUÇÃO DE EXTRAÇÃO ---\n"
+            f"Verifique o resultado acima. Se a decisão do julgador apontar que o recurso é INTEMPESTIVO (INTEMPESTIVIDADE DO RECURSO: CONFIGURADA), PRESCRITO (Prescrição Punitiva ou Intercorrente: SIM) ou DECADENTE (Decadência: SIM), você DEVE ABORTAR a leitura do recurso e responder APENAS E EXATAMENTE:\n"
+            f"'MÉRITO PREJUDICADO. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.'\n\n"
+            f"Caso contrário (INTEMPESTIVIDADE DO RECURSO: NÃO CONFIGURADA e Prescrições/Decadência: NÃO), localize a defesa nas páginas indicadas: {parecer_obj.paginas_defesa}.\n\n"
+            "Liste AS TESES jurídicas apresentadas de forma isolada e em tópicos (bullet points). "
+            "Apenas descreva o que foi pedido, detalhando cada ponto separadamente. Reforçando: não gere respostas, julgamentos ou mérito agora, apenas a LISTAGEM e classificação das teses alegadas no Recurso."
+        )
+
+        # PDFs base64
+        content_blocks = []
+        from chat.integrations.perplexity import _p
+        from django.core.files.storage import default_storage
+        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
+            _path = _p(path_field)
+            if not _path or "upload_simulado" in _path:
+                continue
+            try:
+                if default_storage.exists(_path):
+                    pdf_block = self.get_pdf_content(_path)
+                    if pdf_block:
+                        content_blocks.append(pdf_block)
+            except Exception:
+                pass
+        content_blocks.append({"type": "text", "text": prompt_text})
+
+        try:
+            start_time = time.time()
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system=system_instruction,
+                messages=[{"role": "user", "content": content_blocks}],
+            )
+            self._log_tokens(
+                parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
+                'Fase 4 (Extração)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+            )
+            return response.content[0].text.strip()
+        except Exception as e:
+            return f"Erro ao extrair tese via LLM: {e}"
+
+    def refine_tese(self, parecer_obj, user_hint):
+        """Fase 4 — Refinamento de tese com dica do julgador."""
+        if not self.client:
+            return f"Simulação de Refinamento: O recorrente alega que {user_hint}."
+
+        import time
+        from chat.prompts.phase_4 import SYSTEM_INSTRUCTION_REFINE as system_instruction
+
+        prompt_text = (
+            f"Por favor, releia a defesa do recorrente nas páginas: {parecer_obj.paginas_defesa}.\n\n"
+            f"O assessor revisor apontou o seguinte: '{user_hint}'.\n\n"
+            "Com base nessa instrução, escreva um NOVO resumo claro e direto informando as alegações da defesa."
+        )
+
+        # PDFs base64
+        content_blocks = []
+        from chat.integrations.perplexity import _p
+        from django.core.files.storage import default_storage
+        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
+            _path = _p(path_field)
+            if not _path or "upload_simulado" in _path:
+                continue
+            try:
+                if default_storage.exists(_path):
+                    pdf_block = self.get_pdf_content(_path)
+                    if pdf_block:
+                        content_blocks.append(pdf_block)
+            except Exception:
+                pass
+        content_blocks.append({"type": "text", "text": prompt_text})
+
+        try:
+            start_time = time.time()
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system=system_instruction,
+                messages=[{"role": "user", "content": content_blocks}],
+            )
+            self._log_tokens(
+                parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
+                'Fase 4 (Refinamento)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+            )
+            return response.content[0].text.strip()
+        except Exception as e:
+            return f"Erro ao refinar tese via LLM: {e}"
+
+    def get_cache_key_from_tese(self, tese):
+        """Extrai o núcleo da tese em até 3 palavras (para cache key)."""
+        if not self.client:
+            return "simulacao"
+
+        system_instruction = (
+            "Sua única tarefa é extrair a palavra-chave central ou o 'núcleo' do argumento jurídico abaixo. "
+            "Retorne APENAS essa palavra-chave (máximo 3 palavras). Sem pontos, sem explicações. "
+            "Exemplos de saída: 'Aferição Inmetro', 'Sinalização R-19', 'Nulidade Citação', 'Mérito Prejudicado'."
+        )
+
+        try:
+            response = self.client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=50,
+                system=system_instruction,
+                messages=[{"role": "user", "content": tese}],
+            )
+            key = response.content[0].text.strip().lower().replace('"', '').replace("'", "")
+            return key
+        except Exception as e:
+            _log.error("Erro ao gerar cache key: %s", e)
+            return "erro_chave"
+
+    def analyze_tese(self, parecer_obj, tese, perplexity_result, vertex_result):
+        """Fase 4 — Análise cruzada de teses com RAG (Vertex + Perplexity)."""
+        # Short-circuit: prejudicialidade (Python puro, sem LLM)
+        _punit = parecer_obj.julgador_prescricao_punitiva if parecer_obj.julgador_prescricao_punitiva is not None else parecer_obj.has_prescricao_punitiva
+        _inter = parecer_obj.julgador_prescricao_intercorrente if parecer_obj.julgador_prescricao_intercorrente is not None else parecer_obj.has_prescricao_intercorrente
+        _decad = parecer_obj.julgador_decadencia if parecer_obj.julgador_decadencia is not None else parecer_obj.has_decadencia
+        _temp = parecer_obj.julgador_tempestivo if parecer_obj.julgador_tempestivo is not None else parecer_obj.is_tempestivo
+        if _punit or _inter or _decad or (_temp is False):
+            return "Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal."
+
+        if not self.client:
+            return "Simulação: Resultar em: Conclusão: acolhida/não acolhida. (acolhida)"
+
+        import time
+        from chat.prompts.phase_4 import SYSTEM_INSTRUCTION_ANALYZE as system_instruction
+
+        _vrtx_t = _trunc(vertex_result or '', 'vertex', _LIMITES['vertex'])
+        _pplx_t = _trunc(perplexity_result or '', 'perplexity', _LIMITES['perplexity'])
+        _tese_t = _trunc(tese or '', 'tese', _LIMITES['tese'])
+
+        prompt_text = (
+            f"Processo: {parecer_obj.pa} | SGPE: {parecer_obj.sgpe}\n"
+            f"Teses Listadas: {_tese_t}\n\n"
+            f"Documentos Anexos: Documento 'consolidado' + 'autuação'\n\n"
+            f"RAG Inventário Normativo Google (VERTEX): {_vrtx_t}\n"
+            f"Pesquisa Auxiliar (PERPLEXITY): {_pplx_t}\n\n"
+            "Exponha as alternativas (a) e (b) justificadas para cada tese isoladamente.\n"
+            "Ao final, liste as tags [DECISAO_TESE_X] para todas as teses analisadas (uma por linha)."
+        )
+
+        # PDFs base64
+        content_blocks = []
+        from chat.integrations.perplexity import _p
+        from django.core.files.storage import default_storage
+        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
+            _path = _p(path_field)
+            if not _path or "upload_simulado" in _path:
+                continue
+            try:
+                if default_storage.exists(_path):
+                    pdf_block = self.get_pdf_content(_path)
+                    if pdf_block:
+                        content_blocks.append(pdf_block)
+            except Exception:
+                pass
+        content_blocks.append({"type": "text", "text": prompt_text})
+
+        try:
+            start_time = time.time()
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=8096,
+                system=system_instruction,
+                messages=[{"role": "user", "content": content_blocks}],
+            )
+            self._log_tokens(
+                parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
+                'Fase 4 (Análise Mérito)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+            )
+            return response.content[0].text
+        except Exception as e:
+            return f"Erro ao acessar Claude na Fase 4: {e}.\n"
+
+    def digest_cag_package(self, infracao_desc, vertex_result, perplexity_result):
+        """Sintetiza Vertex + Perplexity em pacote normativo compacto (CAG cron)."""
+        if not self.client:
+            return None
+
+        prompt = (
+            f"INFRAÇÃO: {infracao_desc}\n\n"
+            f"=== CORPUS NORMATIVO (Vertex AI) ===\n{vertex_result[:6000]}\n\n"
+            f"=== JURISPRUDÊNCIA (Perplexity) ===\n{perplexity_result[:6000]}\n\n"
+            "Sintetize o material acima em um PACOTE NORMATIVO COMPACTO contendo:\n"
+            "1. Artigos do CTB aplicáveis (com redação resumida)\n"
+            "2. Resoluções CONTRAN/CETRAN-SC relevantes (número + ementa)\n"
+            "3. Top 5 jurisprudências mais citadas (tribunal + número + tese)\n"
+            "4. Teses de defesa mais comuns para esta infração\n"
+            "5. Pontos de atenção para o relator\n\n"
+            "REGRAS:\n"
+            "- Máximo 2000 tokens\n"
+            "- Sem opinião — apenas fatos normativos\n"
+            "- Formato: texto corrido com subtítulos em negrito\n"
+            "- Cite artigos e resoluções com números exatos"
+        )
+
+        try:
+            import time
+            start_time = time.time()
+            response = self.client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=2048,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            result = response.content[0].text.strip()
+            _log.info("[CAG] Anthropic digest: %d chars, %d in/%d out tokens",
+                      len(result), response.usage.input_tokens, response.usage.output_tokens)
+            if len(result) < 100:
+                return None
+            return result
+        except Exception as e:
+            _log.error("[CAG] Anthropic digest falhou: %s", e)
+            return None
+
     def validate_and_generate_parecer(self, parecer_obj, tese, perplexity_result, vertex_result="", task_id=None):
         relator_name = "NÃO INFORMADO"
         if parecer_obj.user:
@@ -254,21 +626,11 @@ class AnthropicClient:
         relator_name = relator_name.upper()
 
         if not self.client:
-            import logging
-            _log = logging.getLogger(__name__)
-            _log.warning("ANTHROPIC_API_KEY não configurada — fallback para GeminiClient.")
-            try:
-                from chat.integrations.gemini import GeminiClient
-                return GeminiClient().generate_parecer_gemini(
-                    parecer_obj, tese, perplexity_result, vertex_result, task_id
-                )
-            except Exception as _fe:
-                _log.error(f"Fallback Gemini também falhou: {_fe}")
-                return (
-                    "⚠️ **ERRO DE CONFIGURAÇÃO: Parecer não gerado.**\n\n"
-                    "Nem Anthropic (chave ausente) nem Gemini (fallback) conseguiram gerar o parecer. "
-                    "Configure ANTHROPIC_API_KEY ou verifique GOOGLE_API_KEY."
-                )
+            _log.error("ANTHROPIC_API_KEY não configurada — impossível gerar parecer.")
+            return (
+                "⚠️ **ERRO DE CONFIGURAÇÃO: Parecer não gerado.**\n\n"
+                "ANTHROPIC_API_KEY ausente. Configure a variável de ambiente no Railway."
+            )
 
         # Prompt versionado — editar em chat/prompts/phase_5.py
         from chat.prompts.phase_5 import build_system_instruction
@@ -465,14 +827,12 @@ class AnthropicClient:
             return final_text
         except Exception as e:
             err_str = str(e)
-            import logging
-            _log = logging.getLogger(__name__)
-            _log.error(f"Anthropic Fase 5 falhou ({err_str}) — tentando fallback Gemini.")
+            _log.error("Anthropic Fase 5 falhou: %s", err_str)
             try:
                 from django.core.mail import send_mail
                 from django.conf import settings
                 send_mail(
-                    subject='🚨 JARI ALERTA (FALHA CLAUDE 3.5)',
+                    subject='🚨 JARI ALERTA (FALHA CLAUDE)',
                     message=f'A API da Anthropic retornou erro na Fase 5: {err_str}',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=['geffersonvivan@gmail.com'],
@@ -480,23 +840,15 @@ class AnthropicClient:
                 )
             except Exception:
                 pass
-            try:
-                from chat.integrations.gemini import GeminiClient
-                _log.warning("Fase 5: fallback para GeminiClient após falha Anthropic.")
-                return GeminiClient().generate_parecer_gemini(
-                    parecer_obj, tese, perplexity_result, vertex_result, task_id
-                )
-            except Exception as _fe:
-                _log.error(f"Fase 5 fallback Gemini também falhou: {_fe}")
-                return f"Erro ao acessar Claude: {err_str}\nFallback Gemini: {str(_fe)}"
+            return f"⚠️ Erro ao acessar Claude: {err_str}\nTente novamente em alguns instantes."
 
     def audit_parecer(self, parecer_obj):
         """
-        Fase 6 — Auditoria cruzada via Claude (quando o parecer foi escrito pelo Gemini).
-        Mesmo checklist de 10 itens que o Gemini.audit_parecer, mas por um modelo independente.
+        Fase 6 — Auditoria de conformidade via Claude.
+        Checklist de 10 itens sobre o Parecer Final.
         """
         if not self.client:
-            return None  # caller fará fallback para Gemini
+            return "⚠️ Auditoria indisponível: ANTHROPIC_API_KEY não configurada."
 
         import time
 
@@ -562,5 +914,5 @@ class AnthropicClient:
             )
             return result
         except Exception as e:
-            _log.warning("[FASE6] Claude audit_parecer falhou: %s — caller fará fallback", e)
-            return None
+            _log.warning("[FASE6] Claude audit_parecer falhou: %s", e)
+            return f"⚠️ Auditoria Qualitativa offline ({e}). Resultado puramente matemático operando."

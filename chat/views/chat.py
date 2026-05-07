@@ -67,7 +67,7 @@ def chat_agent_message_view(request):
         import os
         from django.conf import settings
         from ..models import Parecer
-        from ..integrations import GeminiClient, VertexAIClient, PerplexityClient
+        from ..integrations import AnthropicClient, VertexAIClient, PerplexityClient
 
         data = json.loads(request.body)
         message = (data.get('message') or '')[:5000]
@@ -116,8 +116,8 @@ def chat_agent_message_view(request):
             vertex_results = vertex_client.search_documents(parecer, message, top_k=3)
             # Pula perplexity no fluxo default do agente pra ser rapido (Streaming não está nativo no DJango sem Channels)
 
-        gemini_client = GeminiClient()
-        if not gemini_client.client:
+        anthropic_client = AnthropicClient()
+        if not anthropic_client.client:
              return JsonResponse({'reply': "Simulação: O Agente Lateral está funcionando offline.", 'status': 'success'})
 
         prompt = (
@@ -126,17 +126,22 @@ def chat_agent_message_view(request):
             f"=== PERGUNTA DO USUÁRIO ===\n{message}\n"
         )
 
-        contents = [prompt]
-        response = gemini_client.client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=contents,
-            config={'system_instruction': system_instruction}
+        import time as _time
+        _start = _time.time()
+        response = anthropic_client.client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=2048,
+            system=system_instruction,
+            messages=[{"role": "user", "content": prompt}],
         )
 
         if parecer:
-            gemini_client._log_tokens(parecer, response, 'Fase 2 (Agente Drawer)', model_name='gemini-2.5-flash')
+            anthropic_client._log_tokens(
+                parecer, response.usage.input_tokens, response.usage.output_tokens,
+                'Agente Lateral', model_name='claude-haiku-4-5-20251001', start_time=_start,
+            )
 
-        return JsonResponse({'reply': response.text, 'status': 'success'})
+        return JsonResponse({'reply': response.content[0].text, 'status': 'success'})
 
     except Exception as e:
         import sentry_sdk

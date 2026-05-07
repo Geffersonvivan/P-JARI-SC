@@ -31,7 +31,7 @@ def _salvar_edicao(engine, novo_texto: str) -> str:
 
 def run(engine) -> str:
     """Executa a auditoria e avança para FASE_SELECAO_PASTA."""
-    from chat.integrations import GeminiClient
+    from chat.integrations import AnthropicClient
     from chat.engine import FASE_SELECAO_PASTA
     from django.utils import timezone
 
@@ -219,30 +219,10 @@ def run(engine) -> str:
     except Exception:
         pass
 
-    # ── Checklist qualitativo via auditor cruzado ───────────────────────────
-    # Se o parecer foi escrito pelo Gemini → Claude audita (e vice-versa).
-    # Isso elimina viés de auto-revisão: o auditor nunca é o mesmo modelo que escreveu.
-    checklist_texto = None
-    _fase5_provider = parecer.fase5_provider or ''
-
-    if _fase5_provider == 'Gemini':
-        # Parecer escrito pelo Gemini → tenta Claude como auditor
-        try:
-            from chat.integrations import AnthropicClient
-            checklist_texto = AnthropicClient().audit_parecer(parecer)
-            if checklist_texto:
-                logger.info("[FASE6] Auditor cruzado: Claude auditou parecer do Gemini | parecer=%s", parecer.id)
-        except Exception as e:
-            logger.warning("[FASE6] Claude audit falhou, fallback Gemini: %s", e)
-
-    if not checklist_texto:
-        # Parecer escrito pelo Claude (ou fallback) → Gemini audita
-        gemini = GeminiClient()
-        checklist_texto = gemini.audit_parecer(parecer)
-        if _fase5_provider == 'Claude':
-            logger.info("[FASE6] Auditor cruzado: Gemini auditou parecer do Claude | parecer=%s", parecer.id)
-        else:
-            logger.info("[FASE6] Auditor padrão: Gemini (provider fase5 desconhecido) | parecer=%s", parecer.id)
+    # ── Checklist qualitativo via Claude ─────────────────────────────────────
+    _fase5_provider = parecer.fase5_provider or 'Claude'
+    checklist_texto = AnthropicClient().audit_parecer(parecer)
+    logger.info("[FASE6] Auditor: Claude | parecer=%s", parecer.id)
 
     # Limpa tags HTML que o LLM pode citar do parecer (evita renderização indevida)
     import re as _re_html
@@ -258,7 +238,7 @@ def run(engine) -> str:
 
     # GAP-08: persistir resultado estruturado da auditoria para rastreabilidade
     try:
-        _auditor = 'Claude' if (_fase5_provider == 'Gemini' and checklist_texto and 'Simulação' not in checklist_texto) else 'Gemini'
+        _auditor = 'Anthropic'
         parecer.checklist_auditoria_json = {
             "jari_math": {
                 "score": parecer.blindagem_score,

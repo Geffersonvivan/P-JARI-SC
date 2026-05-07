@@ -23,7 +23,7 @@ def run_llm_phases(engine, task_id=None) -> str:
     """
     import time as _time
     import concurrent.futures
-    from chat.integrations import PerplexityClient, GeminiClient, VertexAIClient, AnthropicClient
+    from chat.integrations import PerplexityClient, VertexAIClient, AnthropicClient
     from chat.engine import FASE_AUDITORIA
     from chat.engine import _p as _engine_p
 
@@ -32,7 +32,6 @@ def run_llm_phases(engine, task_id=None) -> str:
     logger.info("[FASE5] START parecer=%s task=%s", parecer.id, task_id)
 
     perplexity = PerplexityClient()
-    gemini = GeminiClient()
     vertex = VertexAIClient()
     anthropic = AnthropicClient()
 
@@ -75,70 +74,13 @@ def run_llm_phases(engine, task_id=None) -> str:
             from django.db import close_old_connections
             close_old_connections()
 
-    # ── Geração do parecer (Race: Claude vs Gemini em paralelo) ──────────────
-    _has_claude = bool(anthropic.client)
-    _has_gemini = bool(gemini.client)
-    logger.info(
-        "[FASE5] Vertex/Perplexity prontos em %.1fs — race Claude(%s) vs Gemini(%s)",
-        _time.time()-_t0, _has_claude, _has_gemini,
+    # ── Geração do parecer (Claude único) ────────────────────────────────────
+    logger.info("[FASE5] Vertex/Perplexity prontos em %.1fs — gerando parecer via Claude", _time.time()-_t0)
+
+    parecer_text = anthropic.validate_and_generate_parecer(
+        parecer, tese, perplexity_result, vertex_result, task_id=task_id
     )
-
-    _race_args = (parecer, tese, perplexity_result, vertex_result)
-    _race_kwargs = {'task_id': task_id}
-
-    if _has_claude and _has_gemini:
-        # Race pattern: dispara ambos, usa o primeiro que retornar resultado válido
-        race_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-        try:
-            claude_fut = race_executor.submit(
-                anthropic.validate_and_generate_parecer, *_race_args, **_race_kwargs
-            )
-            # Gemini não recebe task_id para não publicar chunks duplicados no SSE
-            gemini_fut = race_executor.submit(
-                gemini.generate_parecer_gemini, *_race_args, task_id=None
-            )
-            futures = {claude_fut: 'Claude', gemini_fut: 'Gemini'}
-
-            parecer_text = None
-            winner = None
-            first_error = None
-
-            for fut in concurrent.futures.as_completed(futures, timeout=300):
-                provider_name = futures[fut]
-                try:
-                    result = fut.result()
-                    # Valida que o resultado não é erro/vazio
-                    if result and len(result) > 200 and not result.startswith("⚠️") and "ERRO" not in result[:50]:
-                        parecer_text = result
-                        winner = provider_name
-                        break
-                    else:
-                        logger.warning("[FASE5] %s retornou resultado inválido (len=%d) — aguardando outro", provider_name, len(result or ''))
-                        first_error = first_error or Exception(f"{provider_name}: resultado inválido")
-                except Exception as e:
-                    logger.warning("[FASE5] %s falhou no race: %s — aguardando outro", provider_name, e)
-                    first_error = first_error or e
-
-            if parecer_text:
-                loser = 'Gemini' if winner == 'Claude' else 'Claude'
-                logger.info("[FASE5] Race vencido por %s em %.1fs (len=%d) — %s descartado", winner, _time.time()-_t0, len(parecer_text), loser)
-            else:
-                raise first_error or Exception("Ambos providers falharam no race")
-        except concurrent.futures.TimeoutError:
-            logger.error("[FASE5] Race timeout (300s) — ambos providers excederam o limite")
-            raise Exception("Fase 5 race timeout: Claude e Gemini não responderam em 300s")
-        finally:
-            race_executor.shutdown(wait=False, cancel_futures=True)
-    elif _has_claude:
-        # Só Claude disponível
-        parecer_text = anthropic.validate_and_generate_parecer(*_race_args, **_race_kwargs)
-        logger.info("[FASE5] Claude (solo) concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
-    elif _has_gemini:
-        # Só Gemini disponível
-        parecer_text = gemini.generate_parecer_gemini(*_race_args, **_race_kwargs)
-        logger.info("[FASE5] Gemini (solo) concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text))
-    else:
-        raise Exception("Nenhum provider LLM configurado (ANTHROPIC_API_KEY e GEMINI_API_KEY ausentes)")
+    logger.info("[FASE5] Claude concluído em %.1fs — len=%d", _time.time()-_t0, len(parecer_text or ''))
 
     # ── Extrai Dossiê de Fontes ───────────────────────────────────────────────
     dossie = ""
@@ -155,7 +97,7 @@ def run_llm_phases(engine, task_id=None) -> str:
 
     parecer.parecer_final = parecer_text
     parecer.dossie_fontes = dossie
-    parecer.fase5_provider = winner if winner else ('Claude' if _has_claude else 'Gemini')
+    parecer.fase5_provider = 'Claude'
 
     # ── Limpeza de PDFs do storage (somente após parecer válido) ─────────────
     _parecer_valido = (
