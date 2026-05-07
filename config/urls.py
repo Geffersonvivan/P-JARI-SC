@@ -108,10 +108,13 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += [
         path('sentry-debug/', user_passes_test(lambda u: u.is_superuser)(trigger_error)),
     ]
+
+# Serve media files localmente (só quando usa FileSystemStorage)
+if hasattr(settings, 'MEDIA_ROOT'):
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if getattr(settings, 'SILK_ENABLED', False):
     urlpatterns += [path('silk/', include('silk.urls', namespace='silk'))]

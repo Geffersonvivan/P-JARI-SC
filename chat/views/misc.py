@@ -63,6 +63,7 @@ _PROXY_ALLOWED_DOMAINS = {
     'avatars.githubusercontent.com',
     'pbs.twimg.com',
     'storage.googleapis.com',
+    't3.storageapi.dev',
 }
 
 @ratelimit(key='user_or_ip', rate='120/m', method='GET', block=True)

@@ -400,9 +400,9 @@ STATICFILES_DIRS = [
 # WhiteNoise: cache de estáticos por 1 ano no browser (hash no nome garante invalidação)
 WHITENOISE_MAX_AGE = 31536000  # 1 ano em segundos
 WHITENOISE_USE_FINDERS = False
-# Google Cloud Storage Configuration
-# Sempre usar Storage Local em Desenvolvimento (DEBUG=True), a menos que explicitamente forçado via .env
-USE_GCS = os.environ.get('USE_GCS', str(not DEBUG)) == 'True'
+# Storage Configuration
+# Prioridade: Railway Bucket (S3) → GCS → FileSystem local
+USE_GCS = os.environ.get('USE_GCS', 'False') == 'True'
 
 # Fase 1 texto-only: extrai Markdown estruturado dos PDFs via PyMuPDF e envia
 # ao Gemini como texto puro (sem Files API visual). Reduz latência e custo.
@@ -414,19 +414,41 @@ FASE1_TEXT_ONLY = os.environ.get('FASE1_TEXT_ONLY', 'True') == 'True'
 # O julgador vê um único formulário de confirmação em vez de dois sequenciais.
 UNIFIED_FASE1_FASE2 = os.environ.get('UNIFIED_FASE1_FASE2', 'True') == 'True'
 
-if USE_GCS:
+# Railway Bucket (S3-compatible) — env vars injetadas via "Add to Service" (estilo AWS SDK)
+# AWS_ENDPOINT_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET_NAME, AWS_DEFAULT_REGION
+_s3_endpoint = os.environ.get('AWS_ENDPOINT_URL', '')
+_s3_access_key = os.environ.get('AWS_ACCESS_KEY_ID', '')
+
+if _s3_endpoint and _s3_access_key:
+    # Railway Bucket (S3-compatible object storage)
+    # django-storages lê AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY automaticamente
+    AWS_S3_ENDPOINT_URL = _s3_endpoint
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_S3_BUCKET_NAME', '')
+    AWS_S3_REGION_NAME = os.environ.get('AWS_DEFAULT_REGION', 'auto')
+    AWS_S3_ADDRESSING_STYLE = 'virtual'
+    AWS_QUERYSTRING_AUTH = True
+    from datetime import timedelta
+    AWS_QUERYSTRING_EXPIRE = int(timedelta(days=1).total_seconds())
+
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        },
+        'staticfiles': {
+            'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
+        },
+    }
+elif USE_GCS:
+    # Google Cloud Storage (legado — billing precisa estar ativo)
     GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME', 'pjari-midias')
     google_creds_env = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '')
-    
-    # Se a variável de ambiente contiver o JSON inteiro em vez de um caminho de arquivo (como no Railway)
+
     if google_creds_env.strip().startswith('{'):
         import json
         from google.oauth2 import service_account
-        
         try:
             creds_info = json.loads(google_creds_env)
             GS_CREDENTIALS = service_account.Credentials.from_service_account_info(creds_info)
-            
             STORAGES = {
                 'default': {
                     'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
@@ -435,33 +457,23 @@ if USE_GCS:
                     'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
                 },
             }
-            
             GS_QUERYSTRING_AUTH = True
             from datetime import timedelta
             GS_EXPIRATION = timedelta(days=1)
-            
             if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
                 del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
-        except Exception as e:
+        except Exception:
             STORAGES = {
-                'default': {
-                    'BACKEND': 'django.core.files.storage.FileSystemStorage',
-                },
-                'staticfiles': {
-                    'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
-                },
+                'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+                'staticfiles': {'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage'},
             }
             MEDIA_URL = '/media/'
-            MEDIA_ROOT = BASE_DIR / 'media'
-            
+            MEDIA_ROOT = os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media'))
     else:
-        # Modo fallback caso seja o nome do arquivo passando pelo SO (Local)
         GS_CREDENTIALS_FILE = google_creds_env or str(BASE_DIR / 'gcp-credentials.json')
-        
         if os.path.exists(GS_CREDENTIALS_FILE):
             if 'GOOGLE_APPLICATION_CREDENTIALS' not in os.environ:
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GS_CREDENTIALS_FILE
-                
             STORAGES = {
                 'default': {
                     'BACKEND': 'storages.backends.gcloud.GoogleCloudStorage',
@@ -474,28 +486,20 @@ if USE_GCS:
             from datetime import timedelta
             GS_EXPIRATION = timedelta(days=1)
         else:
-            # Fallback to local if credentials aren't found
             STORAGES = {
-                'default': {
-                    'BACKEND': 'django.core.files.storage.FileSystemStorage',
-                },
-                'staticfiles': {
-                    'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
-                },
+                'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+                'staticfiles': {'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage'},
             }
             MEDIA_URL = '/media/'
-            MEDIA_ROOT = BASE_DIR / 'media'
+            MEDIA_ROOT = os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media'))
 else:
+    # Desenvolvimento local — FileSystemStorage
     STORAGES = {
-        'default': {
-            'BACKEND': 'django.core.files.storage.FileSystemStorage',
-        },
-        'staticfiles': {
-            'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage',
-        },
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'config.custom_storage.TolerantWhiteNoiseStorage'},
     }
     MEDIA_URL = '/media/'
-    MEDIA_ROOT = BASE_DIR / 'media'
+    MEDIA_ROOT = os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media'))
 
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_REDIRECT_URL = '/'
