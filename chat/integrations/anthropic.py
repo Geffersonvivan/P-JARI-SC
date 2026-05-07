@@ -345,8 +345,9 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
+            _model = "claude-sonnet-4-20250514"
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model=_model,
                 max_tokens=4096,
                 system=system_instruction,
                 messages=[{"role": "user", "content": content_blocks}],
@@ -360,7 +361,7 @@ class AnthropicClient:
             dados = _json.loads(raw_text)
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
-                'Fase 2 (DIR)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+                'Fase 2 (DIR)', model_name=_model, start_time=start_time,
             )
             return dados
         except Exception as e:
@@ -394,15 +395,16 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
+            _model = "claude-haiku-4-5-20251001"
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model=_model,
                 max_tokens=4096,
                 system=system_instruction,
                 messages=[{"role": "user", "content": prompt_text}],
             )
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
-                'Fase 3 (Avaliação Prazos)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+                'Fase 3 (Avaliação Prazos)', model_name=_model, start_time=start_time,
             )
             return response.content[0].text
         except Exception as e:
@@ -452,15 +454,16 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
+            _model = "claude-sonnet-4-20250514"
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model=_model,
                 max_tokens=4096,
                 system=system_instruction,
                 messages=[{"role": "user", "content": content_blocks}],
             )
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
-                'Fase 4 (Extração)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+                'Fase 4 (Extração)', model_name=_model, start_time=start_time,
             )
             return response.content[0].text.strip()
         except Exception as e:
@@ -499,15 +502,16 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
+            _model = "claude-haiku-4-5-20251001"
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model=_model,
                 max_tokens=4096,
                 system=system_instruction,
                 messages=[{"role": "user", "content": content_blocks}],
             )
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
-                'Fase 4 (Refinamento)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+                'Fase 4 (Refinamento)', model_name=_model, start_time=start_time,
             )
             return response.content[0].text.strip()
         except Exception as e:
