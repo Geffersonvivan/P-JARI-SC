@@ -319,33 +319,39 @@ class AnthropicClient:
             "Retorne o JSON conforme instruções: campos estruturados + tabela_markdown completa."
         )
 
-        # Montar content blocks: PDFs base64 + texto
+        # Montar content blocks: PDFs base64 apenas se texto extraído for limitado
+        # (< 2000 chars = PDF ilegível, precisa visão). Caso contrário, o texto em
+        # contexto_textual_datas já contém todas as datas e enviar PDFs base64 de 7MB+
+        # desperdiça tokens e causa rate limit.
         content_blocks = []
-        from chat.integrations.perplexity import _p
-        from django.core.files.storage import default_storage
-        for path_field, label in [
-            (parecer_obj.autuacao_pdf_path, 'autuacao'),
-            (parecer_obj.consolidado_pdf_path, 'consolidado'),
-            (parecer_obj.ata_pdf_path, 'ata'),
-        ]:
-            _path = _p(path_field)
-            if not _path or "upload_simulado" in _path:
-                continue
-            if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
-                continue
-            try:
-                if default_storage.exists(_path):
-                    pdf_block = self.get_pdf_content(_path)
-                    if pdf_block:
-                        content_blocks.append(pdf_block)
-            except Exception:
-                pass
+        if pdf_chars < 2000:
+            _log.info("generate_phase2_report: pdf_chars=%d < 2000 — enviando PDFs base64", pdf_chars)
+            from chat.integrations.perplexity import _p
+            from django.core.files.storage import default_storage
+            for path_field, label in [
+                (parecer_obj.autuacao_pdf_path, 'autuacao'),
+                (parecer_obj.consolidado_pdf_path, 'consolidado'),
+                (parecer_obj.ata_pdf_path, 'ata'),
+            ]:
+                _path = _p(path_field)
+                if not _path or "upload_simulado" in _path:
+                    continue
+                if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
+                    continue
+                try:
+                    if default_storage.exists(_path):
+                        pdf_block = self.get_pdf_content(_path)
+                        if pdf_block:
+                            content_blocks.append(pdf_block)
+                except Exception:
+                    pass
 
         content_blocks.append({"type": "text", "text": prompt_text})
 
         try:
             start_time = time.time()
-            _model = "claude-sonnet-4-20250514"
+            # Sem PDFs base64: Haiku é suficiente (texto puro). Com PDFs: Sonnet (visão).
+            _model = "claude-sonnet-4-20250514" if pdf_chars < 2000 else "claude-haiku-4-5-20251001"
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
