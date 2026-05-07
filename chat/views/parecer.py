@@ -106,11 +106,10 @@ def editar_parecer_view(request, id):
                     banner_src = request.build_absolute_uri(config.cabecalho_imagem.url)
 
             if not banner_src:
-                # Fallback: usa o cabeçalho padrão em staticfiles
-                _static_cabecalho = os.path.join(
-                    settings.BASE_DIR, 'staticfiles', 'Cabecalho', 'Cabeçalho topo.png'
-                )
-                if os.path.exists(_static_cabecalho):
+                # Fallback: usa o cabeçalho padrão via Django staticfiles finders
+                from django.contrib.staticfiles import finders
+                _static_cabecalho = finders.find('Cabecalho/Cabeçalho topo.png')
+                if _static_cabecalho:
                     try:
                         banner_src = _img_to_b64(_static_cabecalho)
                     except Exception:
