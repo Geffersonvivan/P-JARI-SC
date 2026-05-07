@@ -26,29 +26,48 @@ class ChatService:
     def save_uploaded_files(files_dict):
         import logging as _log
         _logger = _log.getLogger(__name__)
-        files = []
+
+        # Fase 1: validar todos os arquivos (rápido, sem I/O de rede)
+        validated = []
         for key, f in files_dict.items():
-            # Validação 1: extensão
             if not f.name.lower().endswith('.pdf'):
                 _logger.warning("upload rejeitado (extensão inválida): %s", f.name)
                 continue
-            # Validação 2: tamanho máximo (20 MB)
             if f.size > ChatService.MAX_PDF_SIZE_BYTES:
                 _logger.warning(
                     "upload rejeitado (tamanho %d bytes > %d): %s",
                     f.size, ChatService.MAX_PDF_SIZE_BYTES, f.name,
                 )
                 continue
-            # Validação 3: magic bytes — confirma que é realmente um PDF
             header = f.read(4)
             f.seek(0)
             if header != b'%PDF':
                 _logger.warning("upload rejeitado (magic bytes inválidos): %s", f.name)
                 continue
-            base_name = os.path.basename(f.name)
-            path = default_storage.save(f'uploads/{base_name}', f)
-            files.append(path)
-        return files
+            validated.append(f)
+
+        if not validated:
+            return []
+
+        # Fase 2: upload para storage em paralelo (S3 pode ser lento sequencial)
+        import concurrent.futures
+
+        def _upload_one(file_obj):
+            base_name = os.path.basename(file_obj.name)
+            return default_storage.save(f'uploads/{base_name}', file_obj)
+
+        if len(validated) == 1:
+            return [_upload_one(validated[0])]
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(validated)) as ex:
+            futures = {ex.submit(_upload_one, f): f.name for f in validated}
+            files = []
+            for fut in concurrent.futures.as_completed(futures):
+                try:
+                    files.append(fut.result())
+                except Exception as e:
+                    _logger.error("upload falhou para %s: %s", futures[fut], e)
+            return files
 
     @staticmethod
     def handle_resumo_pasta(pasta_id, filter_kwargs):
