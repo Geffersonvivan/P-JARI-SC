@@ -238,7 +238,7 @@ class AnthropicClient:
             response = self.client.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=4096,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": content_blocks}],
             )
 
@@ -355,7 +355,7 @@ class AnthropicClient:
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": content_blocks}],
             )
             raw_text = response.content[0].text.strip()
@@ -405,7 +405,7 @@ class AnthropicClient:
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": prompt_text}],
             )
             self._log_tokens(
@@ -464,7 +464,7 @@ class AnthropicClient:
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": content_blocks}],
             )
             self._log_tokens(
@@ -484,28 +484,15 @@ class AnthropicClient:
         import time
         from chat.prompts.phase_4 import SYSTEM_INSTRUCTION_REFINE as system_instruction
 
+        # Usa tese já extraída + hint do julgador (sem PDFs — já foram lidos na extração)
+        tese_atual = parecer_obj.tese or "(tese não disponível)"
         prompt_text = (
-            f"Por favor, releia a defesa do recorrente nas páginas: {parecer_obj.paginas_defesa}.\n\n"
+            f"Tese extraída anteriormente:\n{tese_atual}\n\n"
+            f"Páginas da defesa: {parecer_obj.paginas_defesa}.\n\n"
             f"O assessor revisor apontou o seguinte: '{user_hint}'.\n\n"
             "Com base nessa instrução, escreva um NOVO resumo claro e direto informando as alegações da defesa."
         )
-
-        # PDFs base64
-        content_blocks = []
-        from chat.integrations.perplexity import _p
-        from django.core.files.storage import default_storage
-        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
-            _path = _p(path_field)
-            if not _path or "upload_simulado" in _path:
-                continue
-            try:
-                if default_storage.exists(_path):
-                    pdf_block = self.get_pdf_content(_path)
-                    if pdf_block:
-                        content_blocks.append(pdf_block)
-            except Exception:
-                pass
-        content_blocks.append({"type": "text", "text": prompt_text})
+        content_blocks = [{"type": "text", "text": prompt_text}]
 
         try:
             start_time = time.time()
@@ -513,7 +500,7 @@ class AnthropicClient:
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": content_blocks}],
             )
             self._log_tokens(
@@ -540,7 +527,7 @@ class AnthropicClient:
             response = self.client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=50,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": tese}],
             )
             key = response.content[0].text.strip().lower().replace('"', '').replace("'", "")
@@ -579,29 +566,14 @@ class AnthropicClient:
             "Ao final, liste as tags [DECISAO_TESE_X] para todas as teses analisadas (uma por linha)."
         )
 
-        # PDFs base64
-        content_blocks = []
-        from chat.integrations.perplexity import _p
-        from django.core.files.storage import default_storage
-        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
-            _path = _p(path_field)
-            if not _path or "upload_simulado" in _path:
-                continue
-            try:
-                if default_storage.exists(_path):
-                    pdf_block = self.get_pdf_content(_path)
-                    if pdf_block:
-                        content_blocks.append(pdf_block)
-            except Exception:
-                pass
-        content_blocks.append({"type": "text", "text": prompt_text})
+        content_blocks = [{"type": "text", "text": prompt_text}]
 
         try:
             start_time = time.time()
             response = self.client.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=8096,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": content_blocks}],
             )
             self._log_tokens(
@@ -830,7 +802,7 @@ class AnthropicClient:
             with self.client.messages.stream(
                 model=model_to_use,
                 max_tokens=8096,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": content}]
             ) as stream:
                 for text_chunk in stream.text_stream:
@@ -944,7 +916,7 @@ class AnthropicClient:
             message = self.client.messages.create(
                 model=model_to_use,
                 max_tokens=2048,
-                system=system_instruction,
+                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": prompt}],
             )
 

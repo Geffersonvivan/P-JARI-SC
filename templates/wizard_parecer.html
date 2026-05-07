@@ -2598,6 +2598,12 @@ function showTaskError(msg) {
 }
 
 function startSSE(taskId, taskType) {
+    // Se é geração de parecer (MERITO/PREJUDICIALIDADE), usa streaming real via EventSource
+    const _STREAMING_TYPES = ['MERITO', 'PREJUDICIALIDADE'];
+    if (_STREAMING_TYPES.includes(taskType)) {
+        return startParecerStream(taskId, taskType);
+    }
+
     // Polling a cada 3s — compatível com WSGI/Gunicorn
     const labels = SSE_LABELS[taskType] || ['Processando...'];
     const lbl = getLabelEl();
@@ -2640,6 +2646,10 @@ function startSSE(taskId, taskType) {
                 const b = document.getElementById('_stuck-banner'); if (b) b.remove();
                 taskType = d.next_task_type;
                 taskId   = d.next_task_id;
+                // Se encadeou para geração de parecer, troca para streaming real
+                if (_STREAMING_TYPES.includes(taskType)) {
+                    return startParecerStream(taskId, taskType);
+                }
                 const newLabels = SSE_LABELS[taskType] || ['Processando...'];
                 const lbl2 = getLabelEl(); if (lbl2) rotateLabel(lbl2.id, newLabels);
                 polls = 0; pendingStreak = 0;
@@ -2678,6 +2688,101 @@ function startSSE(taskId, taskType) {
         }
     };
     setTimeout(poll, 2000);
+}
+
+function startParecerStream(taskId, taskType) {
+    // Streaming real via EventSource — mostra parecer sendo escrito em tempo real
+    const labels = SSE_LABELS[taskType] || SSE_LABELS['FASE5'] || ['Gerando Parecer Técnico...'];
+    const lbl = getLabelEl();
+    if (lbl) rotateLabel(lbl.id, labels);
+
+    let _streamedText = '';
+    let _firstChunk = true;
+    let _sseRetries = 0;
+    const MAX_SSE_RETRIES = 3;
+
+    const parecerEl = document.getElementById('p4-parecer-texto');
+    const loadingEl = document.getElementById('p4-loading');
+    const contentEl = document.getElementById('p4-content');
+
+    function connectSSE() {
+        const es = new EventSource(`/chat/stream/${taskId}/?parecer_id=${PARECER_ID}`);
+
+        es.onmessage = function(e) {
+            if (!e.data || e.data.trim() === '') return;
+            try {
+                const d = JSON.parse(e.data);
+                if (d.status === 'CHUNK' && d.text) {
+                    _streamedText += d.text;
+                    if (_firstChunk) {
+                        _firstChunk = false;
+                        // Transição: esconde loading, mostra conteúdo com texto fluindo
+                        if (loadingEl) loadingEl.classList.add('hidden');
+                        if (contentEl) contentEl.classList.remove('hidden');
+                        // Esconde score badge durante streaming
+                        const badge = document.getElementById('p4-score-badge');
+                        if (badge) badge.classList.add('hidden');
+                    }
+                    if (parecerEl) parecerEl.innerHTML = md(_streamedText);
+                    // Auto-scroll para acompanhar o texto
+                    if (parecerEl) parecerEl.scrollTop = parecerEl.scrollHeight;
+                } else if (d.status === 'SUCCESS') {
+                    es.close();
+                    if (window._slowProgressInterval) clearInterval(window._slowProgressInterval);
+                    window.location.reload();
+                } else if (d.status === 'FAILURE') {
+                    es.close();
+                    showTaskError(d.error || 'Falha no processamento.');
+                    setLoading(false);
+                } else if (d.status === 'RECONNECT') {
+                    es.close();
+                    if (_sseRetries < MAX_SSE_RETRIES) {
+                        _sseRetries++;
+                        setTimeout(connectSSE, 2000);
+                    } else {
+                        // Fallback: polling normal
+                        _fallbackPolling();
+                    }
+                }
+            } catch(parseErr) {
+                // Ignora linhas que não são JSON (keepalive)
+            }
+        };
+
+        es.onerror = function() {
+            es.close();
+            // Se já recebeu chunks, tenta reconectar; senão faz fallback para polling
+            if (_sseRetries < MAX_SSE_RETRIES) {
+                _sseRetries++;
+                setTimeout(connectSSE, 3000);
+            } else {
+                _fallbackPolling();
+            }
+        };
+    }
+
+    function _fallbackPolling() {
+        // Fallback: polling simples enquanto o SSE não funciona
+        const _pollFallback = async () => {
+            try {
+                const res = await fetch(`/chat/task-status/${taskId}/?parecer_id=${PARECER_ID}`);
+                const d = await res.json();
+                if (d.status === 'SUCCESS') {
+                    window.location.reload();
+                } else if (d.status === 'FAILURE') {
+                    showTaskError(d.error || 'Falha no processamento.');
+                    setLoading(false);
+                } else {
+                    setTimeout(_pollFallback, 4000);
+                }
+            } catch(e) {
+                setTimeout(_pollFallback, 5000);
+            }
+        };
+        setTimeout(_pollFallback, 2000);
+    }
+
+    connectSSE();
 }
 
 function getLabelEl() {

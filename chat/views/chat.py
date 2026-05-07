@@ -131,7 +131,7 @@ def chat_agent_message_view(request):
         response = anthropic_client.client.messages.create(
             model='claude-haiku-4-5-20251001',
             max_tokens=2048,
-            system=system_instruction,
+            system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
             messages=[{"role": "user", "content": prompt}],
         )
 
