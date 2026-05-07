@@ -864,6 +864,11 @@ class AnthropicClient:
         except Exception as e:
             err_str = str(e)
             _log.error("Anthropic Fase 5 falhou: %s", err_str)
+            # Re-raise erros transientes (429, 5xx) para que o Celery faça retry
+            _transient_markers = ('rate_limit', 'RateLimitError', '429', '529', '502', '503', '504',
+                                  'overloaded', 'ServerError', 'InternalServerError', 'APIConnectionError', 'timeout')
+            if any(m in err_str for m in _transient_markers):
+                raise
             try:
                 from django.core.mail import send_mail
                 from django.conf import settings
@@ -951,4 +956,8 @@ class AnthropicClient:
             return result
         except Exception as e:
             _log.warning("[FASE6] Claude audit_parecer falhou: %s", e)
+            _transient_markers = ('rate_limit', 'RateLimitError', '429', '529', '502', '503', '504',
+                                  'overloaded', 'ServerError', 'InternalServerError', 'APIConnectionError', 'timeout')
+            if any(m in str(e) for m in _transient_markers):
+                raise
             return "⚠️ Auditoria Qualitativa temporariamente indisponível. Resultado puramente matemático operando. Tente novamente em alguns instantes."
