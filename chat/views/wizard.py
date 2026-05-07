@@ -99,7 +99,14 @@ def wizard_avancar_view(request, id):
             "wizard_avancar_view error (parecer=%s fase=%s): %s\n%s",
             id, parecer.status_fase, e, traceback.format_exc()
         )
-        return JsonResponse({'error': f'Erro interno ao processar fase: {str(e)[:120]}'}, status=500)
+        # Sanitiza erro: nunca expor detalhes técnicos (429, stack traces) ao usuário
+        err_str = str(e)
+        _transient = any(m in err_str for m in ('429', 'rate_limit', 'RateLimitError', '502', '503', '504', 'overloaded', 'timeout'))
+        if _transient:
+            user_msg = 'O servidor está temporariamente sobrecarregado. Aguarde alguns instantes e tente novamente.'
+        else:
+            user_msg = 'Erro interno ao processar fase. Tente novamente em alguns instantes.'
+        return JsonResponse({'error': user_msg}, status=500)
 
     parecer.refresh_from_db()
 

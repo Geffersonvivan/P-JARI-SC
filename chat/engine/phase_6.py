@@ -219,10 +219,14 @@ def run(engine) -> str:
     except Exception:
         pass
 
-    # ── Checklist qualitativo via Claude ─────────────────────────────────────
+    # ── Checklist qualitativo via Claude (não-bloqueante: se falhar, prossegue) ──
     _fase5_provider = parecer.fase5_provider or 'Claude'
-    checklist_texto = AnthropicClient().audit_parecer(parecer)
-    logger.info("[FASE6] Auditor: Claude | parecer=%s", parecer.id)
+    try:
+        checklist_texto = AnthropicClient().audit_parecer(parecer)
+        logger.info("[FASE6] Auditor: Claude | parecer=%s", parecer.id)
+    except Exception as audit_err:
+        logger.warning("[FASE6] Auditoria Claude indisponível (parecer=%s): %s — prosseguindo sem checklist.", parecer.id, audit_err)
+        checklist_texto = "⚠️ Auditoria qualitativa temporariamente indisponível. Score matemático operando normalmente."
 
     # Limpa tags HTML que o LLM pode citar do parecer (evita renderização indevida)
     import re as _re_html
