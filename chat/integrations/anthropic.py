@@ -9,6 +9,24 @@ except ImportError:
 
 _log = logging.getLogger(__name__)
 
+
+def _retry_on_rate_limit(fn, max_retries=2, base_delay=15):
+    """Retry com backoff para chamadas LLM que batem rate limit (429)."""
+    import time
+    for attempt in range(max_retries + 1):
+        try:
+            return fn()
+        except Exception as e:
+            err_str = str(e)
+            is_rate_limit = any(m in err_str for m in ('rate_limit', 'RateLimitError', '429'))
+            if is_rate_limit and attempt < max_retries:
+                delay = base_delay * (attempt + 1)
+                _log.warning("Rate limit (tentativa %d/%d), aguardando %ds: %s", attempt + 1, max_retries, delay, err_str[:100])
+                time.sleep(delay)
+            else:
+                raise
+
+
 # Limites de tamanho dos campos de texto antes de montar o prompt.
 # Evita estouro silencioso de contexto da API e garante truncamento previsível.
 _LIMITES = {
@@ -402,24 +420,23 @@ class AnthropicClient:
         try:
             start_time = time.time()
             _model = "claude-haiku-4-5-20251001"
-            response = self.client.messages.create(
-                model=_model,
-                max_tokens=4096,
-                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": prompt_text}],
-            )
+
+            def _call():
+                return self.client.messages.create(
+                    model=_model,
+                    max_tokens=4096,
+                    system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
+                    messages=[{"role": "user", "content": prompt_text}],
+                )
+
+            response = _retry_on_rate_limit(_call)
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
                 'Fase 3 (Avaliação Prazos)', model_name=_model, start_time=start_time,
             )
             return response.content[0].text
         except Exception as e:
-            _transient_markers = ('rate_limit', 'RateLimitError', '429', '529', '502', '503', '504',
-                                  'overloaded', 'ServerError', 'InternalServerError', 'APIConnectionError', 'timeout')
-            if any(m in str(e) for m in _transient_markers):
-                _log.warning("generate_phase3_report transiente parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
-            else:
-                _log.error("generate_phase3_report falhou parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
+            _log.error("generate_phase3_report falhou parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
             raise
 
     def extract_tese(self, parecer_obj):
@@ -466,12 +483,16 @@ class AnthropicClient:
         try:
             start_time = time.time()
             _model = "claude-haiku-4-5-20251001"
-            response = self.client.messages.create(
-                model=_model,
-                max_tokens=4096,
-                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": content_blocks}],
-            )
+
+            def _call():
+                return self.client.messages.create(
+                    model=_model,
+                    max_tokens=4096,
+                    system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
+                    messages=[{"role": "user", "content": content_blocks}],
+                )
+
+            response = _retry_on_rate_limit(_call)
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
                 'Fase 4 (Extração)', model_name=_model, start_time=start_time,
@@ -522,24 +543,18 @@ class AnthropicClient:
         if not self.client:
             return "simulacao"
 
-        system_instruction = (
-            "Sua única tarefa é extrair a palavra-chave central ou o 'núcleo' do argumento jurídico abaixo. "
-            "Retorne APENAS essa palavra-chave (máximo 3 palavras). Sem pontos, sem explicações. "
-            "Exemplos de saída: 'Aferição Inmetro', 'Sinalização R-19', 'Nulidade Citação', 'Mérito Prejudicado'."
-        )
-
-        try:
-            response = self.client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=50,
-                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": tese}],
-            )
-            key = response.content[0].text.strip().lower().replace('"', '').replace("'", "")
-            return key
-        except Exception as e:
-            _log.error("Erro ao gerar cache key: %s", e)
-            return "erro_chave"
+        # Hash determinístico — sem LLM (economiza 1 chamada Haiku por parecer)
+        import hashlib
+        import re as _re_key
+        # Normaliza: lowercase, remove pontuação, pega primeiras 500 chars
+        normalized = _re_key.sub(r'[^a-záàâãéèêíïóôõúüç0-9\s]', '', tese.lower().strip())[:500]
+        # Extrai palavras-chave simples: primeiros 3 substantivos significativos
+        _stop = {'de','do','da','dos','das','o','a','os','as','e','em','no','na','que','para','por','com','um','uma','ao','se','não','é','foi','ser','tem','seu','sua'}
+        words = [w for w in normalized.split() if w not in _stop and len(w) > 2][:6]
+        prefix = '_'.join(words[:3]) if words else 'generico'
+        # Hash curto para evitar colisões
+        h = hashlib.md5(normalized.encode()).hexdigest()[:8]
+        return f"{prefix}_{h}"
 
     def analyze_tese(self, parecer_obj, tese, perplexity_result, vertex_result):
         """Fase 4 — Análise cruzada de teses com RAG (Vertex + Perplexity)."""
@@ -576,12 +591,16 @@ class AnthropicClient:
         try:
             start_time = time.time()
             _model = 'claude-haiku-4-5-20251001'
-            response = self.client.messages.create(
-                model=_model,
-                max_tokens=8096,
-                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": content_blocks}],
-            )
+
+            def _call():
+                return self.client.messages.create(
+                    model=_model,
+                    max_tokens=8096,
+                    system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
+                    messages=[{"role": "user", "content": content_blocks}],
+                )
+
+            response = _retry_on_rate_limit(_call)
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
                 'Fase 4 (Análise Mérito)', model_name=_model, start_time=start_time,
