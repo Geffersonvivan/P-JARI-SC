@@ -2716,6 +2716,8 @@ function startParecerStream(taskId, taskType) {
                     _streamedText += d.text;
                     if (_firstChunk) {
                         _firstChunk = false;
+                        // Para a barra de progresso fake
+                        stopFakeProgress('p4-progress-bar', 'p4-pct');
                         // Transição: esconde loading, mostra conteúdo com texto fluindo
                         if (loadingEl) loadingEl.classList.add('hidden');
                         if (contentEl) contentEl.classList.remove('hidden');
@@ -2822,7 +2824,8 @@ function stopFakeProgress(barId, pctId) {
     if(bar){bar.style.width='100%';} if(pct){pct.textContent='100%';}
 }
 function startProgressAnim() {
-    startFakeProgress('p4-progress-bar','p4-pct',700,2.5);
+    // Parecer demora 2-5min → animação mais lenta para não travar em 99%
+    startFakeProgress('p4-progress-bar','p4-pct',1500,0.8);
 }
 
 // ─── CALENDÁRIO GENÉRICO (fábrica) ──────────────────
