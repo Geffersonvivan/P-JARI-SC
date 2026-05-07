@@ -473,7 +473,8 @@ class AnthropicClient:
             )
             return response.content[0].text.strip()
         except Exception as e:
-            return f"Erro ao extrair tese via LLM: {e}"
+            _log.error("[FASE4] extract_tese falhou: %s", e)
+            return "Erro ao extrair teses. Tente novamente em alguns instantes."
 
     def refine_tese(self, parecer_obj, user_hint):
         """Fase 4 — Refinamento de tese com dica do julgador."""
@@ -521,7 +522,8 @@ class AnthropicClient:
             )
             return response.content[0].text.strip()
         except Exception as e:
-            return f"Erro ao refinar tese via LLM: {e}"
+            _log.error("[FASE4] refine_tese falhou: %s", e)
+            return "Erro ao refinar teses. Tente novamente em alguns instantes."
 
     def get_cache_key_from_tese(self, tese):
         """Extrai o núcleo da tese em até 3 palavras (para cache key)."""
@@ -608,7 +610,8 @@ class AnthropicClient:
             )
             return response.content[0].text
         except Exception as e:
-            return f"Erro ao acessar Claude na Fase 4: {e}.\n"
+            _log.error("[FASE4] analyze_tese falhou: %s", e)
+            return "Erro ao analisar teses. Tente novamente em alguns instantes.\n"
 
     def digest_cag_package(self, infracao_desc, vertex_result, perplexity_result):
         """Sintetiza Vertex + Perplexity em pacote normativo compacto (CAG cron)."""
@@ -873,7 +876,7 @@ class AnthropicClient:
                 )
             except Exception:
                 pass
-            return f"⚠️ Erro ao acessar Claude: {err_str}\nTente novamente em alguns instantes."
+            return "⚠️ Erro temporário ao gerar o parecer. Tente novamente em alguns instantes."
 
     def audit_parecer(self, parecer_obj):
         """
