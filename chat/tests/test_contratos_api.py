@@ -96,7 +96,7 @@ class TestAnthropicTrunc(unittest.TestCase):
 
 
 class TestAnthropicFallback(unittest.TestCase):
-    """Testa o fallback Gemini quando Anthropic não está disponível."""
+    """Testa comportamento quando Anthropic não está disponível (sem Gemini fallback)."""
 
     def _client(self):
         from chat.integrations.anthropic import AnthropicClient
@@ -104,66 +104,41 @@ class TestAnthropicFallback(unittest.TestCase):
         c.client = None  # Simula API key ausente
         return c
 
-    def test_api_key_ausente_chama_gemini(self):
-        """Sem client Anthropic → GeminiClient.generate_parecer_gemini é chamado."""
+    def test_api_key_ausente_retorna_erro_configuracao(self):
+        """Sem client Anthropic → retorna mensagem de erro de configuração."""
         cliente = self._client()
-        mock_gemini_inst = MagicMock()
-        mock_gemini_inst.generate_parecer_gemini.return_value = "Parecer Gemini"
+        result = cliente.validate_and_generate_parecer(_parecer(), tese="tese", perplexity_result="")
+        self.assertIn("ERRO DE CONFIGURA", result)
 
-        with patch('chat.integrations.gemini.GeminiClient', return_value=mock_gemini_inst):
-            result = cliente.validate_and_generate_parecer(_parecer(), tese="tese", perplexity_result="")
-
-        mock_gemini_inst.generate_parecer_gemini.assert_called_once()
-        self.assertEqual(result, "Parecer Gemini")
-
-    def test_api_key_ausente_gemini_falha_retorna_erro_configuracao(self):
-        """Sem client + Gemini falha → retorna mensagem de erro de configuração."""
-        cliente = self._client()
-        mock_gemini_inst = MagicMock()
-        mock_gemini_inst.generate_parecer_gemini.side_effect = Exception("Gemini down")
-
-        with patch('chat.integrations.gemini.GeminiClient', return_value=mock_gemini_inst):
-            result = cliente.validate_and_generate_parecer(_parecer(), tese="tese", perplexity_result="")
-
-        self.assertIn("ERRO DE CONFIGURAÇÃO", result)
-
-    def test_excecao_anthropic_faz_fallback_gemini(self):
-        """Anthropic lança exceção → fallback Gemini + e-mail de alerta enviado."""
+    def test_excecao_permanente_retorna_erro_generico(self):
+        """Anthropic lança exceção permanente → retorna mensagem genérica (sem detalhes técnicos)."""
         from chat.integrations.anthropic import AnthropicClient
         cliente = AnthropicClient()
         cliente.client = MagicMock()
-        cliente.client.messages.stream.side_effect = Exception("API down")
+        cliente.client.messages.stream.side_effect = Exception("KeyError: campo_x")
 
-        mock_gemini_inst = MagicMock()
-        mock_gemini_inst.generate_parecer_gemini.return_value = "Fallback Gemini OK"
-
-        with patch('chat.integrations.gemini.GeminiClient', return_value=mock_gemini_inst), \
-             patch('chat.prompts.phase_5.build_system_instruction', return_value="sys"), \
+        with patch('chat.prompts.phase_5.build_system_instruction', return_value="sys"), \
              patch('django.core.mail.send_mail'), \
              patch('chat.models.AiRequestLog.objects.create'):
             result = cliente.validate_and_generate_parecer(_parecer(), tese="tese", perplexity_result="")
 
-        mock_gemini_inst.generate_parecer_gemini.assert_called_once()
-        self.assertEqual(result, "Fallback Gemini OK")
+        # Mensagem sanitizada — sem detalhes técnicos
+        self.assertIn("Erro tempor", result)
+        self.assertNotIn("KeyError", result)
 
-    def test_excecao_anthropic_ambas_falham_retorna_string_erro(self):
-        """Anthropic falha e Gemini também falha → retorna string com ambos os erros."""
+    def test_excecao_transiente_faz_reraise(self):
+        """Erro 429 (rate_limit) → re-raise para Celery fazer retry."""
         from chat.integrations.anthropic import AnthropicClient
         cliente = AnthropicClient()
         cliente.client = MagicMock()
-        cliente.client.messages.stream.side_effect = Exception("Anthropic down")
+        cliente.client.messages.stream.side_effect = Exception("rate_limit_error: 429")
 
-        mock_gemini_inst = MagicMock()
-        mock_gemini_inst.generate_parecer_gemini.side_effect = Exception("Gemini down")
-
-        with patch('chat.integrations.gemini.GeminiClient', return_value=mock_gemini_inst), \
-             patch('chat.prompts.phase_5.build_system_instruction', return_value="sys"), \
+        with patch('chat.prompts.phase_5.build_system_instruction', return_value="sys"), \
              patch('django.core.mail.send_mail'), \
              patch('chat.models.AiRequestLog.objects.create'):
-            result = cliente.validate_and_generate_parecer(_parecer(), tese="tese", perplexity_result="")
-
-        self.assertIn("Anthropic down", result)
-        self.assertIn("Gemini down", result)
+            with self.assertRaises(Exception) as ctx:
+                cliente.validate_and_generate_parecer(_parecer(), tese="tese", perplexity_result="")
+            self.assertIn("rate_limit", str(ctx.exception))
 
 
 class TestAnthropicFlagsBlock(unittest.TestCase):
