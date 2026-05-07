@@ -931,7 +931,7 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
-            model_to_use = "claude-sonnet-4-6"
+            model_to_use = "claude-haiku-4-5-20251001"
 
             message = self.client.messages.create(
                 model=model_to_use,
@@ -948,4 +948,4 @@ class AnthropicClient:
             return result
         except Exception as e:
             _log.warning("[FASE6] Claude audit_parecer falhou: %s", e)
-            return f"⚠️ Auditoria Qualitativa offline ({e}). Resultado puramente matemático operando."
+            return "⚠️ Auditoria Qualitativa temporariamente indisponível. Resultado puramente matemático operando. Tente novamente em alguns instantes."
