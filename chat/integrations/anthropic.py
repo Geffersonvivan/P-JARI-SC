@@ -350,8 +350,8 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
-            # Sem PDFs base64: Haiku é suficiente (texto puro). Com PDFs: Sonnet (visão).
-            _model = "claude-sonnet-4-20250514" if pdf_chars < 2000 else "claude-haiku-4-5-20251001"
+            # Haiku para todas as chamadas F3 — libera rate limit do Sonnet para F5
+            _model = "claude-haiku-4-5-20251001"
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
@@ -465,7 +465,7 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
-            _model = "claude-sonnet-4-20250514"
+            _model = "claude-haiku-4-5-20251001"
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
