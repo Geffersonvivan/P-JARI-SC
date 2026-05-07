@@ -10,8 +10,9 @@ except ImportError:
 _log = logging.getLogger(__name__)
 
 
-def _retry_on_rate_limit(fn, max_retries=2, base_delay=15):
-    """Retry com backoff para chamadas LLM que batem rate limit (429)."""
+def _retry_on_rate_limit(fn, max_retries=3, base_delay=5):
+    """Retry com backoff curto para chamadas LLM que batem rate limit (429).
+    Delays: 5s, 10s, 15s — janela de rate limit é 1 min, não precisa esperar mais."""
     import time
     for attempt in range(max_retries + 1):
         try:
@@ -21,7 +22,7 @@ def _retry_on_rate_limit(fn, max_retries=2, base_delay=15):
             is_rate_limit = any(m in err_str for m in ('rate_limit', 'RateLimitError', '429'))
             if is_rate_limit and attempt < max_retries:
                 delay = base_delay * (attempt + 1)
-                _log.warning("Rate limit (tentativa %d/%d), aguardando %ds: %s", attempt + 1, max_retries, delay, err_str[:100])
+                _log.warning("Rate limit (tentativa %d/%d), aguardando %ds", attempt + 1, max_retries, delay)
                 time.sleep(delay)
             else:
                 raise
@@ -824,21 +825,28 @@ class AnthropicClient:
 
             full_text = []
 
-            with self.client.messages.stream(
-                model=model_to_use,
-                max_tokens=8096,
-                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": content}]
-            ) as stream:
-                for text_chunk in stream.text_stream:
-                    if text_chunk:
-                        full_text.append(text_chunk)
-                        if redis_client:
-                            import json
-                            redis_client.publish(f"stream_{task_id}", json.dumps({
-                                'status': 'CHUNK',
-                                'text': text_chunk
-                            }))
+            # Retry interno rápido (5s/10s) antes de cair no Celery retry (30-90s)
+            def _stream_call():
+                nonlocal full_text
+                full_text = []
+                with self.client.messages.stream(
+                    model=model_to_use,
+                    max_tokens=8096,
+                    system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
+                    messages=[{"role": "user", "content": content}]
+                ) as _s:
+                    for text_chunk in _s.text_stream:
+                        if text_chunk:
+                            full_text.append(text_chunk)
+                            if redis_client:
+                                import json
+                                redis_client.publish(f"stream_{task_id}", json.dumps({
+                                    'status': 'CHUNK',
+                                    'text': text_chunk
+                                }))
+                return _s
+
+            stream = _retry_on_rate_limit(_stream_call)
 
             message = stream.get_final_message()
             final_text = "".join(full_text)

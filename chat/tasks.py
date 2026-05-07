@@ -80,7 +80,7 @@ def processar_fase1_task(self, parecer_id):
     except Exception as e:
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
-            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
             logger.warning(f"FASE1 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
                 raise self.retry(exc=e, countdown=countdown)
@@ -133,7 +133,7 @@ def processar_fase2_task(self, parecer_id):
     except Exception as e:
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
-            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
             logger.warning(f"FASE2 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
                 raise self.retry(exc=e, countdown=countdown)
@@ -176,7 +176,7 @@ def processar_fase3_admissibilidade_task(self, parecer_id):
     except Exception as e:
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
-            countdown = 30 * (self.request.retries + 1)
+            countdown = 10 * (self.request.retries + 1)
             logger.warning(f"FASE3_ADM Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
                 raise self.retry(exc=e, countdown=countdown)
@@ -258,7 +258,7 @@ def processar_fase4_task(self, parecer_id):
     except Exception as e:
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
-            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
             logger.warning(f"FASE4 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
                 raise self.retry(exc=e, countdown=countdown)
@@ -338,7 +338,7 @@ def processar_fase4_analise_task(self, parecer_id):
     except Exception as e:
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
-            countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
+            countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
             logger.warning(f"FASE4-ANALISE Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
                 raise self.retry(exc=e, countdown=countdown)
@@ -391,7 +391,7 @@ def gerar_parecer_task(self, parecer_id, tese=None):
         # Retry primeiro para erros transitórios (429, 5xx, timeout)
         # — loga como warning, não error, para não poluir Sentry durante retries
         if _is_transient_llm_error(e):
-            countdown = 30 * (self.request.retries + 1)
+            countdown = 10 * (self.request.retries + 1)  # 10s, 20s (retry interno já esperou 5-15s)
             logger.warning(f"PARECER transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/2 em {countdown}s: {e}")
             try:
                 raise self.retry(exc=e, countdown=countdown)
