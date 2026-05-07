@@ -1271,11 +1271,16 @@ function updateProgress(step) {
         el.classList.remove('active','done');
         if (s === step)     el.classList.add('active');
         else if (s < step)  el.classList.add('done');
-        // Click handler: só fases concluídas (antes do step real)
+        // Click handler + tooltip: só fases concluídas (antes do step real)
         if (s < _realStep) {
             el.onclick = () => navigateToStep(s);
+            const h = _STEP_HINTS[s];
+            el.title = h ? `${h.title} — ${h.hint}` : 'Clique para revisar';
+            el.style.cursor = 'pointer';
         } else {
             el.onclick = null;
+            el.title = '';
+            el.style.cursor = '';
         }
     });
 
