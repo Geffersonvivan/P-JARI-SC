@@ -1365,10 +1365,10 @@ function renderPhase(f) {
         const tEl = document.getElementById('p1-tabela-content');
         if (tEl && TABELA_TXT) tEl.innerHTML = md(TABELA_TXT);
     }
-    if (f===32) { show('p2-loading'); hide('p2-content');
+    if (f===32) { collapsePdf(); show('p2-loading'); hide('p2-content');
                   rotateLabel('p2-loading-lbl',['Calculando prazos...','Verificando prescrição...','Analisando admissibilidade...']);
                   startFakeProgress('p2-progress-bar','p2-pct',700,2.2); }
-    if (f===31) {
+    if (f===31) { collapsePdf();
         stopFakeProgress('p2-progress-bar','p2-pct');
         // ADM_SECTIONS foi calculado no carregamento da página.
         // Se estiver vazio, a página foi aberta ANTES do cálculo terminar → recarrega para obter os dados.
