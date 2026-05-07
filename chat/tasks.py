@@ -388,18 +388,18 @@ def gerar_parecer_task(self, parecer_id, tese=None):
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
-        trace = traceback.format_exc()
-        logger.error(f"ERRO CELERY (Parecer {parecer_id}): {str(e)}\n\n{trace}")
-        # Retry apenas para erros transitórios do Gemini (504, timeout, etc.)
-        # Erros de código (AttributeError, KeyError) nunca se resolvem com retry
-        # e monopolizariam um slot heavy por até 30 min (3 × 600s)
+        # Retry primeiro para erros transitórios (429, 5xx, timeout)
+        # — loga como warning, não error, para não poluir Sentry durante retries
         if _is_transient_llm_error(e):
             countdown = 30 * (self.request.retries + 1)
-            logger.warning(f"PARECER Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/2 em {countdown}s: {e}")
+            logger.warning(f"PARECER transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/2 em {countdown}s: {e}")
             try:
                 raise self.retry(exc=e, countdown=countdown)
             except self.MaxRetriesExceededError:
-                pass
+                logger.error(f"PARECER max retries esgotados (Parecer {parecer_id}): {e}")
+        else:
+            trace = traceback.format_exc()
+            logger.error(f"ERRO CELERY (Parecer {parecer_id}): {str(e)}\n\n{trace}")
         try:
             _p = Parecer.objects.get(id=parecer_id)
             log_audit('fase_erro', parecer=_p, fase=5, dados={'erro': str(e)[:200]})
