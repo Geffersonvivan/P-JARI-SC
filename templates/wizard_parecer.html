@@ -305,11 +305,14 @@
     </div>
 
     <!-- ── RETURN BANNER (navegação entre fases) ── -->
-    <div id="return-banner" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
-        <span class="text-sm text-blue-700 font-medium">Visualizando passo anterior (somente leitura)</span>
-        <button onclick="returnToCurrentStep()" class="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-            Voltar ao passo atual &rarr;
-        </button>
+    <div id="return-banner" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-blue-700 font-medium" id="return-banner-title">Visualizando passo anterior</span>
+            <button onclick="returnToCurrentStep()" class="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0">
+                Voltar ao passo atual &rarr;
+            </button>
+        </div>
+        <p id="return-banner-hint" class="text-xs text-blue-600 mt-1.5 leading-relaxed"></p>
     </div>
 
     <!-- ── CONTENT CARD ───────────────────────── -->
@@ -1285,6 +1288,15 @@ function updateProgress(step) {
 let _realStep = currentStep;
 let _viewingPrev = false;
 
+const _STEP_HINTS = {
+    1: {title:'Identificação', hint:'Revise os dados do processo (PA, SGPE, Recorrente) e copie o que precisar. Estes campos foram preenchidos automaticamente na Fase 1.'},
+    2: {title:'Documentos', hint:'Consulte os dados extraídos dos PDFs, a tabela de datas sensíveis e o tipo de penalidade. Use para conferir ou copiar informações antes de finalizar.'},
+    3: {title:'Admissibilidade', hint:'Revise os resultados de Tempestividade, Prescrição e Decadência. Estes cálculos já foram confirmados e não podem ser alterados aqui.'},
+    4: {title:'Tese', hint:'Consulte as teses defensivas extraídas e a análise jurídica. Copie trechos se precisar complementar o parecer final.'},
+    5: {title:'Parecer', hint:'Releia o parecer gerado. Use os botões "Copiar" em cada seção para copiar trechos específicos (Ementa, Relatório, etc.).'},
+    6: {title:'Finalizar', hint:'Revise a pasta de destino escolhida para este processo.'},
+};
+
 function navigateToStep(step) {
     if (step >= _realStep) return;
     _viewingPrev = true;
@@ -1296,6 +1308,10 @@ function navigateToStep(step) {
     const reviewFase = {2: (UNIFIED_MODE ? 10 : 3), 3:31, 4:41, 5:6, 6:7};
     renderPhase(reviewFase[step] || step);
     collapsePdf();
+    // Banner com dica contextual
+    const info = _STEP_HINTS[step] || {title:'Passo anterior', hint:''};
+    document.getElementById('return-banner-title').textContent = info.title + ' (somente leitura)';
+    document.getElementById('return-banner-hint').textContent = info.hint;
     document.getElementById('return-banner').classList.remove('hidden');
 }
 
