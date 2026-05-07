@@ -25,16 +25,20 @@ import logging as _logging
 
 def _sentry_before_send(event, hint):
     """Filtra e enriquece eventos antes de enviar ao Sentry."""
-    # Remove erros 404 e 403 — não são bugs do sistema
     if "exc_info" in hint:
-        exc_type, _, _ = hint["exc_info"]
+        exc_type, exc_value, _ = hint["exc_info"]
         try:
             from django.http import Http404
             from django.core.exceptions import PermissionDenied
+            # Remove erros 404 e 403 — não são bugs do sistema
             if exc_type in (Http404, PermissionDenied):
                 return None
         except ImportError:
             pass
+        # Remove RateLimitError (429) da Anthropic — são retries normais, não bugs
+        exc_name = getattr(exc_type, '__name__', '')
+        if exc_name == 'RateLimitError' or '429' in str(exc_value)[:200]:
+            return None
     return event
 
 

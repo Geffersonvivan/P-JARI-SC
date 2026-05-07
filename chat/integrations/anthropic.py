@@ -12,12 +12,12 @@ _log = logging.getLogger(__name__)
 # Limites de tamanho dos campos de texto antes de montar o prompt.
 # Evita estouro silencioso de contexto da API e garante truncamento previsível.
 _LIMITES = {
-    'admissibilidade': 10_000,
-    'tabela_datas':    15_000,  # aumentado de 5k: processos grandes tinham datas cortadas
-    'analise_tese':    12_000,
+    'admissibilidade':  8_000,
+    'tabela_datas':     8_000,  # reduzido de 15k: economiza tokens na F5 (rate limit 30k/min)
+    'analise_tese':     8_000,  # reduzido de 12k: análise completa raramente excede 6k chars
     'tese':             3_000,
-    'vertex':           6_000,
-    'perplexity':       6_000,
+    'vertex':           4_000,  # reduzido de 6k: top-3 results cabem em 3-4k chars
+    'perplexity':       4_000,  # reduzido de 6k: idem
 }
 
 
