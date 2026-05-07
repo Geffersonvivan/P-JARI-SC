@@ -414,7 +414,12 @@ class AnthropicClient:
             )
             return response.content[0].text
         except Exception as e:
-            _log.error("generate_phase3_report falhou parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
+            _transient_markers = ('rate_limit', 'RateLimitError', '429', '529', '502', '503', '504',
+                                  'overloaded', 'ServerError', 'InternalServerError', 'APIConnectionError', 'timeout')
+            if any(m in str(e) for m in _transient_markers):
+                _log.warning("generate_phase3_report transiente parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
+            else:
+                _log.error("generate_phase3_report falhou parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
             raise
 
     def extract_tese(self, parecer_obj):
@@ -835,12 +840,14 @@ class AnthropicClient:
             return final_text
         except Exception as e:
             err_str = str(e)
-            _log.error("Anthropic Fase 5 falhou: %s", err_str)
             # Re-raise erros transientes (429, 5xx) para que o Celery faça retry
+            # — loga como warning, não error, para não poluir Sentry durante retries
             _transient_markers = ('rate_limit', 'RateLimitError', '429', '529', '502', '503', '504',
                                   'overloaded', 'ServerError', 'InternalServerError', 'APIConnectionError', 'timeout')
             if any(m in err_str for m in _transient_markers):
+                _log.warning("Anthropic Fase 5 transiente (será retried): %s", err_str)
                 raise
+            _log.error("Anthropic Fase 5 falhou: %s", err_str)
             try:
                 from django.core.mail import send_mail
                 from django.conf import settings

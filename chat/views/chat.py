@@ -202,11 +202,12 @@ def check_task_status_view(request, task_id):
     return JsonResponse({'status': 'PROCESSING'})
 
 
-@ratelimit(key='user_or_ip', rate='30/m', method='GET', block=True)
 async def stream_task_status_view(request, task_id):
     """
     View SSE assíncrona (ASGI) — não bloqueia workers Gunicorn.
     Usa redis.asyncio (incluído em redis>=5) e asyncio.sleep para I/O não-bloqueante.
+    Nota: @ratelimit removido — incompatível com async views (causa ValueError).
+    Proteção: requer autenticação + conexão SSE long-lived limita abusos.
     """
     if not request.user.is_authenticated:
         from django.http import JsonResponse as _Jr
