@@ -24,10 +24,16 @@ def _sentry_task_context(parecer_id: int, task_name: str):
     except Exception:
         pass
 
-def _is_gemini_transient(e) -> bool:
-    """Retorna True para erros transitórios do Gemini (504, DEADLINE_EXCEEDED, timeout)."""
+def _is_transient_llm_error(e) -> bool:
+    """Retorna True para erros transitórios de LLM (Anthropic ou Gemini)."""
     s = str(e)
-    return any(k in s for k in ('504', 'DEADLINE_EXCEEDED', 'ServerError', 'timeout', 'Timeout'))
+    return any(k in s for k in (
+        '504', '529', '502', '503',
+        'DEADLINE_EXCEEDED', 'ServerError',
+        'timeout', 'Timeout', 'overloaded',
+        'rate_limit', 'RateLimitError',
+        'InternalServerError', 'APIConnectionError',
+    ))
 
 
 @shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
@@ -73,7 +79,7 @@ def processar_fase1_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
-        if _is_gemini_transient(e):
+        if _is_transient_llm_error(e):
             countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
             logger.warning(f"FASE1 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
@@ -126,7 +132,7 @@ def processar_fase2_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
-        if _is_gemini_transient(e):
+        if _is_transient_llm_error(e):
             countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
             logger.warning(f"FASE2 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
@@ -169,7 +175,7 @@ def processar_fase3_admissibilidade_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
-        if _is_gemini_transient(e):
+        if _is_transient_llm_error(e):
             countdown = 30 * (self.request.retries + 1)
             logger.warning(f"FASE3_ADM Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
@@ -251,7 +257,7 @@ def processar_fase4_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
-        if _is_gemini_transient(e):
+        if _is_transient_llm_error(e):
             countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
             logger.warning(f"FASE4 Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
@@ -331,7 +337,7 @@ def processar_fase4_analise_task(self, parecer_id):
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
         trace = traceback.format_exc()
-        if _is_gemini_transient(e):
+        if _is_transient_llm_error(e):
             countdown = 30 * (self.request.retries + 1)  # 30s, 60s, 90s
             logger.warning(f"FASE4-ANALISE Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/3 em {countdown}s: {e}")
             try:
@@ -387,7 +393,7 @@ def gerar_parecer_task(self, parecer_id, tese=None):
         # Retry apenas para erros transitórios do Gemini (504, timeout, etc.)
         # Erros de código (AttributeError, KeyError) nunca se resolvem com retry
         # e monopolizariam um slot heavy por até 30 min (3 × 600s)
-        if _is_gemini_transient(e):
+        if _is_transient_llm_error(e):
             countdown = 30 * (self.request.retries + 1)
             logger.warning(f"PARECER Gemini transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/2 em {countdown}s: {e}")
             try:
