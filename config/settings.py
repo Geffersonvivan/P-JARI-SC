@@ -554,11 +554,11 @@ CELERY_BEAT_SCHEDULE = {
         # 1x/dia às 03h (horário de baixo uso)
         'schedule': crontab(minute=0, hour=3),
     },
-    'sync-normativo-drive': {
-        'task': 'chat.tasks.sync_normativo_drive_task',
-        # A cada 6h (01h, 07h, 13h, 19h) — sincroniza PDFs do Google Drive
-        'schedule': crontab(minute=0, hour='1,7,13,19'),
-    },
+    # DESATIVADO: billing GCP desativado — Drive sync gera custo desnecessário
+    # 'sync-normativo-drive': {
+    #     'task': 'chat.tasks.sync_normativo_drive_task',
+    #     'schedule': crontab(minute=0, hour='1,7,13,19'),
+    # },
 }
 
 _LOG_HANDLERS_DJANGO = ['console'] if DEBUG else ['console', 'file']
