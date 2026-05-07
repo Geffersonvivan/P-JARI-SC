@@ -24,7 +24,8 @@
         .progress-seg.current { background: #93c5fd; }
         .progress-label { font-size: 11px; font-weight: 500; color: #9ca3af; transition: color .3s; }
         .progress-label.active { color: #2563eb; font-weight: 700; }
-        .progress-label.done   { color: #6b7280; }
+        .progress-label.done   { color: #6b7280; cursor: pointer; }
+        .progress-label.done:hover { color: #2563eb; text-decoration: underline; }
 
         /* ── RADIO CARD ──────────────────────────── */
         .radio-card {
@@ -301,6 +302,14 @@
                 <span class="progress-label" data-step="6">Finalizar</span>
             </div>
         </div>
+    </div>
+
+    <!-- ── RETURN BANNER (navegação entre fases) ── -->
+    <div id="return-banner" class="hidden mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+        <span class="text-sm text-blue-700 font-medium">Visualizando passo anterior (somente leitura)</span>
+        <button onclick="returnToCurrentStep()" class="px-4 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            Voltar ao passo atual &rarr;
+        </button>
     </div>
 
     <!-- ── CONTENT CARD ───────────────────────── -->
@@ -1259,11 +1268,42 @@ function updateProgress(step) {
         el.classList.remove('active','done');
         if (s === step)     el.classList.add('active');
         else if (s < step)  el.classList.add('done');
+        // Click handler: só fases concluídas (antes do step real)
+        if (s < _realStep) {
+            el.onclick = () => navigateToStep(s);
+        } else {
+            el.onclick = null;
+        }
     });
 
     // Atualiza "Passo X de 6"
     const numEl = document.getElementById('step-num');
     if (numEl) numEl.textContent = step;
+}
+
+// ─── NAVEGAÇÃO ENTRE FASES (stepper clicável) ──────
+let _realStep = currentStep;
+let _viewingPrev = false;
+
+function navigateToStep(step) {
+    if (step >= _realStep) return;
+    _viewingPrev = true;
+    updateProgress(step);
+    document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
+    const panel = document.getElementById(`panel-${stepToPanel(step)}`);
+    if (panel) panel.classList.remove('hidden');
+    // Renderiza a fase de revisão (dados, não loading)
+    const reviewFase = {2: (UNIFIED_MODE ? 10 : 3), 3:31, 4:41, 5:6, 6:7};
+    renderPhase(reviewFase[step] || step);
+    collapsePdf();
+    document.getElementById('return-banner').classList.remove('hidden');
+}
+
+function returnToCurrentStep() {
+    _viewingPrev = false;
+    document.getElementById('return-banner').classList.add('hidden');
+    currentStep = _realStep;
+    detectState();
 }
 
 // ─── STATE MACHINE ──────────────────────────────────
@@ -1281,6 +1321,7 @@ function detectState() {
     // Se tabela já foi preenchida, avança direto para fase 3 (revisão da tabela).
     if (currentFase === 2 && TABELA_TXT) { currentFase = 3; }
     currentStep = FASE_STEP[currentFase] || 2;
+    _realStep = currentStep;
     updateProgress(currentStep);
     document.querySelectorAll('.wizard-panel').forEach(p => p.classList.add('hidden'));
     const panel = document.getElementById(`panel-${stepToPanel(currentStep)}`);
@@ -2033,6 +2074,7 @@ async function criarNovaPasta() {
 
 // ─── NAV ───────────────────────────────────────────
 async function wizardNext() {
+    if (_viewingPrev) { returnToCurrentStep(); return; }
     if (isProcessing) return;
     switch(currentFase) {
         case 1: {
