@@ -575,15 +575,16 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
+            _model = 'claude-haiku-4-5-20251001'
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model=_model,
                 max_tokens=8096,
                 system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": content_blocks}],
             )
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
-                'Fase 4 (Análise Mérito)', model_name='claude-sonnet-4-20250514', start_time=start_time,
+                'Fase 4 (Análise Mérito)', model_name=_model, start_time=start_time,
             )
             return response.content[0].text
         except Exception as e:
