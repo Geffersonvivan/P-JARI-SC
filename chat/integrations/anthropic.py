@@ -10,9 +10,9 @@ except ImportError:
 _log = logging.getLogger(__name__)
 
 
-def _retry_on_rate_limit(fn, max_retries=3, base_delay=5):
-    """Retry com backoff curto para chamadas LLM que batem rate limit (429).
-    Delays: 5s, 10s, 15s — janela de rate limit é 1 min, não precisa esperar mais."""
+def _retry_on_rate_limit(fn, max_retries=4, base_delay=20):
+    """Retry com backoff para chamadas LLM que batem rate limit (429).
+    Delays: 20s, 40s, 60s, 80s — janela de rate limit é 1 min."""
     import time
     for attempt in range(max_retries + 1):
         try:
