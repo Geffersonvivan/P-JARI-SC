@@ -254,12 +254,17 @@ class AnthropicClient:
 
         try:
             start_time = time.time()
-            response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=4096,
-                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": content_blocks}],
-            )
+            _model = "claude-haiku-4-5-20251001"
+
+            def _call():
+                return self.client.messages.create(
+                    model=_model,
+                    max_tokens=4096,
+                    system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
+                    messages=[{"role": "user", "content": content_blocks}],
+                )
+
+            response = _retry_on_rate_limit(_call)
 
             raw_text = response.content[0].text.strip()
             # Limpar possíveis fences de markdown
@@ -275,7 +280,7 @@ class AnthropicClient:
                 response.usage.input_tokens,
                 response.usage.output_tokens,
                 'Extração Unificada F1+F2',
-                model_name='claude-sonnet-4-20250514',
+                model_name=_model,
                 start_time=start_time,
             )
 

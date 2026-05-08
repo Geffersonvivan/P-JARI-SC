@@ -5,8 +5,8 @@ TESTE DE COMPRA DOS 3 PLANOS — Simulação completa sem pagamento real
 Simula o fluxo integral de compra dos 3 planos disponíveis:
 
   Plano EXTRA      → R$  20,00 | 1 crédito avulso    | não é assinatura
-  Plano BÁSICO     → R$ 720,00 | 40 créditos/mês     | assinatura mensal
-  Plano PRO        → R$1440,00 | 80 créditos/mês     | assinatura mensal
+  Plano BÁSICO     → R$ 540,00 | 40 créditos/mês     | assinatura mensal
+  Plano PRO        → R$ 720,00 | 80 créditos/mês     | assinatura mensal
 
 Cada cenário percorre o fluxo completo:
   1. Usuário acessa /checkout/?plan=<plano>  (mock Stripe Session criada)
@@ -299,12 +299,12 @@ class TestCompraPlanoExtra(_BaseCompra):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PLANO BÁSICO — R$720,00 / 40 créditos / assinatura mensal
+# PLANO BÁSICO — R$540,00 / 40 créditos / assinatura mensal
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestCompraPlanoBasico(_BaseCompra):
     """
-    Plano BÁSICO (R$720,00): 40 créditos, assinatura mensal.
+    Plano BÁSICO (R$540,00): 40 créditos, assinatura mensal.
     Saldo deve ser SUBSTITUÍDO (reset), não somado.
     """
 
@@ -355,7 +355,7 @@ class TestCompraPlanoBasico(_BaseCompra):
         self.assertEqual(self.user.profile.subscription_status, "active")
 
     def test_07_email_confirmacao_disparado(self):
-        """E-mail de confirmação é disparado com valor R$720,00."""
+        """E-mail de confirmação é disparado com valor R$540,00."""
         self._testar_email_confirmacao_disparado()
 
     def test_08_renovacao_reseta_saldo_sem_acumular(self):
@@ -397,12 +397,12 @@ class TestCompraPlanoBasico(_BaseCompra):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PLANO PRO — R$1440,00 / 80 créditos / assinatura mensal
+# PLANO PRO — R$720,00 / 80 créditos / assinatura mensal
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestCompraplanoPro(_BaseCompra):
     """
-    Plano PRO (R$1440,00): 80 créditos, assinatura mensal.
+    Plano PRO (R$720,00): 80 créditos, assinatura mensal.
     Saldo deve ser SUBSTITUÍDO (reset), não somado.
     """
 
@@ -467,7 +467,7 @@ class TestCompraplanoPro(_BaseCompra):
         )
 
     def test_08_email_confirmacao_disparado(self):
-        """E-mail de confirmação é disparado com valor R$1440,00."""
+        """E-mail de confirmação é disparado com valor R$720,00."""
         self._testar_email_confirmacao_disparado()
 
     def test_09_renovacao_reseta_saldo_sem_acumular(self):

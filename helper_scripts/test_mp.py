@@ -7,7 +7,7 @@ preference_data = {
             "description": "Créditos de sistema",
             "quantity": 1,
             "currency_id": "BRL",
-            "unit_price": 720.0
+            "unit_price": 540.0
         }
     ],
     "payer": {

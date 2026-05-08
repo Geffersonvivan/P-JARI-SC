@@ -39,13 +39,13 @@ PLANS = {
     },
     'basic': {
         'title': 'P-JARI/SC Básico (40 Pareceres)',
-        'price': 720.00,
+        'price': 540.00,
         'credits_base': 36, 'credits_bonus': 4, 'credits': 40,
         'is_pro': True, 'is_subscription': True,
     },
     'pro': {
         'title': 'P-JARI/SC Profissional (80 Pareceres)',
-        'price': 1440.00,
+        'price': 720.00,
         'credits_base': 72, 'credits_bonus': 8, 'credits': 80,
         'is_pro': True, 'is_subscription': True,
     },
