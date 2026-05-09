@@ -10,6 +10,43 @@ except ImportError:
 _log = logging.getLogger(__name__)
 
 
+def _extract_json_block(text):
+    """Extrai o primeiro objeto JSON completo de um texto que pode conter lixo após o JSON."""
+    import json
+    text = text.strip()
+    # Tentar parse direto primeiro
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    # Encontrar o primeiro '{' e fazer parse incremental
+    start = text.find('{')
+    if start == -1:
+        raise ValueError("Nenhum JSON encontrado na resposta")
+    depth = 0
+    in_string = False
+    escape = False
+    for i, ch in enumerate(text[start:], start):
+        if escape:
+            escape = False
+            continue
+        if ch == '\\' and in_string:
+            escape = True
+            continue
+        if ch == '"' and not escape:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return json.loads(text[start:i + 1])
+    raise ValueError("JSON incompleto na resposta")
+
+
 def _retry_on_rate_limit(fn, max_retries=4, base_delay=20):
     """Retry com backoff para chamadas LLM que batem rate limit (429).
     Delays: 20s, 40s, 60s, 80s — janela de rate limit é 1 min."""
@@ -273,7 +310,8 @@ class AnthropicClient:
                 if raw_text.endswith('```'):
                     raw_text = raw_text[:-3].strip()
 
-            dados = _json.loads(raw_text)
+            # Extrair apenas o bloco JSON — Haiku pode adicionar texto após o JSON
+            dados = _extract_json_block(raw_text)
 
             self._log_tokens(
                 parecer_obj,
@@ -388,7 +426,7 @@ class AnthropicClient:
                 if raw_text.endswith('```'):
                     raw_text = raw_text[:-3].strip()
 
-            dados = _json.loads(raw_text)
+            dados = _extract_json_block(raw_text)
             self._log_tokens(
                 parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
                 'Fase 2 (DIR)', model_name=_model, start_time=start_time,
