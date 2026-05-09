@@ -254,12 +254,12 @@ def run(engine) -> str:
     Executa a Fase 2: extração de datas via PDFExtractor + chamada Gemini para montar tabela.
     Retorna o prompt da fase 2 (tabela gerada) para o julgador confirmar.
     """
-    from chat.integrations import AnthropicClient
+    from chat.integrations.gemini import GeminiClient
     from chat.pdf_extractor import PDFExtractor
     from chat.engine import _p
 
     parecer = engine.parecer
-    anthropic = AnthropicClient()
+    anthropic = GeminiClient()
 
     datas_autuacao = []
     datas_consolidado = []
