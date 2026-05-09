@@ -849,7 +849,7 @@ class GeminiClient:
             import json as _json
             start_time = time.time()
             _preferred = 'gemini-2.5-flash'
-            _fallback = 'gemini-2.0-flash' if pdf_chars >= 2000 else 'gemini-2.5-flash'
+            _fallback = 'gemini-2.5-flash' if pdf_chars >= 2000 else 'gemini-2.5-flash'
             _retries = 2 if pdf_chars < 2000 else 1
             response, _ = self._call_with_fallback(
                 _preferred, _fallback, contents,
@@ -1002,7 +1002,7 @@ class GeminiClient:
                 _log.warning(f"[FASE2] PDF limitado ({pdf_chars} chars) — forçando {_preferred} sem fallback para 2.0-flash")
             else:
                 _preferred = 'gemini-2.5-flash'
-                _fallback  = 'gemini-2.0-flash'
+                _fallback  = 'gemini-2.5-flash'
                 _retries   = 1
             response, _ = self._call_with_fallback(
                 _preferred, _fallback,
@@ -1046,7 +1046,7 @@ class GeminiClient:
 
         start_time = time.time()
         response, _ = self._call_with_fallback(
-            'gemini-2.5-pro', 'gemini-2.0-flash',
+            'gemini-2.5-flash', 'gemini-2.5-flash',
             [prompt_text], {'system_instruction': system_instruction},
             'Fase 3 (Avaliação Prazos)', parecer_obj, start_time
         )
@@ -1201,7 +1201,7 @@ class GeminiClient:
         try:
             start_time = time.time()
             response, _ = self._call_with_fallback(
-                'gemini-2.5-pro', 'gemini-2.0-flash',
+                'gemini-2.5-flash', 'gemini-2.5-flash',
                 contents, {'system_instruction': system_instruction},
                 'Fase 4 (Análise Mérito)', parecer_obj, start_time,
                 retry_preferred=0,    # 1 tentativa no 2.5-pro → fallback direto para 2.0-flash
