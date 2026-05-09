@@ -325,18 +325,18 @@ def run(engine) -> str:
         f"(Valor calculado:{decadencia_final})\n"
     )
 
-    # ── Geração do texto de admissibilidade via Gemini ────────────────────────
+    # ── Geração do texto de admissibilidade via LLM ────────────────────────
     # Idempotente: se já foi pré-calculado em background (processar_fase3_task),
-    # pula a chamada Gemini e apenas avança a fase.
+    # pula a chamada LLM e apenas avança a fase.
     if parecer.admissibilidade_texto:
-        logger.info("[FASE3] admissibilidade_texto já disponível (pré-calculado) — pulando Gemini. parecer=%s", parecer.id)
+        logger.info("[FASE3] admissibilidade_texto já disponível (pré-calculado) — pulando LLM. parecer=%s", parecer.id)
     else:
-        from chat.integrations.gemini import GeminiClient
-        gemini = GeminiClient()
+        from chat.integrations.anthropic import AnthropicClient
+        anthropic = AnthropicClient()
         try:
-            parecer.admissibilidade_texto = gemini.generate_phase3_report(parecer, matematica_detalhes)
+            parecer.admissibilidade_texto = anthropic.generate_phase3_report(parecer, matematica_detalhes)
         except Exception as e:
-            logger.error("[FASE3] Falha ao chamar Gemini — parecer=%s | erro=%s", parecer.id, e)
+            logger.error("[FASE3] Falha ao chamar LLM — parecer=%s | erro=%s", parecer.id, e)
             return (
                 "⚠️ O serviço de IA está temporariamente indisponível. "
                 "Aguarde alguns instantes e tente novamente."

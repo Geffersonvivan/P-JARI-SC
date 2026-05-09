@@ -34,12 +34,12 @@ def run_extraction(engine) -> str:
     Se nenhuma tese for identificada, seta mensagem padrão e roteia diretamente para INDEFERIDO (§425-427).
     """
     import json
-    from chat.integrations.gemini import GeminiClient
+    from chat.integrations.anthropic import AnthropicClient
     from chat.engine import FASE_MERITO, FASE_RESULTADO
 
     parecer = engine.parecer
-    gemini = GeminiClient()
-    tese_extraida = gemini.extract_tese(parecer)
+    anthropic = AnthropicClient()
+    tese_extraida = anthropic.extract_tese(parecer)
 
     # C5 FIX §425-427: tese vazia → INDEFERIDO por ausência de fundamentação recursal
     if not tese_extraida or not tese_extraida.strip():
@@ -61,11 +61,11 @@ def run_extraction(engine) -> str:
 
 def run_refinement(engine, user_hint: str) -> str:
     """Refina a tese com base na dica do julgador."""
-    from chat.integrations.gemini import GeminiClient
+    from chat.integrations.anthropic import AnthropicClient
 
     parecer = engine.parecer
-    gemini = GeminiClient()
-    tese_refinada = gemini.refine_tese(parecer, user_hint)
+    anthropic = AnthropicClient()
+    tese_refinada = anthropic.refine_tese(parecer, user_hint)
 
     parecer.tese = tese_refinada
     parecer.save()
@@ -76,14 +76,14 @@ def run_refinement(engine, user_hint: str) -> str:
 def analise_tese(engine) -> str:
     """Dispara Perplexity + Vertex + Gemini para análise cruzada das teses."""
     from chat.integrations import PerplexityClient, VertexAIClient
-    from chat.integrations.gemini import GeminiClient
+    from chat.integrations.anthropic import AnthropicClient
     from chat.models import PjariCacheConfig, PjariCacheEntry
     from chat.engine import FASE_AGUARDA_CONFIRMACAO_MERITO
     import concurrent.futures
 
     parecer = engine.parecer
     perplexity = PerplexityClient()
-    gemini = GeminiClient()
+    anthropic = AnthropicClient()
     vertex = VertexAIClient()
     tese = parecer.tese or ""
 
@@ -132,7 +132,7 @@ def analise_tese(engine) -> str:
 
         # 2) Fallback: cache por núcleo da tese (padrão existente)
         if not vertex_result or not perplexity_result:
-            nucleo = gemini.get_cache_key_from_tese(tese)
+            nucleo = anthropic.get_cache_key_from_tese(tese)
             import re as _re_cache
             nucleo = _re_cache.sub(r'[^a-zA-Z0-9_\-]', '_', nucleo)[:200]
             chave = f"tese_{nucleo}"
@@ -181,7 +181,7 @@ def analise_tese(engine) -> str:
 
         if cache_config.is_active:
             if not chave:
-                nucleo = gemini.get_cache_key_from_tese(tese)
+                nucleo = anthropic.get_cache_key_from_tese(tese)
                 import re as _re_cache2
                 nucleo = _re_cache2.sub(r'[^a-zA-Z0-9_\-]', '_', nucleo)[:200]
                 chave = f"tese_{nucleo}"
@@ -196,7 +196,7 @@ def analise_tese(engine) -> str:
                     logger.error("Erro ao salvar no PJARI-CACHE: %s", e)
 
     # ── Análise de teses ──────────────────────────────────────────────────────
-    analise_resultado = gemini.analyze_tese(parecer, tese, perplexity_result, vertex_result)
+    analise_resultado = anthropic.analyze_tese(parecer, tese, perplexity_result, vertex_result)
 
     parecer.analise_tese_texto = analise_resultado
     parecer.vertex_result = vertex_result
