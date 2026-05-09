@@ -281,18 +281,28 @@ def run_autopreenchimento(engine) -> str:
             return None
 
     # ── Salvar campos F1 (administrativos) ──
-    if dados.get("pa") and not parecer.pa:
-        parecer.pa = dados["pa"]
-    if dados.get("sgpe") and not parecer.sgpe:
-        parecer.sgpe = dados["sgpe"]
-    if dados.get("recorrente") and not parecer.recorrente:
-        parecer.recorrente = dados["recorrente"]
-    if dados.get("prazo_final") and not parecer.prazo_final:
-        parecer.prazo_final = _parse_date(dados["prazo_final"])
-    if dados.get("data_protocolo") and not parecer.data_protocolo:
-        parecer.data_protocolo = _parse_date(dados["data_protocolo"])
-    if dados.get("paginas_defesa") and not parecer.paginas_defesa:
-        parecer.paginas_defesa = dados["paginas_defesa"]
+    _nulos = {'nulo', 'null', 'none', 'n/a', 'não encontrado', 'nao encontrado',
+              'não localizado', 'nao localizado', 'não informado', 'nao informado', ''}
+
+    def _val(key):
+        """Retorna valor do dict ou None se for string nula/vazia."""
+        v = dados.get(key)
+        if not v:
+            return None
+        return None if str(v).strip().lower() in _nulos else str(v).strip()
+
+    if _val("pa") and not parecer.pa:
+        parecer.pa = _val("pa")
+    if _val("sgpe") and not parecer.sgpe:
+        parecer.sgpe = _val("sgpe")
+    if _val("recorrente") and not parecer.recorrente:
+        parecer.recorrente = _val("recorrente")
+    if _val("prazo_final") and not parecer.prazo_final:
+        parecer.prazo_final = _parse_date(_val("prazo_final"))
+    if _val("data_protocolo") and not parecer.data_protocolo:
+        parecer.data_protocolo = _parse_date(_val("data_protocolo"))
+    if _val("paginas_defesa") and not parecer.paginas_defesa:
+        parecer.paginas_defesa = _val("paginas_defesa")
 
     # ── Salvar campos F2 (DIR) se modo unificado ──
     from django.conf import settings as _settings
