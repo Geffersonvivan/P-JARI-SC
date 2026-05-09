@@ -263,8 +263,8 @@ def run_autopreenchimento(engine) -> str:
             logger.info(f"[UNIFIED] parecer={parecer.id} docs={list(markdown_texts.keys())} "
                         f"md_chars={sum(len(v) for v in markdown_texts.values())} pdf_chars={_total_chars}")
 
-            from chat.integrations.gemini import GeminiClient
-            dados = GeminiClient().extract_unified_fase1_fase2(
+            from chat.integrations.anthropic import AnthropicClient
+            dados = AnthropicClient().extract_unified_fase1_fase2(
                 parecer, markdown_texts, contexto_datas, pdf_chars=_total_chars
             )
     except Exception as e:
