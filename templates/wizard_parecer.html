@@ -264,7 +264,7 @@
 <!-- ══ BARRA DE PASTAS ═══════════════════════════════ -->
 {% if pastas %}
 <div id="folders-bar" class="bg-gray-50 border-b border-gray-100 sticky top-[60px] z-40">
-    <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar" style="padding:8px 50px;scrollbar-width:thin;">
+    <div class="flex items-center gap-2 flex-wrap" style="padding:8px 50px;">
         {% for pasta in pastas %}
         <div class="relative folder-chip-wrap" data-folder-id="{{ pasta.id }}">
             <button type="button"
