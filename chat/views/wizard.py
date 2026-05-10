@@ -160,7 +160,19 @@ def wizard_status_view(request, id):
 @login_required
 def wizard_parecer_view(request, id):
     parecer = get_object_or_404(Parecer, id=id, user=request.user)
-    pastas = list(Pasta.objects.filter(user=request.user).order_by('nome_pasta'))
+    from django.db.models import Prefetch, Count, Q
+    _saved_pareceres = Prefetch(
+        'projetos',
+        queryset=Parecer.objects.filter(is_saved=True).only(
+            'id', 'pasta_id', 'nome_processo', 'recorrente', 'pa', 'sgpe', 'created_at',
+        ).order_by('-created_at'),
+    )
+    pastas = list(
+        Pasta.objects.filter(user=request.user)
+        .prefetch_related(_saved_pareceres)
+        .annotate(num_projetos=Count('projetos', filter=Q(projetos__is_saved=True)))
+        .order_by('posicao', '-created_at')
+    )
     nome_usuario = request.user.get_full_name() or request.user.username
 
     user_credits = 0
