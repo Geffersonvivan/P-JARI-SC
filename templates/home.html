@@ -101,12 +101,6 @@
             </div>
         </div>
         <div class="flex items-center gap-2 text-sm relative">
-            <!-- Botão Pastas -->
-            <button id="btn-pastas" onclick="toggleDrawer()"
-                title="Minhas Pastas"
-                class="flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:text-orange-500 hover:bg-orange-50 transition-colors">
-                <i class="ph ph-folders text-xl"></i>
-            </button>
             <!-- Botão Fórum -->
             <div class="relative">
                 <button onclick="abrirModalForum()" id="btn-forum-navbar"
@@ -215,6 +209,52 @@
         </div>
     </div>
 </nav>
+
+<!-- ══ BARRA DE PASTAS ═══════════════════════════════ -->
+{% if pastas %}
+<div id="folders-bar" class="bg-gray-50 border-b border-gray-100 sticky top-[60px] z-40">
+    <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar" style="padding:8px 50px;scrollbar-width:thin;">
+        {% for pasta in pastas %}
+        <div class="relative folder-chip-wrap" data-folder-id="{{ pasta.id }}">
+            <button type="button"
+                onclick="toggleFolderDropdown({{ pasta.id }})"
+                class="folder-chip flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap
+                       border-gray-200 bg-white text-gray-600 hover:bg-orange-50 hover:border-orange-300 hover:text-orange-700">
+                <i class="ph ph-folder-notch text-orange-400" style="font-size:14px;"></i>
+                {{ pasta.nome_pasta }}
+                <span class="text-[10px] text-gray-400 ml-0.5">({{ pasta.num_projetos }})</span>
+                <i class="ph ph-caret-down text-[10px] text-gray-400"></i>
+            </button>
+            <div class="folder-dropdown hidden absolute top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <div class="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                    <p class="text-xs font-semibold text-gray-500"><i class="ph ph-folder-notch text-orange-400"></i> {{ pasta.nome_pasta }}</p>
+                </div>
+                <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                    {% for p in pasta.projetos.all %}
+                    <a href="/parecer/{{ p.id }}/wizard/"
+                       class="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0"
+                       style="text-decoration:none;">
+                        <i class="ph ph-file-text text-blue-400 flex-shrink-0" style="font-size:14px;"></i>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-xs font-medium text-gray-800 truncate">
+                                {{ p.recorrente|default:p.nome_processo|truncatechars:35 }}
+                            </p>
+                            <p class="text-[10px] text-gray-400 truncate">
+                                {% if p.pa %}PA {{ p.pa }}{% endif %}
+                                {% if p.sgpe %} · SGPE {{ p.sgpe }}{% endif %}
+                            </p>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <p class="text-xs text-gray-400 text-center py-4">Nenhum parecer salvo</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- ══ DRAWER OVERLAY ════════════════════════════ -->
 <div id="drawer-overlay" class="fixed inset-0 bg-black/25 z-30" onclick="closeDrawer()"></div>
@@ -715,6 +755,31 @@ function toggleDrawer() {
 // Fechar com Escape — drawer only (modais têm listener próprio)
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDrawer();
+});
+
+// ── BARRA DE PASTAS (dropdown) ───────────────────
+function toggleFolderDropdown(folderId) {
+    var allWraps = document.querySelectorAll('.folder-chip-wrap');
+    allWraps.forEach(function(w) {
+        var dd = w.querySelector('.folder-dropdown');
+        var chip = w.querySelector('.folder-chip');
+        if (!dd) return;
+        if (Number(w.dataset.folderId) === folderId && dd.classList.contains('hidden')) {
+            dd.classList.remove('hidden');
+            chip.classList.add('border-orange-300', 'bg-orange-50', 'text-orange-700');
+        } else {
+            dd.classList.add('hidden');
+            chip.classList.remove('border-orange-300', 'bg-orange-50', 'text-orange-700');
+        }
+    });
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.folder-chip-wrap')) {
+        document.querySelectorAll('.folder-dropdown').forEach(function(dd) { dd.classList.add('hidden'); });
+        document.querySelectorAll('.folder-chip').forEach(function(c) {
+            c.classList.remove('border-orange-300', 'bg-orange-50', 'text-orange-700');
+        });
+    }
 });
 
 // ── TOGGLE PASTA TREE ────────────────────────────
