@@ -810,13 +810,14 @@ function executeDelete() {
     var url = _deleteType === 'pasta'
         ? '/chat/parecer/' + _deleteId + '/delete/'
         : '/chat/projeto/' + _deleteId + '/delete/';
-    var csrfToken = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+        || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '{{ csrf_token }}';
     fetch(url, {
         method: 'POST',
         headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'},
     }).then(function(r) {
         if (r.ok) { closeDeleteModal(); window.location.reload(); }
-        else { alert('Erro ao excluir. Tente novamente.'); closeDeleteModal(); }
+        else { closeDeleteModal(); showToast('Erro ao excluir. Tente novamente.', 'error'); }
     });
 }
 

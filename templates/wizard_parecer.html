@@ -1318,16 +1318,18 @@ function closeDeleteModal() {
 }
 function executeDelete() {
     if (!_deleteType || !_deleteId) return;
-    var url = _deleteType === 'pasta'
-        ? '/chat/parecer/' + _deleteId + '/delete/'
-        : '/chat/projeto/' + _deleteId + '/delete/';
+    var type = _deleteType, id = _deleteId;
+    var url = type === 'pasta'
+        ? '/chat/parecer/' + id + '/delete/'
+        : '/chat/projeto/' + id + '/delete/';
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token_value }}';
     fetch(url, {
         method: 'POST',
-        headers: {'X-CSRFToken': '{{ csrf_token_value }}', 'Content-Type': 'application/json'},
+        headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'},
     }).then(function(r) {
         if (r.ok) {
             closeDeleteModal();
-            if (_deleteType === 'pasta' || window.location.pathname.indexOf('/parecer/' + _deleteId + '/') !== -1) {
+            if (type === 'pasta' || window.location.pathname.indexOf('/parecer/' + id + '/') !== -1) {
                 window.location.href = '/app/';
             } else {
                 window.location.reload();
