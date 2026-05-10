@@ -321,37 +321,38 @@
 
         /* ── Botões "Copiar" por seção do parecer ─────────────────── */
         function _buildCopyBar(editor) {
-            const SECTION_KEYS = [
+            /* Todas as seções do parecer, em ordem, para delimitar início/fim */
+            const ALL_SECTIONS = [
                 'EMENTA', 'RELAT\u00d3RIO', 'ADMISSIBILIDADE',
                 'TESES DEFENSIVAS',
                 '3.1 PRESCRI\u00c7\u00c3O PUNITIVA', '3.2 PRESCRI\u00c7\u00c3O INTERCORRENTE', '3.3 DECAD\u00caNCIA',
                 'MATERIALIDADE', 'GARANTIAS PROCESSUAIS', 'PARECER FINAL',
             ];
-            const SHORT = {
-                'EMENTA': 'Ementa', 'RELAT\u00d3RIO': 'Relat\u00f3rio',
-                'ADMISSIBILIDADE': 'Admissibilidade', 'TESES DEFENSIVAS': 'Teses',
-                '3.1 PRESCRI\u00c7\u00c3O PUNITIVA': '3.1 Punitiva',
-                '3.2 PRESCRI\u00c7\u00c3O INTERCORRENTE': '3.2 Intercorrente',
-                '3.3 DECAD\u00caNCIA': '3.3 Decad\u00eancia',
-                'MATERIALIDADE': 'Materialidade', 'GARANTIAS PROCESSUAIS': 'Garantias',
-                'PARECER FINAL': 'Parecer Final',
-            };
-            function getSectionText(key) {
-                var body = editor.getBody();
+
+            /* 4 botões: Ementa, Relatório, Fundamentação (agrupada), Voto */
+            const BUTTONS = [
+                { label: 'Ementa',        from: 'EMENTA',            to: 'RELAT\u00d3RIO' },
+                { label: 'Relat\u00f3rio', from: 'RELAT\u00d3RIO',  to: 'ADMISSIBILIDADE' },
+                { label: 'Fundamenta\u00e7\u00e3o', from: 'ADMISSIBILIDADE', to: 'PARECER FINAL' },
+                { label: 'Voto',          from: 'PARECER FINAL',     to: null },
+            ];
+
+            function findSectionNode(body, key) {
                 var strongs = Array.from(body.querySelectorAll('strong'));
-                var found = null, nextFound = null;
                 for (var i = 0; i < strongs.length; i++) {
                     var txt = strongs[i].textContent.trim().replace(/:$/,'').toUpperCase();
-                    if (!found) {
-                        if (txt === key || txt.indexOf(key) === 0 || key.indexOf(txt) === 0) found = strongs[i];
-                    } else {
-                        var isNext = SECTION_KEYS.some(function(k) { return txt === k || txt.indexOf(k) === 0 || k.indexOf(txt) === 0; });
-                        if (isNext) { nextFound = strongs[i]; break; }
-                    }
+                    if (txt === key || txt.indexOf(key) === 0 || key.indexOf(txt) === 0) return strongs[i];
                 }
-                if (!found) return null;
-                var block = found.closest('p') || found.parentElement;
-                var endBlock = nextFound ? (nextFound.closest('p') || nextFound.parentElement) : null;
+                return null;
+            }
+
+            function getRangeText(fromKey, toKey) {
+                var body = editor.getBody();
+                var startNode = findSectionNode(body, fromKey);
+                if (!startNode) return null;
+                var endNode = toKey ? findSectionNode(body, toKey) : null;
+                var block = startNode.closest('p') || startNode.parentElement;
+                var endBlock = endNode ? (endNode.closest('p') || endNode.parentElement) : null;
                 var parts = [];
                 var node = block;
                 while (node) {
@@ -361,22 +362,31 @@
                 }
                 return parts.join('\n').trim();
             }
+
             var bar = document.getElementById('copy-section-bar');
             if (!bar) return;
             bar.style.display = 'flex';
-            SECTION_KEYS.forEach(function(key) {
+            var copyIcon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> ';
+            var okIcon = '<svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ';
+            var errIcon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> ';
+
+            BUTTONS.forEach(function(cfg) {
                 var btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'px-2.5 py-1 text-xs rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition flex items-center gap-1';
-                btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> ' + (SHORT[key] || key);
+                btn.className = 'px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition flex items-center gap-1';
+                btn.innerHTML = copyIcon + cfg.label;
                 btn.onclick = function() {
-                    var text = getSectionText(key);
-                    if (!text) { btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> N\u00e3o encontrada'; setTimeout(function(){ btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> ' + (SHORT[key] || key); }, 1500); return; }
+                    var text = getRangeText(cfg.from, cfg.to);
+                    if (!text) {
+                        btn.innerHTML = errIcon + 'N\u00e3o encontrada';
+                        setTimeout(function(){ btn.innerHTML = copyIcon + cfg.label; }, 1500);
+                        return;
+                    }
                     navigator.clipboard.writeText(text).then(function() {
-                        btn.innerHTML = '<svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Copiado!';
+                        btn.innerHTML = okIcon + 'Copiado!';
                         btn.classList.add('border-green-300', 'text-green-700', 'bg-green-50');
                         setTimeout(function() {
-                            btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> ' + (SHORT[key] || key);
+                            btn.innerHTML = copyIcon + cfg.label;
                             btn.classList.remove('border-green-300', 'text-green-700', 'bg-green-50');
                         }, 1500);
                     });
