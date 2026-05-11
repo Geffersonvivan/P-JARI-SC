@@ -1322,23 +1322,30 @@ function executeDelete() {
     var url = type === 'pasta'
         ? '/parecer/' + id + '/delete/'
         : '/projeto/' + id + '/delete/';
-    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token_value }}';
-    fetch(url, {
-        method: 'POST',
-        headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'},
-    }).then(function(r) {
-        if (r.ok) {
-            closeDeleteModal();
-            if (type === 'pasta' || window.location.pathname.indexOf('/parecer/' + id + '/') !== -1) {
-                window.location.href = '/app/';
-            } else {
-                window.location.reload();
-            }
-        } else {
-            toast('Erro ao excluir. Tente novamente.', 'error');
-            closeDeleteModal();
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+        || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '{{ csrf_token_value }}';
+    closeDeleteModal();
+    // Se excluiu a pasta do parecer atual ou o próprio parecer aberto, redireciona
+    var currentPath = window.location.pathname;
+    var isCurrentParecer = type !== 'pasta' && currentPath.indexOf('/parecer/' + id + '/') !== -1;
+    if (type === 'pasta' || isCurrentParecer) {
+        if (type === 'pasta') {
+            var wrap = document.querySelector('.folder-chip-wrap[data-folder-id="' + id + '"]');
+            if (wrap) wrap.remove();
         }
+        toast('Excluído com sucesso', 'success');
+        fetch(url, { method: 'POST', headers: {'X-CSRFToken': csrfToken} })
+        .then(function() { window.location.href = '/app/'; });
+        return;
+    }
+    // Parecer dentro de dropdown: remove do DOM instantaneamente
+    document.querySelectorAll('a[href="/parecer/' + id + '/wizard/"]').forEach(function(a) {
+        var row = a.closest('div.flex') || a.closest('div');
+        if (row) row.remove();
     });
+    toast('Parecer excluído', 'success');
+    fetch(url, { method: 'POST', headers: {'X-CSRFToken': csrfToken} })
+    .then(function(r) { if (!r.ok) toast('Erro no servidor. Recarregue a página.', 'error'); });
 }
 
 /* ── Barra de Pastas (dropdown) ─────────────────────── */

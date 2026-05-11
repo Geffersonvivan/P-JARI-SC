@@ -807,18 +807,29 @@ function closeDeleteModal() {
 }
 function executeDelete() {
     if (!_deleteType || !_deleteId) return;
-    var url = _deleteType === 'pasta'
-        ? '/parecer/' + _deleteId + '/delete/'
-        : '/projeto/' + _deleteId + '/delete/';
+    var type = _deleteType, id = _deleteId;
+    var url = type === 'pasta'
+        ? '/parecer/' + id + '/delete/'
+        : '/projeto/' + id + '/delete/';
     var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
         || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '{{ csrf_token }}';
-    fetch(url, {
-        method: 'POST',
-        headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'},
-    }).then(function(r) {
-        if (r.ok) { closeDeleteModal(); window.location.reload(); }
-        else { closeDeleteModal(); showToast('Erro ao excluir. Tente novamente.', 'error'); }
-    });
+    closeDeleteModal();
+    // Remove do DOM instantaneamente
+    if (type === 'pasta') {
+        var wrap = document.querySelector('.folder-chip-wrap[data-folder-id="' + id + '"]');
+        if (wrap) wrap.remove();
+        // Remove também do drawer lateral
+        var drawerItem = document.getElementById('pasta-' + id);
+        if (drawerItem) drawerItem.remove();
+    } else {
+        document.querySelectorAll('a[href="/parecer/' + id + '/wizard/"]').forEach(function(a) {
+            var row = a.closest('div.flex');
+            if (row) row.remove();
+        });
+    }
+    showToast(type === 'pasta' ? 'Pasta excluída' : 'Parecer excluído', 'success');
+    fetch(url, { method: 'POST', headers: {'X-CSRFToken': csrfToken} })
+    .then(function(r) { if (!r.ok) showToast('Erro no servidor. Recarregue a página.', 'error'); });
 }
 
 // ── BARRA DE PASTAS (dropdown) ───────────────────
