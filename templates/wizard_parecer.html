@@ -1320,8 +1320,8 @@ function executeDelete() {
     if (!_deleteType || !_deleteId) return;
     var type = _deleteType, id = _deleteId;
     var url = type === 'pasta'
-        ? '/chat/parecer/' + id + '/delete/'
-        : '/chat/projeto/' + id + '/delete/';
+        ? '/parecer/' + id + '/delete/'
+        : '/projeto/' + id + '/delete/';
     var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token_value }}';
     fetch(url, {
         method: 'POST',

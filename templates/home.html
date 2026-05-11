@@ -808,8 +808,8 @@ function closeDeleteModal() {
 function executeDelete() {
     if (!_deleteType || !_deleteId) return;
     var url = _deleteType === 'pasta'
-        ? '/chat/parecer/' + _deleteId + '/delete/'
-        : '/chat/projeto/' + _deleteId + '/delete/';
+        ? '/parecer/' + _deleteId + '/delete/'
+        : '/projeto/' + _deleteId + '/delete/';
     var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
         || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '{{ csrf_token }}';
     fetch(url, {
