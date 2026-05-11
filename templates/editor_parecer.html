@@ -57,7 +57,8 @@
             </div>
 
             <!-- Dica para novos usuários (some após 5 acessos) -->
-            <p id="copy-hint" class="text-xs text-gray-400 mb-1.5" style="display:none;">Clique para copiar cada se\u00e7\u00e3o e colar no SGPE</p>
+            <style>@keyframes hintPulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+            <p id="copy-hint" class="text-xs text-blue-500 font-medium mb-1.5" style="display:none;animation:hintPulse 1.5s ease-in-out 3;">Clique para copiar e colar cada seção no seu Relatório!</p>
             <!-- Botões copiar por seção -->
             <div id="copy-section-bar" class="flex flex-wrap gap-1.5 mb-3 shrink-0" style="display:none;"></div>
 

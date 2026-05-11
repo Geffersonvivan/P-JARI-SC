@@ -105,6 +105,7 @@
         .score-badge { border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
         /* ── JARIMATCH PULSE ─────────────────────── */
+        @keyframes hintPulse{0%,100%{opacity:1}50%{opacity:.3}}
         @keyframes jari-pulse-green  { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}  50%{box-shadow:0 0 0 6px rgba(34,197,94,.35)} }
         @keyframes jari-pulse-yellow { 0%,100%{box-shadow:0 0 0 0 rgba(234,179,8,0)}  50%{box-shadow:0 0 0 6px rgba(234,179,8,.35)} }
         @keyframes jari-pulse-red    { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}  50%{box-shadow:0 0 0 6px rgba(239,68,68,.35)} }
@@ -2112,8 +2113,9 @@ function injectCopyButtons() {
     localStorage.setItem(_hintKey, _visits);
     if (_visits <= 5) {
         var hint = document.createElement('p');
-        hint.className = 'text-xs text-gray-400 mb-1';
-        hint.textContent = 'Clique para copiar cada se\u00e7\u00e3o e colar no SGPE';
+        hint.className = 'text-xs text-blue-500 font-medium mb-1';
+        hint.textContent = 'Clique para copiar e colar cada seção no seu Relatório!';
+        hint.style.animation = 'hintPulse 1.5s ease-in-out 3';
         container.parentNode.insertBefore(hint, container);
     }
 
