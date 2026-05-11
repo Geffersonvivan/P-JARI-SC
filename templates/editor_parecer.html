@@ -56,6 +56,8 @@
                     class="text-sm px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">Voltar</button>
             </div>
 
+            <!-- Dica para novos usuários (some após 5 acessos) -->
+            <p id="copy-hint" class="text-xs text-gray-400 mb-1.5" style="display:none;">Clique para copiar cada se\u00e7\u00e3o e colar no SGPE</p>
             <!-- Botões copiar por seção -->
             <div id="copy-section-bar" class="flex flex-wrap gap-1.5 mb-3 shrink-0" style="display:none;"></div>
 
@@ -375,6 +377,16 @@
             var bar = document.getElementById('copy-section-bar');
             if (!bar) return;
             bar.style.display = 'flex';
+
+            // Dica visível nas primeiras 5 visitas
+            var _hintKey = 'pjari_editor_visits';
+            var _visits = parseInt(localStorage.getItem(_hintKey) || '0', 10) + 1;
+            localStorage.setItem(_hintKey, _visits);
+            if (_visits <= 5) {
+                var hint = document.getElementById('copy-hint');
+                if (hint) hint.style.display = 'block';
+            }
+
             var copyIcon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> ';
             var okIcon = '<svg class="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ';
             var errIcon = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> ';
