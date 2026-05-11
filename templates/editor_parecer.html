@@ -331,11 +331,13 @@
 
             /* 4 botões: Ementa, Relatório, Fundamentação (agrupada), Voto */
             const BUTTONS = [
-                { label: 'Ementa',        from: 'EMENTA',            to: 'RELAT\u00d3RIO' },
-                { label: 'Relat\u00f3rio', from: 'RELAT\u00d3RIO',  to: 'ADMISSIBILIDADE' },
-                { label: 'Fundamenta\u00e7\u00e3o', from: 'ADMISSIBILIDADE', to: 'PARECER FINAL' },
+                { label: 'Ementa',        from: 'EMENTA',            to: 'RELAT\u00d3RIO', skipTitle: true },
+                { label: 'Relat\u00f3rio', from: 'RELAT\u00d3RIO',  to: 'ADMISSIBILIDADE', skipTitle: true, trimClosing: true },
+                { label: 'Fundamenta\u00e7\u00e3o', from: 'ADMISSIBILIDADE', to: 'PARECER FINAL', trimClosing: true },
                 { label: 'Voto',          from: 'PARECER FINAL',     to: null },
             ];
+
+            var _closingRe = /^(este \u00e9 o relat\u00f3rio|essa \u00e9 a fundamenta\u00e7\u00e3o)\.?$/i;
 
             function findSectionNode(body, key) {
                 var strongs = Array.from(body.querySelectorAll('strong'));
@@ -346,7 +348,7 @@
                 return null;
             }
 
-            function getRangeText(fromKey, toKey) {
+            function getRangeText(fromKey, toKey, skipTitle, trimClosing) {
                 var body = editor.getBody();
                 var startNode = findSectionNode(body, fromKey);
                 if (!startNode) return null;
@@ -354,10 +356,14 @@
                 var block = startNode.closest('p') || startNode.parentElement;
                 var endBlock = endNode ? (endNode.closest('p') || endNode.parentElement) : null;
                 var parts = [];
-                var node = block;
+                var node = skipTitle ? block.nextElementSibling : block;
                 while (node) {
                     if (endBlock && node === endBlock) break;
-                    if (node.textContent) parts.push(node.textContent.trim());
+                    if (node.textContent) {
+                        var line = node.textContent.trim();
+                        if (trimClosing && _closingRe.test(line)) { node = node.nextElementSibling; continue; }
+                        parts.push(line);
+                    }
                     node = node.nextElementSibling;
                 }
                 return parts.join('\n').trim();
@@ -376,7 +382,7 @@
                 btn.className = 'px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition flex items-center gap-1';
                 btn.innerHTML = copyIcon + cfg.label;
                 btn.onclick = function() {
-                    var text = getRangeText(cfg.from, cfg.to);
+                    var text = getRangeText(cfg.from, cfg.to, cfg.skipTitle, cfg.trimClosing);
                     if (!text) {
                         btn.innerHTML = errIcon + 'N\u00e3o encontrada';
                         setTimeout(function(){ btn.innerHTML = copyIcon + cfg.label; }, 1500);
