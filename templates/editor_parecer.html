@@ -332,18 +332,21 @@
             /* 4 botões: Ementa, Relatório, Fundamentação (agrupada), Voto */
             const BUTTONS = [
                 { label: 'Ementa',        from: 'EMENTA',            to: 'RELAT\u00d3RIO', skipTitle: true },
-                { label: 'Relat\u00f3rio', from: 'RELAT\u00d3RIO',  to: 'ADMISSIBILIDADE', skipTitle: true, trimClosing: true },
-                { label: 'Fundamenta\u00e7\u00e3o', from: 'ADMISSIBILIDADE', to: 'PARECER FINAL', trimClosing: true },
-                { label: 'Voto',          from: 'PARECER FINAL',     to: null },
+                { label: 'Relat\u00f3rio', from: 'RELAT\u00d3RIO',  to: ['FUNDAMENTA\u00c7\u00c3O JUR\u00cdDICA', 'ADMISSIBILIDADE'], skipTitle: true, trimClosing: true },
+                { label: 'Fundamenta\u00e7\u00e3o', from: ['FUNDAMENTA\u00c7\u00c3O JUR\u00cdDICA', 'ADMISSIBILIDADE'], to: ['PARECER FINAL', 'VOTO'], trimClosing: true },
+                { label: 'Voto',          from: ['PARECER FINAL', 'VOTO'],     to: null },
             ];
 
             var _closingRe = /^(este \u00e9 o relat\u00f3rio|essa \u00e9 a fundamenta\u00e7\u00e3o)\.?$/i;
 
-            function findSectionNode(body, key) {
+            function findSectionNode(body, keys) {
+                var arr = Array.isArray(keys) ? keys : [keys];
                 var strongs = Array.from(body.querySelectorAll('strong'));
                 for (var i = 0; i < strongs.length; i++) {
                     var txt = strongs[i].textContent.trim().replace(/:$/,'').toUpperCase();
-                    if (txt === key || txt.indexOf(key) === 0 || key.indexOf(txt) === 0) return strongs[i];
+                    for (var j = 0; j < arr.length; j++) {
+                        if (txt === arr[j] || txt.indexOf(arr[j]) === 0 || arr[j].indexOf(txt) === 0) return strongs[i];
+                    }
                 }
                 return null;
             }
