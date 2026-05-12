@@ -36,6 +36,47 @@ def _is_transient_llm_error(e) -> bool:
     ))
 
 
+def _is_permanent_llm_error(e) -> bool:
+    """Retorna True para erros permanentes de LLM (billing, API key, acesso negado).
+    Retry não resolve esses erros — requerem intervenção humana."""
+    s = str(e)
+    return any(k in s for k in (
+        'PERMISSION_DENIED', 'denied access',
+        'API_KEY_INVALID', 'API key not valid',
+        'billing', 'account is inactive',
+        'has been denied access',
+    ))
+
+
+_PERMANENT_ERROR_FINGERPRINT = ['llm-permanent-access-error']
+_PERMANENT_USER_MSG = (
+    "⚠️ O serviço de IA está temporariamente indisponível. "
+    "Aguarde alguns instantes e tente novamente. "
+    "Se o problema persistir, contate o administrador."
+)
+
+
+def _handle_permanent_error(e, parecer_id: int, fase: str):
+    """Trata erros permanentes de LLM: loga CRITICAL, agrupa no Sentry, salva msg amigável."""
+    logger.critical(
+        "LLM ACESSO NEGADO (Parecer %s, fase %s): %s",
+        parecer_id, fase, e,
+    )
+    sentry_sdk.capture_message(
+        f"LLM acesso negado — fase={fase}, parecer={parecer_id}: {str(e)[:200]}",
+        level="error",
+        fingerprint=_PERMANENT_ERROR_FINGERPRINT,
+    )
+    try:
+        from .models import ChatMessage
+        _p = Parecer.objects.get(id=parecer_id)
+        ChatMessage.objects.create(parecer=_p, role='assistant', content=_PERMANENT_USER_MSG)
+        log_audit('fase_erro', parecer=_p, fase=fase, dados={'erro': f'ACESSO NEGADO: {str(e)[:150]}'})
+    except Exception:
+        pass
+    raise Exception(f"{_PERMANENT_USER_MSG}")
+
+
 @shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
 def processar_fase1_task(self, parecer_id):
     """
@@ -78,6 +119,8 @@ def processar_fase1_task(self, parecer_id):
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
+        if _is_permanent_llm_error(e):
+            _handle_permanent_error(e, parecer_id, fase=1)
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
             countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
@@ -131,6 +174,8 @@ def processar_fase2_task(self, parecer_id):
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
+        if _is_permanent_llm_error(e):
+            _handle_permanent_error(e, parecer_id, fase=2)
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
             countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
@@ -174,6 +219,8 @@ def processar_fase3_admissibilidade_task(self, parecer_id):
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
+        if _is_permanent_llm_error(e):
+            _handle_permanent_error(e, parecer_id, fase='3_adm')
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
             countdown = 10 * (self.request.retries + 1)
@@ -256,6 +303,8 @@ def processar_fase4_task(self, parecer_id):
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
+        if _is_permanent_llm_error(e):
+            _handle_permanent_error(e, parecer_id, fase=4)
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
             countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
@@ -336,6 +385,8 @@ def processar_fase4_analise_task(self, parecer_id):
     except Parecer.DoesNotExist:
         return f"Processo ({parecer_id}) não encontrado."
     except Exception as e:
+        if _is_permanent_llm_error(e):
+            _handle_permanent_error(e, parecer_id, fase='4_analise')
         trace = traceback.format_exc()
         if _is_transient_llm_error(e):
             countdown = 10 * (self.request.retries + 1)  # 10s, 20s, 30s (retry interno já aguarda 5-15s)
@@ -390,6 +441,8 @@ def gerar_parecer_task(self, parecer_id, tese=None):
     except Exception as e:
         # Retry primeiro para erros transitórios (429, 5xx, timeout)
         # — loga como warning, não error, para não poluir Sentry durante retries
+        if _is_permanent_llm_error(e):
+            _handle_permanent_error(e, parecer_id, fase=5)
         if _is_transient_llm_error(e):
             countdown = 10 * (self.request.retries + 1)  # 10s, 20s (retry interno já esperou 5-15s)
             logger.warning(f"PARECER transitório (Parecer {parecer_id}), retry {self.request.retries + 1}/2 em {countdown}s: {e}")

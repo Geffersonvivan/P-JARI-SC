@@ -336,7 +336,17 @@ def run(engine) -> str:
         try:
             parecer.admissibilidade_texto = gemini.generate_phase3_report(parecer, matematica_detalhes)
         except Exception as e:
-            logger.error("[FASE3] Falha ao chamar Gemini — parecer=%s | erro=%s", parecer.id, e)
+            _s = str(e)
+            if any(k in _s for k in ('PERMISSION_DENIED', 'denied access', 'API_KEY_INVALID')):
+                logger.critical("[FASE3] Falha ao chamar Gemini — parecer=%s | erro=%s", parecer.id, e)
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    f"[FASE3] LLM acesso negado — parecer={parecer.id}: {_s[:200]}",
+                    level="error",
+                    fingerprint=['llm-permanent-access-error'],
+                )
+            else:
+                logger.error("[FASE3] Falha ao chamar Gemini — parecer=%s | erro=%s", parecer.id, e)
             return (
                 "⚠️ O serviço de IA está temporariamente indisponível. "
                 "Aguarde alguns instantes e tente novamente."
