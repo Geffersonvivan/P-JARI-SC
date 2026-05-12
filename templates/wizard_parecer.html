@@ -1351,6 +1351,10 @@ function executeDelete() {
 
 /* ── Barra de Pastas (dropdown) ─────────────────────── */
 function toggleFolderDropdown(folderId) {
+    if (isProcessing) {
+        toast('Aguarde o processamento finalizar antes de trocar de pasta.', 'warning');
+        return;
+    }
     var allWraps = document.querySelectorAll('.folder-chip-wrap');
     allWraps.forEach(function(w) {
         var dd = w.querySelector('.folder-dropdown');
@@ -1647,6 +1651,7 @@ function renderPhase(f) {
     if (f===8)  {
         hide('p5-pasta'); show('p5-final');
         renderJariMatch();
+        injectCopyButtons();
         // Acesso direto (já finalizado): oculta avaliação, mostra só navegação
         const fbOpcoes = document.getElementById('fb-opcoes');
         const fbTitle  = document.querySelector('#p5-final h2');
@@ -2055,7 +2060,7 @@ function renderParecer() {
 
 function injectCopyButtons() {
     const container = document.getElementById('p4-parecer-texto');
-    if (!container) return;
+    if (!container || currentFase < 8) return;
 
     const ALL_SECTIONS = [
         'EMENTA', 'RELAT\u00d3RIO', 'FUNDAMENTA\u00c7\u00c3O JUR\u00cdDICA',
