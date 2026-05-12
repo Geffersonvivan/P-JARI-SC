@@ -522,8 +522,10 @@ class GeminiClient:
 
         try:
             import json as _json
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=_tier_models['gemini_f1'],
                 contents=contents,
                 config={
                     'system_instruction': system_instruction,
@@ -649,8 +651,10 @@ class GeminiClient:
 
         try:
             import json as _json
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
+                model=_tier_models['gemini_f1'],
                 contents=[prompt_text],
                 config={
                     'system_instruction': system_instruction,
@@ -847,9 +851,11 @@ class GeminiClient:
 
         try:
             import json as _json
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            _preferred = 'gemini-2.5-flash'
-            _fallback = 'gemini-2.5-flash' if pdf_chars >= 2000 else 'gemini-2.5-flash'
+            _preferred = _tier_models['gemini_f1']
+            _fallback = _tier_models['gemini_f1']
             _retries = 2 if pdf_chars < 2000 else 1
             response, _ = self._call_with_fallback(
                 _preferred, _fallback, contents,
@@ -991,18 +997,20 @@ class GeminiClient:
 
         try:
             import json as _json
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
             # PDF com texto limitado (< 2000 chars): proíbe downgrade para 2.0-flash
             # pois ele não consegue extrair datas de PDFs corrompidos via visão.
             # retry_preferred=2 tenta 2.5-flash até 3x antes de desistir.
             if pdf_chars < 2000:
-                _preferred = 'gemini-2.5-flash'
-                _fallback  = 'gemini-2.5-flash'  # sem downgrade
+                _preferred = _tier_models['gemini_f2']
+                _fallback  = _tier_models['gemini_f2']  # sem downgrade
                 _retries   = 2
                 _log.warning(f"[FASE2] PDF limitado ({pdf_chars} chars) — forçando {_preferred} sem fallback para 2.0-flash")
             else:
-                _preferred = 'gemini-2.5-flash'
-                _fallback  = 'gemini-2.5-flash'
+                _preferred = _tier_models['gemini_f2']
+                _fallback  = _tier_models['gemini_f2']
                 _retries   = 1
             response, _ = self._call_with_fallback(
                 _preferred, _fallback,
@@ -1044,9 +1052,11 @@ class GeminiClient:
             "Aplique estritamente o roteiro obrigatório e devolva os resultados solicitados baseando-se unicamente nas flags matemáticas acima."
         )
 
+        from chat.tier import get_models_for_parecer
+        _tier_models = get_models_for_parecer(parecer_obj)
         start_time = time.time()
         response, _ = self._call_with_fallback(
-            'gemini-2.5-flash', 'gemini-2.5-flash',
+            _tier_models['gemini_f3'], _tier_models['gemini_f3'],
             [prompt_text], {'system_instruction': system_instruction},
             'Fase 3 (Avaliação Prazos)', parecer_obj, start_time
         )
@@ -1082,8 +1092,10 @@ class GeminiClient:
             contents.insert(0, f)
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            model_to_use = 'gemini-2.5-flash'
+            model_to_use = _tier_models['gemini_f4']
             response = self.client.models.generate_content(
                 model=model_to_use,
                 contents=contents,
@@ -1123,8 +1135,10 @@ class GeminiClient:
             contents.insert(0, f)
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            model_to_use = 'gemini-2.5-flash'
+            model_to_use = _tier_models['gemini_f4']
             response = self.client.models.generate_content(
                 model=model_to_use,
                 contents=contents,
@@ -1199,9 +1213,11 @@ class GeminiClient:
             contents.insert(0, f)
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
             response, _ = self._call_with_fallback(
-                'gemini-2.5-flash', 'gemini-2.5-flash',
+                _tier_models['gemini_f4'], _tier_models['gemini_f4'],
                 contents, {'system_instruction': system_instruction},
                 'Fase 4 (Análise Mérito)', parecer_obj, start_time,
                 retry_preferred=0,    # 1 tentativa no 2.5-pro → fallback direto para 2.0-flash
@@ -1326,8 +1342,10 @@ class GeminiClient:
             contents.insert(0, f)
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            model_to_use = 'gemini-2.5-flash'
+            model_to_use = _tier_models['gemini_f5']
 
             redis_client = None
             if task_id:
@@ -1439,8 +1457,10 @@ class GeminiClient:
         )
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            model_to_use = 'gemini-2.5-flash'
+            model_to_use = _tier_models['gemini_f5']
             response = self.client.models.generate_content(
                 model=model_to_use,
                 contents=[prompt],

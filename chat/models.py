@@ -397,6 +397,44 @@ class Subscription(models.Model):
         return f"{self.user.username} — {self.get_plano_display()} ({self.data_inicio.strftime('%d/%m/%Y')} → {self.data_expiracao.strftime('%d/%m/%Y')})"
 
 
+TIER_CHOICES = [
+    ('atual', 'Atual (Flash + Haiku)'),
+    ('reforcado', 'Reforçado (Pro F5 + Sonnet F4/F6)'),
+    ('maximo', 'Máximo (Pro + Sonnet em todas as fases)'),
+]
+
+
+class TierConfig(models.Model):
+    """Configuração global do nível de IA. Singleton — apenas 1 registro."""
+    tier_padrao = models.CharField(
+        max_length=20, choices=TIER_CHOICES, default='atual',
+        verbose_name="Nível padrão de IA",
+        help_text="Nível aplicado a todos os usuários que não possuem override individual.",
+    )
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete('tier_config')
+
+    @classmethod
+    def load(cls):
+        from django.core.cache import cache
+        config = cache.get('tier_config')
+        if config is None:
+            config, _ = cls.objects.get_or_create(pk=1)
+            cache.set('tier_config', config, 3600)
+        return config
+
+    def __str__(self):
+        return f"Nível de IA: {self.get_tier_padrao_display()}"
+
+    class Meta:
+        verbose_name = "Nível de IA (Global)"
+        verbose_name_plural = "Nível de IA (Global)"
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     is_pro = models.BooleanField(default=False)
@@ -408,6 +446,12 @@ class UserProfile(models.Model):
     has_seen_tour = models.BooleanField(default=False)
     can_view_global_stats = models.BooleanField(default=False, verbose_name="Ver Painel Global")
     ultimo_acesso_forum = models.DateTimeField(null=True, blank=True)
+    tier = models.CharField(
+        max_length=20, choices=[('', 'Usar padrão global')] + TIER_CHOICES,
+        default='', blank=True,
+        verbose_name="Nível de IA",
+        help_text="Override individual. Deixe vazio para usar o nível global.",
+    )
 
     def __str__(self):
         return f"Profile: {self.user.username} - PRO: {self.is_pro}"

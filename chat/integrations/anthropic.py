@@ -290,8 +290,10 @@ class AnthropicClient:
                   len(docs_markdown))
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            _model = "claude-haiku-4-5-20251001"
+            _model = _tier_models['anthropic_f3']
 
             def _call():
                 return self.client.messages.create(
@@ -411,9 +413,10 @@ class AnthropicClient:
         content_blocks.append({"type": "text", "text": prompt_text})
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            # Haiku para todas as chamadas F3 — libera rate limit do Sonnet para F5
-            _model = "claude-haiku-4-5-20251001"
+            _model = _tier_models['anthropic_f3']
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
@@ -462,8 +465,10 @@ class AnthropicClient:
         )
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            _model = "claude-haiku-4-5-20251001"
+            _model = _tier_models['anthropic_f3']
 
             def _call():
                 return self.client.messages.create(
@@ -525,8 +530,10 @@ class AnthropicClient:
         content_blocks.append({"type": "text", "text": prompt_text})
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            _model = "claude-haiku-4-5-20251001"
+            _model = _tier_models['anthropic_f4_analise']
 
             def _call():
                 return self.client.messages.create(
@@ -565,8 +572,10 @@ class AnthropicClient:
         content_blocks = [{"type": "text", "text": prompt_text}]
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            _model = "claude-haiku-4-5-20251001"
+            _model = _tier_models['anthropic_f4_analise']
             response = self.client.messages.create(
                 model=_model,
                 max_tokens=4096,
@@ -633,8 +642,10 @@ class AnthropicClient:
         content_blocks = [{"type": "text", "text": prompt_text}]
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            _model = 'claude-haiku-4-5-20251001'
+            _model = _tier_models['anthropic_f4_analise']
 
             def _call():
                 return self.client.messages.create(
@@ -678,9 +689,11 @@ class AnthropicClient:
 
         try:
             import time
+            from chat.tier import get_models
+            _tier_models = get_models()  # CAG roda sem usuário (cron)
             start_time = time.time()
             response = self.client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model=_tier_models['anthropic_cag'],
                 max_tokens=2048,
                 messages=[{"role": "user", "content": prompt}],
             )
@@ -853,8 +866,10 @@ class AnthropicClient:
 
         import time
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            model_to_use = "claude-sonnet-4-6"
+            model_to_use = _tier_models['anthropic_f5']
 
             redis_client = None
             if task_id:
@@ -988,8 +1003,10 @@ class AnthropicClient:
         )
 
         try:
+            from chat.tier import get_models_for_parecer
+            _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            model_to_use = "claude-haiku-4-5-20251001"
+            model_to_use = _tier_models['anthropic_f6']
 
             message = self.client.messages.create(
                 model=model_to_use,

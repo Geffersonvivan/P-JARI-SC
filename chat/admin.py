@@ -2,13 +2,13 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog, AuditEvent, Subscription
+from .models import ConfiguracaoParecer, ParecerFinal, Parecer, Pasta, UserProfile, PjariCacheConfig, PjariCacheEntry, AiRequestLog, AuditEvent, Subscription, TierConfig
 
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Perfil de Créditos e Assinatura'
-    fields = ('credits', 'is_pro', 'subscription_status', 'subscription_start_at', 'subscription_expires_at', 'can_view_global_stats')
+    fields = ('credits', 'is_pro', 'subscription_status', 'subscription_start_at', 'subscription_expires_at', 'can_view_global_stats', 'tier')
     readonly_fields = ('subscription_start_at', 'subscription_expires_at')
 
 
@@ -95,6 +95,54 @@ class PjariVersionAdmin(admin.ModelAdmin):
         return super().has_add_permission(request)
 
 admin.site.register(ConfiguracaoParecer)
+
+
+@admin.register(TierConfig)
+class TierConfigAdmin(admin.ModelAdmin):
+    list_display = ('tier_padrao', 'descricao_tier')
+    fieldsets = (
+        ('Nível de IA Global', {
+            'description': (
+                '<table style="border-collapse:collapse;margin:10px 0 20px">'
+                '<tr style="background:#f5f5f5"><th style="padding:8px;border:1px solid #ddd">Nível</th>'
+                '<th style="padding:8px;border:1px solid #ddd">Custo/parecer</th>'
+                '<th style="padding:8px;border:1px solid #ddd">Gemini (F5)</th>'
+                '<th style="padding:8px;border:1px solid #ddd">Claude (F4/F6)</th></tr>'
+                '<tr><td style="padding:8px;border:1px solid #ddd"><b>Atual</b></td>'
+                '<td style="padding:8px;border:1px solid #ddd">R$ 1,64</td>'
+                '<td style="padding:8px;border:1px solid #ddd">Flash</td>'
+                '<td style="padding:8px;border:1px solid #ddd">Haiku</td></tr>'
+                '<tr><td style="padding:8px;border:1px solid #ddd"><b>Reforçado</b></td>'
+                '<td style="padding:8px;border:1px solid #ddd">R$ 2,30</td>'
+                '<td style="padding:8px;border:1px solid #ddd">Pro</td>'
+                '<td style="padding:8px;border:1px solid #ddd">Sonnet</td></tr>'
+                '<tr><td style="padding:8px;border:1px solid #ddd"><b>Máximo</b></td>'
+                '<td style="padding:8px;border:1px solid #ddd">R$ 4,09</td>'
+                '<td style="padding:8px;border:1px solid #ddd">Pro (todas)</td>'
+                '<td style="padding:8px;border:1px solid #ddd">Sonnet (todas)</td></tr>'
+                '</table>'
+            ),
+            'fields': ('tier_padrao',),
+        }),
+    )
+
+    @admin.display(description='Configuração')
+    def descricao_tier(self, obj):
+        desc = {
+            'atual': 'Flash + Haiku (econômico)',
+            'reforcado': 'Pro F5 + Sonnet F4/F6 (qualidade)',
+            'maximo': 'Pro + Sonnet em todas as fases (máxima qualidade)',
+        }
+        return desc.get(obj.tier_padrao, obj.tier_padrao)
+
+    def has_add_permission(self, request):
+        if TierConfig.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(Parecer)
 class ParecerAdmin(admin.ModelAdmin):
