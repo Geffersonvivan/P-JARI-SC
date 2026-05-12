@@ -36,6 +36,22 @@ class AuditEventAdmin(admin.ModelAdmin):
 
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
+    list_display = BaseUserAdmin.list_display + ('tier_ia',)
+
+    @admin.display(description='Nível IA')
+    def tier_ia(self, obj):
+        try:
+            tier = obj.profile.tier
+        except Exception:
+            tier = ''
+        if not tier:
+            from chat.models import TierConfig
+            try:
+                tier = TierConfig.load().tier_padrao
+            except Exception:
+                tier = 'atual'
+            return f'{tier.capitalize()} (global)'
+        return tier.capitalize()
 
 # Re-registrar o UserAdmin
 admin.site.unregister(User)
