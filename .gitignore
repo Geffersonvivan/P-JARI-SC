@@ -52,6 +52,7 @@ gcp-credentials.json*
 /script_test_smtp.py
 /update_landing.py
 /extract_urls.py
+/helper_scripts/
 
 # Outputs temporários
 /output.*
