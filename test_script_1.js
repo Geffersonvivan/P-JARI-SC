@@ -1,1 +1,0 @@
-window.LogRocket && window.LogRocket.init('8ksywc/pjarisc');

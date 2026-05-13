@@ -8,16 +8,14 @@ db.sqlite3
 media/
 staticfiles/
 
-# Celery Beat — estado local, não deve ir ao repositório
-celerybeat-schedule
-celerybeat-schedule-shm
-celerybeat-schedule-wal
+# Celery Beat
+celerybeat-schedule*
 celerybeat.pid
 
-# PIDs locais
-logs/*.pid
+# Logs
+/logs/
 
-# Tailwind CSS compilado — gerado no build da imagem Docker (npm run build:css)
+# Tailwind CSS compilado (gerado por npm run build:css)
 chat/static/css/tailwind.css
 
 # Python
@@ -29,52 +27,53 @@ venv/
 .env
 .DS_Store
 
-# GCP Credentials
+# Credenciais (NUNCA versionar)
 google-credentials.json
-
-
-git_up.md
-
-# Google Cloud Credentials (Secret)
 gcp-credentials.json*
 
-# Diretórios Embutidos / Locais
+# Diretórios locais
 /uploads/
-/alterações/
 /node_modules/
+/Downloads/
+/data/
 
-# Logs de Sistema e Retornos Temporários
-/debug.log
-/debug_jari.txt
-/output.log
-/railway_logs.txt
-/sql_output.txt
-/js_returns.txt
-/cookies.txt
-/res1.json
-
-# Scripts Soltos de Teste na Raiz Python/HTML
-/debug_upload.py
+# Lixo de desenvolvimento — scripts soltos na raiz
 /test_*.py
+/test_*.js
 /patch_*.py
 /parse_*.py
 /lint_*.py
 /profile_*.py
-/backfill_infracoes.py
+/debug_*.py
+/debug_*.txt
+/tmp_*.py
+/backfill_*.py
 /bracket_check.py
 /script_test_smtp.py
 /update_landing.py
-/output.html
-/mermaid_test.html
-/mermaid_test.mmd
-/test_docx.js
+/extract_urls.py
+
+# Outputs temporários
+/output.*
+/sql_output.txt
+/railway_logs.txt
+/js_returns.txt
+/cookies.txt
+/res1.json
+/results.txt
+/crawler_results.txt
+/mermaid_test.*
+
+# Arquivos avulsos
 /touch
 /restart.txt
-
-# Anotações Pessoais e Documentação Descartável
+/dummy.pdf
 /Auditoria_Claude
+/git_up.md
+
+# Anotações descartáveis
 /Ideias.MD
-/Jornada_Pjari.md
-/plano_implementacao_jari_fase3.md
 /servidor.MD
 /MELHORIAS/
+/plano_implementacao_jari_fase3.md
+/logica_jari_perguntas.md
