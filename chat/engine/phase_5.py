@@ -110,24 +110,15 @@ def run_llm_phases(engine, task_id=None) -> str:
     if _parecer_valido:
         from django.core.files.storage import default_storage
 
-        _aut_path = _engine_p(parecer.autuacao_pdf_path)
-        if _aut_path and "upload_simulado" not in _aut_path:
-            try:
-                if default_storage.exists(_aut_path):
-                    default_storage.delete(_aut_path)
-            except Exception as e:
-                logger.error("Erro ao deletar autuação PDF do storage: %s", e)
-            parecer.autuacao_pdf_path = None
-
         _con_path = _engine_p(parecer.consolidado_pdf_path)
-        # Evita deletar duas vezes se autuação e consolidado forem o mesmo arquivo
-        if _con_path and "upload_simulado" not in _con_path and _con_path != _aut_path:
+        if _con_path and "upload_simulado" not in _con_path:
             try:
                 if default_storage.exists(_con_path):
                     default_storage.delete(_con_path)
             except Exception as e:
                 logger.error("Erro ao deletar consolidado PDF do storage: %s", e)
             parecer.consolidado_pdf_path = None
+            parecer.autuacao_pdf_path = None
     else:
         logger.warning("[FASE5] parecer=%s — geração falhou ou texto inválido; PDFs preservados para reanálise.", parecer.id)
 

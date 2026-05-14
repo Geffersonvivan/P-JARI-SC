@@ -242,19 +242,11 @@ class AnthropicClient:
         # Anexar PDFs como documentos base64 (Claude suporta PDF nativo)
         from chat.integrations.perplexity import _p
         from django.core.files.storage import default_storage
-        for path_field, label in [
-            (parecer_obj.autuacao_pdf_path, 'autuacao'),
-            (parecer_obj.consolidado_pdf_path, 'consolidado'),
-            (parecer_obj.ata_pdf_path, 'ata'),
-        ]:
-            _path = _p(path_field)
-            if not _path or "upload_simulado" in _path:
-                continue
-            if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
-                continue
+        _con_path = _p(parecer_obj.consolidado_pdf_path)
+        if _con_path and "upload_simulado" not in _con_path:
             try:
-                if default_storage.exists(_path):
-                    pdf_block = self.get_pdf_content(_path)
+                if default_storage.exists(_con_path):
+                    pdf_block = self.get_pdf_content(_con_path)
                     if pdf_block:
                         content_blocks.append(pdf_block)
             except Exception:
@@ -367,19 +359,11 @@ class AnthropicClient:
             _log.info("generate_phase2_report: pdf_chars=%d < 2000 — enviando PDFs base64", pdf_chars)
             from chat.integrations.perplexity import _p
             from django.core.files.storage import default_storage
-            for path_field, label in [
-                (parecer_obj.autuacao_pdf_path, 'autuacao'),
-                (parecer_obj.consolidado_pdf_path, 'consolidado'),
-                (parecer_obj.ata_pdf_path, 'ata'),
-            ]:
-                _path = _p(path_field)
-                if not _path or "upload_simulado" in _path:
-                    continue
-                if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
-                    continue
+            _con_path = _p(parecer_obj.consolidado_pdf_path)
+            if _con_path and "upload_simulado" not in _con_path:
                 try:
-                    if default_storage.exists(_path):
-                        pdf_block = self.get_pdf_content(_path)
+                    if default_storage.exists(_con_path):
+                        pdf_block = self.get_pdf_content(_con_path)
                         if pdf_block:
                             content_blocks.append(pdf_block)
                 except Exception:
@@ -491,13 +475,11 @@ class AnthropicClient:
         content_blocks = []
         from chat.integrations.perplexity import _p
         from django.core.files.storage import default_storage
-        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path]:
-            _path = _p(path_field)
-            if not _path or "upload_simulado" in _path:
-                continue
+        _con_path = _p(parecer_obj.consolidado_pdf_path)
+        if _con_path and "upload_simulado" not in _con_path:
             try:
-                if default_storage.exists(_path):
-                    pdf_block = self.get_pdf_content(_path)
+                if default_storage.exists(_con_path):
+                    pdf_block = self.get_pdf_content(_con_path)
                     if pdf_block:
                         content_blocks.append(pdf_block)
             except Exception:

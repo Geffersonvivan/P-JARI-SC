@@ -259,22 +259,15 @@ def run(engine) -> str:
     parecer = engine.parecer
     anthropic = AnthropicClient()
 
-    datas_autuacao = []
     datas_consolidado = []
-    _chars_aut = 0
     _chars_con = 0
 
-    _aut = _p(parecer.autuacao_pdf_path)
     _con = _p(parecer.consolidado_pdf_path)
 
-    if _aut and "upload_simulado" not in _aut:
-        datas_autuacao, _chars_aut = PDFExtractor.extract_dates_from_pdf(_aut, "Autuação")
-
     if _con and "upload_simulado" not in _con:
-        if _aut != _con:
-            datas_consolidado, _chars_con = PDFExtractor.extract_dates_from_pdf(_con, "Consolidado")
+        datas_consolidado, _chars_con = PDFExtractor.extract_dates_from_pdf(_con, "Consolidado")
 
-    contexto_textual_datas = PDFExtractor.format_extraction_for_llm(datas_autuacao, datas_consolidado)
+    contexto_textual_datas = PDFExtractor.format_extraction_for_llm([], datas_consolidado)
 
     # ── Detecção de PDF ilegível por contagem de chars ────────────────────────
     # O PDFExtractor já tentou OCR quando total_chars < 2000, então _total_chars
@@ -282,8 +275,8 @@ def run(engine) -> str:
     # <500 → OCR falhou ou PDF completamente ilegível (crítico)
     # 500-2000 → OCR tentado mas resultado ainda limitado (alerta)
     # >2000 → extração suficiente (ok)
-    _pdfs_enviados = sum(1 for p in [_aut, _con] if p and "upload_simulado" not in p)
-    _total_chars = _chars_aut + _chars_con
+    _pdfs_enviados = 1 if _con and "upload_simulado" not in _con else 0
+    _total_chars = _chars_con
     _aviso_ilegivel = ""
     if _pdfs_enviados > 0:
         if _total_chars < 500:

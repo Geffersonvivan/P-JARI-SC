@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 def get_prompt(parecer) -> str:
     """Retorna o próximo campo a preencher na coleta sequencial (fase 1)."""
-    if not parecer.autuacao_pdf_path:
-        return "1. Faça o upload dos arquivos **'Autuação', 'Consolidado' e 'Ata'**. (Envie no mínimo Autuação e Consolidado juntos)"
+    if not parecer.consolidado_pdf_path:
+        return "1. Faça o upload do **Consolidado do processo** (PDF único)."
     elif not parecer.data_sessao:
         return "2. Informe a **Data da Sessão de Julgamento** (DD/MM/AAAA):"
     elif not parecer.prazo_final:
@@ -40,21 +40,21 @@ def process(engine, message: str, uploaded_files: list) -> str:
     val = message.strip() if message else ""
 
     # 1. Upload de PDFs
-    if not parecer.autuacao_pdf_path:
+    if not parecer.consolidado_pdf_path:
         if uploaded_files:
             return _handle_upload(engine, uploaded_files)
         elif val.lower() == 'ok':
             # D12 FIX: modo simulado offline só disponível em DEBUG
             from django.conf import settings as _settings
             if not getattr(_settings, 'DEBUG', False):
-                return "❌ Modo simulado indisponível em produção. Anexe os arquivos reais para prosseguir."
+                return "❌ Modo simulado indisponível em produção. Anexe o arquivo real para prosseguir."
             parecer.autuacao_pdf_path = "upload_simulado_autuacao.pdf"
             parecer.consolidado_pdf_path = "upload_simulado_recurso.pdf"
             parecer.infracao_documento = "DIRIGIR SOB A INFLUENCIA DE ALCOOL"
             parecer.save()
             return engine.get_current_prompt()
         else:
-            return "Por favor, os arquivos são essenciais para avançarmos. Anexe-os juntos e envie. (Ou digite 'ok' para modo simulado se estiver testando offline)."
+            return "Por favor, o Consolidado é essencial para avançarmos. Anexe o PDF e envie. (Ou digite 'ok' para modo simulado se estiver testando offline)."
 
     # 2. Dados sequenciais após upload
     if not parecer.data_sessao:
@@ -223,29 +223,19 @@ def run_autopreenchimento(engine) -> str:
 
         # Extrair Markdown estruturado dos PDFs (usado por ambos os modos)
         markdown_texts = {}
-        for path_field, label in [
-            (parecer.autuacao_pdf_path, 'autuacao'),
-            (parecer.consolidado_pdf_path, 'consolidado'),
-            (parecer.ata_pdf_path, 'ata'),
-        ]:
-            _path = _p(path_field)
-            if _path and "upload_simulado" not in _path:
-                md = PDFExtractor.extract_structured_markdown(_path, label=label.upper())
-                if md:
-                    markdown_texts[label] = md
+        _con = _p(parecer.consolidado_pdf_path)
+        if _con and "upload_simulado" not in _con:
+            md = PDFExtractor.extract_structured_markdown(_con, label="CONSOLIDADO")
+            if md:
+                markdown_texts['consolidado'] = md
 
         if getattr(_settings, 'UNIFIED_FASE1_FASE2', False):
             # ── Modo unificado: F1+F2 numa única chamada ──
             # Extrair datas brutas via regex (input para a tabela de datas sensíveis)
-            datas_aut, _chars_aut = [], 0
             datas_con, _chars_con = [], 0
-            _aut = _p(parecer.autuacao_pdf_path)
-            _con = _p(parecer.consolidado_pdf_path)
-            if _aut and "upload_simulado" not in _aut:
-                datas_aut, _chars_aut = PDFExtractor.extract_dates_from_pdf(_aut, "Autuação")
-            if _con and "upload_simulado" not in _con and _aut != _con:
+            if _con and "upload_simulado" not in _con:
                 datas_con, _chars_con = PDFExtractor.extract_dates_from_pdf(_con, "Consolidado")
-            contexto_datas = PDFExtractor.format_extraction_for_llm(datas_aut, datas_con)
+            contexto_datas = PDFExtractor.format_extraction_for_llm([], datas_con)
             _total_chars = _chars_aut + _chars_con
 
             logger.info(f"[UNIFIED] parecer={parecer.id} docs={list(markdown_texts.keys())} "
@@ -337,39 +327,13 @@ def run_autopreenchimento(engine) -> str:
 def _handle_upload(engine, uploaded_files: list) -> str:
     """Classifica os PDFs recebidos e dispara a task Celery de auto-preenchimento."""
     parecer = engine.parecer
-    file_autuacao = file_consolidado = file_ata = None
 
-    if len(uploaded_files) == 1:
-        f_lower = uploaded_files[0].lower()
-        # Se for apenas uma ATA, ainda faltam os documentos principais
-        if any(term in f_lower for term in ["ata"]):
-            return (
-                "❌ **Upload incompleto.** Você enviou apenas a Ata. "
-                "Os documentos **Autuação** e **Consolidado** são obrigatórios.\n\n"
-                "Envie no mínimo os dois arquivos ao mesmo tempo."
-            )
-        # Modo processo simples: mesmo PDF serve como autuação e consolidado
-        file_autuacao = uploaded_files[0]
-        file_consolidado = uploaded_files[0]
-        file_ata = None
-    else:
-        for f in uploaded_files:
-            f_lower = f.lower()
-            if any(term in f_lower for term in ["ata"]):
-                file_ata = f
-            elif any(term in f_lower for term in ["consolidado", "cons", "defesa", "recurso"]):
-                file_consolidado = f
-            elif any(term in f_lower for term in ["autua", "ait", "termo"]):
-                file_autuacao = f
-        if not file_autuacao and uploaded_files:
-            file_autuacao = uploaded_files[0]
-        if not file_consolidado and len(uploaded_files) > 1:
-            file_consolidado = uploaded_files[1]
+    # O Consolidado é o documento principal — autuacao recebe o mesmo arquivo
+    file_consolidado = uploaded_files[0]
+    file_autuacao = file_consolidado
 
     parecer.autuacao_pdf_path = file_autuacao
     parecer.consolidado_pdf_path = file_consolidado
-    if file_ata:
-        parecer.ata_pdf_path = file_ata
 
     parecer.save()
     from chat.tasks import processar_fase1_task

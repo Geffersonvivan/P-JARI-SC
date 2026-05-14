@@ -14,18 +14,14 @@ _log = _logging.getLogger(__name__)
 
 
 def _upload_pdfs_parallel(client_self, parecer_obj, check_storage=False):
-    """Upload paralelo de autuação + consolidado via ThreadPoolExecutor.
-    Retorna lista de gemini files (ordem: consolidado, autuação) para inserir em contents.
+    """Upload do consolidado (documento único) via Gemini Files API.
+    Retorna lista com o gemini file do consolidado para inserir em contents.
     """
     from django.core.files.storage import default_storage
     paths = []
-    if parecer_obj.autuacao_pdf_path and "upload_simulado" not in _p(parecer_obj.autuacao_pdf_path):
-        p = _p(parecer_obj.autuacao_pdf_path)
-        if not check_storage or default_storage.exists(p):
-            paths.append(('autuacao', p))
     if parecer_obj.consolidado_pdf_path and "upload_simulado" not in _p(parecer_obj.consolidado_pdf_path):
         p = _p(parecer_obj.consolidado_pdf_path)
-        if p != _p(parecer_obj.autuacao_pdf_path) and (not check_storage or default_storage.exists(p)):
+        if not check_storage or default_storage.exists(p):
             paths.append(('consolidado', p))
 
     if not paths:
@@ -43,12 +39,9 @@ def _upload_pdfs_parallel(client_self, parecer_obj, check_storage=False):
             except Exception as e:
                 _log.warning("_upload_pdfs_parallel: %s falhou: %s", name, e)
 
-    # Retorna na ordem consolidado, autuação (para inserir no início do contents)
     uploaded = []
     if 'consolidado' in results:
         uploaded.append(results['consolidado'])
-    if 'autuacao' in results:
-        uploaded.append(results['autuacao'])
     return uploaded
 
 # Limites de tamanho dos campos de texto antes de montar o prompt.
@@ -408,9 +401,7 @@ class GeminiClient:
             from chat.pdf_extractor import PDFExtractor
             _text_parts = []
             for path_field, label in [
-                (parecer_obj.autuacao_pdf_path, "AUTUAÇÃO"),
                 (parecer_obj.consolidado_pdf_path, "CONSOLIDADO"),
-                (parecer_obj.ata_pdf_path, "ATA"),
             ]:
                 _path = _p(path_field)
                 if _path and "upload_simulado" not in _path:
@@ -458,7 +449,7 @@ class GeminiClient:
         # A Ata é incluída (quando disponível) para cruzamento de dados na tabela da sessão.
         import concurrent.futures as _cf
         paths_para_upload = []
-        for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path, parecer_obj.ata_pdf_path]:
+        for path_field in [parecer_obj.consolidado_pdf_path]:
             _path = _p(path_field)
             if _path and "upload_simulado" not in _path:
                 paths_para_upload.append(_path)
@@ -747,19 +738,11 @@ class GeminiClient:
 
         # Upload PDFs na Files API para análise visual (tabela de datas precisa)
         from django.core.files.storage import default_storage
-        for path_field, label in [
-            (parecer_obj.autuacao_pdf_path, 'autuacao'),
-            (parecer_obj.consolidado_pdf_path, 'consolidado'),
-            (parecer_obj.ata_pdf_path, 'ata'),
-        ]:
-            _path = _p(path_field)
-            if not _path or "upload_simulado" in _path:
-                continue
-            if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
-                continue
+        _con_path = _p(parecer_obj.consolidado_pdf_path)
+        if _con_path and "upload_simulado" not in _con_path:
             try:
-                if default_storage.exists(_path):
-                    f = self.upload_file(_path)
+                if default_storage.exists(_con_path):
+                    f = self.upload_file(_con_path)
                     if f:
                         contents.insert(0, f)
             except Exception:
@@ -895,19 +878,11 @@ class GeminiClient:
         contents = [prompt_text]
 
         from django.core.files.storage import default_storage
-        for path_field, label in [
-            (parecer_obj.autuacao_pdf_path, 'autuacao'),
-            (parecer_obj.consolidado_pdf_path, 'consolidado'),
-            (parecer_obj.ata_pdf_path, 'ata'),
-        ]:
-            _path = _p(path_field)
-            if not _path or "upload_simulado" in _path:
-                continue
-            if label == 'consolidado' and _p(parecer_obj.autuacao_pdf_path) == _path:
-                continue  # mesmo arquivo, evita upload duplicado
+        _con_path = _p(parecer_obj.consolidado_pdf_path)
+        if _con_path and "upload_simulado" not in _con_path:
             try:
-                if default_storage.exists(_path):
-                    f = self.upload_file(_path)
+                if default_storage.exists(_con_path):
+                    f = self.upload_file(_con_path)
                     if f:
                         contents.insert(0, f)
             except Exception:
@@ -1116,7 +1091,7 @@ class GeminiClient:
 
         prompt_text = (
             f"Teses Listadas: {_tese_t}\n\n"
-            f"Documentos Anexos: Documento 'consolidado' + 'autuação'\n\n"
+            f"Documentos Anexos: Documento 'consolidado'\n\n"
             f"RAG Inventário Normativo Google (VERTEX): {_vrtx_t}\n"
             f"Pesquisa Auxiliar (PERPLEXITY): {_pplx_t}\n\n"
             "Exponha as alternativas (a) e (b) justificadas para cada tese isoladamente.\n"

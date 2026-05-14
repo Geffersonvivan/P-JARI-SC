@@ -394,7 +394,7 @@
     <div id="content-card" class="bg-white rounded-2xl border border-gray-100 shadow-sm flex-1 overflow-hidden" style="display:flex;">
 
         <!-- ── PDF SIDEBAR (persistente) ─────────── -->
-        {% if has_consolidado or has_autuacao or has_ata %}
+        {% if has_consolidado %}
         {% if status_fase == 10 %}
         <div id="pdf-sidebar" style="flex:1.4;min-width:0;display:flex;flex-direction:column;border-right:1px solid #f1f5f9;overflow:hidden;transition:flex .3s ease,min-width .3s ease;">
         {% else %}
@@ -405,21 +405,9 @@
             <div id="pdf-sidebar-expanded" style="display:{% if status_fase == 10 %}flex{% else %}none{% endif %};flex-direction:column;flex:1;min-height:0;">
                 <div class="pdf-tab-bar">
                     <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;">
-                        {% if has_consolidado %}
                         <button class="pdf-tab" data-tipo="consolidado" onclick="switchPdfTab(this)">
                             <i class="ph ph-file-text" style="font-size:13px;"></i>Consolidado
                         </button>
-                        {% endif %}
-                        {% if has_autuacao %}
-                        <button class="pdf-tab" data-tipo="autuacao" onclick="switchPdfTab(this)">
-                            <i class="ph ph-file-text" style="font-size:13px;"></i>Autuação
-                        </button>
-                        {% endif %}
-                        {% if has_ata %}
-                        <button class="pdf-tab" data-tipo="ata" onclick="switchPdfTab(this)">
-                            <i class="ph ph-file-text" style="font-size:13px;"></i>Ata da Sessão
-                        </button>
-                        {% endif %}
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                         <button onclick="triggerPdfSearch()" title="Buscar no PDF"
@@ -461,7 +449,7 @@
             <!-- Sub: upload -->
             <div id="p1-upload">
                 <h2 class="text-xl font-bold text-gray-900 mb-1">Envie os documentos do processo</h2>
-                <p class="text-gray-400 text-sm mb-6">Anexe ao menos o PDF do Recurso e o Auto de Infração. A ata da sessão é opcional.</p>
+                <p class="text-gray-400 text-sm mb-6">Anexe o PDF do Consolidado do processo.</p>
 
                 <label id="drop-zone" class="drop-zone" for="file-input-wizard">
                     <i class="ph ph-upload-simple text-gray-400" style="font-size:36px;"></i>
@@ -1194,7 +1182,7 @@ const AUTO_PUNIT = {{ has_prescricao_punitiva|yesno:"true,false" }};
 const AUTO_INTER = {{ has_prescricao_intercorrente|yesno:"true,false" }};
 const AUTO_DECAD = {{ has_decadencia|yesno:"true,false" }};
 // Indica se os PDFs já foram salvos no DB (usado para evitar que tela de upload reapareça após falha do Gemini)
-const HAS_AUTUACAO = {{ has_autuacao|yesno:"true,false" }};
+const HAS_DOCS = {{ has_consolidado|yesno:"true,false" }};
 const UNIFIED_MODE = {{ unified_mode|yesno:"true,false" }};
 
 const FASE_STEP  = {1:2,10:2,2:2,3:2,31:3,4:4,41:4,5:5,6:5,7:6,8:6};
@@ -1493,7 +1481,7 @@ function renderPhase(f) {
     if (f===1)  {
         // Safety net: se arquivos já estão no DB mas status_fase=1 (Gemini falhou),
         // não reexibe tela de upload — mostra loading enquanto aguarda ou recarrega.
-        if (HAS_AUTUACAO) {
+        if (HAS_DOCS) {
             hide('p1-upload'); hide('p1-confirm'); hide('p1-tabela'); hide('p1-dados');
             show('p1-loading');
             document.getElementById('p1-footer').style.display = 'none';

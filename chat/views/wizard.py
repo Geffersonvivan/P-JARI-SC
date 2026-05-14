@@ -201,8 +201,6 @@ def wizard_parecer_view(request, id):
         'user_is_pro': user_is_pro,
         'status_fase': parecer.status_fase,
         'has_consolidado': bool(parecer.consolidado_pdf_path),
-        'has_autuacao': bool(parecer.autuacao_pdf_path),
-        'has_ata': bool(parecer.ata_pdf_path),
         'admissibilidade_texto': parecer.admissibilidade_texto or '',
         'adm_sections': _parse_adm_sections(parecer.admissibilidade_texto or ''),
         'analise_tese_texto': parecer.analise_tese_texto or '',
