@@ -298,8 +298,6 @@
                                     {{ p.recorrente|default:p.nome_processo|truncatechars:35 }}
                                 </p>
                                 <p class="text-[10px] text-gray-400 truncate">
-                                    {% if p.pa %}PA {{ p.pa }}{% endif %}
-                                    {% if p.sgpe %} · SGPE {{ p.sgpe }}{% endif %}
                                 </p>
                             </div>
                             {% if p.id == parecer.id %}
@@ -598,31 +596,6 @@
                             </div>
                         </div>
 
-                        <!-- PA + SGPE -->
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-                            <div>
-                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-                                    <label class="f2-label" style="margin:0;">PA</label>
-                                    {% if parecer.pa %}<span class="f2-badge-ok">✓</span>
-                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
-                                </div>
-                                <input id="f2-pa" class="f2-input"
-                                    value="{{ parecer.pa|default:'' }}"
-                                    placeholder="Número do PA"
-                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
-                            </div>
-                            <div>
-                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-                                    <label class="f2-label" style="margin:0;">SGPE</label>
-                                    {% if parecer.sgpe %}<span class="f2-badge-ok">✓</span>
-                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
-                                </div>
-                                <input id="f2-sgpe" class="f2-input"
-                                    value="{{ parecer.sgpe|default:'' }}"
-                                    placeholder="Número SGPE"
-                                    onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
-                            </div>
-                        </div>
 
                         <!-- RECORRENTE + PRAZO FINAL -->
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
@@ -1776,12 +1749,6 @@ async function confirmarDocumentos() {
         renderPhase(2);
     }
 
-    // PA e SGPE (readonly mas envia para o engine confirmar)
-    const paEl = document.getElementById('f2-pa');
-    if (paEl && paEl.value.trim()) payload.pa = paEl.value.trim();
-
-    const sgpeEl = document.getElementById('f2-sgpe');
-    if (sgpeEl && sgpeEl.value.trim()) payload.sgpe = sgpeEl.value.trim();
 
     const pgEl = document.getElementById('f2-paginas_defesa');
     if (pgEl && pgEl.value.trim()) payload.paginas_defesa = pgEl.value.trim();

@@ -69,7 +69,7 @@ def home_view(request):
 
     # Otimização extrema de Queries (Redução de 6 queries de Banco para apenas 2):
     # Em vez de fazer múltiplos Count() e Prefetches isolados usando o DB, nós pedimos tudo e separamos no Python.
-    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'sgpe', 'pa', 'status_fase').order_by('-created_at'))
+    projetos_salvos = Prefetch('projetos', queryset=Parecer.objects.filter(is_saved=True).only('id', 'pasta_id', 'nome_processo', 'created_at', 'is_saved', 'recorrente', 'status_fase').order_by('-created_at'))
 
     todas_pastas = list(Pasta.objects.filter(**filter_kwargs).prefetch_related(projetos_salvos).annotate(
         num_projetos=Count('projetos', filter=Q(projetos__is_saved=True))

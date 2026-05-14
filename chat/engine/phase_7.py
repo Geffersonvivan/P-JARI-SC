@@ -38,9 +38,8 @@ def process(engine, message: str) -> str:
             return f"Pasta não encontrada: {nome_pasta}"
 
     parecer.pasta = target_folder
-    sgpe = parecer.sgpe if parecer.sgpe else parecer.pa or ''
     recorrente_nome = parecer.recorrente if parecer.recorrente else 'Recorrente Não Informado'
-    parecer.nome_processo = f"Parecer {recorrente_nome} - {sgpe}".strip(' -')
+    parecer.nome_processo = f"Parecer {recorrente_nome}".strip()
     parecer.is_saved = True
     parecer.status_fase = FASE_FINALIZADO
     parecer.save()

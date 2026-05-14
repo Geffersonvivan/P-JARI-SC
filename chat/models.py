@@ -33,8 +33,6 @@ class Parecer(models.Model):
     # 7 = Seleção Pasta
     # 8 = Finalizado
     status_fase = models.IntegerField(default=1, db_index=True)
-    pa = models.CharField(max_length=100, blank=True, null=True)
-    sgpe = models.CharField(max_length=100, blank=True, null=True)
     recorrente = models.CharField(max_length=255, blank=True, null=True)
     data_sessao = models.DateField(blank=True, null=True)
     data_protocolo = models.DateField(blank=True, null=True)

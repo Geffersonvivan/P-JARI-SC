@@ -456,7 +456,7 @@
                             <div class="bg-gray-800/50 rounded-xl p-3 border border-gray-800 mb-2">
                                 <div class="text-[11px] text-gray-500 mb-1 flex justify-between">
                                     <span>{{ log.data_requisicao|date:"d/m H:i" }}</span>
-                                    <span class="truncate ml-2 text-gray-400" title="{{ log.parecer_referencia.sgpe|default:'N/A' }}">PA: {{ log.parecer_referencia.pa|default:"N/A" }}</span>
+                                    <span class="truncate ml-2 text-gray-400">{{ log.parecer_referencia.nome_processo|default:"N/A" }}</span>
                                 </div>
                                 <p class="text-[13px] text-gray-300 font-medium break-words leading-snug">{{ log.query_text|default:"Busca vazia..." }}</p>
                             </div>
@@ -535,7 +535,7 @@
                         {% if top_fatigue_logs %}
                             {% for log in top_fatigue_logs %}
                             <div class="flex justify-between items-center bg-gray-800/50 rounded-xl p-2.5 border border-gray-800">
-                                <span class="text-[11px] text-gray-400 font-medium" title="{{ log.parecer_referencia.sgpe|default:'N/A' }}">PA: {{ log.parecer_referencia.pa|default:"N/A" }}</span>
+                                <span class="text-[11px] text-gray-400 font-medium">{{ log.parecer_referencia.nome_processo|default:"N/A" }}</span>
                                 <span class="text-[11px] font-bold text-orange-400 opacity-80">{{ log.input_tokens|default:0 }} tk</span>
                             </div>
                             {% endfor %}
@@ -567,7 +567,7 @@
                         {% if pdf_defects_logs %}
                             {% for log in pdf_defects_logs %}
                             <div class="text-[11px] text-gray-400 bg-gray-800/50 rounded-xl p-2.5 truncate border border-gray-800">
-                                {{ log.parecer_referencia.pa|default:'N/A' }} 
+                                {{ log.parecer_referencia.nome_processo|default:'N/A' }}
                             </div>
                             {% endfor %}
                         {% endif %}
@@ -701,7 +701,6 @@
                             <tr class="hover:bg-red-50/50 transition duration-150">
                                 <td class="px-4 py-4">{{ erro.created_at|date:"d/m M/Y - H:i" }}</td>
                                 <td class="px-4 py-4 font-medium text-gray-900">
-                                    {{ erro.sgpe|default:"Sem SGPE" }}<br>
                                     <span class="text-xs text-gray-400 font-normal">{{ erro.nome_processo }}</span>
                                 </td>
                                 <td class="px-4 py-4 max-w-lg whitespace-normal">

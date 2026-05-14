@@ -13,11 +13,9 @@ def _sentry_task_context(parecer_id: int, task_name: str):
     sentry_sdk.set_tag("task", task_name)
     sentry_sdk.set_tag("parecer_id", str(parecer_id))
     try:
-        p = Parecer.objects.only("pa", "sgpe", "status_fase", "session_key").get(pk=parecer_id)
+        p = Parecer.objects.only("status_fase", "session_key").get(pk=parecer_id)
         sentry_sdk.set_context("parecer", {
             "id": parecer_id,
-            "pa": p.pa,
-            "sgpe": p.sgpe,
             "status_fase": p.status_fase,
         })
         sentry_sdk.set_user({"id": str(p.session_key)})

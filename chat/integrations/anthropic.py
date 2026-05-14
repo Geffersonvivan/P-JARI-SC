@@ -163,29 +163,11 @@ class AnthropicClient:
         import json as _json
         import time
 
-        # Âncora para SGPE na tabela da Ata
-        _pa_anchor = parecer_obj.pa or ""
-        _rec_anchor = parecer_obj.recorrente or ""
-        _ata_disponivel = 'ata' in markdown_texts if markdown_texts else False
-        _anchor_hint = ""
-        if _ata_disponivel and _pa_anchor:
-            _anchor_hint = (
-                f"AVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
-                f"Localize a linha cujo campo PSDD/PA é exatamente '{_pa_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha.\n\n"
-            )
-        elif _ata_disponivel and _rec_anchor:
-            _anchor_hint = (
-                f"AVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
-                f"Localize a linha cujo recorrente é '{_rec_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha.\n\n"
-            )
-
         system_instruction = (
             "Você é um extrator de dados jurídicos de processos de trânsito (JARI).\n"
             "Analise os documentos abaixo e execute DUAS tarefas simultâneas:\n\n"
             "TAREFA 1 — CAMPOS ADMINISTRATIVOS:\n"
-            "Extraia: pa, sgpe, recorrente, prazo_final, data_protocolo, paginas_defesa.\n"
+            "Extraia: recorrente, prazo_final, data_protocolo, paginas_defesa.\n"
             "Para cada campo, indique confiança: 'alta' (explícito), 'baixa' (ambíguo), 'nulo' (não encontrado).\n\n"
             "EXTRAÇÃO AGRESSIVA — CAMPOS CRÍTICOS (não deixe null se houver qualquer indício):\n"
             "• prazo_final: Procure INTENSIVAMENTE por 'PRAZO FINAL', 'DATA LIMITE', 'VENCE EM', 'PRAZO RECURSAL', "
@@ -220,7 +202,7 @@ class AnthropicClient:
             "7. As tabelas no Markdown dos documentos estão em formato GFM — use as colunas para identificar campos.\n"
             "Escreva de forma fria e neutra.\n\n"
             "RESPONDA EXCLUSIVAMENTE com um JSON válido (sem markdown fences) contendo estes campos:\n"
-            "pa, pa_conf, sgpe, sgpe_conf, recorrente, recorrente_conf, prazo_final, prazo_final_conf, "
+            "recorrente, recorrente_conf, prazo_final, prazo_final_conf, "
             "data_protocolo, data_protocolo_conf, paginas_defesa, paginas_defesa_conf, "
             "tipo_penalidade (multa|advertencia|suspensao|cassacao|nao_determinado), "
             "tem_flagrante (SIM|NAO|NAO_DETERMINADO), "
@@ -234,16 +216,11 @@ class AnthropicClient:
         prompt_text = (
             f"=== BLOCO A (Informações já conhecidas) ===\n"
             f"1. Sessão JARI: {parecer_obj.data_sessao or 'NÃO INFORMADO'}\n"
-            f"2. PA: {parecer_obj.pa or 'A EXTRAIR'}\n"
-            f"3. SGPE: {parecer_obj.sgpe or 'A EXTRAIR'}\n"
-            f"4. Prazo Final Recurso: {parecer_obj.prazo_final or 'A EXTRAIR'}\n"
-            f"5. Protocolo Recurso: {parecer_obj.data_protocolo or 'A EXTRAIR'}\n\n"
+            f"2. Prazo Final Recurso: {parecer_obj.prazo_final or 'A EXTRAIR'}\n"
+            f"3. Protocolo Recurso: {parecer_obj.data_protocolo or 'A EXTRAIR'}\n\n"
             f"=== BLOCO B (Datas extraídas dos PDFs via Python) ===\n"
             f"{contexto_textual_datas}\n\n"
-            + (_anchor_hint if _anchor_hint else "")
-            + "=== DICAS DE LOCALIZAÇÃO ===\n"
-            "• pa: 'PROCESSO ADMINISTRATIVO', 'PA', 'Nº PROCESSO'.\n"
-            "• sgpe: 'SGPe' na tabela da Ata, na linha correspondente ao PA.\n"
+            "=== DICAS DE LOCALIZAÇÃO ===\n"
             "• prazo_final: 'PRAZO', 'DATA LIMITE', 'DIAS PARA RECURSO', 'VENCE EM'. "
             "Procure na NP, na Ata (coluna PRAZO), ou calcule 30 dias após a NP se explícito.\n"
             "• data_protocolo: 'PROTOCOLO', 'PROTOCOLADO EM', 'RECEBIDO EM', 'DATA DE ENTRADA', "
@@ -373,10 +350,8 @@ class AnthropicClient:
         prompt_text = (
             f"=== BLOCO A (EXTERNO - Informações da Fase 1) ===\n"
             f"1. Sessão JARI: {parecer_obj.data_sessao or 'NÃO INFORMADO'}\n"
-            f"2. PA: {parecer_obj.pa}\n"
-            f"3. SGPE: {parecer_obj.sgpe}\n"
-            f"4. Prazo Final Recurso: {parecer_obj.prazo_final or 'NÃO INFORMADO'}\n"
-            f"5. Protocolo Recurso: {parecer_obj.data_protocolo or 'NÃO INFORMADO'}\n\n"
+            f"2. Prazo Final Recurso: {parecer_obj.prazo_final or 'NÃO INFORMADO'}\n"
+            f"3. Protocolo Recurso: {parecer_obj.data_protocolo or 'NÃO INFORMADO'}\n\n"
             f"=== BLOCO B (Extração Bruta dos Documentos via Python) ===\n"
             f"{contexto_textual_datas}\n\n"
             "Cruze as origens. Dê prioridade a não omitir nada. "
@@ -630,7 +605,6 @@ class AnthropicClient:
         _tese_t = _trunc(tese or '', 'tese', _LIMITES['tese'])
 
         prompt_text = (
-            f"Processo: {parecer_obj.pa} | SGPE: {parecer_obj.sgpe}\n"
             f"Teses Listadas: {_tese_t}\n\n"
             f"Documentos Anexos: Documento 'consolidado' + 'autuação'\n\n"
             f"RAG Inventário Normativo Google (VERTEX): {_vrtx_t}\n"
@@ -843,8 +817,6 @@ class AnthropicClient:
         prompt = (
             f"{_flags_block}\n"
             f"---- DADOS PARA PREENCHER O CABEÇALHO (Obrigatório) ----\n"
-            f"PROCESSO (PA): {parecer_obj.pa}\n"
-            f"SGPE: {parecer_obj.sgpe}\n"
             f"RECORRENTE (Interessado): {parecer_obj.recorrente}\n"
             f"DATA SESSÃO: {parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else ''}\n\n"
             f"---- PACOTE DE ADMISSIBILIDADE E FUNDAMENTAÇÃO (Para Capítulos 3.1 a 3.3) ----\n"
@@ -967,9 +939,9 @@ class AnthropicClient:
             "A Auditoria final apresentada deve ser FORMATADA EXCLUSIVAMENTE EM MARKDOWN (NÃO USE NENHUMA TAG HTML) DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
             "OBRIGATÓRIO: Pule linha DUPLA (\\n\\n) no final de cada item de validação do checklist, para que eles não fiquem aglomerados em um único parágrafo.\n"
             "Classifique de forma estrita cada um dos blocos abaixo. Use ícones ricos como 🟢, 🔴, ⚠️.\n"
-            "Exemplo visual: `**1. Identificação Processual:** 🟢 Conforme - O PA e SGPE coincidem com a base.`\n\n"
+            "Exemplo visual: `**1. Identificação Processual:** 🟢 Conforme - Os dados processuais coincidem com a base.`\n\n"
             "ITENS OBRIGATÓRIOS DO CHECKLIST:\n"
-            "1. Identificação processual (PA, SGPE, Nome)\n"
+            "1. Identificação processual (Nome, Recorrente)\n"
             "2. Conformidade das datas (infração, julgamento)\n"
             "3. Tempestividade narrativa\n"
             "4. Prescrição punitiva aplicada\n"

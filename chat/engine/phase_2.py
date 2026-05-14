@@ -194,8 +194,6 @@ def process(engine, message: str) -> str:
         from chat.engine import FASE_COLETA
         parecer.status_fase = FASE_COLETA
         parecer.data_sessao = None
-        parecer.pa = ""
-        parecer.sgpe = ""
         parecer.prazo_final = None
         parecer.data_protocolo = None
         parecer.paginas_defesa = ""

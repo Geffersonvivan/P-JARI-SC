@@ -44,12 +44,7 @@
             <div class="flex justify-between items-center mb-6 border-b pb-4 shrink-0">
                 <h1 class="text-2xl font-bold text-gray-800">
                     <span class="text-blue-600">
-                        Parecer {{ parecer.recorrente|default:"" }}
-                        {% if parecer.sgpe or parecer.pa %}
-                        ({{ parecer.sgpe|default:parecer.pa }})
-                        {% else %}
-                        {{ parecer.nome_processo }}
-                        {% endif %}
+                        Parecer {{ parecer.recorrente|default:parecer.nome_processo }}
                     </span>
                 </h1>
                 <button type="button" id="btn-voltar-editor" onclick="window.history.back()"
@@ -671,7 +666,7 @@
                 const link = document.createElement("a");
                 document.body.appendChild(link);
                 link.href = url;
-                link.download = 'Parecer {{ parecer.recorrente|default:parecer.nome_processo|escapejs }} - {{ parecer.sgpe|default:parecer.pa|default:""|escapejs }}.doc';
+                link.download = 'Parecer {{ parecer.recorrente|default:parecer.nome_processo|escapejs }}.doc';
                 link.click();
 
                 setTimeout(() => {
@@ -699,7 +694,7 @@
 
             try {
                 const htmlContent = editorInstance.getContent();
-                const filename = 'Parecer {{ parecer.recorrente|default:parecer.nome_processo|escapejs }} - {{ parecer.sgpe|default:parecer.pa|default:""|escapejs }}';
+                const filename = 'Parecer {{ parecer.recorrente|default:parecer.nome_processo|escapejs }}';
 
                 // Cria iframe oculto para impressão isolada (não interfere na página atual)
                 const iframe = document.createElement('iframe');

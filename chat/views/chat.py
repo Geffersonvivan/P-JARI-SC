@@ -82,7 +82,6 @@ def chat_agent_message_view(request):
             try:
                 parecer = Parecer.objects.get(id=parecer_id, **filter_kwargs)
                 context_str = (
-                    f"PROCESSO (PA): {parecer.pa}\nSGPE: {parecer.sgpe}\n"
                     f"Infração Ocorrida: {parecer.infracao_documento}\n"
                     f"Admissibilidade Contexto: {parecer.admissibilidade_texto}\n"
                     f"Tese do Recorrente: {parecer.tese}\n"

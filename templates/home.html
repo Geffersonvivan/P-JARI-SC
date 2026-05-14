@@ -243,10 +243,6 @@
                                 <p class="text-xs font-medium text-gray-800 truncate">
                                     {{ p.recorrente|default:p.nome_processo|truncatechars:35 }}
                                 </p>
-                                <p class="text-[10px] text-gray-400 truncate">
-                                    {% if p.pa %}PA {{ p.pa }}{% endif %}
-                                    {% if p.sgpe %} · SGPE {{ p.sgpe }}{% endif %}
-                                </p>
                             </div>
                         </a>
                         <button type="button" onclick="event.stopPropagation(); confirmDelete('parecer', {{ p.id }}, '{{ p.recorrente|default:p.nome_processo|escapejs }}')"

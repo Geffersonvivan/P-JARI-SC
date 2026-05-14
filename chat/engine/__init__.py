@@ -199,7 +199,7 @@ class JariEngine:
             return "Este processo já foi finalizado e salvo. Não é possível reiniciá-lo."
 
         _campos_nullables = [
-            'pa', 'sgpe', 'recorrente', 'data_sessao', 'data_protocolo', 'prazo_final',
+            'recorrente', 'data_sessao', 'data_protocolo', 'prazo_final',
             'paginas_defesa', 'fase1_extracao_json', 'tipo_penalidade', 'data_conclusao_multa',
             'tem_flagrante', 'data_conhecimento_infracao', 'data_infracao', 'data_totalizacao_pontos',
             'is_tempestivo', 'has_prescricao_punitiva', 'has_prescricao_intercorrente', 'has_decadencia',

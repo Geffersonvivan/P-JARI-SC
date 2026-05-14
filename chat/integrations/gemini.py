@@ -402,25 +402,6 @@ class GeminiClient:
             "4. Retorne EXCLUSIVAMENTE um JSON válido, sem texto adicional, sem markdown."
         )
 
-        # Âncoras para SGPE: PA e recorrente já conhecidos (podem ser None na primeira extração).
-        # Só adiciona o hint se a Ata estiver disponível — sem Ata, o hint confunde o modelo.
-        _pa_anchor   = parecer_obj.pa or ""
-        _rec_anchor  = parecer_obj.recorrente or ""
-        _ata_disponivel = bool(_p(parecer_obj.ata_pdf_path))
-        _anchor_hint = ""
-        if _ata_disponivel and _pa_anchor:
-            _anchor_hint = (
-                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela com vários processos. "
-                f"Localize a linha cujo campo Processo/PA é exatamente '{_pa_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
-            )
-        elif _ata_disponivel and _rec_anchor:
-            _anchor_hint = (
-                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela com vários processos. "
-                f"Localize a linha cujo recorrente é '{_rec_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
-            )
-
         # ── Extração de texto via PyMuPDF (híbrido: texto + visual) ────────────
         _text_context = ""
         try:
@@ -450,10 +431,6 @@ class GeminiClient:
         prompt_text = (
             "Extraia dos documentos em anexo os seguintes campos e retorne um JSON com esta estrutura exata:\n\n"
             "{\n"
-            '  "pa": "número do processo administrativo (ex: 2024/00123) ou null",\n'
-            '  "pa_conf": "alta|baixa|nulo",\n'
-            '  "sgpe": "número SGPE correspondente ao processo analisado ou null",\n'
-            '  "sgpe_conf": "alta|baixa|nulo",\n'
             '  "prazo_final": "data limite para protocolo do recurso JARI em DD/MM/AAAA ou null",\n'
             '  "prazo_final_conf": "alta|baixa|nulo",\n'
             '  "data_protocolo": "data em que o recurso foi protocolado em DD/MM/AAAA ou null",\n'
@@ -470,10 +447,7 @@ class GeminiClient:
             "'DATA DE RECEBIMENTO', 'PROTOCOLADO EM'. Frequentemente é um carimbo ou anotação manuscrita.\n"
             "• paginas_defesa: identifique onde começa a peça recursal/defesa escrita pelo recorrente "
             "(geralmente após as notificações e antes dos anexos). Informe o intervalo ex: '15-24'.\n"
-            "• recorrente: procure por 'RECORRENTE', 'CONDUTOR', 'PROPRIETÁRIO', 'AUTUADO', 'INFRATOR'.\n"
-            "• pa: procure por 'PROCESSO ADMINISTRATIVO', 'PA', 'Nº PROCESSO'. Formato típico: números com barras.\n"
-            "• sgpe: procure por 'SGPE' na Ata da Sessão de Julgamento, na linha correspondente ao PA deste processo.\n\n"
-            + (_anchor_hint.strip() + "\n\n" if _anchor_hint else "")
+            "• recorrente: procure por 'RECORRENTE', 'CONDUTOR', 'PROPRIETÁRIO', 'AUTUADO', 'INFRATOR'.\n\n"
             + (_text_context + "\n\n" if _text_context else "")
             + "Não retorne nada além do JSON."
         )
@@ -481,7 +455,7 @@ class GeminiClient:
         contents = [prompt_text]
 
         # Upload paralelo dos PDFs para reduzir o tempo de espera.
-        # A Ata é incluída (quando disponível) pois o SGPE correto fica na tabela da sessão.
+        # A Ata é incluída (quando disponível) para cruzamento de dados na tabela da sessão.
         import concurrent.futures as _cf
         paths_para_upload = []
         for path_field in [parecer_obj.autuacao_pdf_path, parecer_obj.consolidado_pdf_path, parecer_obj.ata_pdf_path]:
@@ -547,7 +521,7 @@ class GeminiClient:
                 raw = raw.rsplit('```', 1)[0].strip()
             dados = _json.loads(raw)
             # Se todos os campos extraíveis são null, retorna None para não exibir form vazio
-            campos_extraiveis = ["pa", "sgpe", "prazo_final", "data_protocolo", "paginas_defesa", "recorrente"]
+            campos_extraiveis = ["prazo_final", "data_protocolo", "paginas_defesa", "recorrente"]
             if all(dados.get(c) is None for c in campos_extraiveis):
                 _log.warning(
                     f"extract_fase1_fields: todos os campos retornaram null para parecer={parecer_obj.id} "
@@ -590,24 +564,6 @@ class GeminiClient:
             "Use as colunas para identificar os campos corretos."
         )
 
-        # Âncora para SGPE na tabela da Ata
-        _pa_anchor = parecer_obj.pa or ""
-        _rec_anchor = parecer_obj.recorrente or ""
-        _ata_disponivel = 'ata' in markdown_texts
-        _anchor_hint = ""
-        if _ata_disponivel and _pa_anchor:
-            _anchor_hint = (
-                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
-                f"Localize a linha cujo campo PSDD/PA é exatamente '{_pa_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
-            )
-        elif _ata_disponivel and _rec_anchor:
-            _anchor_hint = (
-                f"\n\nAVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
-                f"Localize a linha cujo recorrente é '{_rec_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha."
-            )
-
         # Montar contexto textual
         docs_context = "\n\n---\n\n".join(markdown_texts.values())
         total_chars = len(docs_context)
@@ -615,10 +571,6 @@ class GeminiClient:
         prompt_text = (
             "Extraia dos documentos abaixo os seguintes campos e retorne um JSON com esta estrutura exata:\n\n"
             "{\n"
-            '  "pa": "número do processo administrativo (ex: 2024/00123) ou null",\n'
-            '  "pa_conf": "alta|baixa|nulo",\n'
-            '  "sgpe": "número SGPE correspondente ao processo analisado ou null",\n'
-            '  "sgpe_conf": "alta|baixa|nulo",\n'
             '  "prazo_final": "data limite para protocolo do recurso JARI em DD/MM/AAAA ou null",\n'
             '  "prazo_final_conf": "alta|baixa|nulo",\n'
             '  "data_protocolo": "data em que o recurso foi protocolado em DD/MM/AAAA ou null",\n'
@@ -635,11 +587,8 @@ class GeminiClient:
             "'DATA DE RECEBIMENTO', 'PROTOCOLADO EM'. Frequentemente é um carimbo ou anotação manuscrita.\n"
             "• paginas_defesa: identifique onde começa a peça recursal/defesa escrita pelo recorrente "
             "(geralmente após as notificações e antes dos anexos). Informe o intervalo ex: '15-24'.\n"
-            "• recorrente: procure por 'RECORRENTE', 'CONDUTOR', 'PROPRIETÁRIO', 'AUTUADO', 'INFRATOR'.\n"
-            "• pa: procure por 'PROCESSO ADMINISTRATIVO', 'PA', 'Nº PROCESSO'. Formato típico: números com barras.\n"
-            "• sgpe: procure por 'SGPE' ou 'SGPe' na tabela da Ata da Sessão, na linha correspondente ao PA.\n\n"
-            + (_anchor_hint.strip() + "\n\n" if _anchor_hint else "")
-            + "=== DOCUMENTOS ===\n\n"
+            "• recorrente: procure por 'RECORRENTE', 'CONDUTOR', 'PROPRIETÁRIO', 'AUTUADO', 'INFRATOR'.\n\n"
+            "=== DOCUMENTOS ===\n\n"
             + docs_context + "\n\n"
             + "Não retorne nada além do JSON."
         )
@@ -675,7 +624,7 @@ class GeminiClient:
                 raw = raw.split('\n', 1)[-1]
                 raw = raw.rsplit('```', 1)[0].strip()
             dados = _json.loads(raw)
-            campos_extraiveis = ["pa", "sgpe", "prazo_final", "data_protocolo", "paginas_defesa", "recorrente"]
+            campos_extraiveis = ["prazo_final", "data_protocolo", "paginas_defesa", "recorrente"]
             if all(dados.get(c) is None for c in campos_extraiveis):
                 _log.warning("extract_fase1_fields_text_only: todos campos null parecer=%s raw=%s",
                              parecer_obj.id, raw[:500])
@@ -706,12 +655,6 @@ class GeminiClient:
             type=_gtypes.Type.OBJECT,
             properties={
                 # ── Campos Fase 1 (administrativos) ──
-                'pa': _gtypes.Schema(type=_gtypes.Type.STRING,
-                    description='Número do processo administrativo (ex: 80226/2022) ou null.'),
-                'pa_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
-                'sgpe': _gtypes.Schema(type=_gtypes.Type.STRING,
-                    description='Número SGPE correspondente ao PA na Ata da Sessão, ou null.'),
-                'sgpe_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
                 'recorrente': _gtypes.Schema(type=_gtypes.Type.STRING,
                     description='Nome completo do condutor/proprietário recorrente ou NÃO LOCALIZADO.'),
                 'recorrente_conf': _gtypes.Schema(type=_gtypes.Type.STRING, enum=['alta', 'baixa', 'nulo']),
@@ -754,32 +697,14 @@ class GeminiClient:
                         'Rótulos canônicos de Tipo: INFRACAO|NA|NP|INSTAURACAO|PROTOCOLO|SESSAO|PRAZO|CONCLUSAO_MULTA|DECISAO|OUTRO.'
                     )),
             },
-            required=['pa', 'recorrente', 'tipo_penalidade', 'tem_flagrante', 'tabela_markdown'],
+            required=['recorrente', 'tipo_penalidade', 'tem_flagrante', 'tabela_markdown'],
         )
-
-        # Âncora para SGPE na tabela da Ata
-        _pa_anchor = parecer_obj.pa or ""
-        _rec_anchor = parecer_obj.recorrente or ""
-        _ata_disponivel = 'ata' in markdown_texts if markdown_texts else False
-        _anchor_hint = ""
-        if _ata_disponivel and _pa_anchor:
-            _anchor_hint = (
-                f"AVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
-                f"Localize a linha cujo campo PSDD/PA é exatamente '{_pa_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha.\n\n"
-            )
-        elif _ata_disponivel and _rec_anchor:
-            _anchor_hint = (
-                f"AVISO CRÍTICO PARA O SGPE: A Ata da Sessão contém uma tabela Markdown com vários processos. "
-                f"Localize a linha cujo recorrente é '{_rec_anchor}' "
-                f"e extraia o SGPE SOMENTE dessa linha. NUNCA use o SGPE de outra linha.\n\n"
-            )
 
         system_instruction = (
             "Você é um extrator de dados jurídicos de processos de trânsito (JARI).\n"
             "Analise os documentos abaixo e execute DUAS tarefas simultâneas:\n\n"
             "TAREFA 1 — CAMPOS ADMINISTRATIVOS:\n"
-            "Extraia: pa, sgpe, recorrente, prazo_final, data_protocolo, paginas_defesa.\n"
+            "Extraia: recorrente, prazo_final, data_protocolo, paginas_defesa.\n"
             "Para cada campo, indique confiança: 'alta' (explícito), 'baixa' (ambíguo), 'nulo' (não encontrado).\n\n"
             "TAREFA 2 — TABELA DE DATAS SENSÍVEIS:\n"
             "Organize TODAS as datas essenciais do processo numa tabela Markdown.\n"
@@ -804,16 +729,11 @@ class GeminiClient:
         prompt_text = (
             f"=== BLOCO A (Informações já conhecidas) ===\n"
             f"1. Sessão JARI: {parecer_obj.data_sessao or 'NÃO INFORMADO'}\n"
-            f"2. PA: {parecer_obj.pa or 'A EXTRAIR'}\n"
-            f"3. SGPE: {parecer_obj.sgpe or 'A EXTRAIR'}\n"
-            f"4. Prazo Final Recurso: {parecer_obj.prazo_final or 'A EXTRAIR'}\n"
-            f"5. Protocolo Recurso: {parecer_obj.data_protocolo or 'A EXTRAIR'}\n\n"
+            f"2. Prazo Final Recurso: {parecer_obj.prazo_final or 'A EXTRAIR'}\n"
+            f"3. Protocolo Recurso: {parecer_obj.data_protocolo or 'A EXTRAIR'}\n\n"
             f"=== BLOCO B (Datas extraídas dos PDFs via Python) ===\n"
             f"{contexto_textual_datas}\n\n"
-            + (_anchor_hint if _anchor_hint else "")
-            + "=== DICAS DE LOCALIZAÇÃO ===\n"
-            "• pa: 'PROCESSO ADMINISTRATIVO', 'PA', 'Nº PROCESSO'.\n"
-            "• sgpe: 'SGPe' na tabela da Ata, na linha correspondente ao PA.\n"
+            "=== DICAS DE LOCALIZAÇÃO ===\n"
             "• prazo_final: 'PRAZO', 'DATA LIMITE', 'DIAS PARA RECURSO'.\n"
             "• data_protocolo: 'PROTOCOLO', 'PROTOCOLADO EM', 'RECEBIDO EM'.\n"
             "• paginas_defesa: onde começa a peça recursal/defesa escrita pelo recorrente.\n"
@@ -964,10 +884,8 @@ class GeminiClient:
         prompt_text = (
             f"=== BLOCO A (EXTERNO - Informações da Fase 1) ===\n"
             f"1. Sessão JARI: {parecer_obj.data_sessao or 'NÃO INFORMADO'}\n"
-            f"2. PA: {parecer_obj.pa}\n"
-            f"3. SGPE: {parecer_obj.sgpe}\n"
-            f"4. Prazo Final Recurso: {parecer_obj.prazo_final or 'NÃO INFORMADO'}\n"
-            f"5. Protocolo Recurso: {parecer_obj.data_protocolo or 'NÃO INFORMADO'}\n\n"
+            f"2. Prazo Final Recurso: {parecer_obj.prazo_final or 'NÃO INFORMADO'}\n"
+            f"3. Protocolo Recurso: {parecer_obj.data_protocolo or 'NÃO INFORMADO'}\n\n"
             f"=== BLOCO B (Extração Bruta dos Documentos via Python) ===\n"
             f"{contexto_textual_datas}\n\n"
             "Cruze as origens. Dê prioridade a não omitir nada. "
@@ -1197,7 +1115,6 @@ class GeminiClient:
         _tese_t = _trunc(tese or '',               'tese',       _LIMITES['tese'])
 
         prompt_text = (
-            f"Processo: {parecer_obj.pa} | SGPE: {parecer_obj.sgpe}\n"
             f"Teses Listadas: {_tese_t}\n\n"
             f"Documentos Anexos: Documento 'consolidado' + 'autuação'\n\n"
             f"RAG Inventário Normativo Google (VERTEX): {_vrtx_t}\n"
@@ -1316,8 +1233,6 @@ class GeminiClient:
 
         prompt = (
             f"---- DADOS PARA PREENCHER O CABEÇALHO (Obrigatório) ----\n"
-            f"PROCESSO (PA): {parecer_obj.pa}\n"
-            f"SGPE: {parecer_obj.sgpe}\n"
             f"RECORRENTE (Interessado): {parecer_obj.recorrente}\n"
             f"DATA SESSÃO: {parecer_obj.data_sessao.strftime('%d/%m/%Y') if parecer_obj.data_sessao else ''}\n\n"
             f"---- PACOTE DE FLAGS MATEMÁTICAS E ADMISSIBILIDADE (Soberanas para o Resultado e Capítulos 3.1 a 3.3) ----\n"
@@ -1420,9 +1335,9 @@ class GeminiClient:
             "A Auditoria final apresentada deve ser FORMATADA EXCLUSIVAMENTE EM MARKDOWN (NÃO USE NENHUMA TAG HTML) DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
             "OBRIGATÓRIO: Pule linha DUPLA (\\n\\n) no final de cada item de validação do checklist, para que eles não fiquem aglomerados em um único parágrafo.\n"
             "Classifique de forma estrita cada um dos blocos abaixo. Use ícones ricos como 🟢, 🔴, ⚠️.\n"
-            "Exemplo visual: `**1. Identificação Processual:** 🟢 Conforme - O PA e SGPE coincidem com a base.`\n\n"
+            "Exemplo visual: `**1. Identificação Processual:** 🟢 Conforme - Os dados processuais coincidem com a base.`\n\n"
             "ITENS OBRIGATÓRIOS DO CHECKLIST:\n"
-            "1. Identificação processual (PA, SGPE, Nome)\n"
+            "1. Identificação processual (Nome, Recorrente)\n"
             "2. Conformidade das datas (infração, julgamento)\n"
             "3. Tempestividade narrativa\n"
             "4. Prescrição punitiva aplicada\n"

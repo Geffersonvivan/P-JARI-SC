@@ -163,8 +163,8 @@ class TierConfigAdmin(admin.ModelAdmin):
 @admin.register(Parecer)
 class ParecerAdmin(admin.ModelAdmin):
     list_select_related = ['user', 'pasta']
-    list_display = ['__str__', 'status_fase', 'pa', 'sgpe', 'blindagem_score', 'created_at']
-    search_fields = ['nome_processo', 'user__username', 'pa', 'sgpe']
+    list_display = ['__str__', 'status_fase', 'blindagem_score', 'created_at']
+    search_fields = ['nome_processo', 'user__username']
     list_filter = ['status_fase']
     readonly_fields = ['score_baseline_90d']
 

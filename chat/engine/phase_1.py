@@ -17,16 +17,12 @@ def get_prompt(parecer) -> str:
         return "1. Faça o upload dos arquivos **'Autuação', 'Consolidado' e 'Ata'**. (Envie no mínimo Autuação e Consolidado juntos)"
     elif not parecer.data_sessao:
         return "2. Informe a **Data da Sessão de Julgamento** (DD/MM/AAAA):"
-    elif not parecer.pa:
-        return "3. Informe o número do **Processo Administrativo**:"
-    elif not parecer.sgpe:
-        return "4. Informe o número do **SGPE**:"
     elif not parecer.prazo_final:
-        return "5. Informe o **Prazo Final para protocolo do recurso JARI** (DD/MM/AAAA):"
+        return "3. Informe o **Prazo Final para protocolo do recurso JARI** (DD/MM/AAAA):"
     elif not parecer.data_protocolo:
-        return "6. Informe a **Data do protocolo do recurso JARI** (DD/MM/AAAA):"
+        return "4. Informe a **Data do protocolo do recurso JARI** (DD/MM/AAAA):"
     elif not parecer.paginas_defesa:
-        return "7. Informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
+        return "5. Informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
     return "Fase 1 concluída."
 
 
@@ -66,10 +62,6 @@ def process(engine, message: str, uploaded_files: list) -> str:
             parecer.data_sessao = datetime.datetime.strptime(val, "%d/%m/%Y").date()
         except Exception:
             return f"❌ Erro ao ler a data {val}. O formato deve ser DD/MM/AAAA. Ex: 15/05/2024. Tente novamente."
-    elif not parecer.pa:
-        parecer.pa = val
-    elif not parecer.sgpe:
-        parecer.sgpe = val
     elif not parecer.prazo_final:
         try:
             parecer.prazo_final = datetime.datetime.strptime(val, "%d/%m/%Y").date()
@@ -134,8 +126,6 @@ def process_confirm(engine, message: str) -> str:
     parecer.data_sessao = _ds_parsed
 
     # Campos opcionais
-    parecer.pa = payload.get("pa") or parecer.pa
-    parecer.sgpe = payload.get("sgpe") or parecer.sgpe
     parecer.recorrente = (payload.get("recorrente") or parecer.recorrente or "").upper() or None
 
     pf = payload.get("prazo_final", "").strip()
@@ -158,8 +148,6 @@ def process_confirm(engine, message: str) -> str:
 
     # Validação dos campos mínimos
     faltando = []
-    if not parecer.pa:             faltando.append("PA")
-    if not parecer.sgpe:           faltando.append("SGPE")
     if not parecer.prazo_final:    faltando.append("Prazo Final")
     if not parecer.data_protocolo: faltando.append("Data do Protocolo")
     if not parecer.paginas_defesa: faltando.append("Páginas da Defesa")
@@ -291,10 +279,6 @@ def run_autopreenchimento(engine) -> str:
             return None
         return None if str(v).strip().lower() in _nulos else str(v).strip()
 
-    if _val("pa") and not parecer.pa:
-        parecer.pa = _val("pa")
-    if _val("sgpe") and not parecer.sgpe:
-        parecer.sgpe = _val("sgpe")
     if _val("recorrente") and not parecer.recorrente:
         parecer.recorrente = _val("recorrente")
     if _val("prazo_final") and not parecer.prazo_final:

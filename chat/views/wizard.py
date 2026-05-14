@@ -164,7 +164,7 @@ def wizard_parecer_view(request, id):
     _saved_pareceres = Prefetch(
         'projetos',
         queryset=Parecer.objects.filter(is_saved=True).only(
-            'id', 'pasta_id', 'nome_processo', 'recorrente', 'pa', 'sgpe', 'created_at',
+            'id', 'pasta_id', 'nome_processo', 'recorrente', 'created_at',
         ).order_by('-created_at'),
     )
     pastas = list(

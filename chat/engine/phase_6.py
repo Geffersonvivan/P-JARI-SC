@@ -87,15 +87,7 @@ def run(engine) -> str:
         pontos_fatais += 5
         inconsistencias.append(incompatibilidade_msg)
 
-    # Item 1 — CABEÇALHO: PA, SGPE, Recorrente, Data Sessão (peso 1 cada, máx 4)
-    if parecer.sgpe and parecer.sgpe not in parecer_final:
-        pontos_avisos += 1
-        advertencias.append("CABEÇALHO: SGPE ausente ou incorreto no Parecer.")
-
-    if parecer.pa and parecer.pa not in parecer_final:
-        pontos_avisos += 1
-        advertencias.append("CABEÇALHO: PA ausente ou incorreto no Parecer.")
-
+    # Item 1 — CABEÇALHO: Recorrente, Data Sessão (peso 1 cada, máx 2)
     if parecer.recorrente:
         nome_partes = parecer.recorrente.strip().split()
         sobrenome = nome_partes[-1] if nome_partes else ""
@@ -148,11 +140,11 @@ def run(engine) -> str:
             from django.core.mail import send_mail
             from django.conf import settings
             _admin_email = getattr(settings, 'ADMIN_EMAIL', settings.DEFAULT_FROM_EMAIL)
-            assunto = f"P-JARI: Inconsistencia Critica detectada na IA ({parecer.sgpe or parecer.nome_processo})"
+            assunto = f"P-JARI: Inconsistencia Critica detectada na IA ({parecer.nome_processo})"
             mensagem = (
                 f"O JariEngine detectou incompatibilidade fatal na Fase 6.\n\n"
                 f"Processo: {parecer.nome_processo}\n"
-                f"SGPE / PA: {parecer.sgpe or parecer.pa or 'Não Informado'}\n"
+                f"Processo: {parecer.nome_processo or 'Não Informado'}\n"
                 f"Inconsistência: {incompatibilidade_msg}\n\n"
                 f"--- Trecho do Parecer ---\n"
                 f"{parecer.parecer_final[:1500]}... [Ver Completo na Ferramenta]\n\n"
@@ -187,11 +179,11 @@ def run(engine) -> str:
                     "Configure ADMIN_EMAIL no settings para receber alertas. parecer=%s", parecer.id
                 )
             else:
-                assunto = f"P-JARI: Inconsistencia Critica detectada na IA ({parecer.sgpe or parecer.nome_processo})"
+                assunto = f"P-JARI: Inconsistencia Critica detectada na IA ({parecer.nome_processo})"
                 mensagem = (
                     f"O JariEngine detectou inconsistências de validação matemática durante a auditoria (Fase 6).\n\n"
                     f"Processo: {parecer.nome_processo}\n"
-                    f"SGPE / PA: {parecer.sgpe or parecer.pa or 'Não Informado'}\n"
+                    f"Processo: {parecer.nome_processo or 'Não Informado'}\n"
                     f"Inconsistências Listadas:\n{parecer.blindagem_detalhes}\n\n"
                     f"--- Trecho do Parecer (Problema) ---\n"
                     f"{parecer.parecer_final[:1500]}... [Ver Completo na Ferramenta]\n\n"
