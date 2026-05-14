@@ -1548,7 +1548,7 @@ function renderMiFiles() {
     const n = _miFiles.length;
     count.textContent = `${n} arquivo${n > 1 ? 's' : ''} selecionado${n > 1 ? 's' : ''}`;
 
-    const ready = n >= 2;
+    const ready = n >= 1;
     btn.style.opacity = ready ? '1' : '.4';
     btn.style.pointerEvents = ready ? 'auto' : 'none';
 }
@@ -1559,7 +1559,7 @@ function miRemoveFile(idx) {
 }
 
 async function submeterDocumentos() {
-    if (_miFiles.length < 2) return;
+    if (_miFiles.length < 1) return;
 
     // Exibe loading
     document.getElementById('mi-upload').classList.add('hidden');
