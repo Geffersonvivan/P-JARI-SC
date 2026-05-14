@@ -204,7 +204,7 @@ class JariEngine:
             'tem_flagrante', 'data_conhecimento_infracao', 'data_infracao', 'data_totalizacao_pontos',
             'is_tempestivo', 'has_prescricao_punitiva', 'has_prescricao_intercorrente', 'has_prescricao_intercorrente_bienal', 'has_decadencia',
             'julgador_tempestivo', 'julgador_prescricao_punitiva',
-            'julgador_prescricao_intercorrente', 'julgador_decadencia',
+            'julgador_prescricao_intercorrente', 'julgador_prescricao_intercorrente_bienal', 'julgador_decadencia',
             'admissibilidade_texto', 'tese', 'vertex_result', 'perplexity_result',
             'analise_tese_texto', 'parecer_final', 'tabela_datas_sensiveis',
             'infracao_documento', 'dossie_fontes', 'nota_blindagem',

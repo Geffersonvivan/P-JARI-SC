@@ -1180,6 +1180,7 @@ const TABELA_TXT   = JSON.parse(document.getElementById('dj-tabela').textContent
 const AUTO_TEMP  = {{ is_tempestivo|yesno:"true,false" }};
 const AUTO_PUNIT = {{ has_prescricao_punitiva|yesno:"true,false" }};
 const AUTO_INTER = {{ has_prescricao_intercorrente|yesno:"true,false" }};
+const AUTO_INTER_BIENAL = {{ has_prescricao_intercorrente_bienal|yesno:"true,false" }};
 const AUTO_DECAD = {{ has_decadencia|yesno:"true,false" }};
 // Indica se os PDFs já foram salvos no DB (usado para evitar que tela de upload reapareça após falha do Gemini)
 const HAS_DOCS = {{ has_consolidado|yesno:"true,false" }};
@@ -1760,6 +1761,7 @@ const ADM_CFG = [
     { key:'ADM_TEMPESTIVIDADE', nome:'Tempestividade',           icone:'⏱', cor:'#2563eb', bg:'#eff6ff', borda:'#bfdbfe', autoSim: !AUTO_TEMP },
     { key:'ADM_PUNITIVA',       nome:'Prescrição Punitiva',      icone:'⚖️', cor:'#ea580c', bg:'#fff7ed', borda:'#fed7aa', autoSim: AUTO_PUNIT },
     { key:'ADM_INTERCORRENTE',  nome:'Prescrição Intercorrente', icone:'🔄', cor:'#ca8a04', bg:'#fefce8', borda:'#fde68a', autoSim: AUTO_INTER },
+    { key:'ADM_INTERCORRENTE_BIENAL', nome:'Prescrição Intercorrente Bienal', icone:'🔄', cor:'#a16207', bg:'#fefce8', borda:'#fde68a', autoSim: AUTO_INTER_BIENAL },
     { key:'ADM_DECADENCIA',     nome:'Decadência',               icone:'📅', cor:'#7c3aed', bg:'#f5f3ff', borda:'#ddd6fe', autoSim: AUTO_DECAD },
 ];
 
@@ -1955,7 +1957,7 @@ window.selectTeseOption = function(btn, teseNum, opcao) {
 
 // ─── BUILD STRINGS ─────────────────────────────────
 function buildAdmString() {
-    const ORDER = ['ADM_TEMPESTIVIDADE','ADM_PUNITIVA','ADM_INTERCORRENTE','ADM_DECADENCIA'];
+    const ORDER = ['ADM_TEMPESTIVIDADE','ADM_PUNITIVA','ADM_INTERCORRENTE','ADM_INTERCORRENTE_BIENAL','ADM_DECADENCIA'];
     // Seções não selecionadas explicitamente assumem CONFIRMAR ('a') como padrão
     ORDER.forEach(k => { if (window.decisions[k] === undefined) window.decisions[k] = 'a'; });
     const arr = [];

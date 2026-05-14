@@ -54,6 +54,7 @@ def run(engine) -> str:
 
     flag_punitiva   = parecer.julgador_prescricao_punitiva    if parecer.julgador_prescricao_punitiva    is not None else parecer.has_prescricao_punitiva
     flag_intercorr  = parecer.julgador_prescricao_intercorrente if parecer.julgador_prescricao_intercorrente is not None else parecer.has_prescricao_intercorrente
+    flag_intercorr_bienal = parecer.julgador_prescricao_intercorrente_bienal if parecer.julgador_prescricao_intercorrente_bienal is not None else parecer.has_prescricao_intercorrente_bienal
     flag_decadencia = parecer.julgador_decadencia             if parecer.julgador_decadencia             is not None else parecer.has_decadencia
     flag_tempestivo = parecer.julgador_tempestivo             if parecer.julgador_tempestivo             is not None else parecer.is_tempestivo
 
@@ -63,10 +64,10 @@ def run(engine) -> str:
     # BUG-E-FIX: ROTA D — tese acolhida na F4 também exige DEFERIDO
     _rota_d = "RESULTADO EXIGIDO NESTE PARECER: DEFERIDO" in (parecer.analise_tese_texto or "")
 
-    if flag_punitiva or flag_intercorr or flag_decadencia or _rota_d:
+    if flag_punitiva or flag_intercorr or flag_intercorr_bienal or flag_decadencia or _rota_d:
         if not tem_deferido:
             erro_fatal = True
-            motivo_d = "extinção da pretensão punitiva" if (flag_punitiva or flag_intercorr or flag_decadencia) else "tese acolhida pelo julgador (Rota D)"
+            motivo_d = "extinção da pretensão punitiva" if (flag_punitiva or flag_intercorr or flag_intercorr_bienal or flag_decadencia) else "tese acolhida pelo julgador (Rota D)"
             incompatibilidade_msg = f"❌ Resultado incompatível com {motivo_d} (Deveria ser DEFERIDO)"
     elif flag_tempestivo is False:
         if not tem_indeferido:

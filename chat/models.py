@@ -76,6 +76,7 @@ class Parecer(models.Model):
     julgador_tempestivo = models.BooleanField(null=True, blank=True)
     julgador_prescricao_punitiva = models.BooleanField(null=True, blank=True)
     julgador_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
+    julgador_prescricao_intercorrente_bienal = models.BooleanField(null=True, blank=True)
     julgador_decadencia = models.BooleanField(null=True, blank=True)
     
     # Textos gerados pelas IAs nas Fases 3 a 6, ou extraidos do documento de origem (Fase 7)

@@ -129,15 +129,20 @@ def process(engine, message: str) -> str:
 
     j_temp  = _janela(msg_n, 'TEMPESTIVIDADE')
     j_punit = _janela(msg_n, 'PUNITIV')
-    j_inter = _janela(msg_n, 'INTERCORRENTE')
+    # Bienal antes da trienal — "BIENAL" é mais específico
+    j_inter_bienal = _janela(msg_n, 'BIENAL')
+    # Para a trienal, buscar "INTERCORRENTE" que NÃO seja seguida de "BIENAL"
+    _inter_match = re.search(r'INTERCORRENTE(?!\s*BIENAL)(.{0,55})', msg_n)
+    j_inter = _inter_match.group(1) if _inter_match else None
     j_decad = _janela(msg_n, 'DECAD')
 
-    r_temp  = _abs_tempestividade(j_temp)       if j_temp  is not None else None
-    r_punit = _abs_prescrição_decad(j_punit)    if j_punit is not None else None
-    r_inter = _abs_prescrição_decad(j_inter)    if j_inter is not None else None
-    r_decad = _abs_prescrição_decad(j_decad)    if j_decad is not None else None
+    r_temp  = _abs_tempestividade(j_temp)            if j_temp  is not None else None
+    r_punit = _abs_prescrição_decad(j_punit)         if j_punit is not None else None
+    r_inter = _abs_prescrição_decad(j_inter)         if j_inter is not None else None
+    r_inter_bienal = _abs_prescrição_decad(j_inter_bienal) if j_inter_bienal is not None else None
+    r_decad = _abs_prescrição_decad(j_decad)         if j_decad is not None else None
 
-    _nenhuma  = all(x is None for x in [r_temp, r_punit, r_inter, r_decad])
+    _nenhuma  = all(x is None for x in [r_temp, r_punit, r_inter, r_inter_bienal, r_decad])
     _msg_simples = message.strip().lower() in _MSG_CONFIRMA
 
     if _nenhuma and not _msg_simples:
@@ -147,6 +152,7 @@ def process(engine, message: str) -> str:
             "Tempestividade - A\n"
             "Prescrição Punitiva - A\n"
             "Prescrição Intercorrente - B\n"
+            "Prescrição Intercorrente Bienal - B\n"
             "Decadência - A\n"
             "```\n\n"
             "**A** = resultado positivo  "
@@ -160,19 +166,20 @@ def process(engine, message: str) -> str:
     julgador_temp  = r_temp  if r_temp  is not None else parecer.is_tempestivo
     julgador_punit = r_punit if r_punit is not None else parecer.has_prescricao_punitiva
     julgador_inter = r_inter if r_inter is not None else parecer.has_prescricao_intercorrente
+    julgador_inter_bienal = r_inter_bienal if r_inter_bienal is not None else parecer.has_prescricao_intercorrente_bienal
     julgador_decad = r_decad if r_decad is not None else parecer.has_decadencia
 
     logger.warning(
         "[FASE31] parecer=%s | "
-        "parsed: temp=%s punit=%s inter=%s decad=%s | "
-        "auto:   temp=%s punit=%s inter=%s decad=%s | "
-        "result: temp=%s punit=%s inter=%s decad=%s | "
+        "parsed: temp=%s punit=%s inter=%s inter_bienal=%s decad=%s | "
+        "auto:   temp=%s punit=%s inter=%s inter_bienal=%s decad=%s | "
+        "result: temp=%s punit=%s inter=%s inter_bienal=%s decad=%s | "
         "msg=%.120s",
         parecer.id,
-        r_temp, r_punit, r_inter, r_decad,
+        r_temp, r_punit, r_inter, r_inter_bienal, r_decad,
         parecer.is_tempestivo, parecer.has_prescricao_punitiva,
-        parecer.has_prescricao_intercorrente, parecer.has_decadencia,
-        julgador_temp, julgador_punit, julgador_inter, julgador_decad,
+        parecer.has_prescricao_intercorrente, parecer.has_prescricao_intercorrente_bienal, parecer.has_decadencia,
+        julgador_temp, julgador_punit, julgador_inter, julgador_inter_bienal, julgador_decad,
         message,
     )
 
@@ -238,6 +245,7 @@ def process(engine, message: str) -> str:
     parecer.julgador_tempestivo               = julgador_temp
     parecer.julgador_prescricao_punitiva      = julgador_punit
     parecer.julgador_prescricao_intercorrente = julgador_inter
+    parecer.julgador_prescricao_intercorrente_bienal = julgador_inter_bienal
     parecer.julgador_decadencia               = julgador_decad
     parecer.save()
 
@@ -247,6 +255,7 @@ def process(engine, message: str) -> str:
             'tempestivo':    julgador_temp,
             'punitiva':      julgador_punit,
             'intercorrente': julgador_inter,
+            'intercorrente_bienal': julgador_inter_bienal,
             'decadencia':    julgador_decad,
         })
     except Exception:
@@ -256,7 +265,7 @@ def process(engine, message: str) -> str:
     prejudica = (
         parecer.julgador_prescricao_punitiva
         or parecer.julgador_prescricao_intercorrente
-        or parecer.has_prescricao_intercorrente_bienal
+        or parecer.julgador_prescricao_intercorrente_bienal
         or parecer.julgador_decadencia
         or (parecer.julgador_tempestivo is False)
     )
@@ -272,7 +281,7 @@ def process(engine, message: str) -> str:
         motivo = []
         if parecer.julgador_prescricao_punitiva:      motivo.append("PRESCRIÇÃO PUNITIVA")
         if parecer.julgador_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE")
-        if parecer.has_prescricao_intercorrente_bienal: motivo.append("PRESCRIÇÃO INTERCORRENTE BIENAL")
+        if parecer.julgador_prescricao_intercorrente_bienal: motivo.append("PRESCRIÇÃO INTERCORRENTE BIENAL")
         if parecer.julgador_decadencia:               motivo.append("DECADÊNCIA")
         if parecer.julgador_tempestivo is False:      motivo.append("INTEMPESTIVIDADE")
         parecer.tese = f"MÉRITO PREJUDICADO ({' / '.join(motivo)})."

@@ -571,9 +571,10 @@ class AnthropicClient:
         # Short-circuit: prejudicialidade (Python puro, sem LLM)
         _punit = parecer_obj.julgador_prescricao_punitiva if parecer_obj.julgador_prescricao_punitiva is not None else parecer_obj.has_prescricao_punitiva
         _inter = parecer_obj.julgador_prescricao_intercorrente if parecer_obj.julgador_prescricao_intercorrente is not None else parecer_obj.has_prescricao_intercorrente
+        _inter_bienal = parecer_obj.julgador_prescricao_intercorrente_bienal if parecer_obj.julgador_prescricao_intercorrente_bienal is not None else parecer_obj.has_prescricao_intercorrente_bienal
         _decad = parecer_obj.julgador_decadencia if parecer_obj.julgador_decadencia is not None else parecer_obj.has_decadencia
         _temp = parecer_obj.julgador_tempestivo if parecer_obj.julgador_tempestivo is not None else parecer_obj.is_tempestivo
-        if _punit or _inter or _decad or (_temp is False):
+        if _punit or _inter or _inter_bienal or _decad or (_temp is False):
             return "Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal."
 
         if not self.client:
@@ -688,9 +689,10 @@ class AnthropicClient:
 
         _f_punit  = _flag_val(parecer_obj.julgador_prescricao_punitiva,      parecer_obj.has_prescricao_punitiva)
         _f_inter  = _flag_val(parecer_obj.julgador_prescricao_intercorrente,  parecer_obj.has_prescricao_intercorrente)
+        _f_inter_bienal = _flag_val(parecer_obj.julgador_prescricao_intercorrente_bienal, parecer_obj.has_prescricao_intercorrente_bienal)
         _f_decad  = _flag_val(parecer_obj.julgador_decadencia,                parecer_obj.has_decadencia)
         _f_temp   = _flag_val(parecer_obj.julgador_tempestivo,                parecer_obj.is_tempestivo)
-        _prejudica = _f_punit or _f_inter or _f_decad
+        _prejudica = _f_punit or _f_inter or _f_inter_bienal or _f_decad
         # BUG-A-FIX: ROTA D — tese acolhida na F4 também exige DEFERIDO
         _rota_d_deferido = "RESULTADO EXIGIDO NESTE PARECER: DEFERIDO" in (parecer_obj.analise_tese_texto or "")
         _resultado_obrigatorio = "DEFERIDO" if (_prejudica or _rota_d_deferido) else "INDEFERIDO"
@@ -700,6 +702,7 @@ class AnthropicClient:
             f"• Tempestividade: {'TEMPESTIVO — dentro do prazo' if _f_temp else 'INTEMPESTIVO — fora do prazo'}\n"
             f"• Prescrição Punitiva: {'SIM — CONFIGURADA' if _f_punit else 'NÃO configurada'}\n"
             f"• Prescrição Intercorrente: {'SIM — CONFIGURADA' if _f_inter else 'NÃO configurada'}\n"
+            f"• Prescrição Intercorrente Bienal: {'SIM — CONFIGURADA' if _f_inter_bienal else 'NÃO configurada' if _f_inter_bienal is not None else 'NÃO SE APLICA'}\n"
             f"• Decadência: {'SIM — CONFIGURADA' if _f_decad else 'NÃO configurada'}\n\n"
             f"🔒 RESULTADO OBRIGATÓRIO DESTE PARECER: {_resultado_obrigatorio}\n"
             f"Escrever qualquer resultado diferente de {_resultado_obrigatorio} é INVÁLIDO e será rejeitado.\n"
@@ -717,8 +720,9 @@ class AnthropicClient:
         _temp_invertido  = (parecer_obj.julgador_tempestivo               is not None and parecer_obj.julgador_tempestivo               != parecer_obj.is_tempestivo)
         _punit_invertido = (parecer_obj.julgador_prescricao_punitiva      is not None and parecer_obj.julgador_prescricao_punitiva      != parecer_obj.has_prescricao_punitiva)
         _inter_invertido = (parecer_obj.julgador_prescricao_intercorrente is not None and parecer_obj.julgador_prescricao_intercorrente != parecer_obj.has_prescricao_intercorrente)
+        _inter_bienal_invertido = (parecer_obj.julgador_prescricao_intercorrente_bienal is not None and parecer_obj.julgador_prescricao_intercorrente_bienal != parecer_obj.has_prescricao_intercorrente_bienal)
         _decad_invertido = (parecer_obj.julgador_decadencia               is not None and parecer_obj.julgador_decadencia               != parecer_obj.has_decadencia)
-        _qualquer_invertido = _temp_invertido or _punit_invertido or _inter_invertido or _decad_invertido
+        _qualquer_invertido = _temp_invertido or _punit_invertido or _inter_invertido or _inter_bienal_invertido or _decad_invertido
 
         # Constrói instrução cirúrgica por seção — só para as seções efetivamente invertidas
         _section_rules = []
@@ -743,10 +747,17 @@ class AnthropicClient:
                 f"Redija nesta seção APENAS a conclusão ({_decisao_inter}) e a base normativa aplicável. "
                 f"PROIBIDO mencionar datas calculadas, prazo divergente ou qualquer resultado diferente."
             )
+        if _inter_bienal_invertido:
+            _decisao_inter_bienal = "CONFIGURADA" if parecer_obj.julgador_prescricao_intercorrente_bienal else "NÃO configurada"
+            _section_rules.append(
+                f"• Seção 3.3 Prescrição Intercorrente Bienal: o Membro Julgador decidiu que a prescrição intercorrente bienal está {_decisao_inter_bienal}. "
+                f"Redija nesta seção APENAS a conclusão ({_decisao_inter_bienal}) e a base normativa aplicável. "
+                f"PROIBIDO mencionar datas calculadas, prazo divergente ou qualquer resultado diferente."
+            )
         if _decad_invertido:
             _decisao_decad = "CONFIGURADA" if parecer_obj.julgador_decadencia else "NÃO configurada"
             _section_rules.append(
-                f"• Seção 3.3 Decadência: o Membro Julgador decidiu que a decadência está {_decisao_decad}. "
+                f"• Seção 3.4 Decadência: o Membro Julgador decidiu que a decadência está {_decisao_decad}. "
                 f"Redija nesta seção APENAS a conclusão ({_decisao_decad}) e a base normativa aplicável. "
                 f"PROIBIDO mencionar regime temporal calculado, datas divergentes ou qualquer resultado diferente."
             )
