@@ -3,11 +3,13 @@ set -e
 
 # Em produção (Railway): sem auto-reload, filas separadas com prioridade
 if [ "$RAILWAY_ENVIRONMENT" != "" ]; then
-    echo "Starting Celery worker (production)..."
+    echo "Starting Celery worker + beat (production)..."
     exec celery -A config worker \
+        --beat \
         --loglevel=info \
         --concurrency=16 \
-        --queues=fast,heavy
+        --queues=fast,heavy \
+        --schedule=/tmp/celerybeat-schedule
 fi
 
 # Em desenvolvimento: watchmedo reinicia automaticamente ao salvar qualquer .py
