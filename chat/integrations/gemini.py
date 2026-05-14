@@ -341,7 +341,7 @@ class GeminiClient:
             _log.info(f"upload_file [PERF] gemini_upload {path_str}: {_t_upload - _t_compress:.2f}s")
 
             # Aguarda o arquivo ficar ACTIVE (processamento assíncrono do Gemini)
-            max_wait = 90  # segundos (PDFs grandes 150+ pgs podem precisar de mais tempo)
+            max_wait = 180  # segundos (PDFs grandes 20MB+ podem precisar de 2-3 min)
             waited = 0
             while getattr(getattr(gemini_file, 'state', None), 'name', 'ACTIVE') == 'PROCESSING':
                 if waited >= max_wait:

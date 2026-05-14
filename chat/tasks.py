@@ -75,7 +75,7 @@ def _handle_permanent_error(e, parecer_id: int, fase: str):
     raise Exception(f"{_PERMANENT_USER_MSG}")
 
 
-@shared_task(bind=True, time_limit=360, soft_time_limit=300, max_retries=3, queue='fast')
+@shared_task(bind=True, time_limit=480, soft_time_limit=420, max_retries=3, queue='fast')
 def processar_fase1_task(self, parecer_id):
     """
     Processa o auto-preenchimento da Fase 1 no worker Celery.
