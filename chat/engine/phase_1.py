@@ -236,7 +236,7 @@ def run_autopreenchimento(engine) -> str:
             if _con and "upload_simulado" not in _con:
                 datas_con, _chars_con = PDFExtractor.extract_dates_from_pdf(_con, "Consolidado")
             contexto_datas = PDFExtractor.format_extraction_for_llm([], datas_con)
-            _total_chars = _chars_aut + _chars_con
+            _total_chars = _chars_con
 
             logger.info(f"[UNIFIED] parecer={parecer.id} docs={list(markdown_texts.keys())} "
                         f"md_chars={sum(len(v) for v in markdown_texts.values())} pdf_chars={_total_chars}")
