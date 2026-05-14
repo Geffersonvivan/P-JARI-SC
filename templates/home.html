@@ -1104,7 +1104,7 @@ async function deletarParecer(parecerId, btn) {
                 style="border:2px dashed #d1d5db;border-radius:16px;padding:32px 24px;text-align:center;cursor:pointer;transition:all .2s;">
                 <i class="ph ph-upload-simple" style="font-size:40px;color:#9ca3af;display:block;margin-bottom:10px;"></i>
                 <p style="font-size:14px;font-weight:600;color:#374151;margin-bottom:4px;">Arraste os PDFs aqui ou clique para selecionar</p>
-                <p style="font-size:12px;color:#9ca3af;">Apenas arquivos .PDF · Máximo 20MB por arquivo</p>
+                <p style="font-size:12px;color:#9ca3af;">Apenas arquivos .PDF · Máximo 30MB por arquivo</p>
                 <input id="mi-file-input" type="file" accept=".pdf" multiple class="hidden"
                     onchange="miAddFiles(this.files)">
             </div>
@@ -1511,7 +1511,7 @@ function miAddFiles(fileList) {
 
     allowed.forEach(f => {
         if (_miFiles.length >= 3) { showToast('Máximo de 3 arquivos.', 'info'); return; }
-        if (f.size > 20 * 1024 * 1024) { showToast(`"${f.name}" excede 20MB.`, 'error'); return; }
+        if (f.size > 30 * 1024 * 1024) { showToast(`"${f.name}" excede 30MB.`, 'error'); return; }
         if (!_miFiles.find(x => x.name === f.name && x.size === f.size)) {
             _miFiles.push(f);
         }

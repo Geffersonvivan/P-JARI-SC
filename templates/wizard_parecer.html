@@ -2703,7 +2703,7 @@ async function doUpload(nome) {
                         const errData = JSON.parse(xhr.responseText);
                         rej(errData.error || `Erro HTTP ${xhr.status}`);
                     } catch {
-                        rej(`Erro HTTP ${xhr.status}. Verifique o tamanho dos arquivos (máx. 20 MB) e tente novamente.`);
+                        rej(`Erro HTTP ${xhr.status}. Verifique o tamanho dos arquivos (máx. 30 MB) e tente novamente.`);
                     }
                 }
             };

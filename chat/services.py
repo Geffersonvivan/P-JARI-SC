@@ -20,7 +20,7 @@ def _p(field):
     return field.name if hasattr(field, 'name') else (str(field) or None)
 
 class ChatService:
-    MAX_PDF_SIZE_BYTES = 20 * 1024 * 1024  # 20 MB por arquivo
+    MAX_PDF_SIZE_BYTES = 30 * 1024 * 1024  # 30 MB por arquivo
 
     @staticmethod
     def save_uploaded_files(files_dict):
