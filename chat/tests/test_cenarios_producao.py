@@ -259,7 +259,7 @@ class TestCenariosF31(TestCase):
         mock_task.delay.return_value = MagicMock(id="celery-c04")
 
         parecer = _make_cenario(
-            nome_processo="C04 — Prescrição Intercorrente",
+            nome_processo="C04 — Prescrição Intercorrente Trienal",
             data_protocolo=datetime.date(2021, 1, 10),  # protocolou em 2021
             data_sessao=datetime.date(2025, 3, 10),     # julgado em 2025 → > 3 anos
             has_prescricao_intercorrente=True,

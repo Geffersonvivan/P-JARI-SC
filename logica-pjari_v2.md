@@ -155,7 +155,7 @@ Informar à LLM, para o último marco, se o julgamento ocorreu antes/igual ou de
 
 A LLM não refaz contas; apenas lê o resultado ("antes/igual" ou "depois") e aplica o critério jurídico acima, redigindo a conclusão e o "Cálculo fundamentado" na Fase 3.
 
-C) PRESCRIÇÃO INTERCORRENTE-3 ANOS (Lei 9.873/99)
+C) PRESCRIÇÃO INTERCORRENTE TRIENAL-3 ANOS (Lei 9.873/99)
 
 Prazo legal: 3 anos. Contagem: Calendário Civil (Data a data).
 Datas obrigatórias:
@@ -171,9 +171,9 @@ Data do protocolo do recurso JARI (início do prazo): 14/03/2023.
 Data de Aniversário de 3 anos: 14/03/2026.
 Sessão em 14/03/2026 → NÃO (aniversário não ultrapassado).
 Sessão em 13/03/2026 → NÃO (anterior ao aniversário).
-Sessão em 15/03/2026 → SIM (posterior ao aniversário — prescrição intercorrente configurada).
+Sessão em 15/03/2026 → SIM (posterior ao aniversário — prescrição intercorrente trienal configurada).
 
-Obs. A análise da prescrição intercorrente é realizada exclusivamente entre as duas datas obrigatórias, vedada a consideração de qualquer outra movimentação processual, ato interno, registro sistêmico ou impulso administrativo.
+Obs. A análise da prescrição intercorrente trienal é realizada exclusivamente entre as duas datas obrigatórias, vedada a consideração de qualquer outra movimentação processual, ato interno, registro sistêmico ou impulso administrativo.
 
 D) PRESCRIÇÃO INTERCORRENTE – 2 ANOS (art. 285, § 6º, c/c art. 289‑A do CTB)
 
@@ -311,7 +311,7 @@ Tempestividade do recurso JARI.
 
 Prescrição punitiva (5 anos – cálculo "data a data").
 
-Prescrição intercorrente (3 anos – cálculo "data a data").
+Prescrição intercorrente trienal (3 anos – cálculo "data a data").
 
 Prazos decadenciais (180/360 dias ou 5 anos, conforme Filtro 1/2/3, nos termos do CTB, das Leis 14.071/2020, 14.229/2021 e do Parecer CETRAN/SC 381/2022).
 Toda contagem numérica e diferença de datas já foi feita pelo Python.
@@ -334,7 +334,7 @@ Declare EXPRESSAMENTE, com base exclusiva nos dados e normas fornecidos pelo Pyt
 **Cálculo fundamentado:** (texto)
 [DECISAO_ADMISSIBILIDADE_PUNITIVA:SIM_OU_NAO]
 
-<u>**Prescrição Intercorrente: [SIM/NÃO]**</u>
+<u>**Prescrição Intercorrente Trienal: [SIM/NÃO]**</u>
 
 **Cálculo fundamentado:** (texto)
 [DECISAO_ADMISSIBILIDADE_INTERCORRENTE:SIM_OU_NAO]
@@ -366,9 +366,9 @@ Prescrição Punitiva: [SIM/NÃO]
 
 Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando: data inicial do prazo; marcos interruptivos considerados a partir da Linha do Tempo; intervalo calculado pelo Python entre o último ato interruptivo válido e o julgamento final; comparação com o prazo de 5 anos civis (data a data) da Lei 9.873/99; conclusão pela existência ou não de prescrição punitiva).
 
-Prescrição Intercorrente: [SIM/NÃO]
+Prescrição Intercorrente Trienal: [SIM/NÃO]
 
-Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando: uso da Data de Protocolo do Recurso JARI – Pergunta 3/Fase 1 – e da Data da Sessão de Julgamento JARI – Pergunta 1/Fase 1 – conforme registradas na Tabela de Datas Sensíveis; data do "aniversário de 3 anos" calculada pelo Python; verificação se a sessão ocorreu antes, no dia ou depois desse aniversário; conclusão pela configuração ou não da prescrição intercorrente).
+Cálculo fundamentado: (texto curto, objetivo e jurídico, explicando: uso da Data de Protocolo do Recurso JARI – Pergunta 3/Fase 1 – e da Data da Sessão de Julgamento JARI – Pergunta 1/Fase 1 – conforme registradas na Tabela de Datas Sensíveis; data do "aniversário de 3 anos" calculada pelo Python; verificação se a sessão ocorreu antes, no dia ou depois desse aniversário; conclusão pela configuração ou não da prescrição intercorrente trienal).
 
 Decadência: [SIM/NÃO/NÃO SE APLICA]
 
@@ -391,7 +391,7 @@ PRESCRIÇÃO PUNITIVA – resultado técnico: [SIM/NÃO]
  A – CONFIRMAR (mantém resultado técnico)
  B – AFASTAR (inverte resultado técnico)
 
-PRESCRIÇÃO INTERCORRENTE – resultado técnico: [SIM/NÃO]
+PRESCRIÇÃO INTERCORRENTE TRIENAL – resultado técnico: [SIM/NÃO]
  A – CONFIRMAR (mantém resultado técnico)
  B – AFASTAR (inverte resultado técnico)
 
@@ -414,13 +414,14 @@ Formato obrigatório do resultado consolidado:
 Resultado escolhido pelo membro julgador:
  INTEMPESTIVIDADE DO RECURSO: [CONFIGURADA/NÃO CONFIGURADA]
  Prescrição Punitiva: [SIM/NÃO]
- Prescrição Intercorrente: [SIM/NÃO]
+ Prescrição Intercorrente Trienal: [SIM/NÃO]
+ Prescrição Intercorrente Bienal: [SIM/NÃO/NÃO SE APLICA]
  Decadência: [SIM/NÃO/NÃO SE APLICA]
 
-**Ressalva importante:** os resultados técnicos e os cálculos automáticos aqui apresentados têm natureza meramente opinativa e auxiliar, não substituindo a competência decisória do membro julgador, de modo que PREVALECEM, para todas as fases seguintes, as opções expressamente escolhidas pelo julgador em cada item (tempestividade, prescrição punitiva, prescrição intercorrente e decadência), ainda que em sentido diverso da conclusão técnica do sistema.
+**Ressalva importante:** os resultados técnicos e os cálculos automáticos aqui apresentados têm natureza meramente opinativa e auxiliar, não substituindo a competência decisória do membro julgador, de modo que PREVALECEM, para todas as fases seguintes, as opções expressamente escolhidas pelo julgador em cada item (tempestividade, prescrição punitiva, prescrição intercorrente trienal, prescrição intercorrente bienal e decadência), ainda que em sentido diverso da conclusão técnica do sistema.
 
 1. Regras importantes
-Os valores do 'Resultado escolhido pelo membro julgador' (INTEMPESTIVIDADE DO RECURSO, Prescrição Punitiva, Prescrição Intercorrente e Decadência) são registrados pelo sistema como flags oficiais, substituindo integralmente os resultados técnicos automáticos. Essas flags são a única referência válida para todas as fases seguintes (Fase 4 – Teses e Fase 5 – Parecer). O sistema lê e processa as decisões do julgador a partir do texto de resposta gerado — o LLM deve produzir apenas o texto no formato especificado, sem incluir marcações adicionais de "envio" ou "transmissão".
+Os valores do 'Resultado escolhido pelo membro julgador' (INTEMPESTIVIDADE DO RECURSO, Prescrição Punitiva, Prescrição Intercorrente Trienal, Prescrição Intercorrente Bienal e Decadência) são registrados pelo sistema como flags oficiais, substituindo integralmente os resultados técnicos automáticos. Essas flags são a única referência válida para todas as fases seguintes (Fase 4 – Teses e Fase 5 – Parecer). O sistema lê e processa as decisões do julgador a partir do texto de resposta gerado — o LLM deve produzir apenas o texto no formato especificado, sem incluir marcações adicionais de "envio" ou "transmissão".
 
 Fase 4 — TESES
 A Fase 4 toma como premissa exclusiva os RESULTADOS ESCOLHIDOS PELO MEMBRO JULGADOR na Fase 3, e não as conclusões técnicas automáticas.
@@ -429,7 +430,7 @@ A Fase 4 toma como premissa exclusiva os RESULTADOS ESCOLHIDOS PELO MEMBRO JULGA
 
 PRECEDÊNCIA OBRIGATÓRIA DE ROTAS (ordem decrescente de prioridade):
 1º ROTA C — Decadência SIM: sempre prevalece sobre qualquer outra flag.
-2º ROTA B — Prescrição Punitiva SIM ou Intercorrente SIM: prevalece sobre Rota A.
+2º ROTA B — Prescrição Punitiva SIM ou Intercorrente (Trienal/Bienal) SIM: prevalece sobre Rota A.
 3º ROTA A — Intempestividade CONFIGURADA, sem prescrição e sem decadência.
 4º ROTA D — Todos os itens anteriores sem configuração: análise de mérito.
 Quando múltiplas flags estiverem ativas simultaneamente, aplicar a rota de número menor (mais prioritária).
@@ -441,7 +442,7 @@ ROTA A — INTEMPESTIVIDADE CONFIGURADA (sem prescrição/decadência):
   Conclusão: recurso não conhecido por intempestividade.
   RESULTADO do parecer: INDEFERIDO.
 
-ROTA B — PRESCRIÇÃO PUNITIVA ou INTERCORRENTE configurada:
+ROTA B — PRESCRIÇÃO PUNITIVA ou INTERCORRENTE (TRIENAL/BIENAL) configurada:
   Não analisar mérito.
   Conclusão: pretensão punitiva extinta — penalidade deve ser cancelada.
   RESULTADO do parecer: DEFERIDO.
@@ -479,9 +480,9 @@ PARECER JARI "bold"
 
 "bold" RESULTADO: [DEFERIDO/INDEFERIDO]
 Regra obrigatória de preenchimento — baseada exclusivamente nos resultados escolhidos pelo julgador na Fase 3 e nas conclusões da Fase 4:
-→ DEFERIDO se: Prescrição Punitiva SIM, OU Prescrição Intercorrente SIM, OU Decadência SIM, OU ao menos uma tese acolhida na Fase 4.
+→ DEFERIDO se: Prescrição Punitiva SIM, OU Prescrição Intercorrente Trienal SIM, OU Prescrição Intercorrente Bienal SIM, OU Decadência SIM, OU ao menos uma tese acolhida na Fase 4.
 → INDEFERIDO se:
-  (a) INTEMPESTIVIDADE CONFIGURADA sem prescrição punitiva, sem prescrição intercorrente e sem decadência configuradas; OU
+  (a) INTEMPESTIVIDADE CONFIGURADA sem prescrição punitiva, sem prescrição intercorrente (trienal/bienal) e sem decadência configuradas; OU
   (b) Rota D percorrida na Fase 4 E todas as teses identificadas não foram acolhidas (inclusive quando nenhuma tese foi identificada).
 
 Obs. "bold" somente antes ":"
@@ -522,7 +523,7 @@ Limite: máximo 10 linhas. Texto corrido, sem listas.
 3.1 Prescrição punitiva: [data da infração, último marco interruptivo, conclusão normativa sucinta]
 Limite: máximo 10 linhas. Texto corrido.
 
-3.2 Prescrição intercorrente: [protocolo JARI (Pergunta 5) → sessão JARI (Pergunta 1): intervalo em dias corridos — aniversário de 3 anos em DD/MM/AAAA + conclusão. Vedada a menção a outros marcos processuais.]
+3.2 Prescrição intercorrente trienal: [protocolo JARI (Pergunta 5) → sessão JARI (Pergunta 1): intervalo em dias corridos — aniversário de 3 anos em DD/MM/AAAA + conclusão. Vedada a menção a outros marcos processuais.]
 Limite: máximo 10 linhas. Texto corrido.
 
 3.3 Decadência: [regime temporal (Filtro 1/2/3) + conclusão — usar exclusivamente o resultado escolhido pelo julgador na Fase 3, nunca o resultado técnico automático]
@@ -549,7 +550,7 @@ CHECKLIST OBRIGATÓRIO DE AUDITORIA (10 itens):
 2. RESULTADO: verificar em duas subcondições: (a) se DEFERIDO — ao menos uma flag SIM (prescrição punitiva, intercorrente ou decadência) ou ao menos uma tese acolhida na Fase 4? (b) se INDEFERIDO — ou (i) INTEMPESTIVIDADE CONFIGURADA sem prescrição e sem decadência configuradas; ou (ii) Rota D percorrida e todas as teses rejeitadas (inclusive ausência de teses identificadas)?
 3. ADMISSIBILIDADE (seção 1): a conclusão de tempestividade/intempestividade corresponde ao resultado escolhido pelo julgador na Fase 3?
 4. PRESCRIÇÃO PUNITIVA (seção 3.1): a linha do tempo e a conclusão correspondem ao resultado escolhido na Fase 3? Os marcos interruptivos utilizados são os mesmos da tabela de datas sensíveis?
-5. PRESCRIÇÃO INTERCORRENTE (seção 3.2): o intervalo calculado usa exclusivamente as datas das Perguntas 1 e 5? Não há menção a outros marcos processuais?
+5. PRESCRIÇÃO INTERCORRENTE TRIENAL (seção 3.2): o intervalo calculado usa exclusivamente as datas das Perguntas 1 e 5? Não há menção a outros marcos processuais?
 6. DECADÊNCIA (seção 3.3): o filtro temporal (1/2/3) está correto para a data da infração? A conclusão corresponde ao resultado escolhido na Fase 3 (nunca ao resultado técnico automático)?
 7. TESES (seção 2 — Rota D): todas as teses identificadas na Fase 4 foram analisadas individualmente, com citação normativa e conclusão isolada por tese?
 8. TESES PREJUDICADAS (Rotas A/B/C): a seção 2 declara corretamente a razão da prejudicialidade (intempestividade, prescrição ou decadência), com linguagem correspondente à rota percorrida?

@@ -464,7 +464,7 @@ class AnthropicClient:
             f"Os resultados abaixo refletem a escolha SOBERANA do membro julgador. Você NÃO pode contrariá-los:\n"
             f"{admissibilidade_julgador}\n\n"
             f"--- INSTRUÇÃO DE EXTRAÇÃO ---\n"
-            f"Verifique o resultado acima. Se a decisão do julgador apontar que o recurso é INTEMPESTIVO (INTEMPESTIVIDADE DO RECURSO: CONFIGURADA), PRESCRITO (Prescrição Punitiva ou Intercorrente: SIM) ou DECADENTE (Decadência: SIM), você DEVE ABORTAR a leitura do recurso e responder APENAS E EXATAMENTE:\n"
+            f"Verifique o resultado acima. Se a decisão do julgador apontar que o recurso é INTEMPESTIVO (INTEMPESTIVIDADE DO RECURSO: CONFIGURADA), PRESCRITO (Prescrição Punitiva ou Intercorrente Trienal/Bienal: SIM) ou DECADENTE (Decadência: SIM), você DEVE ABORTAR a leitura do recurso e responder APENAS E EXATAMENTE:\n"
             f"'MÉRITO PREJUDICADO. Teses defensivas prejudicadas em razão da extinção da pretensão punitiva ou inadmissibilidade recursal.'\n\n"
             f"Caso contrário (INTEMPESTIVIDADE DO RECURSO: NÃO CONFIGURADA e Prescrições/Decadência: NÃO), localize a defesa nas páginas indicadas: {parecer_obj.paginas_defesa}.\n\n"
             "Liste AS TESES jurídicas apresentadas de forma isolada e em tópicos (bullet points). "
@@ -701,7 +701,7 @@ class AnthropicClient:
             "🔒 FLAGS MATEMÁTICAS — SOBERANAS, INVIOLÁVEIS, NÃO RECALCULE:\n"
             f"• Tempestividade: {'TEMPESTIVO — dentro do prazo' if _f_temp else 'INTEMPESTIVO — fora do prazo'}\n"
             f"• Prescrição Punitiva: {'SIM — CONFIGURADA' if _f_punit else 'NÃO configurada'}\n"
-            f"• Prescrição Intercorrente: {'SIM — CONFIGURADA' if _f_inter else 'NÃO configurada'}\n"
+            f"• Prescrição Intercorrente Trienal: {'SIM — CONFIGURADA' if _f_inter else 'NÃO configurada'}\n"
             f"• Prescrição Intercorrente Bienal: {'SIM — CONFIGURADA' if _f_inter_bienal else 'NÃO configurada' if _f_inter_bienal is not None else 'NÃO SE APLICA'}\n"
             f"• Decadência: {'SIM — CONFIGURADA' if _f_decad else 'NÃO configurada'}\n\n"
             f"🔒 RESULTADO OBRIGATÓRIO DESTE PARECER: {_resultado_obrigatorio}\n"
@@ -743,7 +743,7 @@ class AnthropicClient:
         if _inter_invertido:
             _decisao_inter = "CONFIGURADA" if parecer_obj.julgador_prescricao_intercorrente else "NÃO configurada"
             _section_rules.append(
-                f"• Seção 3.2 Prescrição Intercorrente: o Membro Julgador decidiu que a prescrição intercorrente está {_decisao_inter}. "
+                f"• Seção 3.2 Prescrição Intercorrente Trienal: o Membro Julgador decidiu que a prescrição intercorrente trienal está {_decisao_inter}. "
                 f"Redija nesta seção APENAS a conclusão ({_decisao_inter}) e a base normativa aplicável. "
                 f"PROIBIDO mencionar datas calculadas, prazo divergente ou qualquer resultado diferente."
             )
@@ -792,9 +792,9 @@ class AnthropicClient:
             )
         if _inter_invertido:
             _adm_prefix_parts.append(
-                "🚫 CONCLUSÃO DE PRESCRIÇÃO INTERCORRENTE ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
+                "🚫 CONCLUSÃO DE PRESCRIÇÃO INTERCORRENTE TRIENAL ABAIXO SUPERADA PELA DECISÃO DO JULGADOR 🚫\n"
                 f"Para a seção 3.2, use APENAS a decisão do Membro Julgador: {_decisao_inter}. "
-                "IGNORE a conclusão de prescrição intercorrente que constar no texto de admissibilidade abaixo."
+                "IGNORE a conclusão de prescrição intercorrente trienal que constar no texto de admissibilidade abaixo."
             )
         if _decad_invertido:
             _adm_prefix_parts.append(
@@ -938,7 +938,7 @@ class AnthropicClient:
             "2. Conformidade das datas (infração, julgamento)\n"
             "3. Tempestividade narrativa\n"
             "4. Prescrição punitiva aplicada\n"
-            "5. Prescrição intercorrente\n"
+            "5. Prescrição intercorrente trienal\n"
             "6. Decadência\n"
             "7. Análise correta das teses (Se cabível)\n"
             "8. Compatibilidade lógica entre fundamentação e RESULTADO (Criticamente importante)\n"
@@ -960,7 +960,7 @@ class AnthropicClient:
             f"Prazo Final Máximo (Informado/Calculado): {prazo_final_str}\n"
             f"Tempestividade: {'DENTRO DO PRAZO (TEMPESTIVO)' if _ef_temp else 'FORA DO PRAZO (INTEMPESTIVO)'}\n"
             f"Prescrição Punitiva: {'SIM' if _ef_punit else 'NÃO'}\n"
-            f"Intercorrente: {'SIM' if _ef_inter else 'NÃO'}\n"
+            f"Intercorrente Trienal: {'SIM' if _ef_inter else 'NÃO'}\n"
             f"Decadência: {'SIM' if _ef_decad else 'NÃO'}\n\n"
             f"--- PARECER REDIGIDO PELA FASE 5 (O ALVO DA AUDITORIA) ---\n"
             f"{parecer_obj.parecer_final}\n\n"

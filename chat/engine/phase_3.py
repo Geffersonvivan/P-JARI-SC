@@ -324,7 +324,7 @@ def run(engine) -> str:
         )
         + f"Maior intervalo desde último marco válido identificado = {dias_punitiva} dias corridos calculados. "
         f"(Valor calculado:{'SIM' if parecer.has_prescricao_punitiva else 'NÃO'}).\n"
-        f"- Prescrição Intercorrente (Aniversário de 3 anos alcançado): {relatorio_intercorrente} "
+        f"- Prescrição Intercorrente Trienal (Aniversário de 3 anos alcançado): {relatorio_intercorrente} "
         f"(Valor calculado:{'SIM' if parecer.has_prescricao_intercorrente else 'NÃO'}).\n"
         f"- Prescrição Intercorrente Bienal (Aniversário de 2 anos — art. 285 §6º c/c art. 289-A CTB): {relatorio_intercorrente_bienal} "
         f"(Valor calculado:{'SIM' if parecer.has_prescricao_intercorrente_bienal else 'NÃO'}).\n"

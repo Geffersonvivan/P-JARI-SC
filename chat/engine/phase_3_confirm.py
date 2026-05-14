@@ -151,7 +151,7 @@ def process(engine, message: str) -> str:
             "```\n"
             "Tempestividade - A\n"
             "Prescrição Punitiva - A\n"
-            "Prescrição Intercorrente - B\n"
+            "Prescrição Intercorrente Trienal - B\n"
             "Prescrição Intercorrente Bienal - B\n"
             "Decadência - A\n"
             "```\n\n"
@@ -280,7 +280,7 @@ def process(engine, message: str) -> str:
         from chat.engine import FASE_RESULTADO
         motivo = []
         if parecer.julgador_prescricao_punitiva:      motivo.append("PRESCRIÇÃO PUNITIVA")
-        if parecer.julgador_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE")
+        if parecer.julgador_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE TRIENAL")
         if parecer.julgador_prescricao_intercorrente_bienal: motivo.append("PRESCRIÇÃO INTERCORRENTE BIENAL")
         if parecer.julgador_decadencia:               motivo.append("DECADÊNCIA")
         if parecer.julgador_tempestivo is False:      motivo.append("INTEMPESTIVIDADE")
