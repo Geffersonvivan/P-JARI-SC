@@ -139,6 +139,49 @@ class JariMath:
         return is_prescrito, declaracao
 
     @staticmethod
+    def check_prescription_intercorrente_bienal(data_protocolo, data_sessao):
+        """
+        Prescrição Intercorrente Bienal (art. 285, §6º, c/c art. 289-A do CTB — Lei 14.071/2020).
+        Prazo legal: 2 anos. Contagem: Calendário Civil (data a data).
+        Aplica-se SOMENTE a protocolos de recurso JARI a partir de 01/01/2024.
+
+        Regra de contagem:
+        Some 2 (dois) anos civis à data do protocolo do recurso JARI.
+        Se a Data da Sessão for anterior ou igual ao aniversário: NÃO configurada.
+        Se a Data da Sessão for posterior ao aniversário: configurada.
+        """
+        if not data_protocolo or not data_sessao:
+            return False, "Dados insuficientes para calcular a prescrição intercorrente bienal."
+
+        if isinstance(data_protocolo, str):
+            data_protocolo = datetime.datetime.strptime(data_protocolo, "%Y-%m-%d").date()
+        if isinstance(data_sessao, str):
+            data_sessao = datetime.datetime.strptime(data_sessao, "%Y-%m-%d").date()
+
+        # Só se aplica a protocolos >= 01/01/2024
+        if data_protocolo < datetime.date(2024, 1, 1):
+            return False, "Prescrição intercorrente bienal não se aplica (protocolo anterior a 01/01/2024)."
+
+        # Calcula o aniversário de 2 anos (Calendário Civil - data a data)
+        try:
+            aniversario = data_protocolo.replace(year=data_protocolo.year + 2)
+        except ValueError:
+            aniversario = data_protocolo.replace(year=data_protocolo.year + 2, day=28)
+
+        is_prescrito = data_sessao > aniversario
+
+        if is_prescrito:
+            declaracao = "Prescrição intercorrente bienal configurada."
+        else:
+            declaracao = "Prescrição intercorrente bienal não configurada."
+
+        _logger.info(
+            "[JARIMATH] intercorrente_bienal=%s | protocolo=%s | aniversario=%s | sessao=%s",
+            is_prescrito, data_protocolo, aniversario, data_sessao,
+        )
+        return is_prescrito, declaracao
+
+    @staticmethod
     def check_decadencia(data_infracao, data_expedicao_autuacao, data_decisao_final=None,
                          tipo_penalidade=None, data_conclusao_multa=None,
                          tem_flagrante=None, data_conhecimento_infracao=None):

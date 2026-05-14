@@ -48,6 +48,7 @@ class Parecer(models.Model):
     is_tempestivo = models.BooleanField(null=True, blank=True)
     has_prescricao_punitiva = models.BooleanField(null=True, blank=True)
     has_prescricao_intercorrente = models.BooleanField(null=True, blank=True)
+    has_prescricao_intercorrente_bienal = models.BooleanField(null=True, blank=True)
     has_decadencia = models.BooleanField(null=True, blank=True)
 
     # Fase 1 — Extração automática via Gemini (JSON com campos + confiança)

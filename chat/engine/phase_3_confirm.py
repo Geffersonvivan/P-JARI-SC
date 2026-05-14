@@ -256,6 +256,7 @@ def process(engine, message: str) -> str:
     prejudica = (
         parecer.julgador_prescricao_punitiva
         or parecer.julgador_prescricao_intercorrente
+        or parecer.has_prescricao_intercorrente_bienal
         or parecer.julgador_decadencia
         or (parecer.julgador_tempestivo is False)
     )
@@ -271,6 +272,7 @@ def process(engine, message: str) -> str:
         motivo = []
         if parecer.julgador_prescricao_punitiva:      motivo.append("PRESCRIÇÃO PUNITIVA")
         if parecer.julgador_prescricao_intercorrente: motivo.append("PRESCRIÇÃO INTERCORRENTE")
+        if parecer.has_prescricao_intercorrente_bienal: motivo.append("PRESCRIÇÃO INTERCORRENTE BIENAL")
         if parecer.julgador_decadencia:               motivo.append("DECADÊNCIA")
         if parecer.julgador_tempestivo is False:      motivo.append("INTEMPESTIVIDADE")
         parecer.tese = f"MÉRITO PREJUDICADO ({' / '.join(motivo)})."

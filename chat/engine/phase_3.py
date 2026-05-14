@@ -247,6 +247,11 @@ def run(engine) -> str:
     )
     parecer.has_prescricao_intercorrente = inter_bool
 
+    inter_bienal_bool, relatorio_intercorrente_bienal = JariMath.check_prescription_intercorrente_bienal(
+        parecer.data_protocolo, parecer.data_sessao
+    )
+    parecer.has_prescricao_intercorrente_bienal = inter_bienal_bool
+
     decadencia_bool, relatorio_decadencia = JariMath.check_decadencia(
         data_infracao,
         data_notificacao_autuacao,
@@ -321,6 +326,8 @@ def run(engine) -> str:
         f"(Valor calculado:{'SIM' if parecer.has_prescricao_punitiva else 'NÃO'}).\n"
         f"- Prescrição Intercorrente (Aniversário de 3 anos alcançado): {relatorio_intercorrente} "
         f"(Valor calculado:{'SIM' if parecer.has_prescricao_intercorrente else 'NÃO'}).\n"
+        f"- Prescrição Intercorrente Bienal (Aniversário de 2 anos — art. 285 §6º c/c art. 289-A CTB): {relatorio_intercorrente_bienal} "
+        f"(Valor calculado:{'SIM' if parecer.has_prescricao_intercorrente_bienal else 'NÃO'}).\n"
         f"- Decadência (Regimes temporais do CTB / Resolução):\n{relatorio_decadencia}\n"
         f"(Valor calculado:{decadencia_final})\n"
     )

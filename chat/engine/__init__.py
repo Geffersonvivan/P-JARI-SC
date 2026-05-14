@@ -202,7 +202,7 @@ class JariEngine:
             'recorrente', 'data_sessao', 'data_protocolo', 'prazo_final',
             'paginas_defesa', 'fase1_extracao_json', 'tipo_penalidade', 'data_conclusao_multa',
             'tem_flagrante', 'data_conhecimento_infracao', 'data_infracao', 'data_totalizacao_pontos',
-            'is_tempestivo', 'has_prescricao_punitiva', 'has_prescricao_intercorrente', 'has_decadencia',
+            'is_tempestivo', 'has_prescricao_punitiva', 'has_prescricao_intercorrente', 'has_prescricao_intercorrente_bienal', 'has_decadencia',
             'julgador_tempestivo', 'julgador_prescricao_punitiva',
             'julgador_prescricao_intercorrente', 'julgador_decadencia',
             'admissibilidade_texto', 'tese', 'vertex_result', 'perplexity_result',
