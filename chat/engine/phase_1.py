@@ -121,6 +121,13 @@ def process_confirm(engine, message: str) -> str:
     # Campos opcionais
     parecer.recorrente = (payload.get("recorrente") or parecer.recorrente or "").upper() or None
 
+    pf = payload.get("prazo_final", "").strip()
+    if pf:
+        _pf_parsed = _parse_date_flex(pf)
+        if not _pf_parsed:
+            return f"❌ Prazo Final inválido: '{pf}'. Use DD/MM/AAAA."
+        parecer.prazo_final = _pf_parsed
+
     dp = payload.get("data_protocolo", "").strip()
     if dp:
         _dp_parsed = _parse_date_flex(dp)
@@ -134,6 +141,7 @@ def process_confirm(engine, message: str) -> str:
 
     # Validação dos campos mínimos
     faltando = []
+    if not parecer.prazo_final:    faltando.append("Prazo Final")
     if not parecer.data_protocolo: faltando.append("Data do Protocolo")
     if not parecer.paginas_defesa: faltando.append("Páginas da Defesa")
     if faltando:
