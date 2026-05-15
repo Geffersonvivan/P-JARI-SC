@@ -553,20 +553,18 @@
             <div id="p1-dados" class="hidden" style="max-width:680px;">
 
                 <!-- Header -->
-                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px 16px;margin-bottom:18px;">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
-                        <i class="ph ph-robot" style="color:#16a34a;font-size:16px;"></i>
-                        <span style="font-size:13px;font-weight:700;color:#15803d;">Dados extraídos automaticamente</span>
+                        <i class="ph ph-pencil-simple" style="color:#2563eb;font-size:16px;"></i>
+                        <span style="font-size:13px;font-weight:700;color:#1d4ed8;">Preencha os dados do processo</span>
                     </div>
-                    <p style="font-size:11px;color:#166534;margin:0;">Revise, corrija se necessário e confirme para avançar.</p>
+                    <p style="font-size:11px;color:#1e40af;margin:0;">Informe as datas e dados necessários e confirme para avançar.</p>
                 </div>
 
                         <!-- DATA DA SESSÃO (full width) -->
                         <div style="margin-bottom:14px;position:relative;">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
                                 <label class="f2-label" style="margin:0;">Data da Sessão</label>
-                                {% if parecer.data_sessao %}<span class="f2-badge-ok">✓ Encontrado</span>
-                                {% else %}<span class="f2-badge-miss">Preenchimento manual</span>{% endif %}
                             </div>
                             <input id="f2-data_sessao" class="f2-input"
                                 value="{{ parecer.data_sessao|date:'d/m/Y'|default:'' }}"
@@ -601,8 +599,6 @@
                             <div style="position:relative;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
                                     <label class="f2-label" style="margin:0;">Prazo Protocolo</label>
-                                    {% if parecer.prazo_final %}<span class="f2-badge-ok">✓</span>
-                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
                                 </div>
                                 <input id="f2-prazo_final" class="f2-input"
                                     value="{{ parecer.prazo_final|date:'d/m/Y'|default:'' }}"
@@ -625,8 +621,6 @@
                             <div style="position:relative;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
                                     <label class="f2-label" style="margin:0;">Data Protocolo</label>
-                                    {% if parecer.data_protocolo %}<span class="f2-badge-ok">✓</span>
-                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
                                 </div>
                                 <input id="f2-data_protocolo" class="f2-input"
                                     value="{{ parecer.data_protocolo|date:'d/m/Y'|default:'' }}"
@@ -645,8 +639,6 @@
                             <div>
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
                                     <label class="f2-label" style="margin:0;">Páginas Defesa</label>
-                                    {% if parecer.paginas_defesa %}<span class="f2-badge-ok">✓</span>
-                                    {% else %}<span class="f2-badge-miss">—</span>{% endif %}
                                 </div>
                                 <input id="f2-paginas_defesa" class="f2-input"
                                     value="{{ parecer.paginas_defesa|default:'' }}"

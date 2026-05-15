@@ -216,109 +216,34 @@ def run_autopreenchimento(engine) -> str:
         except Exception as e:
             logger.warning(f"run_fase1_autopreenchimento: erro no pyMuPDF falha silenciosa permitida ({e})")
 
+    # ── Extrair apenas o Recorrente do PDF (sem chamada de API) ──
     try:
-        from django.conf import settings as _settings
         from chat.pdf_extractor import PDFExtractor
         from chat.integrations.perplexity import _p
+        import re as _re
 
-        # Extrair Markdown estruturado dos PDFs (usado por ambos os modos)
-        markdown_texts = {}
         _con = _p(parecer.consolidado_pdf_path)
-        logger.info(f"[FASE1_AUTO] parecer={parecer.id} consolidado_path={_con}")
-        if _con and "upload_simulado" not in _con:
-            md = PDFExtractor.extract_structured_markdown(_con, label="CONSOLIDADO")
-            logger.info(f"[FASE1_AUTO] parecer={parecer.id} markdown_len={len(md) if md else 0}")
+        if _con and "upload_simulado" not in _con and not parecer.recorrente:
+            md = PDFExtractor.extract_structured_markdown(_con, label="CONSOLIDADO", max_pages=10)
             if md:
-                markdown_texts['consolidado'] = md
-
-        if getattr(_settings, 'UNIFIED_FASE1_FASE2', False):
-            # ── Modo unificado: F1+F2 numa única chamada ──
-            # Extrair datas brutas via regex (input para a tabela de datas sensíveis)
-            datas_con, _chars_con = [], 0
-            if _con and "upload_simulado" not in _con:
-                datas_con, _chars_con = PDFExtractor.extract_dates_from_pdf(_con, "Consolidado")
-            contexto_datas = PDFExtractor.format_extraction_for_llm([], datas_con)
-            _total_chars = _chars_con
-
-            logger.info(f"[UNIFIED] parecer={parecer.id} docs={list(markdown_texts.keys())} "
-                        f"md_chars={sum(len(v) for v in markdown_texts.values())} pdf_chars={_total_chars}")
-
-            from chat.integrations.anthropic import AnthropicClient
-            dados = AnthropicClient().extract_unified_fase1_fase2(
-                parecer, markdown_texts, contexto_datas, pdf_chars=_total_chars
-            )
-            if not dados:
-                logger.error(f"[FASE1_AUTO] parecer={parecer.id} extract_unified retornou None — API pode ter falhado")
+                # Buscar nome do recorrente via padrões comuns nos documentos
+                _patterns = [
+                    r'(?:RECORRENTE|CONDUTOR|AUTUADO|INTERESSADO)\s*[:\-–]\s*([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s\.]{3,60})',
+                    r'condutor\(?a?\)?\s+([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s\.]{3,60})',
+                ]
+                for pat in _patterns:
+                    m = _re.search(pat, md)
+                    if m:
+                        _nome = m.group(1).strip().rstrip(',.')
+                        if len(_nome) > 3:
+                            parecer.recorrente = _nome[:250].upper()
+                            logger.info(f"[FASE1_AUTO] parecer={parecer.id} recorrente extraído via regex: {parecer.recorrente}")
+                            break
     except Exception as e:
-        logger.error(f"[FASE1_AUTO] parecer={parecer.id} ERRO na extração: {type(e).__name__}: {e}")
-        dados = None
-
-    if not dados:
-        dados = {}
-
-    def _parse_date(s):
-        try:
-            return datetime.datetime.strptime(s.strip(), "%d/%m/%Y").date() if s else None
-        except (ValueError, AttributeError):
-            return None
-
-    # ── Salvar campos F1 (administrativos) ──
-    _nulos = {'nulo', 'null', 'none', 'n/a', 'não encontrado', 'nao encontrado',
-              'não localizado', 'nao localizado', 'não informado', 'nao informado', ''}
-
-    def _val(key):
-        """Retorna valor do dict ou None se for string nula/vazia."""
-        v = dados.get(key)
-        if not v:
-            return None
-        return None if str(v).strip().lower() in _nulos else str(v).strip()
-
-    if _val("recorrente") and not parecer.recorrente:
-        parecer.recorrente = _val("recorrente")
-    if _val("prazo_final") and not parecer.prazo_final:
-        parecer.prazo_final = _parse_date(_val("prazo_final"))
-    if _val("data_protocolo") and not parecer.data_protocolo:
-        parecer.data_protocolo = _parse_date(_val("data_protocolo"))
-    if _val("paginas_defesa") and not parecer.paginas_defesa:
-        parecer.paginas_defesa = _val("paginas_defesa")
-
-    # ── Salvar campos F2 (DIR) se modo unificado ──
-    from django.conf import settings as _settings
-    if getattr(_settings, 'UNIFIED_FASE1_FASE2', False) and dados.get("tabela_markdown"):
-        _tp = (dados.get('tipo_penalidade') or '').lower().strip()
-        if _tp and _tp != 'nao_determinado':
-            parecer.tipo_penalidade = _tp
-
-        _flag = (dados.get('tem_flagrante') or '').upper().strip()
-        if _flag == 'SIM':
-            parecer.tem_flagrante = True
-        elif _flag == 'NAO':
-            parecer.tem_flagrante = False
-
-        _dc = dados.get('data_conclusao_multa', '')
-        if _dc and 'NAO_SE_APLICA' not in _dc.upper():
-            parecer.data_conclusao_multa = _parse_date(_dc)
-
-        _dci = dados.get('data_conhecimento_infracao', '')
-        if _dci and 'NAO_SE_APLICA' not in _dci.upper():
-            parecer.data_conhecimento_infracao = _parse_date(_dci)
-
-        _dtp = dados.get('data_totalizacao_pontos', '')
-        if _dtp and 'NAO_SE_APLICA' not in _dtp.upper():
-            parecer.data_totalizacao_pontos = _parse_date(_dtp)
-
-        _rec = (dados.get('recorrente') or '').strip()
-        if _rec and 'NÃO LOCALIZADO' not in _rec.upper():
-            parecer.recorrente = _rec[:250].upper()
-
-        # Normalizar markdown da tabela
-        from chat.engine.phase_2 import _normalizar_markdown_tabela
-        parecer.tabela_datas_sensiveis = _normalizar_markdown_tabela(dados['tabela_markdown'])
-
-        logger.info(f"[UNIFIED] parecer={parecer.id} campos F2 salvos: tp={_tp} flag={_flag}")
+        logger.warning(f"[FASE1_AUTO] parecer={parecer.id} erro ao extrair recorrente: {e}")
 
     from chat.engine import FASE_AGUARDA_CONFIRMACAO_FASE1
-    parecer.fase1_extracao_json = dados
+    parecer.fase1_extracao_json = {}
     parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_FASE1
     parecer.save()
 
