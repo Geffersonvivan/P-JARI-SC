@@ -17,12 +17,10 @@ def get_prompt(parecer) -> str:
         return "1. Faça o upload do **Consolidado do processo** (PDF único)."
     elif not parecer.data_sessao:
         return "2. Informe a **Data da Sessão de Julgamento** (DD/MM/AAAA):"
-    elif not parecer.prazo_final:
-        return "3. Informe o **Prazo Final para protocolo do recurso JARI** (DD/MM/AAAA):"
     elif not parecer.data_protocolo:
-        return "4. Informe a **Data do protocolo do recurso JARI** (DD/MM/AAAA):"
+        return "3. Informe a **Data do protocolo do recurso JARI** (DD/MM/AAAA):"
     elif not parecer.paginas_defesa:
-        return "5. Informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
+        return "4. Informe as **Páginas da defesa Recurso JARI** (ex: 15-24):"
     return "Fase 1 concluída."
 
 
@@ -62,11 +60,6 @@ def process(engine, message: str, uploaded_files: list) -> str:
             parecer.data_sessao = datetime.datetime.strptime(val, "%d/%m/%Y").date()
         except Exception:
             return f"❌ Erro ao ler a data {val}. O formato deve ser DD/MM/AAAA. Ex: 15/05/2024. Tente novamente."
-    elif not parecer.prazo_final:
-        try:
-            parecer.prazo_final = datetime.datetime.strptime(val, "%d/%m/%Y").date()
-        except Exception:
-            return f"❌ Erro ao ler a data de prazo {val}. O formato deve ser DD/MM/AAAA."
     elif not parecer.data_protocolo:
         try:
             parecer.data_protocolo = datetime.datetime.strptime(val, "%d/%m/%Y").date()
@@ -128,13 +121,6 @@ def process_confirm(engine, message: str) -> str:
     # Campos opcionais
     parecer.recorrente = (payload.get("recorrente") or parecer.recorrente or "").upper() or None
 
-    pf = payload.get("prazo_final", "").strip()
-    if pf:
-        _pf_parsed = _parse_date_flex(pf)
-        if not _pf_parsed:
-            return f"❌ Prazo Final inválido: '{pf}'. Use DD/MM/AAAA."
-        parecer.prazo_final = _pf_parsed
-
     dp = payload.get("data_protocolo", "").strip()
     if dp:
         _dp_parsed = _parse_date_flex(dp)
@@ -148,7 +134,6 @@ def process_confirm(engine, message: str) -> str:
 
     # Validação dos campos mínimos
     faltando = []
-    if not parecer.prazo_final:    faltando.append("Prazo Final")
     if not parecer.data_protocolo: faltando.append("Data do Protocolo")
     if not parecer.paginas_defesa: faltando.append("Páginas da Defesa")
     if faltando:

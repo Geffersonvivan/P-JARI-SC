@@ -583,8 +583,8 @@
                         </div>
 
 
-                        <!-- RECORRENTE + PRAZO FINAL -->
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+                        <!-- RECORRENTE -->
+                        <div style="margin-bottom:14px;">
                             <div>
                                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
                                     <label class="f2-label" style="margin:0;">Recorrente</label>
@@ -595,24 +595,6 @@
                                     value="{{ parecer.recorrente|default:'' }}"
                                     placeholder="Nome do recorrente"
                                     onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e5e7eb'">
-                            </div>
-                            <div style="position:relative;">
-                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-                                    <label class="f2-label" style="margin:0;">Prazo Protocolo</label>
-                                </div>
-                                <input id="f2-prazo_final" class="f2-input"
-                                    value="{{ parecer.prazo_final|date:'d/m/Y'|default:'' }}"
-                                    placeholder="DD/MM/AAAA"
-                                    autocomplete="off"
-                                    onfocus="abrirCalendarioPrazo()" onblur="this.style.borderColor='#e5e7eb'">
-                                <div id="cal-prazo" style="display:none;position:absolute;top:100%;left:0;z-index:9999;background:#fff;border:1px solid #d1d5db;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);padding:12px;width:260px;margin-top:4px;">
-                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                                        <button type="button" onclick="calPrazoNavegar(-1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;" title="Mês anterior">‹</button>
-                                        <span id="cal-prazo-titulo" style="font-size:13px;font-weight:700;color:#111827;"></span>
-                                        <button type="button" onclick="calPrazoNavegar(1)" style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;font-size:16px;color:#374151;line-height:1;" title="Próximo mês">›</button>
-                                    </div>
-                                    <div id="cal-prazo-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;"></div>
-                                </div>
                             </div>
                         </div>
 
@@ -1674,7 +1656,7 @@ function expandPdf()   { if (_pdfCollapsed)  togglePdfCol(); }
 function initPdfTabs() {
     const firstTab = document.querySelector('.pdf-tab');
     if (firstTab) switchPdfTab(firstTab);
-    ['data_sessao','data_protocolo','prazo_final','recorrente'].forEach(campo => {
+    ['data_sessao','data_protocolo','recorrente'].forEach(campo => {
         const el = document.getElementById(`f2-${campo}`);
         if (el) el.dataset.original = el.value;
     });
@@ -1691,9 +1673,6 @@ async function confirmarDocumentos() {
 
     const dpEl = document.getElementById('f2-data_protocolo');
     if (dpEl && dpEl.value.trim()) payload.data_protocolo = dpEl.value.trim();
-
-    const pfEl = document.getElementById('f2-prazo_final');
-    if (pfEl && pfEl.value.trim()) payload.prazo_final = pfEl.value.trim();
 
     const recEl = document.getElementById('f2-recorrente');
     if (recEl && recEl.value.trim()) payload.recorrente = recEl.value.trim();
@@ -3088,11 +3067,6 @@ const _calSessao = _criarCalendario({ calId:'cal-sessao', tituloId:'cal-titulo',
 window.abrirCalendarioSessao  = () => _calSessao.abrir();
 window.fecharCalendarioSessao = () => _calSessao.fechar();
 window.calNavegar             = (d) => _calSessao.navegar(d);
-
-// ─── CALENDÁRIO PRAZO PROTOCOLO ──────────────────────
-const _calPrazo = _criarCalendario({ calId:'cal-prazo', tituloId:'cal-prazo-titulo', gridId:'cal-prazo-grid', inputId:'f2-prazo_final' });
-window.abrirCalendarioPrazo   = () => _calPrazo.abrir();
-window.calPrazoNavegar        = (d) => _calPrazo.navegar(d);
 
 // ─── CALENDÁRIO DATA PROTOCOLO ──────────────────────
 const _calProtocolo = _criarCalendario({ calId:'cal-protocolo', tituloId:'cal-protocolo-titulo', gridId:'cal-protocolo-grid', inputId:'f2-data_protocolo' });
