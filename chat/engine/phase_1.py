@@ -247,7 +247,7 @@ def run_autopreenchimento(engine) -> str:
     parecer.status_fase = FASE_AGUARDA_CONFIRMACAO_FASE1
     parecer.save()
 
-    logger.info(f"[FASE1_AUTO] parecer={parecer.id} extração OK: {list(dados.keys())}")
+    logger.info(f"[FASE1_AUTO] parecer={parecer.id} extração OK (somente recorrente via regex)")
     return engine.get_current_prompt()
 
 
