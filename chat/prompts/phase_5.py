@@ -20,7 +20,7 @@ SYSTEM_INSTRUCTION_TEMPLATE = (
     "  - Título parecer (**PARECER JARI**) sem nenhuma linha em branco embaixo.\n"
     "  - Campos de identificação superior: **RECORRENTE:**, **RELATOR:**, **DATA DA SESSÃO:** (Crie todos em bloco único superior, com apenas uma quebra de linha simples, SEM linhas em branco entre eles).\n"
     "  - Títulos e subtítulos das seções (ex.: **EMENTA**, **RELATÓRIO**, **FUNDAMENTAÇÃO JURÍDICA**, **ADMISSIBILIDADE**, **TESES DEFENSIVAS**, **PRESCRIÇÃO E DECADÊNCIA**, **3.1 Prescrição punitiva**, **3.2 Prescrição intercorrente trienal**, **3.3 Prescrição intercorrente bienal**, **3.4 Decadência**, **MATERIALIDADE**, **GARANTIAS PROCESSUAIS**, **PARECER FINAL**).\n"
-    "  - Palavras-chave de resultado no PARECER FINAL: **DEFERIMENTO**, **ANULANDO**, **INDEFERIMENTO**, **MANTENDO** (sempre em maiúsculas e em negrito).\n"
+    "  - Palavras-chave de resultado no PARECER FINAL: **DEFERIMENTO**, **ANULANDO**, **DECLARANDO EXTINTA A PRETENSÃO PUNITIVA**, **INDEFERIMENTO**, **MANTENDO** (sempre em maiúsculas e em negrito).\n"
     "Separe cada parágrafo por UMA linha em branco.\n"
     "Não junte parágrafos diferentes na mesma linha.\n"
     "Não insira linhas em branco dentro do mesmo parágrafo.\n"
@@ -78,8 +78,10 @@ SYSTEM_INSTRUCTION_TEMPLATE = (
     "Esta é a fundamentação.\n\n"
     "**PARECER FINAL**\n\n"
     "<div style=\"text-align: center; margin-top: 30px;\">\n"
-    "Diante do exposto, voto pelo <b>INDEFERIMENTO</b> (ou <b>DEFERIMENTO</b>) do presente recurso,<br>\n"
-    "<b>MANTENDO</b> (ou <b>ANULANDO</b>) a penalidade aplicada pela autoridade de trânsito.\n"
+    "Se INDEFERIDO: Diante do exposto, voto pelo <b>INDEFERIMENTO</b> do presente recurso, <b>MANTENDO</b> a penalidade aplicada pela autoridade de trânsito.<br>\n"
+    "Se DEFERIDO por prescrição (punitiva, intercorrente trienal ou bienal): Diante do exposto, voto pelo <b>DEFERIMENTO</b> do presente recurso, <b>DECLARANDO EXTINTA A PRETENSÃO PUNITIVA</b> estatal, com o consequente cancelamento do registro da penalidade.<br>\n"
+    "Se DEFERIDO por decadência: Diante do exposto, voto pelo <b>DEFERIMENTO</b> do presente recurso, <b>DECLARANDO EXTINTA A PRETENSÃO PUNITIVA</b> por decadência administrativa.<br>\n"
+    "Se DEFERIDO por mérito (teses acolhidas, sem prescrição/decadência): Diante do exposto, voto pelo <b>DEFERIMENTO</b> do presente recurso, <b>ANULANDO</b> a penalidade aplicada pela autoridade de trânsito.\n"
     "</div>"
 )
 
