@@ -134,23 +134,57 @@ class AnthropicClient:
         except Exception as e:
             _log.error("Erro ao logar tokens Anthropic: %s", e)
 
-    def get_pdf_content(self, file_path):
+    def get_pdf_content(self, file_path, page_range=None):
+        """Retorna bloco base64 do PDF. Se page_range=(start, end), extrai só essas páginas."""
         if not file_path: return None
         from django.core.files.storage import default_storage
         try:
             with default_storage.open(file_path, 'rb') as f:
-                pdf_data = base64.b64encode(f.read()).decode("utf-8")
-                return {
-                    "type": "document",
-                    "source": {
-                        "type": "base64",
-                        "media_type": "application/pdf",
-                        "data": pdf_data
-                    }
+                raw_bytes = f.read()
+
+            if page_range:
+                try:
+                    import io
+                    from pypdf import PdfReader, PdfWriter
+                    reader = PdfReader(io.BytesIO(raw_bytes))
+                    start, end = page_range
+                    end = min(end, len(reader.pages))
+                    if start < end:
+                        writer = PdfWriter()
+                        for i in range(start, end):
+                            writer.add_page(reader.pages[i])
+                        buf = io.BytesIO()
+                        writer.write(buf)
+                        raw_bytes = buf.getvalue()
+                        _log.info("get_pdf_content: extraído páginas %d-%d de %d (%s)",
+                                  start + 1, end, len(reader.pages), file_path)
+                except Exception as e:
+                    _log.warning("get_pdf_content: falha ao extrair páginas, enviando completo: %s", e)
+
+            pdf_data = base64.b64encode(raw_bytes).decode("utf-8")
+            return {
+                "type": "document",
+                "source": {
+                    "type": "base64",
+                    "media_type": "application/pdf",
+                    "data": pdf_data
                 }
+            }
         except Exception as e:
             _log.error("Anthropic PDF encoding error: %s", e)
             return None
+
+    def _get_pdf_page_count(self, file_path):
+        """Retorna o número de páginas do PDF."""
+        from django.core.files.storage import default_storage
+        try:
+            with default_storage.open(file_path, 'rb') as f:
+                import io
+                from pypdf import PdfReader
+                reader = PdfReader(io.BytesIO(f.read()))
+                return len(reader.pages)
+        except Exception:
+            return 0
 
     def extract_unified_fase1_fase2(self, parecer_obj, markdown_texts, contexto_textual_datas, pdf_chars=9999):
         """
@@ -241,33 +275,33 @@ class AnthropicClient:
         )
 
         # Montar content blocks: PDFs base64 + texto
-        content_blocks = []
+        # Se o PDF tem muitas páginas (>70), divide em lotes para caber no limite de 200k tokens.
+        # ~2300 tokens/página escaneada → 70 páginas ≈ 161k tokens + prompt ≈ 170k (seguro).
+        _MAX_PAGES_PER_CALL = 70
 
-        # Anexar PDFs como documentos base64 (Claude suporta PDF nativo)
         from chat.integrations.perplexity import _p
         from django.core.files.storage import default_storage
         _con_path = _p(parecer_obj.consolidado_pdf_path)
+        _total_pages = 0
+        _pdf_available = False
         if _con_path and "upload_simulado" not in _con_path:
             try:
                 if default_storage.exists(_con_path):
-                    pdf_block = self.get_pdf_content(_con_path)
-                    if pdf_block:
-                        content_blocks.append(pdf_block)
+                    _total_pages = self._get_pdf_page_count(_con_path)
+                    _pdf_available = True
             except Exception:
                 pass
 
-        content_blocks.append({"type": "text", "text": prompt_text})
-
-        _log.info("extract_unified_anthropic parecer=%s docs=%s total_chars=%d",
+        _log.info("extract_unified_anthropic parecer=%s docs=%s total_chars=%d pdf_pages=%d",
                   parecer_obj.id, list(markdown_texts.keys()) if markdown_texts else [],
-                  len(docs_markdown))
+                  len(docs_markdown), _total_pages)
 
-        try:
-            from chat.tier import get_models_for_parecer
-            _tier_models = get_models_for_parecer(parecer_obj)
-            start_time = time.time()
-            _model = _tier_models['anthropic_f3']
+        from chat.tier import get_models_for_parecer
+        _tier_models = get_models_for_parecer(parecer_obj)
+        _model = _tier_models['anthropic_f3']
 
+        def _do_extraction(content_blocks, label=""):
+            """Faz uma chamada de extração e retorna o dict parsed."""
             def _call():
                 return self.client.messages.create(
                     model=_model,
@@ -275,31 +309,83 @@ class AnthropicClient:
                     system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
                     messages=[{"role": "user", "content": content_blocks}],
                 )
-
             response = _retry_on_rate_limit(_call)
-
             raw_text = response.content[0].text.strip()
-            # Limpar possíveis fences de markdown
             if raw_text.startswith('```'):
                 raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
                 if raw_text.endswith('```'):
                     raw_text = raw_text[:-3].strip()
-
-            # Extrair apenas o bloco JSON — Haiku pode adicionar texto após o JSON
             dados = _extract_json_block(raw_text)
-
             self._log_tokens(
-                parecer_obj,
-                response.usage.input_tokens,
-                response.usage.output_tokens,
-                'Extração Unificada F1+F2',
-                model_name=_model,
-                start_time=start_time,
+                parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
+                f'Extração Unificada F1+F2{label}', model_name=_model, start_time=time.time(),
             )
-
-            _log.info("extract_unified_anthropic: OK parecer=%s campos=%s",
-                      parecer_obj.id, [k for k, v in dados.items() if v and '_conf' not in k and k != 'tabela_markdown'])
             return dados
+
+        try:
+            start_time = time.time()
+
+            if _pdf_available and _total_pages > _MAX_PAGES_PER_CALL:
+                # ── PDF grande: dividir em lotes ──
+                _log.info("extract_unified_anthropic: PDF grande (%d páginas), dividindo em lotes de %d",
+                          _total_pages, _MAX_PAGES_PER_CALL)
+                all_results = []
+                for batch_start in range(0, _total_pages, _MAX_PAGES_PER_CALL):
+                    batch_end = min(batch_start + _MAX_PAGES_PER_CALL, _total_pages)
+                    batch_label = f" (pág {batch_start+1}-{batch_end})"
+
+                    cb = []
+                    pdf_block = self.get_pdf_content(_con_path, page_range=(batch_start, batch_end))
+                    if pdf_block:
+                        cb.append(pdf_block)
+                    cb.append({"type": "text", "text": prompt_text + f"\n\nNOTA: Este é o lote de páginas {batch_start+1} a {batch_end} de {_total_pages} do PDF."})
+
+                    result = _do_extraction(cb, label=batch_label)
+                    if result:
+                        all_results.append(result)
+                    _log.info("extract_unified_anthropic: lote pág %d-%d OK parecer=%s",
+                              batch_start + 1, batch_end, parecer_obj.id)
+
+                # Mesclar resultados: primeiro lote é base, lotes seguintes preenchem campos vazios
+                if not all_results:
+                    _log.warning("extract_unified_anthropic: todos os lotes falharam parecer=%s", parecer_obj.id)
+                    return None
+
+                merged = all_results[0]
+                _nulos = {'', 'nulo', 'null', 'none', 'nao_determinado', 'nao_se_aplica',
+                          'não localizado', 'nao localizado', 'não encontrado', 'nao encontrado',
+                          'não informado', 'nao informado', 'n/a'}
+                for extra in all_results[1:]:
+                    for k, v in extra.items():
+                        if k == 'tabela_markdown':
+                            # Concatenar tabelas de todos os lotes
+                            existing = merged.get('tabela_markdown', '')
+                            new_table = v or ''
+                            if new_table and new_table not in existing:
+                                merged['tabela_markdown'] = existing + '\n\n' + new_table
+                        elif not merged.get(k) or str(merged.get(k, '')).strip().lower() in _nulos:
+                            if v and str(v).strip().lower() not in _nulos:
+                                merged[k] = v
+
+                _log.info("extract_unified_anthropic: merge OK parecer=%s lotes=%d campos=%s",
+                          parecer_obj.id, len(all_results),
+                          [k for k, v in merged.items() if v and '_conf' not in k and k != 'tabela_markdown'])
+                return merged
+
+            else:
+                # ── PDF normal: chamada única ──
+                content_blocks = []
+                if _pdf_available:
+                    pdf_block = self.get_pdf_content(_con_path)
+                    if pdf_block:
+                        content_blocks.append(pdf_block)
+                content_blocks.append({"type": "text", "text": prompt_text})
+
+                dados = _do_extraction(content_blocks)
+                _log.info("extract_unified_anthropic: OK parecer=%s campos=%s",
+                          parecer_obj.id, [k for k, v in dados.items() if v and '_conf' not in k and k != 'tabela_markdown'])
+                return dados
+
         except Exception as e:
             _log.warning("extract_unified_anthropic falhou parecer=%s: %s: %s",
                          parecer_obj.id, type(e).__name__, e)
@@ -358,6 +444,10 @@ class AnthropicClient:
         # (< 2000 chars = PDF ilegível, precisa visão). Caso contrário, o texto em
         # contexto_textual_datas já contém todas as datas e enviar PDFs base64 de 7MB+
         # desperdiça tokens e causa rate limit.
+        # Para PDFs grandes (>70 páginas), envia apenas as primeiras 70 para caber no limite
+        # de 200k tokens — as datas-chave da F2 (infração, notificação, protocolo) estão
+        # tipicamente nas primeiras páginas.
+        _MAX_PAGES_F2 = 70
         content_blocks = []
         if pdf_chars < 2000:
             _log.info("generate_phase2_report: pdf_chars=%d < 2000 — enviando PDFs base64", pdf_chars)
@@ -367,7 +457,12 @@ class AnthropicClient:
             if _con_path and "upload_simulado" not in _con_path:
                 try:
                     if default_storage.exists(_con_path):
-                        pdf_block = self.get_pdf_content(_con_path)
+                        _pages = self._get_pdf_page_count(_con_path)
+                        _range = (0, _MAX_PAGES_F2) if _pages > _MAX_PAGES_F2 else None
+                        if _range:
+                            _log.info("generate_phase2_report: PDF grande (%d páginas), enviando primeiras %d",
+                                      _pages, _MAX_PAGES_F2)
+                        pdf_block = self.get_pdf_content(_con_path, page_range=_range)
                         if pdf_block:
                             content_blocks.append(pdf_block)
                 except Exception:
@@ -494,7 +589,8 @@ class AnthropicClient:
             "Apenas descreva o que foi pedido, detalhando cada ponto separadamente. Reforçando: não gere respostas, julgamentos ou mérito agora, apenas a LISTAGEM e classificação das teses alegadas no Recurso."
         )
 
-        # PDFs base64
+        # PDFs base64 — limitar a 70 páginas para caber no limite de 200k tokens
+        _MAX_PAGES_F4 = 70
         content_blocks = []
         from chat.integrations.perplexity import _p
         from django.core.files.storage import default_storage
@@ -502,7 +598,12 @@ class AnthropicClient:
         if _con_path and "upload_simulado" not in _con_path:
             try:
                 if default_storage.exists(_con_path):
-                    pdf_block = self.get_pdf_content(_con_path)
+                    _pages = self._get_pdf_page_count(_con_path)
+                    _range = (0, _MAX_PAGES_F4) if _pages > _MAX_PAGES_F4 else None
+                    if _range:
+                        _log.info("generate_phase4_teses: PDF grande (%d páginas), enviando primeiras %d",
+                                  _pages, _MAX_PAGES_F4)
+                    pdf_block = self.get_pdf_content(_con_path, page_range=_range)
                     if pdf_block:
                         content_blocks.append(pdf_block)
             except Exception:
