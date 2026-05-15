@@ -224,8 +224,10 @@ def run_autopreenchimento(engine) -> str:
         # Extrair Markdown estruturado dos PDFs (usado por ambos os modos)
         markdown_texts = {}
         _con = _p(parecer.consolidado_pdf_path)
+        logger.info(f"[FASE1_AUTO] parecer={parecer.id} consolidado_path={_con}")
         if _con and "upload_simulado" not in _con:
             md = PDFExtractor.extract_structured_markdown(_con, label="CONSOLIDADO")
+            logger.info(f"[FASE1_AUTO] parecer={parecer.id} markdown_len={len(md) if md else 0}")
             if md:
                 markdown_texts['consolidado'] = md
 
@@ -245,8 +247,10 @@ def run_autopreenchimento(engine) -> str:
             dados = AnthropicClient().extract_unified_fase1_fase2(
                 parecer, markdown_texts, contexto_datas, pdf_chars=_total_chars
             )
+            if not dados:
+                logger.error(f"[FASE1_AUTO] parecer={parecer.id} extract_unified retornou None — API pode ter falhado")
     except Exception as e:
-        logger.warning(f"run_fase1_autopreenchimento: erro na extração ({e}). Fallback manual.")
+        logger.error(f"[FASE1_AUTO] parecer={parecer.id} ERRO na extração: {type(e).__name__}: {e}")
         dados = None
 
     if not dados:
