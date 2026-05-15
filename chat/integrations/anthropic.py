@@ -371,32 +371,51 @@ class AnthropicClient:
 
         content_blocks.append({"type": "text", "text": prompt_text})
 
-        try:
-            from chat.tier import get_models_for_parecer
-            _tier_models = get_models_for_parecer(parecer_obj)
-            start_time = time.time()
-            _model = _tier_models['anthropic_f3']
-            response = self.client.messages.create(
-                model=_model,
-                max_tokens=4096,
-                system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
-                messages=[{"role": "user", "content": content_blocks}],
-            )
-            raw_text = response.content[0].text.strip()
-            if raw_text.startswith('```'):
-                raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
-                if raw_text.endswith('```'):
-                    raw_text = raw_text[:-3].strip()
+        # Retry com backoff para erros transientes (timeout, 429, 5xx)
+        from chat.tier import get_models_for_parecer
+        _tier_models = get_models_for_parecer(parecer_obj)
+        _model = _tier_models['anthropic_f3']
+        _max_attempts = 3
+        _last_err = None
 
-            dados = _extract_json_block(raw_text)
-            self._log_tokens(
-                parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
-                'Fase 2 (DIR)', model_name=_model, start_time=start_time,
-            )
-            return dados
-        except Exception as e:
-            _log.warning("generate_phase2_report falhou parecer=%s: %s", getattr(parecer_obj, 'id', '?'), e)
-            return {'erro': str(e), 'tabela_markdown': "⚠️ **Não foi possível processar os documentos com a IA.** Por favor, use o botão \"Corrigir\" para tentar novamente."}
+        for _attempt in range(1, _max_attempts + 1):
+            try:
+                start_time = time.time()
+                response = self.client.messages.create(
+                    model=_model,
+                    max_tokens=4096,
+                    system=[{"type": "text", "text": system_instruction, "cache_control": {"type": "ephemeral"}}],
+                    messages=[{"role": "user", "content": content_blocks}],
+                )
+                raw_text = response.content[0].text.strip()
+                if raw_text.startswith('```'):
+                    raw_text = raw_text.split('\n', 1)[1] if '\n' in raw_text else raw_text[3:]
+                    if raw_text.endswith('```'):
+                        raw_text = raw_text[:-3].strip()
+
+                dados = _extract_json_block(raw_text)
+                self._log_tokens(
+                    parecer_obj, response.usage.input_tokens, response.usage.output_tokens,
+                    'Fase 2 (DIR)', model_name=_model, start_time=start_time,
+                )
+                return dados
+            except Exception as e:
+                _last_err = e
+                err_str = str(e)
+                _transient = ('rate_limit', 'RateLimitError', '429', '529', '502', '503', '504',
+                              'overloaded', 'ServerError', 'InternalServerError', 'APIConnectionError',
+                              'timeout', 'Timeout', 'DEADLINE_EXCEEDED')
+                if _attempt < _max_attempts and any(m in err_str for m in _transient):
+                    _wait = _attempt * 15
+                    _log.warning("generate_phase2_report tentativa %d/%d falhou (transiente), retry em %ds: %s",
+                                 _attempt, _max_attempts, _wait, err_str)
+                    time.sleep(_wait)
+                    continue
+                break
+
+        _log.warning("generate_phase2_report falhou parecer=%s após %d tentativas: %s",
+                     getattr(parecer_obj, 'id', '?'), _max_attempts, _last_err)
+        return {'erro': str(_last_err), 'tabela_markdown': "⚠️ **Não foi possível processar os documentos com a IA.** Por favor, use o botão \"Corrigir\" para tentar novamente."}
 
     def generate_phase3_report(self, parecer_obj, matematica_detalhes):
         """Fase 3 — Avaliação de admissibilidade (tempestividade/prescrição/decadência)."""
