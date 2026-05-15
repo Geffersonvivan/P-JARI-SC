@@ -48,18 +48,22 @@ def _extract_json_block(text):
 
 
 def _retry_on_rate_limit(fn, max_retries=4, base_delay=20):
-    """Retry com backoff para chamadas LLM que batem rate limit (429).
+    """Retry com backoff para chamadas LLM que batem rate limit (429) ou erros transientes (5xx, timeout).
     Delays: 20s, 40s, 60s, 80s — janela de rate limit é 1 min."""
     import time
+    _transient_markers = ('rate_limit', 'RateLimitError', '429', '529', '502', '503', '504',
+                          'overloaded', 'ServerError', 'InternalServerError', 'APIConnectionError',
+                          'timeout', 'Timeout', 'DEADLINE_EXCEEDED')
     for attempt in range(max_retries + 1):
         try:
             return fn()
         except Exception as e:
             err_str = str(e)
-            is_rate_limit = any(m in err_str for m in ('rate_limit', 'RateLimitError', '429'))
-            if is_rate_limit and attempt < max_retries:
+            is_transient = any(m in err_str for m in _transient_markers)
+            if is_transient and attempt < max_retries:
                 delay = base_delay * (attempt + 1)
-                _log.warning("Rate limit (tentativa %d/%d), aguardando %ds", attempt + 1, max_retries, delay)
+                _log.warning("Erro transiente (tentativa %d/%d), aguardando %ds: %s",
+                             attempt + 1, max_retries, delay, err_str[:200])
                 time.sleep(delay)
             else:
                 raise
