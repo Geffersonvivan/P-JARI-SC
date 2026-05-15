@@ -1053,7 +1053,7 @@ class AnthropicClient:
             "Sua única função é realizar um checklist sobre o Parecer Final submetido, cruzando a compatibilidade narrativa do Relator com a tabela matemática anterior.\n\n"
             "REGRA DE OURO (SOBERANIA DA MATEMÁTICA OBRIGATÓRIA):\n"
             "Não tente recalcular a tempestividade do recurso subtraindo ou somando dias de notificações citadas no texto. "
-            "Apenas valide se a conclusão do Relator (Tempestivo/Intempestivo) bate com o resultado da Matemática Obrigatória fornecida no prompt. Se o resultado for SIM (TEMPESTIVO), e o texto falar tempestivo, a nota é 🟢 Conforme. ATENÇÃO MÁXIMA: Se a Matemática acusar Prescrição ou Decadência como SIM, o fato de ser Intempestivo perde a relevância (matéria de ordem pública prevalece), devendo a tempestividade ser considerada 🟢 Conforme se o texto a apontar como prejudicada.\n\n"
+            "Apenas valide se a conclusão do Relator (Tempestivo/Intempestivo) bate com o resultado da Matemática Obrigatória fornecida no prompt. Se o resultado for SIM (TEMPESTIVO), e o texto falar tempestivo, a nota é 🟢 Conforme. ATENÇÃO MÁXIMA: Se a Matemática acusar Prescrição (punitiva, intercorrente trienal OU bienal) ou Decadência como SIM, o fato de ser Intempestivo perde a relevância (matéria de ordem pública prevalece), devendo a tempestividade ser considerada 🟢 Conforme se o texto a apontar como prejudicada.\n\n"
             "A Auditoria final apresentada deve ser FORMATADA EXCLUSIVAMENTE EM MARKDOWN (NÃO USE NENHUMA TAG HTML) DE FORMA CLARA, OBJETIVA, DIRETA E VISUALMENTE ATRATIVA.\n"
             "OBRIGATÓRIO: Pule linha DUPLA (\\n\\n) no final de cada item de validação do checklist, para que eles não fiquem aglomerados em um único parágrafo.\n"
             "Classifique de forma estrita cada um dos blocos abaixo. Use ícones ricos como 🟢, 🔴, ⚠️.\n"
@@ -1063,17 +1063,21 @@ class AnthropicClient:
             "2. Conformidade das datas (infração, julgamento)\n"
             "3. Tempestividade narrativa\n"
             "4. Prescrição punitiva aplicada\n"
-            "5. Prescrição intercorrente trienal\n"
+            "5. Prescrição intercorrente trienal (3 anos)\n"
+            "5b. Prescrição intercorrente bienal (2 anos — art. 285 §6º c/c art. 289-A CTB, protocolos a partir de 01/01/2024)\n"
             "6. Decadência\n"
             "7. Análise correta das teses (Se cabível)\n"
-            "8. Compatibilidade lógica entre fundamentação e RESULTADO (Criticamente importante)\n"
+            "8. Compatibilidade lógica entre fundamentação e RESULTADO (Criticamente importante). "
+            "ATENÇÃO: quando a prescrição intercorrente bienal for SIM, o fundamento correto é EXTINÇÃO DA PRETENSÃO PUNITIVA (não anulação).\n"
             "9. Citação normativa presente\n"
-            "10. Ausência de inovação (Sem invencionices textuais)\n"
+            "10. Ausência de inovação (Sem invencionices textuais). "
+            "ATENÇÃO: A prescrição intercorrente bienal É um instituto válido da Matemática Obrigatória quando informado nos campos soberanos abaixo — NÃO é inovação.\n"
         )
 
         _ef_temp  = parecer_obj.julgador_tempestivo               if parecer_obj.julgador_tempestivo               is not None else parecer_obj.is_tempestivo
         _ef_punit = parecer_obj.julgador_prescricao_punitiva      if parecer_obj.julgador_prescricao_punitiva      is not None else parecer_obj.has_prescricao_punitiva
         _ef_inter = parecer_obj.julgador_prescricao_intercorrente if parecer_obj.julgador_prescricao_intercorrente is not None else parecer_obj.has_prescricao_intercorrente
+        _ef_inter_b = parecer_obj.julgador_prescricao_intercorrente_bienal if parecer_obj.julgador_prescricao_intercorrente_bienal is not None else parecer_obj.has_prescricao_intercorrente_bienal
         _ef_decad = parecer_obj.julgador_decadencia               if parecer_obj.julgador_decadencia               is not None else parecer_obj.has_decadencia
 
         data_protocolo_str = parecer_obj.data_protocolo.strftime('%d/%m/%Y') if parecer_obj.data_protocolo else "Não informada"
@@ -1086,6 +1090,7 @@ class AnthropicClient:
             f"Tempestividade: {'DENTRO DO PRAZO (TEMPESTIVO)' if _ef_temp else 'FORA DO PRAZO (INTEMPESTIVO)'}\n"
             f"Prescrição Punitiva: {'SIM' if _ef_punit else 'NÃO'}\n"
             f"Intercorrente Trienal: {'SIM' if _ef_inter else 'NÃO'}\n"
+            f"Intercorrente Bienal: {'SIM' if _ef_inter_b else 'NÃO'}\n"
             f"Decadência: {'SIM' if _ef_decad else 'NÃO'}\n\n"
             f"--- PARECER REDIGIDO PELA FASE 5 (O ALVO DA AUDITORIA) ---\n"
             f"{parecer_obj.parecer_final}\n\n"
