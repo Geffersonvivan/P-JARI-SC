@@ -274,9 +274,12 @@ class AnthropicClient:
             "Cruze as origens. Retorne o JSON conforme instruções."
         )
 
-        # Montar content blocks: PDFs base64 + texto
-        # Se o PDF tem muitas páginas (>70), divide em lotes para caber no limite de 200k tokens.
-        # ~2300 tokens/página escaneada → 70 páginas ≈ 161k tokens + prompt ≈ 170k (seguro).
+        # ── Decidir se envia PDF base64 ou só o markdown ──
+        # O markdown extraído via PyMuPDF (~108k chars para 91 páginas) já contém todo o texto.
+        # Enviar PDF base64 JUNTO com markdown estoura o limite de 200k tokens.
+        # Só envia PDF base64 quando o markdown for insuficiente (< 2000 chars = scan sem OCR).
+        _md_chars = len(docs_markdown)
+        _need_pdf_vision = _md_chars < 2000
         _MAX_PAGES_PER_CALL = 70
 
         from chat.integrations.perplexity import _p
@@ -284,7 +287,7 @@ class AnthropicClient:
         _con_path = _p(parecer_obj.consolidado_pdf_path)
         _total_pages = 0
         _pdf_available = False
-        if _con_path and "upload_simulado" not in _con_path:
+        if _need_pdf_vision and _con_path and "upload_simulado" not in _con_path:
             try:
                 if default_storage.exists(_con_path):
                     _total_pages = self._get_pdf_page_count(_con_path)
@@ -292,9 +295,9 @@ class AnthropicClient:
             except Exception:
                 pass
 
-        _log.info("extract_unified_anthropic parecer=%s docs=%s total_chars=%d pdf_pages=%d",
+        _log.info("extract_unified_anthropic parecer=%s docs=%s md_chars=%d pdf_pages=%d need_vision=%s",
                   parecer_obj.id, list(markdown_texts.keys()) if markdown_texts else [],
-                  len(docs_markdown), _total_pages)
+                  _md_chars, _total_pages, _need_pdf_vision)
 
         from chat.tier import get_models_for_parecer
         _tier_models = get_models_for_parecer(parecer_obj)
@@ -325,9 +328,9 @@ class AnthropicClient:
         try:
             start_time = time.time()
 
-            if _pdf_available and _total_pages > _MAX_PAGES_PER_CALL:
-                # ── PDF grande: dividir em lotes ──
-                _log.info("extract_unified_anthropic: PDF grande (%d páginas), dividindo em lotes de %d",
+            if _need_pdf_vision and _pdf_available and _total_pages > _MAX_PAGES_PER_CALL:
+                # ── PDF scan grande sem texto: dividir em lotes visuais ──
+                _log.info("extract_unified_anthropic: PDF scan grande (%d páginas), dividindo em lotes de %d",
                           _total_pages, _MAX_PAGES_PER_CALL)
                 all_results = []
                 for batch_start in range(0, _total_pages, _MAX_PAGES_PER_CALL):
@@ -346,7 +349,6 @@ class AnthropicClient:
                     _log.info("extract_unified_anthropic: lote pág %d-%d OK parecer=%s",
                               batch_start + 1, batch_end, parecer_obj.id)
 
-                # Mesclar resultados: primeiro lote é base, lotes seguintes preenchem campos vazios
                 if not all_results:
                     _log.warning("extract_unified_anthropic: todos os lotes falharam parecer=%s", parecer_obj.id)
                     return None
@@ -358,7 +360,6 @@ class AnthropicClient:
                 for extra in all_results[1:]:
                     for k, v in extra.items():
                         if k == 'tabela_markdown':
-                            # Concatenar tabelas de todos os lotes
                             existing = merged.get('tabela_markdown', '')
                             new_table = v or ''
                             if new_table and new_table not in existing:
@@ -373,9 +374,9 @@ class AnthropicClient:
                 return merged
 
             else:
-                # ── PDF normal: chamada única ──
+                # ── Chamada única: só markdown (texto suficiente) ou PDF pequeno ──
                 content_blocks = []
-                if _pdf_available:
+                if _need_pdf_vision and _pdf_available:
                     pdf_block = self.get_pdf_content(_con_path)
                     if pdf_block:
                         content_blocks.append(pdf_block)
