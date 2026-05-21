@@ -169,7 +169,7 @@ class GeminiClient:
                 err_str = str(e)
                 _transient = (
                     isinstance(e, TimeoutError)
-                    or any(x in err_str for x in ('503', '504', '429', 'UNAVAILABLE', 'overloaded', 'Too Many Requests', 'DEADLINE_EXCEEDED'))
+                    or any(x in err_str for x in ('403', '503', '504', '429', 'UNAVAILABLE', 'overloaded', 'Too Many Requests', 'DEADLINE_EXCEEDED', 'Forbidden'))
                 )
                 if _transient and not is_last:
                     delay = _RETRY_DELAYS[min(attempt, len(_RETRY_DELAYS) - 1)]
@@ -893,18 +893,15 @@ class GeminiClient:
             from chat.tier import get_models_for_parecer
             _tier_models = get_models_for_parecer(parecer_obj)
             start_time = time.time()
-            # PDF com texto limitado (< 2000 chars): proíbe downgrade para 2.0-flash
-            # pois ele não consegue extrair datas de PDFs corrompidos via visão.
-            # retry_preferred=2 tenta 2.5-flash até 3x antes de desistir.
+            # PDF com texto limitado: tenta modelo preferido com fallback para 2.0-flash.
+            # 2.5-flash pode retornar 403 no free tier; 2.0-flash funciona sem billing.
+            _preferred = _tier_models['gemini_f2']
+            _fallback  = 'gemini-2.0-flash'
             if pdf_chars < 2000:
-                _preferred = _tier_models['gemini_f2']
-                _fallback  = _tier_models['gemini_f2']  # sem downgrade
-                _retries   = 2
-                _log.warning(f"[FASE2] PDF limitado ({pdf_chars} chars) — forçando {_preferred} sem fallback para 2.0-flash")
+                _retries = 2
+                _log.warning(f"[FASE2] PDF limitado ({pdf_chars} chars) — {_preferred} com fallback {_fallback}")
             else:
-                _preferred = _tier_models['gemini_f2']
-                _fallback  = _tier_models['gemini_f2']
-                _retries   = 1
+                _retries = 1
             response, _ = self._call_with_fallback(
                 _preferred, _fallback,
                 contents,

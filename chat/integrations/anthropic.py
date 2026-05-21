@@ -174,6 +174,37 @@ class AnthropicClient:
             _log.error("Anthropic PDF encoding error: %s", e)
             return None
 
+    def _pdf_to_image_blocks(self, file_path, max_pages=20, dpi=150):
+        """Converte páginas do PDF em blocos de imagem JPEG para a API Anthropic.
+        Usado quando o PDF é escaneado (0 chars) e muito grande para base64 PDF."""
+        from django.core.files.storage import default_storage
+        try:
+            import io
+            import fitz  # PyMuPDF
+            with default_storage.open(file_path, 'rb') as f:
+                doc = fitz.open(stream=f.read(), filetype='pdf')
+            pages_to_render = min(len(doc), max_pages)
+            blocks = []
+            for i in range(pages_to_render):
+                mat = fitz.Matrix(dpi / 72, dpi / 72)
+                pix = doc[i].get_pixmap(matrix=mat)
+                img_bytes = pix.tobytes("jpeg", jpg_quality=75)
+                img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+                blocks.append({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/jpeg",
+                        "data": img_b64,
+                    }
+                })
+            doc.close()
+            _log.info("_pdf_to_image_blocks: %d páginas renderizadas (%s)", pages_to_render, file_path)
+            return blocks
+        except Exception as e:
+            _log.warning("_pdf_to_image_blocks falhou (%s): %s", file_path, e)
+            return None
+
     def _get_pdf_page_count(self, file_path):
         """Retorna o número de páginas do PDF."""
         from django.core.files.storage import default_storage
@@ -441,33 +472,31 @@ class AnthropicClient:
             "Retorne o JSON conforme instruções: campos estruturados + tabela_markdown completa."
         )
 
-        # Montar content blocks: PDFs base64 apenas se texto extraído for limitado
-        # (< 2000 chars = PDF ilegível, precisa visão). Caso contrário, o texto em
-        # contexto_textual_datas já contém todas as datas e enviar PDFs base64 de 7MB+
-        # desperdiça tokens e causa rate limit.
-        # Para PDFs grandes (>70 páginas), envia apenas as primeiras 70 para caber no limite
-        # de 200k tokens — as datas-chave da F2 (infração, notificação, protocolo) estão
-        # tipicamente nas primeiras páginas.
-        _MAX_PAGES_F2 = 70
+        # Montar content blocks: PDFs apenas se texto extraído for limitado
+        # (< 2000 chars = PDF ilegível, precisa visão). PDFs escaneados grandes
+        # (>5MB base64) causam 413 na Anthropic, então convertemos páginas em
+        # imagens JPEG — cada página fica ~100-200KB vs 26MB+ do PDF inteiro.
+        _MAX_PAGES_F2 = 20  # primeiras 20 páginas bastam para datas da F2
         content_blocks = []
         if pdf_chars < 2000:
-            _log.info("generate_phase2_report: pdf_chars=%d < 2000 — enviando PDFs base64", pdf_chars)
+            _log.info("generate_phase2_report: pdf_chars=%d < 2000 — enviando visão do PDF", pdf_chars)
             from chat.integrations.perplexity import _p
             from django.core.files.storage import default_storage
             _con_path = _p(parecer_obj.consolidado_pdf_path)
             if _con_path and "upload_simulado" not in _con_path:
                 try:
                     if default_storage.exists(_con_path):
-                        _pages = self._get_pdf_page_count(_con_path)
-                        _range = (0, _MAX_PAGES_F2) if _pages > _MAX_PAGES_F2 else None
-                        if _range:
-                            _log.info("generate_phase2_report: PDF grande (%d páginas), enviando primeiras %d",
-                                      _pages, _MAX_PAGES_F2)
-                        pdf_block = self.get_pdf_content(_con_path, page_range=_range)
-                        if pdf_block:
-                            content_blocks.append(pdf_block)
-                except Exception:
-                    pass
+                        img_blocks = self._pdf_to_image_blocks(_con_path, max_pages=_MAX_PAGES_F2)
+                        if img_blocks:
+                            content_blocks.extend(img_blocks)
+                            _log.info("generate_phase2_report: enviando %d páginas como imagens JPEG", len(img_blocks))
+                        else:
+                            # Fallback: tenta PDF base64 (pode dar 413 em PDFs grandes)
+                            pdf_block = self.get_pdf_content(_con_path, page_range=(0, _MAX_PAGES_F2))
+                            if pdf_block:
+                                content_blocks.append(pdf_block)
+                except Exception as e:
+                    _log.warning("generate_phase2_report: erro ao preparar visão do PDF: %s", e)
 
         content_blocks.append({"type": "text", "text": prompt_text})
 
