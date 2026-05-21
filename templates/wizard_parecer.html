@@ -2021,8 +2021,15 @@ function injectCopyButtons() {
         { label: 'Ementa',          from: 'EMENTA',           to: 'RELAT\u00d3RIO', skipTitle: true },
         { label: 'Relat\u00f3rio',  from: 'RELAT\u00d3RIO',  to: ['FUNDAMENTA\u00c7\u00c3O JUR\u00cdDICA', 'ADMISSIBILIDADE'], skipTitle: true },
         { label: 'Fundamenta\u00e7\u00e3o', from: 'ADMISSIBILIDADE', to: ['PARECER FINAL', 'VOTO'], trimClosing: true },
-        { label: 'Voto',            from: ['PARECER FINAL', 'VOTO'], to: null },
+        { label: 'Voto',            from: ['PARECER FINAL', 'VOTO'], to: null, skipTitle: true, appendSignature: true },
     ];
+    const _nomeRelator = "{{ nome_usuario|escapejs }}";
+    const _signatureHtml = '<p style="text-align:center">______________________</p>'
+        + '<p style="text-align:center"><em>[Assinado digitalmente]</em></p>'
+        + '<p style="text-align:center"><strong>' + _nomeRelator.toUpperCase() + '</strong></p>'
+        + '<p style="text-align:center"><strong>Relator \u2013 JARI REGIONAL DE CHAPEC\u00d3</strong></p>';
+    const _signatureText = '\n\n______________________\n[Assinado digitalmente]\n'
+        + _nomeRelator.toUpperCase() + '\nRelator \u2013 JARI REGIONAL DE CHAPEC\u00d3';
     const _closingRe = /^(este \u00e9 o relat\u00f3rio|essa \u00e9 a fundamenta\u00e7\u00e3o)\.?$/i;
 
     function isSection(txt) {
@@ -2093,8 +2100,10 @@ function injectCopyButtons() {
                 setTimeout(() => { btn.innerHTML = '<i class="ph ph-copy" style="font-size:13px;"></i> ' + cfg.label; }, 1500);
                 return;
             }
-            const blob = new Blob([result.html], { type: 'text/html' });
-            const blobText = new Blob([result.text], { type: 'text/plain' });
+            const finalHtml = cfg.appendSignature ? result.html + _signatureHtml : result.html;
+            const finalText = cfg.appendSignature ? result.text + _signatureText : result.text;
+            const blob = new Blob([finalHtml], { type: 'text/html' });
+            const blobText = new Blob([finalText], { type: 'text/plain' });
             navigator.clipboard.write([new ClipboardItem({ 'text/html': blob, 'text/plain': blobText })]).then(() => {
                 btn.innerHTML = '<i class="ph ph-check" style="font-size:13px;color:#16a34a;"></i> Copiado!';
                 btn.classList.add('border-green-300', 'text-green-700', 'bg-green-50');

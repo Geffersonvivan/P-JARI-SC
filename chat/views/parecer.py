@@ -49,6 +49,8 @@ def editar_parecer_view(request, id):
         config = ConfiguracaoParecer.objects.first()
         cache.set('configuracao_parecer', config, timeout=3600)
 
+    nome_usuario = request.user.get_full_name() or request.user.username if request.user.is_authenticated else "Visitante"
+
     # ParecerFinal = versão HTML editada no TinyMCE (tem prioridade)
     # parecer_final = saída markdown bruta da IA (fallback)
     parecer_final_db = parecer.pareceres_finais.order_by('-data_criacao').first()
@@ -73,7 +75,6 @@ def editar_parecer_view(request, id):
             rodape_texto = rodape_texto.replace('{{. }}', palavra_resultado).replace('{{.}}', palavra_resultado)
             rodape_texto = rodape_texto.replace('{{ }}', palavra_resultado).replace('{{}}', palavra_resultado)
 
-            nome_usuario = request.user.get_full_name() or request.user.username if request.user.is_authenticated else "Visitante"
             rodape_template = Template(rodape_texto)
             rodape_escolhido = rodape_template.render(Context({
                 'nome_membro': nome_usuario,
@@ -190,7 +191,8 @@ def editar_parecer_view(request, id):
         'config': config,
         'banco_teses': banco_teses,
         'teses_comunidade': teses_comunidade,
-        'dynamic_chips': dynamic_chips
+        'dynamic_chips': dynamic_chips,
+        'nome_usuario': nome_usuario,
     })
 
 
