@@ -299,6 +299,23 @@ def run(engine) -> str:
 
     resultado = anthropic.generate_phase2_report(parecer, contexto_textual_datas, pdf_chars=_total_chars)
 
+    # ── Fallback Gemini: se Anthropic falhou, tenta via Gemini Files API ─────
+    # Gemini usa upload nativo do PDF (Files API), melhor para PDFs escaneados
+    # do que base64 do Anthropic — especialmente quando chars extraídos = 0.
+    if isinstance(resultado, dict) and 'erro' in resultado:
+        logger.warning(f"[FASE2] Anthropic falhou — tentando fallback Gemini — parecer={parecer.id}")
+        try:
+            from chat.integrations import GeminiClient
+            gemini = GeminiClient()
+            resultado_gemini = gemini.generate_phase2_report(parecer, contexto_textual_datas, pdf_chars=_total_chars)
+            if isinstance(resultado_gemini, dict) and 'erro' not in resultado_gemini:
+                resultado = resultado_gemini
+                logger.info(f"[FASE2] Fallback Gemini bem-sucedido — parecer={parecer.id}")
+            else:
+                logger.warning(f"[FASE2] Fallback Gemini também falhou — parecer={parecer.id}")
+        except Exception as e:
+            logger.warning(f"[FASE2] Fallback Gemini exception — parecer={parecer.id}: {e}")
+
     # ── Extração de campos estruturados (JSON) ────────────────────────────────
     # generate_phase2_report retorna dict via response_schema — sem regex frágil.
     _aviso_consistencia_f2 = ""

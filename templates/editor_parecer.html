@@ -330,8 +330,8 @@
             /* 4 botões: Ementa, Relatório, Fundamentação (agrupada), Voto */
             const BUTTONS = [
                 { label: 'Ementa',        from: 'EMENTA',            to: 'RELAT\u00d3RIO', skipTitle: true },
-                { label: 'Relat\u00f3rio', from: 'RELAT\u00d3RIO',  to: ['FUNDAMENTA\u00c7\u00c3O JUR\u00cdDICA', 'ADMISSIBILIDADE'], skipTitle: true, trimClosing: true },
-                { label: 'Fundamenta\u00e7\u00e3o', from: ['FUNDAMENTA\u00c7\u00c3O JUR\u00cdDICA', 'ADMISSIBILIDADE'], to: ['PARECER FINAL', 'VOTO'], trimClosing: true },
+                { label: 'Relat\u00f3rio', from: 'RELAT\u00d3RIO',  to: ['FUNDAMENTA\u00c7\u00c3O JUR\u00cdDICA', 'ADMISSIBILIDADE'], skipTitle: true },
+                { label: 'Fundamenta\u00e7\u00e3o', from: 'ADMISSIBILIDADE', to: ['PARECER FINAL', 'VOTO'], trimClosing: true },
                 { label: 'Voto',          from: ['PARECER FINAL', 'VOTO'],     to: null },
             ];
 
@@ -349,25 +349,29 @@
                 return null;
             }
 
-            function getRangeText(fromKey, toKey, skipTitle, trimClosing) {
+            function _collectRange(fromKey, toKey, skipTitle, trimClosing) {
                 var body = editor.getBody();
                 var startNode = findSectionNode(body, fromKey);
                 if (!startNode) return null;
                 var endNode = toKey ? findSectionNode(body, toKey) : null;
                 var block = startNode.closest('p') || startNode.parentElement;
                 var endBlock = endNode ? (endNode.closest('p') || endNode.parentElement) : null;
-                var parts = [];
+                var textParts = [];
+                var htmlParts = [];
                 var node = skipTitle ? block.nextElementSibling : block;
                 while (node) {
                     if (endBlock && node === endBlock) break;
                     if (node.textContent) {
                         var line = node.textContent.trim();
                         if (trimClosing && _closingRe.test(line)) { node = node.nextElementSibling; continue; }
-                        parts.push(line);
+                        textParts.push(line);
+                        htmlParts.push(node.outerHTML);
                     }
                     node = node.nextElementSibling;
                 }
-                return parts.join('\n').trim();
+                var text = textParts.join('\n').trim();
+                var html = htmlParts.join('');
+                return text ? { text: text, html: html } : null;
             }
 
             var bar = document.getElementById('copy-section-bar');
@@ -393,13 +397,15 @@
                 btn.className = 'px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition flex items-center gap-1';
                 btn.innerHTML = copyIcon + cfg.label;
                 btn.onclick = function() {
-                    var text = getRangeText(cfg.from, cfg.to, cfg.skipTitle, cfg.trimClosing);
-                    if (!text) {
+                    var result = _collectRange(cfg.from, cfg.to, cfg.skipTitle, cfg.trimClosing);
+                    if (!result) {
                         btn.innerHTML = errIcon + 'N\u00e3o encontrada';
                         setTimeout(function(){ btn.innerHTML = copyIcon + cfg.label; }, 1500);
                         return;
                     }
-                    navigator.clipboard.writeText(text).then(function() {
+                    var blob = new Blob([result.html], { type: 'text/html' });
+                    var blobText = new Blob([result.text], { type: 'text/plain' });
+                    navigator.clipboard.write([new ClipboardItem({ 'text/html': blob, 'text/plain': blobText })]).then(function() {
                         btn.innerHTML = okIcon + 'Copiado!';
                         btn.classList.add('border-green-300', 'text-green-700', 'bg-green-50');
                         setTimeout(function() {
